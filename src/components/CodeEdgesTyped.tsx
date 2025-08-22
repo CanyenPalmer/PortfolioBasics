@@ -1,3 +1,6 @@
+# create the file with the correct name (if missing)
+mkdir -p src/components
+cat > src/components/CodeEdgesTyped.tsx << 'EOF'
 "use client";
 import AnimatedCodeLine from "./AnimatedCodeLine";
 
@@ -100,4 +103,4 @@ export default function CodeEdgesTyped({
     </div>
   );
 }
-
+EOF
