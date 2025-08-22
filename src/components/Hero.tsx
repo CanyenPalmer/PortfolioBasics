@@ -63,18 +63,29 @@ export default function Hero() {
           </div>
         </motion.div>
 
-        {/* RIGHT COLUMN — Headshot */}
+        {/* RIGHT COLUMN — Headshot (tall as left column, width kept consistent) */}
         <motion.div
           initial={{ opacity: 0, x: 30 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6 }}
           className="flex items-center justify-center h-full"
         >
-          <div className="w-full h-full flex items-center justify-center">
+          {/* Stable frame: matches row height (h-full) and keeps a consistent width */}
+          <div
+            className="
+              relative
+              h-full
+              w-full md:w-[min(46vw,620px)] max-w-full
+              overflow-hidden rounded-2xl shadow-lg ring-1 ring-white/15
+              flex items-center justify-center
+            "
+          >
+            {/* Image fills the frame: will be as tall as the left column content */}
             <img
               src={hero.headshot}
               alt="Headshot of Canyen Palmer"
-              className="object-cover w-full h-full max-h-[600px] rounded-2xl shadow-lg"
+              loading="eager"
+              className="w-full h-full object-cover"
             />
           </div>
         </motion.div>
@@ -82,4 +93,3 @@ export default function Hero() {
     </section>
   );
 }
-
