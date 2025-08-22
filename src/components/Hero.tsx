@@ -74,7 +74,7 @@ export default function Hero() {
             <img
               src={hero.headshot}
               alt="Headshot of Canyen Palmer"
-              className="object-cover w-full h-full max-h-[600px] rounded-2xl shadow-lg"
+              className="object-cover w-full h-full max-h-[1000px] rounded-2xl shadow-lg"
             />
           </div>
         </motion.div>
