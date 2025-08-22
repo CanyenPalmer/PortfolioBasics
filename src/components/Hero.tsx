@@ -2,13 +2,13 @@
 
 import { motion } from "framer-motion";
 import { hero } from "@/content/hero.data";
-import CodeEdgesTyped from "@/components/CodeEdgesTyped";
+import CodeEdgesTyped from "./CodeEdgesTyped"; // ✅ relative import
 
 export default function Hero() {
   return (
     <section className="relative w-full min-h-screen flex items-center justify-center px-6 md:px-12">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch w-full max-w-6xl">
-        {/* LEFT COLUMN */}
+        {/* LEFT COLUMN — Text */}
         <div className="relative">
           <motion.div
             initial={{ opacity: 0, x: -30 }}
@@ -23,29 +23,46 @@ export default function Hero() {
               {hero.subheadline}
             </p>
 
+            {/* Skills snapshot */}
             <div className="mt-6 space-y-3 text-sm text-white/70">
-              <p><span className="font-semibold">Proficiency:</span> {hero.skills.proficiency.join(", ")}</p>
-              <p><span className="font-semibold">Familiarities:</span> {hero.skills.familiarity.join(", ")}</p>
-              <p><span className="font-semibold">Tech Stack:</span> {hero.skills.techStack.join(", ")}</p>
+              <p>
+                <span className="font-semibold">Proficiency:</span>{" "}
+                {hero.skills.proficiency.join(", ")}
+              </p>
+              <p>
+                <span className="font-semibold">Familiarities:</span>{" "}
+                {hero.skills.familiarity.join(", ")}
+              </p>
+              <p>
+                <span className="font-semibold">Tech Stack:</span>{" "}
+                {hero.skills.techStack.join(", ")}
+              </p>
             </div>
 
-            <p className="mt-6 text-white/70 max-w-[70ch] break-words">{hero.personal}</p>
+            {/* Personal blurb */}
+            <p className="mt-6 text-white/70 max-w-[70ch] break-words">
+              {hero.personal}
+            </p>
 
+            {/* CTA Buttons */}
             <div className="mt-8 flex gap-4">
               {hero.ctas.map((cta, i) => (
-                <a key={i} href={cta.href}
-                   className={`px-5 py-3 rounded-xl font-medium transition ${
-                     cta.variant === "primary"
-                       ? "bg-blue-600 hover:bg-blue-700 text-white"
-                       : "border border-white/30 hover:bg-white/10 text-white"
-                   }`}>
+                <a
+                  key={i}
+                  href={cta.href}
+                  className={`px-5 py-3 rounded-xl font-medium transition ${
+                    cta.variant === "primary"
+                      ? "bg-blue-600 hover:bg-blue-700 text-white"
+                      : "border border-white/30 hover:bg-white/10 text-white"
+                  }`}
+                >
                   {cta.label}
                 </a>
               ))}
             </div>
           </motion.div>
 
-          {/* Typed code surrounding LEFT column */}
+          {/* Animated code edges — LEFT column */}
           <CodeEdgesTyped
             gap={24}
             strip={20}
@@ -54,21 +71,18 @@ export default function Hero() {
             top={[
               { text: "import pandas as pd" },
               { text: "df = pd.read_csv('golf_stats.csv')" },
-              { text: "df.head()" },
             ]}
             bottom={[
               { text: "from sklearn.model_selection import train_test_split" },
-              { text: "X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2)" },
             ]}
             left={[
               { text: "SELECT hole, avg(strokes) FROM rounds GROUP BY hole;" },
-              { text: "WITH sg AS (SELECT * FROM strokes_gained) SELECT player, ROUND(AVG(val),3) sg FROM sg GROUP BY player;" },
             ]}
             right={[]}
           />
         </div>
 
-        {/* RIGHT COLUMN — Headshot (taller, width consistent) */}
+        {/* RIGHT COLUMN — Headshot */}
         <div className="relative">
           <motion.div
             initial={{ opacity: 0, x: 30 }}
@@ -86,7 +100,7 @@ export default function Hero() {
             </div>
           </motion.div>
 
-          {/* Typed code surrounding RIGHT column (vertical rail via 'left' strip) */}
+          {/* Animated code edges — RIGHT column */}
           <CodeEdgesTyped
             gap={24}
             strip={20}
@@ -94,16 +108,14 @@ export default function Hero() {
             opacityClass="text-white/25"
             top={[
               { text: "df.groupby('hole')['strokes'].mean()" },
-              { text: "statsmodels.api as sm" },
             ]}
             bottom={[
               { text: "from sklearn.metrics import roc_auc_score" },
               { text: "auc = roc_auc_score(y_te, model.predict_proba(X_te)[:,1])" },
             ]}
             left={[
-              { text: "model = RandomForestClassifier(n_estimators=300, random_state=42)" },
+              { text: "model = RandomForestClassifier(n_estimators=300)" },
               { text: "model.fit(X_tr, y_tr)" },
-              { text: "y_prob = model.predict_proba(X_te)[:,1]" },
             ]}
             right={[
               { text: "precision_at_k(y_te, y_prob, k=0.1)" },
