@@ -1,99 +1,105 @@
 "use client";
-import { motion, useReducedMotion } from "framer-motion";
+import React from "react";
+import AnimatedCodeLine from "./AnimatedCodeLine";
 
+type Edge = "top" | "right" | "bottom" | "left";
+type Line = { text: string; delay?: number };
 
-type Snip = { text: string; align?: "start" | "center" | "end" };
+export default function CodeEdgesTyped({
+  top = [],
+  right = [],
+  bottom = [],
+  left = [],
+  gap = 22,
+  strip = 18,
+  opacityClass = "text-white/25",
+  speedMs = 28,
+}: {
+  top?: Line[];
+  right?: Line[];
+  bottom?: Line[];
+  left?: Line[];
+  gap?: number;
+  strip?: number;
+  opacityClass?: string;
+  speedMs?: number;
+}) {
+  const base = `pointer-events-none select-none ${opacityClass}`;
 
+  return (
+    <div aria-hidden className="absolute inset-0">
+      {/* TOP strip */}
+      {top.length > 0 && (
+        <div className="absolute left-0 right-0" style={{ top: -gap - strip, height: strip }}>
+          <div className="h-full w-full px-2 flex items-center justify-between gap-6">
+            {top.map((l, i) => (
+              <AnimatedCodeLine
+                key={`t-${i}-${l.text}`}
+                text={l.text}
+                speedMs={speedMs}
+                startDelayMs={l.delay ?? i * 250}
+                className={`${base} text-[10px] md:text-xs`}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
-type Props = {
-top?: Snip[]; right?: Snip[]; bottom?: Snip[]; left?: Snip[];
-gap?: number; strip?: number; opacityClass?: string;
-};
+      {/* BOTTOM strip */}
+      {bottom.length > 0 && (
+        <div className="absolute left-0 right-0" style={{ bottom: -gap - strip, height: strip }}>
+          <div className="h-full w-full px-2 flex items-center justify-between gap-6">
+            {bottom.map((l, i) => (
+              <AnimatedCodeLine
+                key={`b-${i}-${l.text}`}
+                text={l.text}
+                speedMs={speedMs}
+                startDelayMs={l.delay ?? i * 250}
+                className={`${base} text-[10px] md:text-xs`}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
+      {/* LEFT strip (vertical layout) */}
+      {left.length > 0 && (
+        <div className="absolute top-0 bottom-0" style={{ left: -gap - strip, width: strip }}>
+          <div className="h-full w-full py-2 flex flex-col items-center justify-between">
+            {left.map((l, i) => (
+              <div key={`l-${i}-${l.text}`} className="rotate-180">
+                {/* rotate container so vertical-rl reads top->bottom visually nice */}
+                <span style={{ writingMode: "vertical-rl" }}>
+                  <AnimatedCodeLine
+                    text={l.text}
+                    speedMs={speedMs}
+                    startDelayMs={l.delay ?? i * 250}
+                    className={`${base} text-[10px] md:text-xs`}
+                  />
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
-export default function CodeEdgesStrict({
-top = [], right = [], bottom = [], left = [],
-gap = 22, strip = 18, opacityClass = "text-white/20",
-}: Props) {
-const prefersReduced = useReducedMotion();
-const base =
-`pointer-events-none select-none font-mono text-[10px] md:text-xs ${opacityClass} whitespace-pre`;
-
-
-const drift = (axis: "x" | "y", i: number) =>
-prefersReduced ? { opacity: 1 } : {
-opacity: 1,
-x: axis === "x" ? [0, 6, 0] : 0,
-y: axis === "y" ? [0, 6, 0] : 0,
-transition: { duration: 7 + (i % 3), repeat: Infinity, ease: "linear" },
-};
-
-
-return (
-<div aria-hidden className="absolute inset-0">
-{/* TOP */}
-{top.length > 0 && (
-<div className="absolute left-0 right-0 flex items-center"
-style={{ top: -gap - strip, height: strip }}>
-<div className="w-full px-2 flex justify-between">
-{top.map((s, i) => (
-<motion.div key={`t-${i}`} className={`${base} ${rowAlign(s.align)}`}
-initial={{ opacity: 0 }} animate={drift("x", i)}>{s.text}</motion.div>
-))}
-</div>
-</div>
-)}
-
-
-{/* BOTTOM */}
-{bottom.length > 0 && (
-<div className="absolute left-0 right-0 flex items-center"
-style={{ bottom: -gap - strip, height: strip }}>
-<div className="w-full px-2 flex justify-between">
-{bottom.map((s, i) => (
-<motion.div key={`b-${i}`} className={`${base} ${rowAlign(s.align)}`}
-initial={{ opacity: 0 }} animate={drift("x", i)}>{s.text}</motion.div>
-))}
-</div>
-</div>
-)}
-
-
-{/* LEFT */}
-{left.length > 0 && (
-<div className="absolute top-0 bottom-0 flex"
-style={{ left: -gap - strip, width: strip }}>
-<div className="h-full py-2 w-full flex flex-col justify-between items-center">
-{left.map((s, i) => (
-<motion.div key={`l-${i}`} className={base}
-style={{ writingMode: "vertical-rl" }}
-initial={{ opacity: 0 }} animate={drift("y", i)}>{s.text}</motion.div>
-))}
-</div>
-</div>
-)}
-
-
-{/* RIGHT */}
-{right.length > 0 && (
-<div className="absolute top-0 bottom-0 flex"
-style={{ right: -gap - strip, width: strip }}>
-<div className="h-full py-2 w-full flex flex-col justify-between items-center">
-{right.map((s, i) => (
-<motion.div key={`r-${i}`} className={base}
-style={{ writingMode: "vertical-rl" }}
-initial={{ opacity: 0 }} animate={drift("y", i)}>{s.text}</motion.div>
-))}
-</div>
-</div>
-)}
-</div>
-);
-}
-
-
-function rowAlign(align: "start" | "center" | "end" | undefined) {
-if (align === "start") return "self-start";
-if (align === "end") return "self-end";
-return "self-center";
+      {/* RIGHT strip (vertical layout) */}
+      {right.length > 0 && (
+        <div className="absolute top-0 bottom-0" style={{ right: -gap - strip, width: strip }}>
+          <div className="h-full w-full py-2 flex flex-col items-center justify-between">
+            {right.map((l, i) => (
+              <span key={`r-${i}-${l.text}`} style={{ writingMode: "vertical-rl" }}>
+                <AnimatedCodeLine
+                  text={l.text}
+                  speedMs={speedMs}
+                  startDelayMs={l.delay ?? i * 250}
+                  className={`${base} text-[10px] md:text-xs`}
+                />
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
