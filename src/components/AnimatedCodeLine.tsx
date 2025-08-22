@@ -4,19 +4,12 @@ import { useReducedMotion } from "framer-motion";
 
 type Props = {
   text: string;
-  /** ms per character while typing/backspacing */
   speedMs?: number;
-  /** pause after fully typed (ms) */
   holdAfterTypeMs?: number;
-  /** pause after fully erased (ms) */
   holdAfterEraseMs?: number;
-  /** start typing after this delay (ms) */
   startDelayMs?: number;
-  /** loop forever */
   loop?: boolean;
-  /** monospace + color inherit from parent; we only add the cursor */
   className?: string;
-  /** whether to start when visible (IntersectionObserver) */
   startWhenVisible?: boolean;
 };
 
@@ -32,11 +25,9 @@ export default function AnimatedCodeLine({
 }: Props) {
   const prefersReduced = useReducedMotion();
   const [display, setDisplay] = React.useState("");
-  const [phase, setPhase] = React.useState<"idle"|"typing"|"hold"|"erasing">("idle");
   const [started, setStarted] = React.useState(!startWhenVisible);
   const ref = React.useRef<HTMLSpanElement>(null);
 
-  // Visibility trigger
   React.useEffect(() => {
     if (!startWhenVisible || started) return;
     const el = ref.current;
@@ -48,51 +39,31 @@ export default function AnimatedCodeLine({
     return () => io.disconnect();
   }, [startWhenVisible, started]);
 
-  // Reduced motion: just show static text (no typing)
   React.useEffect(() => {
     if (!started) return;
     if (prefersReduced) {
       setDisplay(text);
-      setPhase("hold");
       return;
     }
-    // normal animation
-    let t: number | undefined;
-
     const run = async () => {
-      setPhase("idle");
-      await sleep(startDelayMs);
-
       while (true) {
         // type
-        setPhase("typing");
         for (let i = 1; i <= text.length; i++) {
           setDisplay(text.slice(0, i));
           await sleep(speedMs);
         }
-        setPhase("hold");
         await sleep(holdAfterTypeMs);
-
         // erase
-        setPhase("erasing");
         for (let i = text.length - 1; i >= 0; i--) {
           setDisplay(text.slice(0, i));
           await sleep(speedMs);
         }
-        setPhase("hold");
         await sleep(holdAfterEraseMs);
-
         if (!loop) break;
       }
     };
-
-    // run async
     run();
-    return () => {
-      if (t) window.clearTimeout(t);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [started, prefersReduced, text, speedMs, holdAfterTypeMs, holdAfterEraseMs, startDelayMs, loop]);
+  }, [started, prefersReduced, text, speedMs, holdAfterTypeMs, holdAfterEraseMs, loop]);
 
   return (
     <span ref={ref} className={`inline-flex items-center font-mono ${className}`}>
@@ -103,12 +74,9 @@ export default function AnimatedCodeLine({
         className="ml-[1px] inline-block h-[1.15em] w-[0.55ch] align-text-bottom bg-current opacity-70"
         style={{ translate: "0 0.08em" }}
       />
-      {/* Accessible text for screen readers */}
       <span className="sr-only">{text}</span>
     </span>
   );
 }
 
-function sleep(ms: number) {
-  return new Promise((res) => setTimeout(res, ms));
-}
+function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)); }
