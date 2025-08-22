@@ -45,20 +45,23 @@ export default function AnimatedCodeLine({
       setDisplay(text);
       return;
     }
+    const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
     const run = async () => {
       while (true) {
-        // type
+        // type out
         for (let i = 1; i <= text.length; i++) {
           setDisplay(text.slice(0, i));
           await sleep(speedMs);
         }
         await sleep(holdAfterTypeMs);
+
         // erase
         for (let i = text.length - 1; i >= 0; i--) {
           setDisplay(text.slice(0, i));
           await sleep(speedMs);
         }
         await sleep(holdAfterEraseMs);
+
         if (!loop) break;
       }
     };
@@ -78,5 +81,3 @@ export default function AnimatedCodeLine({
     </span>
   );
 }
-
-function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)); }
