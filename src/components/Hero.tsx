@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { hero } from "@/content/hero.data";
-import CodeEdgesTyped from "./CodeEdgesTyped"; // ✅ relative import
+import CodeEdgesTyped from "./CodeEdgesTyped"; // make sure this file exists in src/components/
 
 export default function Hero() {
   return (
