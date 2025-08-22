@@ -1,9 +1,7 @@
 "use client";
-import React from "react";
 import AnimatedCodeLine from "./AnimatedCodeLine";
 
-type Edge = "top" | "right" | "bottom" | "left";
-type Line = { text: string; delay?: number };
+type EdgeLine = { text: string; delay?: number };
 
 export default function CodeEdgesTyped({
   top = [],
@@ -15,20 +13,20 @@ export default function CodeEdgesTyped({
   opacityClass = "text-white/25",
   speedMs = 28,
 }: {
-  top?: Line[];
-  right?: Line[];
-  bottom?: Line[];
-  left?: Line[];
+  top?: EdgeLine[];
+  right?: EdgeLine[];
+  bottom?: EdgeLine[];
+  left?: EdgeLine[];
   gap?: number;
   strip?: number;
   opacityClass?: string;
   speedMs?: number;
 }) {
-  const base = `pointer-events-none select-none ${opacityClass}`;
+  const base = `pointer-events-none select-none ${opacityClass} text-[10px] md:text-xs`;
 
   return (
     <div aria-hidden className="absolute inset-0">
-      {/* TOP strip */}
+      {/* TOP */}
       {top.length > 0 && (
         <div className="absolute left-0 right-0" style={{ top: -gap - strip, height: strip }}>
           <div className="h-full w-full px-2 flex items-center justify-between gap-6">
@@ -38,14 +36,14 @@ export default function CodeEdgesTyped({
                 text={l.text}
                 speedMs={speedMs}
                 startDelayMs={l.delay ?? i * 250}
-                className={`${base} text-[10px] md:text-xs`}
+                className={base}
               />
             ))}
           </div>
         </div>
       )}
 
-      {/* BOTTOM strip */}
+      {/* BOTTOM */}
       {bottom.length > 0 && (
         <div className="absolute left-0 right-0" style={{ bottom: -gap - strip, height: strip }}>
           <div className="h-full w-full px-2 flex items-center justify-between gap-6">
@@ -55,26 +53,25 @@ export default function CodeEdgesTyped({
                 text={l.text}
                 speedMs={speedMs}
                 startDelayMs={l.delay ?? i * 250}
-                className={`${base} text-[10px] md:text-xs`}
+                className={base}
               />
             ))}
           </div>
         </div>
       )}
 
-      {/* LEFT strip (vertical layout) */}
+      {/* LEFT (vertical) */}
       {left.length > 0 && (
         <div className="absolute top-0 bottom-0" style={{ left: -gap - strip, width: strip }}>
           <div className="h-full w-full py-2 flex flex-col items-center justify-between">
             {left.map((l, i) => (
               <div key={`l-${i}-${l.text}`} className="rotate-180">
-                {/* rotate container so vertical-rl reads top->bottom visually nice */}
                 <span style={{ writingMode: "vertical-rl" }}>
                   <AnimatedCodeLine
                     text={l.text}
                     speedMs={speedMs}
                     startDelayMs={l.delay ?? i * 250}
-                    className={`${base} text-[10px] md:text-xs`}
+                    className={base}
                   />
                 </span>
               </div>
@@ -83,7 +80,7 @@ export default function CodeEdgesTyped({
         </div>
       )}
 
-      {/* RIGHT strip (vertical layout) */}
+      {/* RIGHT (vertical) */}
       {right.length > 0 && (
         <div className="absolute top-0 bottom-0" style={{ right: -gap - strip, width: strip }}>
           <div className="h-full w-full py-2 flex flex-col items-center justify-between">
@@ -93,7 +90,7 @@ export default function CodeEdgesTyped({
                   text={l.text}
                   speedMs={speedMs}
                   startDelayMs={l.delay ?? i * 250}
-                  className={`${base} text-[10px] md:text-xs`}
+                  className={base}
                 />
               </span>
             ))}
@@ -103,3 +100,4 @@ export default function CodeEdgesTyped({
     </div>
   );
 }
+
