@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Image from "next/image";                       // ✅ use Next Image for better resampling
 import { hero } from "../content/hero.data";
 import CodeEdgesTyped from "./CodeEdgesTyped";
 
@@ -96,11 +97,20 @@ export default function Hero() {
                 flex items-center justify-center
               "
             >
-              <img
-                src={hero.headshot}
+              {/* ⬇️ Only change: Next/Image with proper sizing & quality to reduce moiré */}
+              <Image
+                src={hero.headshot}                 // e.g. "/images/headshot.jpg"
                 alt="Headshot of Canyen Palmer"
-                loading="eager"
-                className="w-full h-full object-cover"
+                fill                                // matches the existing container sizing
+                priority
+                sizes="(min-width: 768px) min(46vw, 620px), 100vw"
+                quality={90}
+                className="
+                  object-cover rounded-2xl
+                  [image-rendering:auto]
+                  sm:[filter:blur(0px)]
+                  [filter:blur(0.12px)]             /* micro-blur only on the smallest sizes to fight moiré */
+                "
               />
             </div>
           </motion.div>
