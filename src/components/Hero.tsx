@@ -109,7 +109,7 @@ export default function Hero() {
                   object-cover rounded-2xl
                   [image-rendering:auto]
                   sm:[filter:blur(0px)]
-                  [filter:blur(0.12px)]             /* micro-blur only on the smallest sizes to fight moiré */
+                  [filter:blur(0.05px)]             /* micro-blur only on the smallest sizes to fight moiré */
                 "
               />
             </div>
