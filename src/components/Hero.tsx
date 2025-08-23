@@ -14,7 +14,10 @@ export default function Hero() {
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6 }}
-            className="flex flex-col justify-center h-full min-h-[clamp(500px,70vh,860px)] relative z-10 overflow-hidden"
+            className="
+              flex flex-col justify-center h-full relative z-10 overflow-hidden
+              min-h-[420px] md:min-h-[clamp(520px,70vh,860px)]
+            "
           >
             <h1 className="text-3xl md:text-5xl font-bold leading-tight max-w-[34ch]">
               {hero.headline}
@@ -50,32 +53,32 @@ export default function Hero() {
             </div>
           </motion.div>
 
-          {/* Typed code edges — LEFT (behind content) */}
-          <CodeEdgesTyped
-            zClass="-z-10"
-            gap={28}
-            strip={24}
-            laneHeightEm={1.4}        // ← each line gets its own fixed lane
-            laneWidthCh={40}          // ← clip width in characters
-            speedMs={26}
-            opacityClass="text-white/25"
-            top={[
-              { text: "import pandas as pd" },
-              { text: "df = pd.read_csv('golf_stats.csv')" },
-              { text: "df.head()" },
-            ]}
-            bottom={[
-              { text: "from sklearn.model_selection import train_test_split" },
-              { text: "X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2)" },
-            ]}
-            left={[
-              { text: "SELECT hole, avg(strokes) FROM rounds GROUP BY hole;" },
-            ]}
-            right={[]}
-          />
+          {/* Typed code edges — LEFT (hidden on mobile, shown from md+) */}
+          <div className="hidden md:block">
+            <CodeEdgesTyped
+              zClass="-z-10"
+              gap={28}
+              strip={24}
+              laneHeightEm={1.35}
+              laneWidthCh={38}
+              speedMs={28}
+              opacityClass="text-white/25"
+              top={[
+                { text: "import pandas as pd" },
+                { text: "df = pd.read_csv('golf_stats.csv')" },
+              ]}
+              bottom={[
+                { text: "from sklearn.model_selection import train_test_split" },
+              ]}
+              left={[
+                { text: "SELECT hole, avg(strokes) FROM rounds GROUP BY hole;" },
+              ]}
+              right={[]}
+            />
+          </div>
         </div>
 
-        {/* RIGHT COLUMN — Headshot with stable frame */}
+        {/* RIGHT COLUMN — Headshot (responsive frame) */}
         <div className="relative">
           <motion.div
             initial={{ opacity: 0, x: 30 }}
@@ -86,8 +89,10 @@ export default function Hero() {
             <div
               className="
                 relative overflow-hidden rounded-2xl shadow-lg ring-1 ring-white/15
-                w-full md:w-[min(46vw,620px)] max-w-full
-                h-[clamp(500px,70vh,860px)] aspect-[3/4]
+                w-full max-w-full
+                h-[280px] sm:h-[340px] md:h-[clamp(520px,70vh,860px)]
+                md:w-[min(46vw,620px)]
+                aspect-[3/4]
                 flex items-center justify-center
               "
             >
@@ -100,27 +105,28 @@ export default function Hero() {
             </div>
           </motion.div>
 
-          {/* Typed code edges — RIGHT (behind content) */}
-          <CodeEdgesTyped
-            zClass="-z-10"
-            gap={28}
-            strip={24}
-            laneHeightEm={1.4}
-            laneWidthCh={40}
-            speedMs={24}
-            opacityClass="text-white/25"
-            top={[{ text: "df.groupby('hole')['strokes'].mean()" }]}
-            bottom={[
-              { text: "from sklearn.metrics import roc_auc_score" },
-              { text: "auc = roc_auc_score(y_te, model.predict_proba(X_te)[:,1])" },
-            ]}
-            left={[
-              { text: "model = RandomForestClassifier(n_estimators=300, random_state=42)" },
-              { text: "model.fit(X_tr, y_tr)" },
-              { text: "y_prob = model.predict_proba(X_te)[:,1]" },
-            ]}
-            right={[]}
-          />
+          {/* Typed code edges — RIGHT (hidden on mobile, shown from md+) */}
+          <div className="hidden md:block">
+            <CodeEdgesTyped
+              zClass="-z-10"
+              gap={28}
+              strip={24}
+              laneHeightEm={1.35}
+              laneWidthCh={38}
+              speedMs={26}
+              opacityClass="text-white/25"
+              top={[{ text: "df.groupby('hole')['strokes'].mean()" }]}
+              bottom={[
+                { text: "from sklearn.metrics import roc_auc_score" },
+                { text: "auc = roc_auc_score(y_te, model.predict_proba(X_te)[:,1])" },
+              ]}
+              left={[
+                { text: "model = RandomForestClassifier(n_estimators=300, random_state=42)" },
+                { text: "model.fit(X_tr, y_tr)" },
+              ]}
+              right={[]}
+            />
+          </div>
         </div>
       </div>
     </section>
