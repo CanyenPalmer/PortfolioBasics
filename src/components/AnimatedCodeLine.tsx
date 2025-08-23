@@ -28,6 +28,7 @@ export default function AnimatedCodeLine({
   const [started, setStarted] = React.useState(!startWhenVisible);
   const ref = React.useRef<HTMLSpanElement>(null);
 
+  // Start when visible
   React.useEffect(() => {
     if (!startWhenVisible || started) return;
     const el = ref.current;
@@ -39,6 +40,7 @@ export default function AnimatedCodeLine({
     return () => io.disconnect();
   }, [startWhenVisible, started]);
 
+  // Typing loop
   React.useEffect(() => {
     if (!started) return;
     if (prefersReduced) {
@@ -49,8 +51,10 @@ export default function AnimatedCodeLine({
     const run = async () => {
       await sleep(startDelayMs);
       while (true) {
+        // type
         for (let i = 1; i <= text.length; i++) { setDisplay(text.slice(0, i)); await sleep(speedMs); }
         await sleep(holdAfterTypeMs);
+        // erase
         for (let i = text.length - 1; i >= 0; i--) { setDisplay(text.slice(0, i)); await sleep(speedMs); }
         await sleep(holdAfterEraseMs);
         if (!loop) break;
@@ -62,7 +66,12 @@ export default function AnimatedCodeLine({
   return (
     <span ref={ref} className={`inline-flex items-center font-mono ${className}`}>
       <span aria-hidden="true" className="whitespace-pre">{display}</span>
-      <span aria-hidden="true" className="ml-[1px] inline-block h-[1.15em] w-[0.55ch] align-text-bottom bg-current opacity-70" style={{ translate: "0 0.08em" }} />
+      {/* block cursor */}
+      <span
+        aria-hidden="true"
+        className="ml-[1px] inline-block h-[1.15em] w-[0.55ch] align-text-bottom bg-current opacity-70"
+        style={{ translate: "0 0.08em" }}
+      />
       <span className="sr-only">{text}</span>
     </span>
   );
