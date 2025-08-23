@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import Image from "next/image";                       // ✅ use Next Image for better resampling
+import Image from "next/image";
 import { hero } from "../content/hero.data";
 import CodeEdgesTyped from "./CodeEdgesTyped";
 
@@ -17,7 +17,7 @@ export default function Hero() {
             transition={{ duration: 0.6 }}
             className="
               flex flex-col justify-center h-full relative z-10 overflow-hidden
-              min-h-[420px] md:min-h-[clamp(520px,70vh,860px)]
+              min-h-[420px] md:min-h-[520px]
             "
           >
             <h1 className="text-3xl md:text-5xl font-bold leading-tight max-w-[34ch]">
@@ -54,7 +54,7 @@ export default function Hero() {
             </div>
           </motion.div>
 
-          {/* Typed code edges — LEFT (hidden on mobile, shown from md+) */}
+          {/* Code edges — hidden on mobile */}
           <div className="hidden md:block">
             <CodeEdgesTyped
               zClass="-z-10"
@@ -79,7 +79,7 @@ export default function Hero() {
           </div>
         </div>
 
-        {/* RIGHT COLUMN — Headshot (responsive frame) */}
+        {/* RIGHT COLUMN — Headshot (snap widths, keep 3/4 aspect) */}
         <div className="relative">
           <motion.div
             initial={{ opacity: 0, x: 30 }}
@@ -91,31 +91,27 @@ export default function Hero() {
               className="
                 relative overflow-hidden rounded-2xl shadow-lg ring-1 ring-white/15
                 w-full max-w-full
-                h-[280px] sm:h-[340px] md:h-[clamp(520px,70vh,860px)]
-                md:w-[min(46vw,620px)]
+                h-[280px] sm:h-[340px]        /* small screens: fixed heights */
+                sm:w-[360px]                  /* snap to clean width at sm */
+                md:w-[560px] lg:w-[600px]     /* desktop: fixed widths (clean sampling) */
+                md:h-auto                     /* let aspect control height from md+ */
                 aspect-[3/4]
-                flex items-center justify-center
+                mx-auto
               "
             >
-              {/* ⬇️ Only change: Next/Image with proper sizing & quality to reduce moiré */}
               <Image
-                src={hero.headshot}                 // e.g. "/images/headshot.jpg"
+                src={hero.headshot}
                 alt="Headshot of Canyen Palmer"
-                fill                                // matches the existing container sizing
+                fill
                 priority
-                sizes="(min-width: 768px) min(46vw, 620px), 100vw"
-                quality={90}
-                className="
-                  object-cover rounded-2xl
-                  [image-rendering:auto]
-                  sm:[filter:blur(0px)]
-                  [filter:blur(0.05px)]             /* micro-blur only on the smallest sizes to fight moiré */
-                "
+                quality={95}                  // sharper output
+                sizes="(min-width: 1024px) 600px, (min-width: 768px) 560px, (min-width: 640px) 360px, 100vw"
+                className="object-cover rounded-2xl [image-rendering:auto]"
               />
             </div>
           </motion.div>
 
-          {/* Typed code edges — RIGHT (hidden on mobile, shown from md+) */}
+          {/* Code edges — hidden on mobile */}
           <div className="hidden md:block">
             <CodeEdgesTyped
               zClass="-z-10"
