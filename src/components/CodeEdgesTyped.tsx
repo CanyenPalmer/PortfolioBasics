@@ -13,8 +13,8 @@ export default function CodeEdgesTyped({
   opacityClass = "text-white/25",
   speedMs = 28,
   zClass = "-z-10",
-  laneHeightEm = 1.4,   // fixed lane height per line
-  laneWidthCh = 40,     // clip width per line (characters)
+  laneHeightEm = 1.4,
+  laneWidthCh = 40,
 }: {
   top?: EdgeLine[];
   right?: EdgeLine[];
@@ -30,7 +30,6 @@ export default function CodeEdgesTyped({
 }) {
   const base = `pointer-events-none select-none ${opacityClass} text-[10px] md:text-xs font-mono whitespace-pre`;
 
-  // helper: a clipped lane container for one line of code
   const Lane = ({ children }: { children: React.ReactNode }) => (
     <div
       className="overflow-hidden"
