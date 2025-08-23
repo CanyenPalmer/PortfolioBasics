@@ -1,8 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { hero } from "@/content/hero.data";
-import CodeEdgesTyped from "./CodeEdgesTyped"; // make sure this file exists in src/components/
+import { hero } from "../content/hero.data";     // ✅ relative import
+import CodeEdgesTyped from "./CodeEdgesTyped";   // ✅ relative import
 
 export default function Hero() {
   return (
@@ -82,7 +82,7 @@ export default function Hero() {
           />
         </div>
 
-        {/* RIGHT COLUMN — Headshot */}
+        {/* RIGHT COLUMN — Headshot (tall as left column, consistent width) */}
         <div className="relative">
           <motion.div
             initial={{ opacity: 0, x: 30 }}
