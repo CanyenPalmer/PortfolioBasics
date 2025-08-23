@@ -6,7 +6,7 @@ export const hero = {
     { label: "See Experience", href: "#experience", variant: "primary" },
     { label: "Contact Me", href: "#contact", variant: "ghost" },
   ],
-  headshot: "/images/headshot.jpg",   // ensure file exists at public/images/headshot.jpg
+  headshot: "/images/headshot.jpg",
   background: "",
   skills: {
     proficiency: ["Python", "Excel", "Tableau"],
