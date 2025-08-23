@@ -1,17 +1,12 @@
+// tailwind.config.ts
 import type { Config } from "tailwindcss";
 
-const config: Config = {
+export default {
   content: [
-    "./src/**/*.{js,ts,jsx,tsx}",   // ✅ ensures Tailwind scans your files
+    "./src/app/**/*.{js,ts,jsx,tsx}",
+    "./src/components/**/*.{js,ts,jsx,tsx}",
+    "./src/content/**/*.{js,ts,jsx,tsx,md,mdx}",
   ],
-  theme: {
-    extend: {
-      fontFamily: {
-        sans: ["Inter", "ui-sans-serif", "system-ui"],
-      },
-    },
-  },
+  theme: { extend: {} },
   plugins: [],
-};
-
-export default config;
+} satisfies Config;
