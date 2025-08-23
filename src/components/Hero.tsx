@@ -14,13 +14,13 @@ export default function Hero() {
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6 }}
-            className="flex flex-col justify-center h-full min-h-[clamp(420px,70vh,820px)] relative z-10 overflow-hidden"
+            className="flex flex-col justify-center h-full min-h-[clamp(500px,70vh,860px)] relative z-10 overflow-hidden"
           >
-            <h1 className="text-3xl md:text-5xl font-bold leading-tight max-w-[34ch] break-words">
+            <h1 className="text-3xl md:text-5xl font-bold leading-tight max-w-[34ch]">
               {hero.headline}
             </h1>
 
-            <p className="mt-4 text-lg md:text-xl text-white/80 max-w-[66ch] break-words">
+            <p className="mt-4 text-lg md:text-xl text-white/80 max-w-[66ch]">
               {hero.subheadline}
             </p>
 
@@ -31,7 +31,7 @@ export default function Hero() {
               <p><span className="font-semibold">Tech Stack:</span> {hero.skills.techStack.join(", ")}</p>
             </div>
 
-            <p className="mt-6 text-white/70 max-w-[70ch] break-words">{hero.personal}</p>
+            <p className="mt-6 text-white/70 max-w-[70ch]">{hero.personal}</p>
 
             <div className="mt-8 flex gap-4">
               {hero.ctas.map((cta, i) => (
@@ -50,11 +50,13 @@ export default function Hero() {
             </div>
           </motion.div>
 
-          {/* Typed code edges — LEFT (behind content, clipping, no overlap) */}
+          {/* Typed code edges — LEFT (behind content) */}
           <CodeEdgesTyped
             zClass="-z-10"
-            gap={26}
-            strip={22}
+            gap={28}
+            strip={24}
+            laneHeightEm={1.4}        // ← each line gets its own fixed lane
+            laneWidthCh={40}          // ← clip width in characters
             speedMs={26}
             opacityClass="text-white/25"
             top={[
@@ -69,10 +71,11 @@ export default function Hero() {
             left={[
               { text: "SELECT hole, avg(strokes) FROM rounds GROUP BY hole;" },
             ]}
+            right={[]}
           />
         </div>
 
-        {/* RIGHT COLUMN — Headshot (stable frame) */}
+        {/* RIGHT COLUMN — Headshot with stable frame */}
         <div className="relative">
           <motion.div
             initial={{ opacity: 0, x: 30 }}
@@ -84,7 +87,7 @@ export default function Hero() {
               className="
                 relative overflow-hidden rounded-2xl shadow-lg ring-1 ring-white/15
                 w-full md:w-[min(46vw,620px)] max-w-full
-                h-[clamp(420px,70vh,820px)] aspect-[3/4]
+                h-[clamp(500px,70vh,860px)] aspect-[3/4]
                 flex items-center justify-center
               "
             >
@@ -97,11 +100,13 @@ export default function Hero() {
             </div>
           </motion.div>
 
-          {/* Typed code edges — RIGHT (behind content, vertical rail + rows) */}
+          {/* Typed code edges — RIGHT (behind content) */}
           <CodeEdgesTyped
             zClass="-z-10"
-            gap={26}
-            strip={22}
+            gap={28}
+            strip={24}
+            laneHeightEm={1.4}
+            laneWidthCh={40}
             speedMs={24}
             opacityClass="text-white/25"
             top={[{ text: "df.groupby('hole')['strokes'].mean()" }]}
