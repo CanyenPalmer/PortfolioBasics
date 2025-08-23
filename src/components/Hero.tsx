@@ -1,8 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { hero } from "../content/hero.data";     // ✅ relative import
-import CodeEdgesTyped from "./CodeEdgesTyped";   // ✅ relative import
+import { hero } from "../content/hero.data";   // ← relative import
+import CodeEdgesTyped from "./CodeEdgesTyped"; // ← relative import
 
 export default function Hero() {
   return (
@@ -25,37 +25,21 @@ export default function Hero() {
 
             {/* Skills snapshot */}
             <div className="mt-6 space-y-3 text-sm text-white/70">
-              <p>
-                <span className="font-semibold">Proficiency:</span>{" "}
-                {hero.skills.proficiency.join(", ")}
-              </p>
-              <p>
-                <span className="font-semibold">Familiarities:</span>{" "}
-                {hero.skills.familiarity.join(", ")}
-              </p>
-              <p>
-                <span className="font-semibold">Tech Stack:</span>{" "}
-                {hero.skills.techStack.join(", ")}
-              </p>
+              <p><span className="font-semibold">Proficiency:</span> {hero.skills.proficiency.join(", ")}</p>
+              <p><span className="font-semibold">Familiarities:</span> {hero.skills.familiarity.join(", ")}</p>
+              <p><span className="font-semibold">Tech Stack:</span> {hero.skills.techStack.join(", ")}</p>
             </div>
 
-            {/* Personal blurb */}
-            <p className="mt-6 text-white/70 max-w-[70ch] break-words">
-              {hero.personal}
-            </p>
+            <p className="mt-6 text-white/70 max-w-[70ch] break-words">{hero.personal}</p>
 
-            {/* CTA Buttons */}
             <div className="mt-8 flex gap-4">
               {hero.ctas.map((cta, i) => (
-                <a
-                  key={i}
-                  href={cta.href}
-                  className={`px-5 py-3 rounded-xl font-medium transition ${
-                    cta.variant === "primary"
-                      ? "bg-blue-600 hover:bg-blue-700 text-white"
-                      : "border border-white/30 hover:bg-white/10 text-white"
-                  }`}
-                >
+                <a key={i} href={cta.href}
+                   className={`px-5 py-3 rounded-xl font-medium transition ${
+                     cta.variant === "primary"
+                       ? "bg-blue-600 hover:bg-blue-700 text-white"
+                       : "border border-white/30 hover:bg-white/10 text-white"
+                   }`}>
                   {cta.label}
                 </a>
               ))}
@@ -82,7 +66,7 @@ export default function Hero() {
           />
         </div>
 
-        {/* RIGHT COLUMN — Headshot (tall as left column, consistent width) */}
+        {/* RIGHT COLUMN — Headshot */}
         <div className="relative">
           <motion.div
             initial={{ opacity: 0, x: 30 }}
@@ -106,9 +90,7 @@ export default function Hero() {
             strip={20}
             speedMs={24}
             opacityClass="text-white/25"
-            top={[
-              { text: "df.groupby('hole')['strokes'].mean()" },
-            ]}
+            top={[{ text: "df.groupby('hole')['strokes'].mean()" }]}
             bottom={[
               { text: "from sklearn.metrics import roc_auc_score" },
               { text: "auc = roc_auc_score(y_te, model.predict_proba(X_te)[:,1])" },
@@ -117,9 +99,7 @@ export default function Hero() {
               { text: "model = RandomForestClassifier(n_estimators=300)" },
               { text: "model.fit(X_tr, y_tr)" },
             ]}
-            right={[
-              { text: "precision_at_k(y_te, y_prob, k=0.1)" },
-            ]}
+            right={[{ text: "precision_at_k(y_te, y_prob, k=0.1)" }]}
           />
         </div>
       </div>
