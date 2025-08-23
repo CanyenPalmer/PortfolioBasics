@@ -28,6 +28,7 @@ export default function AnimatedCodeLine({
   const [started, setStarted] = React.useState(!startWhenVisible);
   const ref = React.useRef<HTMLSpanElement>(null);
 
+  // Start when visible
   React.useEffect(() => {
     if (!startWhenVisible || started) return;
     const el = ref.current;
@@ -39,6 +40,7 @@ export default function AnimatedCodeLine({
     return () => io.disconnect();
   }, [startWhenVisible, started]);
 
+  // Typing loop
   React.useEffect(() => {
     if (!started) return;
     if (prefersReduced) {
@@ -47,26 +49,25 @@ export default function AnimatedCodeLine({
     }
     const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
     const run = async () => {
+      await sleep(startDelayMs);
       while (true) {
-        // type out
+        // type
         for (let i = 1; i <= text.length; i++) {
           setDisplay(text.slice(0, i));
           await sleep(speedMs);
         }
         await sleep(holdAfterTypeMs);
-
         // erase
         for (let i = text.length - 1; i >= 0; i--) {
           setDisplay(text.slice(0, i));
           await sleep(speedMs);
         }
         await sleep(holdAfterEraseMs);
-
         if (!loop) break;
       }
     };
     run();
-  }, [started, prefersReduced, text, speedMs, holdAfterTypeMs, holdAfterEraseMs, loop]);
+  }, [started, prefersReduced, text, speedMs, holdAfterTypeMs, holdAfterEraseMs, startDelayMs, loop]);
 
   return (
     <span ref={ref} className={`inline-flex items-center font-mono ${className}`}>
