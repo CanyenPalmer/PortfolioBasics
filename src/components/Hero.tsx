@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { hero } from "../content/hero.data";   // ← relative import
-import CodeEdgesTyped from "./CodeEdgesTyped"; // ← relative import
+import CodeEdgesTyped from "./CodeEdgesTyped.tsx";
 
 export default function Hero() {
   return (
