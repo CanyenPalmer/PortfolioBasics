@@ -9,9 +9,8 @@ type Props = {
   familiarity: string[];
   techStack: string[];
   className?: string;
-  /** Control height so terminal never cuts off (you can override via className too) */
-  minHeightPx?: number;         // default ~300
-  minHeightPxMd?: number;       // default ~380 for md+
+  minHeightPx?: number;
+  minHeightPxMd?: number;
 };
 
 export default function SummaryRunner({
@@ -24,7 +23,6 @@ export default function SummaryRunner({
 }: Props) {
   const [running, setRunning] = React.useState(false);
 
-  // ESC to reset when terminal is open
   React.useEffect(() => {
     if (!running) return;
     const onKey = (e: KeyboardEvent) => {
@@ -34,16 +32,7 @@ export default function SummaryRunner({
     return () => window.removeEventListener("keydown", onKey);
   }, [running]);
 
-  // computed style to guarantee space for terminal + header without clipping
   const minHStyle = { minHeight: `${minHeightPx}px` } as React.CSSProperties;
-
-  // Build pretty Python dict output lines
-  const dictLines = buildDictLines({
-    title: "Data Scientist & Google-Certified Data Analyst Professional",
-    proficiency,
-    familiarity,
-    techStack,
-  });
 
   return (
     <div className={`relative ${className}`} style={minHStyle}>
@@ -54,7 +43,7 @@ export default function SummaryRunner({
       `}</style>
       <div data-summary-runner />
 
-      {/* ----- Code card (shown when not running) ----- */}
+      {/* Code card */}
       <AnimatePresence initial={false}>
         {!running && (
           <motion.div
@@ -82,7 +71,7 @@ export default function SummaryRunner({
               </button>
             </div>
 
-            {/* Richer syntax highlighting + a playful TODO */}
+            {/* (kept) pretty-ish code with mild highlights */}
             <pre className="px-4 py-4 font-mono text-[13px] leading-6 text-[#e6edf3] whitespace-pre-wrap h-[calc(100%-36px)] overflow-auto">
 <span className="text-[#6a737d]"># quick portfolio summary generator</span>
 <span className="block"><span className="text-[#c678dd]">def</span> <span className="text-[#61afef]">summary</span>():</span>
@@ -101,7 +90,7 @@ export default function SummaryRunner({
         )}
       </AnimatePresence>
 
-      {/* ----- Terminal overlay (appears when running) ----- */}
+      {/* Terminal overlay */}
       <AnimatePresence initial={false}>
         {running && (
           <motion.div
@@ -111,7 +100,6 @@ export default function SummaryRunner({
             exit={{ opacity: 0, y: 8, transition: { duration: 0.18 } }}
             className="absolute inset-0 flex flex-col"
           >
-            {/* Terminal header with consistent filename */}
             <div className="flex items-center justify-between px-4 py-2 border border-b-0 border-white/10 rounded-t-xl bg-[#0f141b]/80 text-xs text-white/60">
               <div className="flex items-center gap-2">
                 <span className="inline-flex gap-1.5">
@@ -131,7 +119,6 @@ export default function SummaryRunner({
               </button>
             </div>
 
-            {/* Terminal body fills remaining height; never clipped */}
             <div className="rounded-b-xl border border-t-0 border-white/10 bg-[#0f141b]/70 grow min-h-0">
               <TerminalBox
                 className="h-full"
@@ -140,19 +127,42 @@ export default function SummaryRunner({
                 retypeOnReenter={true}
                 visibleThreshold={0.6}
                 startDelayMs={150}
-                keepCursorOnDone={true}     // <-- leave cursor blinking at the end
+                keepCursorOnDone={true}
+
+                /* === COLORED OUTPUT LINES === */
                 lines={[
                   { prompt: "$ ", text: "python summary.py" },
                   { prompt: "$ ", text: "compiling..." },
-                  // Now print a real-looking Python dict (pretty format)
-                  { prompt: "",   text: "{" },
-                  { prompt: "  ", text: `'canyen_palmer_title': 'Data Scientist & Google-Certified Data Analyst Professional',` },
-                  { prompt: "  ", text: `'proficiency': [${stringList(proficiency)}],` },
-                  { prompt: "  ", text: `'familiarities': [${stringList(familiarity)}],` },
-                  { prompt: "  ", text: `'tech_stack': [${stringList(techStack)}]` },
-                  { prompt: "",   text: "}" },
-                  // We intentionally do NOT print a new "$ " prompt line,
-                  // so the cursor remains at the end of the "}" (more dramatic).
+
+                  // "{"
+                  { segments: [{ text: "{", className: "text-[#e6edf3]" }] },
+
+                  // 'canyen_palmer_title': '...'
+                  {
+                    segments: [
+                      { text: "  ", className: "" },
+                      { text: "'", className: "text-[#e6edf3]" },
+                      { text: "canyen_palmer_title", className: "text-[#56b6c2]" }, // cyan key
+                      { text: "'", className: "text-[#e6edf3]" },
+                      { text: ": ", className: "text-[#e6edf3]" },
+                      { text: "'", className: "text-[#e6edf3]" },
+                      { text: "Data Scientist & Google-Certified Data Analyst Professional", className: "text-[#98c379]" }, // green string
+                      { text: "'", className: "text-[#e6edf3]" },
+                      { text: ",", className: "text-[#e6edf3]" },
+                    ],
+                  },
+
+                  // 'proficiency': ['Python', 'Excel', ...],
+                  listLine("proficiency", proficiency),
+
+                  // 'familiarities': [...],
+                  listLine("familiarities", familiarity),
+
+                  // 'tech_stack': [... (colored)],
+                  listLine("tech_stack", techStack, true),
+
+                  // "}"
+                  { segments: [{ text: "}", className: "text-[#e6edf3]" }] },
                 ]}
               />
             </div>
@@ -163,29 +173,32 @@ export default function SummaryRunner({
   );
 }
 
-/** Build a pretty-printed list of single-quoted items */
+/** Helpers */
 function stringList(items: string[]) {
   return items.map((s) => `'${s}'`).join(", ");
 }
 
-/** Build array of dict output lines (unused helper if you prefer single-call construction) */
-function buildDictLines({
-  title,
-  proficiency,
-  familiarity,
-  techStack,
-}: {
-  title: string;
-  proficiency: string[];
-  familiarity: string[];
-  techStack: string[];
-}) {
-  return [
-    "{",
-    `  'canyen_palmer_title': '${title}',`,
-    `  'proficiency': [${stringList(proficiency)}],`,
-    `  'familiarities': [${stringList(familiarity)}],`,
-    `  'tech_stack': [${stringList(techStack)}]`,
-    "}",
+// Build a colored list line like:   "  'key': ['A', 'B', 'C'],"
+function listLine(key: string, items: string[], isLast = false) {
+  const segs = [
+    { text: "  ", className: "" },
+    { text: "'", className: "text-[#e6edf3]" },
+    { text: key, className: "text-[#56b6c2]" }, // cyan key
+    { text: "'", className: "text-[#e6edf3]" },
+    { text: ": ", className: "text-[#e6edf3]" },
+    { text: "[", className: "text-[#e6edf3]" },
+    // items
+    ...items.flatMap((it, idx) => {
+      const comma = idx < items.length - 1 ? "," : "";
+      return [
+        { text: "'", className: "text-[#e6edf3]" },
+        { text: it, className: "text-[#98c379]" }, // green string
+        { text: "'", className: "text-[#e6edf3]" },
+        { text: comma + (comma ? " " : ""), className: "text-[#e6edf3]" },
+      ];
+    }),
+    { text: "]", className: "text-[#e6edf3]" },
+    { text: isLast ? "" : ",", className: "text-[#e6edf3]" },
   ];
+  return { segments: segs };
 }
