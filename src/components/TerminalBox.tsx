@@ -2,7 +2,10 @@
 
 import * as React from "react";
 
-type Line = { prompt?: string; text: string };
+type Line = { 
+  prompt?: string; 
+  text: string; 
+};
 
 type Props = {
   lines: Line[];
@@ -18,6 +21,9 @@ type Props = {
 
   /** Extra delay before typing begins after becoming visible (ms). */
   startDelayMs?: number;
+
+  /** Keep a blinking cursor visible at the end after the final line finishes typing. */
+  keepCursorOnDone?: boolean;
 };
 
 export default function TerminalBox({
@@ -29,6 +35,7 @@ export default function TerminalBox({
   retypeOnReenter = true,
   visibleThreshold = 0.6,
   startDelayMs = 0,
+  keepCursorOnDone = false,
 }: Props) {
   const rootRef = React.useRef<HTMLDivElement>(null);
 
@@ -63,7 +70,6 @@ export default function TerminalBox({
               setDone(false);
               setStarted(false);
             }
-            // delay arming
             const tid = window.setTimeout(() => {
               setArmed(true);
               setStarted(true);
@@ -127,8 +133,15 @@ export default function TerminalBox({
         : i === lineIndex && done
         ? ln.text
         : "";
-    return { prompt: ln.prompt ?? "", text, isActive };
+    return { prompt: ln.prompt ?? "", text, isActive, idx: i };
   });
+
+  // Helpers to decide whether to show the cursor
+  const showCursor = (r: {isActive: boolean; idx: number}) => {
+    if (r.isActive) return true;
+    if (keepCursorOnDone && done && r.idx === lines.length - 1) return true;
+    return false;
+  };
 
   return (
     <div
@@ -149,12 +162,12 @@ export default function TerminalBox({
 
       {/* body */}
       <div className="px-4 py-5 font-mono text-[13px] leading-6 text-[#e6edf3]">
-        <div className="space-y-1">
+        <div className="space-y-1 whitespace-pre-wrap break-words">
           {rendered.map((ln, i) => (
-            <div key={i} className="whitespace-pre-wrap break-words">
+            <div key={i}>
               <span className="text-emerald-400">{ln.prompt}</span>
               <span className="align-middle">{ln.text}</span>
-              {ln.isActive && (
+              {showCursor(ln) && (
                 <span
                   className="inline-block w-[8px] h-[1.1em] align-[-0.15em] bg-white/80 ml-0.5 animate-[blink_1s_steps(1)_infinite]"
                   aria-hidden
