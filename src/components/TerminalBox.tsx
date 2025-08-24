@@ -2,9 +2,9 @@
 
 import * as React from "react";
 
-type Line = {
-  prompt?: string;
-  text: string;
+type Line = { 
+  prompt?: string; 
+  text: string; 
 };
 
 type Props = {
@@ -14,12 +14,9 @@ type Props = {
   lineDelay?: number;     // ms pause between lines
   ariaLabel?: string;
 
-  /**
-   * Retype each time the box re-enters the viewport.
-   * While visible, it never deletes.
-   */
+  /** Retype each time the box re-enters the viewport (never deletes while visible). */
   retypeOnReenter?: boolean;
-  /** Intersection ratio (0..1) considered "in view". Default 0.6 */
+  /** Intersection ratio (0..1) considered “in view”. Default 0.6 */
   visibleThreshold?: number;
 };
 
@@ -66,7 +63,7 @@ export default function TerminalBox({
               setStarted((prev) => prev || true);
             }
           } else {
-            // left view -> pause timers, but keep rendered text
+            // left view -> pause timers, keep rendered text as-is
             clearTimers();
             setStarted(false);
           }
@@ -111,11 +108,17 @@ export default function TerminalBox({
     return () => window.clearTimeout(id);
   }, [started, done, lines, lineIndex, charIndex, typingSpeed, lineDelay]);
 
+  // Render current state of each line
   const rendered = lines.map((ln, i) => {
     const isActive = i === lineIndex && !done && started;
-    // Already-completed lines show fully; active line shows partial; when finished, it remains.
     const text =
-      i < lineIndex ? ln.text : isActive ? ln.text.slice(0, charIndex) : i === lineIndex && done ? ln.text : "";
+      i < lineIndex
+        ? ln.text
+        : isActive
+        ? ln.text.slice(0, charIndex)
+        : i === lineIndex && done
+        ? ln.text
+        : "";
     return { prompt: ln.prompt ?? "", text, isActive };
   });
 
@@ -126,7 +129,7 @@ export default function TerminalBox({
       className={`rounded-xl overflow-hidden border border-white/10 bg-[#0f141b]/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_10px_40px_rgba(0,0,0,0.35)] ${className}`}
       role="region"
     >
-      {/* window header */}
+      {/* fake terminal header */}
       <div className="flex items-center gap-2 px-4 py-2 border-b border-white/10 text-xs text-white/60">
         <span className="inline-flex gap-1.5">
           <span className="h-2.5 w-2.5 rounded-full bg-red-500/70" />
@@ -155,13 +158,17 @@ export default function TerminalBox({
       </div>
 
       <style jsx>{`
-        @keyframes blink { 50% { opacity: 0; } }
+        @keyframes blink {
+          50% {
+            opacity: 0;
+          }
+        }
       `}</style>
     </div>
   );
 }
 
-/** Build a richer threshold list so the observer behaves smoothly near the cutoff. */
+/** Generate threshold values for smooth intersection observer behavior */
 function buildThresholds(core: number) {
   const steps = [0, 0.1, 0.25, 0.5, core, 0.75, 0.9, 1];
   return Array.from(new Set(steps)).sort((a, b) => a - b);
