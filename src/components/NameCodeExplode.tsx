@@ -8,19 +8,20 @@ type Props = {
   text?: string;
   className?: string;
 
-  // Explosion feel
-  intensity?: number;                 // base distance; auto-scales to go off-screen
-  explodeDurationMs?: number;         // timing for 0→1 (used in easing only)
-  returnSpring?: { stiffness: number; damping: number }; // time-symmetric spring for 1→0 and 0→1
+  // Timing & feel
+  baseDurationMs?: number;             // duration for 0→1 (and 1→0) before scaling
+  timeScale?: number;                   // slow everything by this factor (default 3x slower)
+  returnSpring?: { stiffness: number; damping: number }; // kept for easy tuning if you switch back to spring
+
+  // Throw geometry
+  intensity?: number;                   // base distance; auto-scales to go off-screen
+  upLeftSpreadDeg?: number;             // how wide the blast cone is (default 170°)
 
   // Visuals
-  opacityClass?: string;              // color for code shards (e.g., "text-white/25")
+  opacityClass?: string;                // color for code shards (e.g., "text-white/25")
   letterClassName?: string;
-  shardScale?: number;                // anisotropic stretch of code shards
+  shardScale?: number;                  // anisotropic stretch of code shards
   codeShardsPerLetter?: number;
-
-  // Geometry
-  upLeftSpreadDeg?: number;           // how wide the blast cone is (default 170°)
 };
 
 // ---------- Config ----------
@@ -56,14 +57,18 @@ type CodeShard = {
 export default function NameCodeExplode({
   text = "Canyen Palmer",
   className = "text-5xl md:text-7xl font-extrabold tracking-tight",
+
+  baseDurationMs = 520,              // previous timing
+  timeScale = 3,                     // <-- 3x slower by default
+  returnSpring = { stiffness: 420, damping: 32 }, // not used in tween mode, kept for convenience
+
   intensity = 220,
-  explodeDurationMs = 520,
-  returnSpring = { stiffness: 420, damping: 32 },
+  upLeftSpreadDeg = 170,
+
   opacityClass = "text-white/25",
   letterClassName = "",
   shardScale = 0.5,
   codeShardsPerLetter = 6,
-  upLeftSpreadDeg = 170,
 }: Props) {
   const containerRef = React.useRef<HTMLDivElement>(null);
 
@@ -186,31 +191,28 @@ export default function NameCodeExplode({
     });
 
     return { codeShards: code, letterShards: letters };
-    // mag & upLeftSpreadDeg affect throws
   }, [chars, mag, codeShardsPerLetter, upLeftSpreadDeg]);
 
-  // ----- Drive progress (time-symmetric) -----
+  // ----- Drive progress with a symmetric TWEEN (slowed by timeScale) -----
   React.useEffect(() => {
     const controls = animate(progress, hovering ? 1 : 0, {
-      type: "spring",
-      stiffness: returnSpring.stiffness,
-      damping: returnSpring.damping,
-      // same spring both ways => reversible path/velocity profile
+      type: "tween",
+      duration: (baseDurationMs * timeScale) / 1000, // seconds
+      ease: "linear", // we apply our cubic ease below so path is identical both ways
     });
     return controls.stop;
-  }, [hovering, progress, returnSpring.stiffness, returnSpring.damping]);
+  }, [hovering, progress, baseDurationMs, timeScale]);
 
-  // tiny threshold for “instant pop in/out”
+  // tiny threshold for instant pop in/out
   const THRESH = 0.02;
 
-  // Helper to map progress → eased (for all shards uniformly)
+  // map progress → eased (for all shards uniformly)
   const eased = React.useRef(0);
-  const [tick, setTick] = React.useState(0);
+  const [, setTick] = React.useState(0);
   React.useEffect(() => {
-    // subscribe to motion value and re-render cheaply
     const unsub = progress.on("change", (t) => {
       eased.current = easeInOutCubic(t);
-      setTick((v) => v + 1); // minimal re-render trigger
+      setTick((v) => v + 1);
     });
     return unsub;
   }, [progress]);
@@ -220,7 +222,7 @@ export default function NameCodeExplode({
     <div
       ref={containerRef}
       className={`relative inline-block select-none ${className}`}
-      onMouseEnter={() => setHovering(true)}
+      onMouseEnter={() => (progress.get() !== 1 ? setHovering(true) : setHovering(true))}
       onMouseLeave={() => setHovering(false)}
       onFocus={() => setHovering(true)}
       onBlur={() => setHovering(false)}
@@ -228,7 +230,7 @@ export default function NameCodeExplode({
       aria-label={text}
       tabIndex={0}
     >
-      {/* Visible text (measured for the origin). Keep it in-flow and toggle opacity instantly. */}
+      {/* Visible text (measured). Keep it in-flow; opacity toggled instantly. */}
       <span
         className={`relative inline-block whitespace-pre ${letterClassName}`}
         style={{ opacity: (progress.get() < THRESH) ? 1 : 0, transition: "opacity 0.001s linear" }}
@@ -298,4 +300,3 @@ export default function NameCodeExplode({
     </div>
   );
 }
-
