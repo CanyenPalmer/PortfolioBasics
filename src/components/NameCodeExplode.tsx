@@ -3,22 +3,29 @@
 import * as React from "react";
 import { motion, useMotionValue, animate } from "framer-motion";
 
+// ---------------- Types ----------------
 type Props = {
   text?: string;
   className?: string;
 
-  // Physics tuning
-  intensity?: number;               
-  returnSpring?: { stiffness: number; damping: number }; // explosion/return spring
+  // Physics
+  intensity?: number;                           // throw distance baseline (auto-scales to viewport)
+  explodeSpring?: { stiffness: number; damping: number }; // outward spring
+  returnSpring?: { stiffness: number; damping: number };  // return spring
 
   // Visuals
-  opacityClass?: string;            
+  opacityClass?: string;
   letterClassName?: string;
-  shardScale?: number;              
-  codeShardsPerLetter?: number;     
-  upLeftSpreadDeg?: number;         
+  shardScale?: number;
+  codeShardsPerLetter?: number;
+  upLeftSpreadDeg?: number;
+
+  // Space-drift
+  floatAmplitudePx?: number;                    // how far shards drift while idle
+  floatSpeedHz?: number;                        // drift speed
 };
 
+// ---------------- Config ----------------
 const CODE_FRAGMENTS = [
   "import","def","return","if","else","for","while",
   "SELECT *","JOIN","GROUP BY","=>","lambda",
@@ -26,34 +33,41 @@ const CODE_FRAGMENTS = [
   "pd.read_csv()","groupby()","merge()","plt.plot()","{ }","< />"
 ];
 
-function seeded(n: number) {
-  let x = Math.sin(n * 99991) * 10000;
-  return x - Math.floor(x);
-}
-function easeInOutCubic(t: number) {
-  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-}
+function seeded(n: number) { const x = Math.sin(n * 99991) * 10000; return x - Math.floor(x); }
+function easeInOutCubic(t: number) { return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3)/2; }
 
-type LetterShard = { id: string; char: string; dx: number; dy: number; rot: number; };
-type CodeShard = { id: string; token: string; dx: number; dy: number; rot: number; vertical?: boolean; };
+type LetterShard = { id: string; char: string; dx: number; dy: number; rot: number; phase: number; };
+type CodeShard   = { id: string; token: string; dx: number; dy: number; rot: number; vertical?: boolean; phase: number; };
 
 export default function NameCodeExplode({
   text = "Canyen Palmer",
   className = "text-5xl md:text-7xl font-extrabold tracking-tight",
 
+  // tuned: a touch slower on explode, crisp return
+  explodeSpring = { stiffness: 220, damping: 26 },
+  returnSpring  = { stiffness: 320, damping: 32 },
+
   intensity = 220,
-  returnSpring = { stiffness: 280, damping: 30 }, // <-- tuned slower & springy
+  upLeftSpreadDeg = 170,
 
   opacityClass = "text-white/25",
   letterClassName = "",
   shardScale = 0.5,
   codeShardsPerLetter = 6,
-  upLeftSpreadDeg = 170,
+
+  floatAmplitudePx = 14,   // gentle space drift
+  floatSpeedHz = 0.12,     // very slow
 }: Props) {
   const containerRef = React.useRef<HTMLDivElement>(null);
-  const progress = useMotionValue(0);
-  const [hovering, setHovering] = React.useState(false);
 
+  // single scalar for path symmetry: 0 = rest, 1 = max explosion
+  const progress = useMotionValue(0);
+
+  // simple state machine
+  // 'idle' (rest) -> 'exploding' -> 'floating' -> 'returning' -> 'idle'
+  const [mode, setMode] = React.useState<"idle" | "exploding" | "floating" | "returning">("idle");
+
+  // viewport-scaled magnitude
   const [mag, setMag] = React.useState(intensity);
   React.useEffect(() => {
     if (typeof window !== "undefined") {
@@ -62,35 +76,43 @@ export default function NameCodeExplode({
     }
   }, [intensity]);
 
-  // Find exact midpoint between last 'n' of Canyen and 'P' of Palmer
+  // ----- Measure exact origin (midpoint between last 'n' of Canyen and 'P' of Palmer) -----
   const chars = React.useMemo(() => [...text], [text]);
   const [originDelta, setOriginDelta] = React.useState({ dx: 0, dy: 0 });
+
   const measureOrigin = React.useCallback(() => {
     const el = containerRef.current;
     if (!el) return;
+
     const cbox = el.getBoundingClientRect();
     const cCX = cbox.left + cbox.width / 2;
     const cCY = cbox.top + cbox.height / 2;
+
     const spans = Array.from(el.querySelectorAll<HTMLSpanElement>('[data-layer="visible"][data-letter-idx]'));
     if (!spans.length) return;
+
     const rects: Array<DOMRect | null> = Array(chars.length).fill(null);
-    spans.forEach(s => { rects[+s.dataset.letterIdx!] = s.getBoundingClientRect(); });
-    const tops:number[] = [], bottoms:number[] = [];
+    for (const s of spans) rects[Number(s.dataset.letterIdx)] = s.getBoundingClientRect();
+
+    const tops: number[] = [], bottoms: number[] = [];
     rects.forEach(r => { if (r) { tops.push(r.top); bottoms.push(r.bottom); }});
     const lineCY = (Math.min(...tops) + Math.max(...bottoms)) / 2;
+
     const leftStart = text.indexOf("Canyen");
     const rightStart = text.indexOf("Palmer");
+
     let oX = cCX, oY = lineCY;
     if (leftStart >= 0 && rightStart >= 0) {
-      const leftRect = rects[leftStart + "Canyen".length - 1];
-      const rightRect = rects[rightStart];
-      if (leftRect && rightRect) {
-        oX = (leftRect.right + rightRect.left) / 2;
+      const rL = rects[leftStart + "Canyen".length - 1]; // 'n'
+      const rR = rects[rightStart];                      // 'P'
+      if (rL && rR) {
+        oX = (rL.right + rR.left) / 2;
         oY = lineCY;
       }
     }
     setOriginDelta({ dx: oX - cCX, dy: oY - cCY });
   }, [chars.length, text]);
+
   React.useLayoutEffect(() => { measureOrigin(); }, [measureOrigin, className, letterClassName, chars.join("")]);
   React.useEffect(() => {
     const onResize = () => measureOrigin();
@@ -98,92 +120,212 @@ export default function NameCodeExplode({
     return () => window.removeEventListener("resize", onResize);
   }, [measureOrigin]);
 
+  // ----- Build shards (deterministic), with per-shard float phase -----
   const { codeShards, letterShards } = React.useMemo(() => {
-    const code: CodeShard[] = [], letters: LetterShard[] = []; let gid = 0;
+    const code: CodeShard[] = [];
+    const letters: LetterShard[] = [];
+    let gid = 0;
+
     chars.forEach((ch, ci) => {
       if (ch !== " ") {
         const s0 = ci * 777 + 3;
-        const angDegL = -175 + seeded(s0) * upLeftSpreadDeg;
+        const angDegL = -175 + seeded(s0) * upLeftSpreadDeg; // up-left cone
         const angL = (angDegL * Math.PI) / 180;
         const multL = 1.0 + 0.6 * seeded(s0 + 1);
-        letters.push({ id:`L-${gid++}`, char:ch,
-          dx:Math.cos(angL)*mag*multL, dy:Math.sin(angL)*mag*multL,
-          rot:-30+60*seeded(s0+2) });
-        for (let s=0;s<codeShardsPerLetter;s++){
-          const seed = ci*1000+s*17+11;
-          const r1=seeded(seed), r2=seeded(seed+1), r3=seeded(seed+2);
-          const ang=( (-175+r1*upLeftSpreadDeg) * Math.PI)/180;
-          const mult=1.2+1.3*r2;
+
+        letters.push({
+          id: `L-${gid++}`,
+          char: ch,
+          dx: Math.cos(angL) * mag * multL,
+          dy: Math.sin(angL) * mag * multL,
+          rot: -30 + 60 * seeded(s0 + 2),
+          phase: seeded(s0 + 9) * Math.PI * 2, // unique float phase
+        });
+
+        for (let s = 0; s < codeShardsPerLetter; s++) {
+          const seed = ci * 1000 + s * 17 + 11;
+          const r1 = seeded(seed);
+          const r2 = seeded(seed + 1);
+          const r3 = seeded(seed + 2);
+          const angleDeg = -175 + r1 * upLeftSpreadDeg;
+          const angle = (angleDeg * Math.PI) / 180;
+          const mult = 1.2 + 1.3 * r2;
           code.push({
-            id:`C-${gid++}`,
-            token:CODE_FRAGMENTS[(ci+s)%CODE_FRAGMENTS.length],
-            dx:Math.cos(ang)*mag*mult,
-            dy:Math.sin(ang)*mag*mult,
-            rot:-20+40*seeded(seed+3),
-            vertical:r3>0.6
+            id: `C-${gid++}`,
+            token: CODE_FRAGMENTS[(ci + s) % CODE_FRAGMENTS.length],
+            dx: Math.cos(angle) * mag * mult,
+            dy: Math.sin(angle) * mag * mult,
+            rot: -20 + 40 * seeded(seed + 3),
+            vertical: r3 > 0.6,
+            phase: seeded(seed + 8) * Math.PI * 2,
           });
         }
       }
     });
-    return { codeShards:code, letterShards:letters };
+
+    return { codeShards: code, letterShards: letters };
   }, [chars, mag, codeShardsPerLetter, upLeftSpreadDeg]);
 
-  React.useEffect(() => {
-    const controls = animate(progress, hovering?1:0, {
-      type:"spring",
-      stiffness:returnSpring.stiffness,
-      damping:returnSpring.damping
+  // ----- Animate progress with springs -----
+  const runTo = React.useCallback((target: 0 | 1, spring: { stiffness: number; damping: number }) => {
+    return animate(progress, target, {
+      type: "spring",
+      stiffness: spring.stiffness,
+      damping: spring.damping,
+      onComplete: () => {
+        if (target === 1) setMode("floating");
+        else setMode("idle");
+      }
     });
-    return controls.stop;
-  }, [hovering, progress, returnSpring.stiffness, returnSpring.damping]);
+  }, [progress]);
 
+  // kick off explosion on enter; return on leave
+  const onMouseEnter = () => {
+    if (mode === "idle" || mode === "returning") {
+      setMode("exploding");
+      runTo(1, explodeSpring);
+    }
+  };
+  const onMouseLeave = () => {
+    if (mode !== "idle") {
+      setMode("returning");
+      runTo(0, returnSpring);
+    }
+  };
+
+  // while floating, any mouse move -> return
+  const onMouseMove = React.useCallback(() => {
+    if (mode === "floating") {
+      setMode("returning");
+      runTo(0, returnSpring);
+    }
+  }, [mode, runTo]);
+
+  React.useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    el.addEventListener("mousemove", onMouseMove);
+    return () => el.removeEventListener("mousemove", onMouseMove);
+  }, [onMouseMove]);
+
+  // eased progress for path symmetry
   const eased = React.useRef(0);
   const [, setTick] = React.useState(0);
   React.useEffect(() => {
     const unsub = progress.on("change", (t) => {
       eased.current = easeInOutCubic(t);
-      setTick(v=>v+1);
+      setTick(v => v + 1);
     });
     return unsub;
   }, [progress]);
 
-  const THRESH=0.02;
+  // float clock (runs only while floating)
+  const floatTimeRef = React.useRef(0);
+  React.useEffect(() => {
+    let raf = 0;
+    let last = performance.now();
+    const loop = (now: number) => {
+      const dt = (now - last) / 1000; last = now;
+      if (mode === "floating") {
+        floatTimeRef.current += dt;
+        setTick(v => v + 1);
+      }
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [mode]);
+
+  const THRESH = 0.02;
+
+  // helper: drift offsets from phase
+  const drift = (phase: number) => {
+    // very gentle, slow, circular-ish drift
+    const t = floatTimeRef.current * floatSpeedHz * 2 * Math.PI;
+    const dx = Math.cos(t + phase) * floatAmplitudePx;
+    const dy = Math.sin(t * 0.85 + phase * 1.13) * (floatAmplitudePx * 0.8);
+    const r  = Math.sin(t * 0.6 + phase * 0.7) * 2.5; // small rotational wiggle (deg)
+    return { dx, dy, r };
+  };
 
   return (
     <div
       ref={containerRef}
       className={`relative inline-block select-none ${className}`}
-      onMouseEnter={() => setHovering(true)}
-      onMouseLeave={() => setHovering(false)}
-      onFocus={() => setHovering(true)}
-      onBlur={() => setHovering(false)}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      onFocus={onMouseEnter}
+      onBlur={onMouseLeave}
+      role="img"
+      aria-label={text}
+      tabIndex={0}
     >
-      {/* base text */}
-      <span className={`relative inline-block whitespace-pre ${letterClassName}`}
-        style={{opacity:(progress.get()<THRESH)?1:0,transition:"opacity 0.001s linear"}}>
-        {chars.map((ch,i)=>(
-          <span key={i} data-layer="visible" data-letter-idx={i} className="inline-block">{ch}</span>
+      {/* Visible text (measured). Keep it in-flow; toggle opacity instantly */}
+      <span
+        className={`relative inline-block whitespace-pre ${letterClassName}`}
+        style={{ opacity: (progress.get() < THRESH) ? 1 : 0, transition: "opacity 0.001s linear" }}
+      >
+        {chars.map((ch, i) => (
+          <span
+            key={`visible-${i}`}
+            data-layer="visible"
+            data-letter-idx={i}
+            className="inline-block"
+          >
+            {ch}
+          </span>
         ))}
       </span>
 
-      {/* shards */}
+      {/* EXPLOSION / FLOATING LAYER — origin at exact Canyen|Palmer midpoint */}
       <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute left-1/2 top-1/2"
-          style={{transform:`translate(calc(-50% + ${originDelta.dx}px), calc(-50% + ${originDelta.dy}px))`}}>
-          {letterShards.map(p=>{
-            const t=eased.current, show=progress.get()>=THRESH;
-            return <motion.span key={p.id} className="absolute font-bold" aria-hidden
-              style={{transform:`translate(${p.dx*t}px,${p.dy*t}px) rotate(${p.rot*t}deg)`,opacity:show?1:0}}>{p.char}</motion.span>;
+        <div
+          className="absolute left-1/2 top-1/2"
+          style={{
+            transform: `translate(calc(-50% + ${originDelta.dx}px), calc(-50% + ${originDelta.dy}px))`,
+          }}
+        >
+          {/* Letter shards */}
+          {letterShards.map((p) => {
+            const t = eased.current;
+            const show = progress.get() >= THRESH;
+            const f = mode === "floating" ? drift(p.phase) : { dx: 0, dy: 0, r: 0 };
+            return (
+              <motion.span
+                key={p.id}
+                className="absolute font-bold"
+                aria-hidden
+                style={{
+                  transform: `translate(${p.dx * t + f.dx}px, ${p.dy * t + f.dy}px) rotate(${p.rot * t + f.r}deg)`,
+                  opacity: show ? 1 : 0,
+                }}
+              >
+                {p.char}
+              </motion.span>
+            );
           })}
-          {codeShards.map(p=>{
-            const t=eased.current, show=progress.get()>=THRESH;
-            const sx=p.vertical?1:1+shardScale*t, sy=p.vertical?1+shardScale*t:1;
-            return <motion.span key={p.id}
-              className={`absolute font-mono ${opacityClass} text-[0.34em] md:text-[0.30em]`} aria-hidden
-              style={{
-                writingMode:p.vertical?"vertical-rl":undefined,
-                transform:`translate(${p.dx*t}px,${p.dy*t}px) rotate(${p.rot*t}deg) scale(${sx},${sy})`,
-                opacity:show?1:0}}>{p.token}</motion.span>;
+
+          {/* Code shards */}
+          {codeShards.map((p) => {
+            const t = eased.current;
+            const show = progress.get() >= THRESH;
+            const sx = p.vertical ? 1 : 1 + shardScale * t;
+            const sy = p.vertical ? 1 + shardScale * t : 1;
+            const f = mode === "floating" ? drift(p.phase) : { dx: 0, dy: 0, r: 0 };
+            return (
+              <motion.span
+                key={p.id}
+                className={`absolute font-mono ${opacityClass} text-[0.34em] md:text-[0.30em]`}
+                aria-hidden
+                style={{
+                  writingMode: p.vertical ? ("vertical-rl" as any) : undefined,
+                  transform: `translate(${p.dx * t + f.dx}px, ${p.dy * t + f.dy}px) rotate(${p.rot * t + f.r}deg) scale(${sx}, ${sy})`,
+                  opacity: show ? 1 : 0,
+                }}
+              >
+                {p.token}
+              </motion.span>
+            );
           })}
         </div>
       </div>
