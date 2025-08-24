@@ -5,7 +5,7 @@ import Image from "next/image";
 import { hero } from "../content/hero.data";
 import CodeEdgesTyped from "./CodeEdgesTyped";
 import NameCodeExplode from "./NameCodeExplode";
-import TerminalBox from "./TerminalBox"; // <-- NEW
+import TerminalBox from "./TerminalBox";
 
 export default function Hero() {
   return (
@@ -19,10 +19,10 @@ export default function Hero() {
             transition={{ duration: 0.6 }}
             className="
               flex flex-col justify-center h-full relative z-10 overflow-hidden
-              min-h-[420px] md:min-h-[clamp(520px,70vh,860px)]
+              min-h-[420px] md:minh-[clamp(520px,70vh,860px)]
             "
           >
-            {/* Animated Name above the headline */}
+            {/* Animated Name */}
             <div className="mb-4">
               <NameCodeExplode
                 text="Canyen Palmer"
@@ -33,20 +33,46 @@ export default function Hero() {
               />
             </div>
 
-            {/* Title */}
-            <h1 className="text-2xl md:text-4xl font-bold leading-tight max-w-[34ch]">
+            {/* (Removed) Title line under the name */}
+            {/* <h1 className="text-2xl md:text-4xl font-bold leading-tight max-w-[34ch]">
               {hero.headline}
-            </h1>
+            </h1> */}
 
-            {/* Terminal typing skills snapshot */}
+            {/* Fake code card that 'runs' a summary */}
+            <div className="rounded-xl overflow-hidden border border-white/10 bg-[#10151d]/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_10px_40px_rgba(0,0,0,0.35)]">
+              <div className="flex items-center gap-2 px-4 py-2 border-b border-white/10 text-xs text-white/60">
+                <span className="inline-flex gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-red-500/70" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-yellow-500/70" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-green-500/70" />
+                </span>
+                <span className="ml-3 font-mono">summary.py</span>
+              </div>
+              <pre className="px-4 py-4 font-mono text-[13px] leading-6 text-[#e6edf3] whitespace-pre-wrap">
+<span className="text-[#6a737d]"># build a quick portfolio summary</span>
+<span className="block"><span className="text-[#c678dd]">def</span> <span className="text-[#61afef]">summary</span>():</span>
+<span className="block">  <span className="text-[#c678dd]">return</span> {"{"}</span>
+<span className="block">    <span className="text-[#98c379]">"proficiency"</span>: <span className="text-[#98c379]">"{hero.skills.proficiency.join(", ")}"</span>,</span>
+<span className="block">    <span className="text-[#98c379]">"familiarities"</span>: <span className="text-[#98c379]">"{hero.skills.familiarity.join(", ")}"</span>,</span>
+<span className="block">    <span className="text-[#98c379]">"tech_stack"</span>: <span className="text-[#98c379]">"{hero.skills.techStack.join(", ")}"</span></span>
+<span className="block">  {"}"}</span>
+<span className="block"></span>
+<span className="block"><span className="text-[#c678dd]">if</span> <span className="text-[#d19a66]">__name__</span> == <span className="text-[#98c379]">"__main__"</span>:</span>
+<span className="block">  <span className="text-[#56b6c2]">print</span>(<span className="text-[#61afef]">summary</span>())</span>
+              </pre>
+            </div>
+
+            {/* Terminal typing skills snapshot (starts after the code "runs") */}
             <TerminalBox
-              className="mt-6"
+              className="mt-4"
               typingSpeed={22}
               lineDelay={420}
               retypeOnReenter={true}
               visibleThreshold={0.6}
+              startDelayMs={600}  // small pause to feel like code executed
               lines={[
-                { prompt: "$ ", text: "whoami" },
+                { prompt: "$ ", text: "python summary.py" },
+                { prompt: "> ", text: "whoami" },
                 {
                   prompt: "> ",
                   text: "Data Scientist & Google-Certified Data Analyst Professional",
@@ -81,7 +107,7 @@ export default function Hero() {
             </div>
           </motion.div>
 
-          {/* Typed code edges — LEFT */}
+          {/* Typed code edges — LEFT (unchanged) */}
           <div className="hidden md:block">
             <CodeEdgesTyped
               zClass="-z-10"
@@ -106,7 +132,7 @@ export default function Hero() {
           </div>
         </div>
 
-        {/* RIGHT COLUMN — Headshot */}
+        {/* RIGHT COLUMN — Headshot (unchanged) */}
         <div className="relative">
           <motion.div
             initial={{ opacity: 0, x: 30 }}
@@ -131,16 +157,12 @@ export default function Hero() {
                 priority
                 sizes="(min-width: 768px) min(46vw, 620px), 100vw"
                 quality={95}
-                className="
-                  object-cover rounded-2xl
-                  [image-rendering:auto]
-                  sm:[filter:none]
-                "
+                className="object-cover rounded-2xl"
               />
             </div>
           </motion.div>
 
-          {/* Typed code edges — RIGHT */}
+          {/* Typed code edges — RIGHT (unchanged) */}
           <div className="hidden md:block">
             <CodeEdgesTyped
               zClass="-z-10"
