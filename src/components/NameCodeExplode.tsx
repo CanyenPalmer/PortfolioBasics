@@ -43,20 +43,14 @@ export default function NameCodeExplode({
     });
   }, [text, intensity]);
 
-  // Code shards: split into horizontal and vertical lanes (no diagonals)
-  const horizTokens = React.useMemo(
-    () => CODE_TOKENS.slice(0, 6), // small set → cleaner, non-overlapping
-    []
-  );
-  const vertTokens = React.useMemo(
-    () => CODE_TOKENS.slice(6, 12),
-    []
-  );
+  // Split code shards into horizontal and vertical sets (cleaner & non-overlapping)
+  const horizTokens = React.useMemo(() => CODE_TOKENS.slice(0, 6), []);
+  const vertTokens  = React.useMemo(() => CODE_TOKENS.slice(6, 12), []);
 
-  // Padding for the invisible clip box (bigger than intensity so we never spill)
+  // Invisible clip padding around the name so shards never spill into neighbors
   const pad = Math.round(intensity + 12);
 
-  // Reusable lane wrapper: strictly clipped box for one token
+  // Reusable lane container
   const Lane = ({ children }: { children: React.ReactNode }) => (
     <div
       className="overflow-hidden"
@@ -79,7 +73,7 @@ export default function NameCodeExplode({
       aria-label={text}
       tabIndex={0}
     >
-      {/* Base inline text: layout size is stable; letters fade/move but don't collapse */}
+      {/* Letters (cardinal motion) */}
       <span aria-hidden className="relative inline-block">
         {[...text].map((ch, i) =>
           ch === " " ? (
@@ -106,7 +100,7 @@ export default function NameCodeExplode({
         )}
       </span>
 
-      {/* CLIP BOX for code shards (doesn't affect layout). Expands beyond text via negative inset. */}
+      {/* CLIP BOX for moving code shards */}
       <div
         className="pointer-events-none absolute"
         style={{
@@ -117,10 +111,14 @@ export default function NameCodeExplode({
           overflow: "hidden",
         }}
       >
-        {/* Horizontal lanes (left/right) — stacked vertically, centered */}
+        {/* Horizontal lanes: tokens slide left/right with a subtle ping‑pong while hovered */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center gap-2">
           {horizTokens.map((tok, i) => {
             const dirRight = i % 2 === 0;
+            // base offset (where it "breaks" to)
+            const baseX = (dirRight ? +1 : -1) * intensity * 1.1;
+            // small oscillation amount
+            const osc = Math.max(8, Math.min(16, intensity * 0.22));
             return (
               <Lane key={`hx-${i}`}>
                 <motion.span
@@ -128,10 +126,14 @@ export default function NameCodeExplode({
                   initial={{ x: 0, opacity: 0 }}
                   animate={
                     hovered
-                      ? { x: dirRight ? +intensity * 1.15 : -intensity * 1.15, opacity: 1 }
+                      ? { x: [baseX - osc, baseX + osc, baseX - osc], opacity: 1 }
                       : { x: 0, opacity: 0 }
                   }
-                  transition={{ type: "tween", duration: 0.32, delay: hovered ? i * 0.05 : 0 }}
+                  transition={
+                    hovered
+                      ? { duration: 1.4, ease: "easeInOut", repeat: Infinity }
+                      : { duration: 0.25 }
+                  }
                   aria-hidden
                 >
                   {tok}
@@ -141,25 +143,28 @@ export default function NameCodeExplode({
           })}
         </div>
 
-        {/* Vertical lanes (up/down) — laid out horizontally, centered */}
+        {/* Vertical lanes: tokens slide up/down with a subtle ping‑pong while hovered */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center gap-3">
           {vertTokens.map((tok, i) => {
             const dirUp = i % 2 === 0;
+            const baseY = (dirUp ? -1 : +1) * intensity * 1.1;
+            const osc   = Math.max(8, Math.min(16, intensity * 0.22));
             return (
               <div key={`vy-${i}`} style={{ width: `${Math.min(laneWidthCh, 10)}ch` }}>
-                <div
-                  className="overflow-hidden"
-                  style={{ height: `${laneHeightEm}em` }}
-                >
+                <div className="overflow-hidden" style={{ height: `${laneHeightEm}em` }}>
                   <motion.span
                     className={codeClass}
                     initial={{ y: 0, opacity: 0 }}
                     animate={
                       hovered
-                        ? { y: dirUp ? -intensity * 1.15 : +intensity * 1.15, opacity: 1 }
+                        ? { y: [baseY - osc, baseY + osc, baseY - osc], opacity: 1 }
                         : { y: 0, opacity: 0 }
                     }
-                    transition={{ type: "tween", duration: 0.32, delay: hovered ? i * 0.05 : 0 }}
+                    transition={
+                      hovered
+                        ? { duration: 1.4, ease: "easeInOut", repeat: Infinity }
+                        : { duration: 0.25 }
+                    }
                     aria-hidden
                   >
                     {tok}
