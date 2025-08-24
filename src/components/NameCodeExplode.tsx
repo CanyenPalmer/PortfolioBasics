@@ -22,7 +22,7 @@ type Props = {
   // Reform timing
   reformHoldMs?: number;
 
-  // Gap definition (kept, but defaults match “Canyen Palmer”)
+  // Tokens that define the gap (we’ll put origin at exact midpoint between them)
   gapLeftToken?: string;            // defaults to "Canyen"
   gapRightToken?: string;           // defaults to "Palmer"
   gapOccurrence?: number;           // 1 = first pair found
@@ -57,7 +57,7 @@ export default function NameCodeExplode({
   text = "Canyen Palmer",
   className = "text-5xl md:text-7xl font-extrabold tracking-tight",
   intensity = 200,
-  durationMs = 520, // slower outward blast per your request
+  durationMs = 520, // slower outward blast
   ease = "easeInOut",
   returnSpring = { stiffness: 420, damping: 32 },
   opacityClass = "text-white/25",
@@ -97,7 +97,7 @@ export default function NameCodeExplode({
     return null;
   }
 
-  // Measure per-letter targets and compute origin at the GAP using **visible** letters
+  // Measure per-letter targets and compute origin at the EXACT midpoint between last 'n' of left token and 'P' of right token
   const measure = React.useCallback(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -106,61 +106,69 @@ export default function NameCodeExplode({
     const containerCenterX = cbox.left + cbox.width / 2;
     const containerCenterY = cbox.top + cbox.height / 2;
 
-    // We render visible letters as individual spans in-flow (opacity toggled by variants).
-    const spans = Array.from(container.querySelectorAll<HTMLSpanElement>('[data-letter-idx="1"],[data-letter-idx="0"],[data-letter-idx]'))
-      .filter(el => el.getAttribute("data-layer") === "visible");
-    if (!spans.length) return;
+    // Visible letters in-flow; we toggle opacity via variants, not display.
+    const visibleSpans = Array.from(
+      container.querySelectorAll<HTMLSpanElement>('[data-layer="visible"][data-letter-idx]')
+    );
+
+    if (!visibleSpans.length) return;
 
     const rects: Array<DOMRect | null> = Array(chars.length).fill(null);
     const centersAbs: Array<{ x: number; y: number } | null> = Array(chars.length).fill(null);
 
-    for (const el of spans) {
+    for (const el of visibleSpans) {
       const idx = Number(el.dataset.letterIdx);
       const r = el.getBoundingClientRect();
       rects[idx] = r;
       centersAbs[idx] = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
     }
 
-    // Default origin = container center (fallback)
-    let originX = containerCenterX;
-    let originY = containerCenterY;
+    // Compute entire line vertical bounds for a stable vertical center
+    const tops: number[] = [];
+    const bottoms: number[] = [];
+    rects.forEach(r => {
+      if (r) { tops.push(r.top); bottoms.push(r.bottom); }
+    });
+    const lineTop = Math.min(...tops);
+    const lineBottom = Math.max(...bottoms);
+    const lineCY = (lineTop + lineBottom) / 2;
 
-    // Preferred: compute exact gap between end of gapLeftToken and start of gapRightToken
+    // Default origin: container center (fallback)
+    let originX = containerCenterX;
+    let originY = lineCY; // use line center vertically
+
+    // Preferred: gap between tokens
     const leftStart = findTokenStart(chars, gapLeftToken, gapOccurrence);
     const rightStart = findTokenStart(chars, gapRightToken, gapOccurrence);
 
     if (leftStart !== null && rightStart !== null) {
-      const leftEndIdx = leftStart + gapLeftToken.length - 1; // last char index of left token
-      const rightStartIdx = rightStart;                        // first char index of right token
+      const leftEndIdx = leftStart + gapLeftToken.length - 1; // 'n' in "Canyen"
+      const rightStartIdx = rightStart;                       // 'P' in "Palmer"
       const leftRect = rects[leftEndIdx];
       const rightRect = rects[rightStartIdx];
 
       if (leftRect && rightRect) {
         const leftEdge = leftRect.right;
         const rightEdge = rightRect.left;
+        // EXACT middle pixel horizontally between 'n' and 'P'
         originX = (leftEdge + rightEdge) / 2;
-
-        // Vertical alignment = average of their vertical centers
-        const leftCY = leftRect.top + leftRect.height / 2;
-        const rightCY = rightRect.top + rightRect.height / 2;
-        originY = (leftCY + rightCY) / 2;
+        // Vertical = middle of the whole name line, not glyph-average
+        originY = lineCY;
       }
     } else {
-      // Secondary fallback: use a space gap if present
+      // Fallback: use space gap if tokens not found
       const spaceIdx = chars.findIndex((c) => c === " ");
       if (spaceIdx >= 1 && spaceIdx < chars.length - 1) {
         const prev = rects[spaceIdx - 1];
         const next = rects[spaceIdx + 1];
         if (prev && next) {
           originX = (prev.right + next.left) / 2;
-          const prevCY = prev.top + prev.height / 2;
-          const nextCY = next.top + next.height / 2;
-          originY = (prevCY + nextCY) / 2;
+          originY = lineCY;
         }
       }
     }
 
-    // Convert absolute centers to offsets **relative to that gap-origin**
+    // Convert absolute centers to offsets **relative to that origin**
     const relTargets = centersAbs.map((pt) =>
       pt ? { x: pt.x - originX, y: pt.y - originY } : { x: 0, y: 0 }
     );
@@ -250,10 +258,8 @@ export default function NameCodeExplode({
   const TRANS = React.useMemo(() => ({ duration: durationMs / 1000, ease }), [durationMs, ease]);
   const [state, setState] = React.useState<"rest" | "explode" | "implode">("rest");
   const [snapping, setSnapping] = React.useState(false);
-  const snappedOnceRef = React.useRef(false);
 
-  // Visible text layer: kept in-flow for layout; opacity toggled.
-  // Important: we do **instant** toggles so there’s no cross-fade.
+  // Visible text layer: kept in-flow for layout; opacity toggled instantly.
   const nameVariants: Variants = {
     rest:    { opacity: 1, transition: { duration: 0.001 } },
     explode: { opacity: 0, transition: { duration: 0.001 } },
@@ -293,7 +299,6 @@ export default function NameCodeExplode({
     setSnapping(true);
     const t = window.setTimeout(() => {
       setSnapping(false);
-      snappedOnceRef.current = true;
       setState("rest");
     }, reformHoldMs);
     return () => window.clearTimeout(t);
@@ -320,8 +325,7 @@ export default function NameCodeExplode({
       aria-label={text}
       tabIndex={0}
     >
-      {/* Visible text, per-letter spans kept in the same DOM flow we measure.
-          We tag them data-layer="visible" so measurement finds these exact boxes. */}
+      {/* Visible text as per-letter spans (we measure THESE exact boxes) */}
       <motion.span variants={nameVariants} className={`relative inline-block whitespace-pre ${letterClassName}`}>
         {chars.map((ch, i) => (
           <span
@@ -335,7 +339,7 @@ export default function NameCodeExplode({
         ))}
       </motion.span>
 
-      {/* EXPLOSION LAYER — shifted so origin is the EXACT GAP between “Canyen” and “Palmer” */}
+      {/* EXPLOSION LAYER — shifted so origin is EXACT middle pixel of the gap between 'n' and 'P' */}
       <div className="pointer-events-none absolute inset-0 -z-10">
         <div
           className="absolute left-1/2 top-1/2"
