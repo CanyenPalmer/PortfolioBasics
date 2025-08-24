@@ -71,9 +71,10 @@ export default function SummaryRunner({
               </button>
             </div>
 
-            {/* (kept) pretty-ish code with mild highlights */}
+            {/* summary.py contents with subtle syntax highlighting */}
             <pre className="px-4 py-4 font-mono text-[13px] leading-6 text-[#e6edf3] whitespace-pre-wrap h-[calc(100%-36px)] overflow-auto">
-<span className="text-[#6a737d]"># quick portfolio summary generator</span>
+<span className="text-[#6a737d]"># Run_For_Details</span>
+<span className="block"></span>
 <span className="block"><span className="text-[#c678dd]">def</span> <span className="text-[#61afef]">summary</span>():</span>
 <span className="block">  <span className="text-[#c678dd]">return</span> {"{"}</span>
 <span className="block">    <span className="text-[#98c379]">'canyen_palmer_title'</span>: <span className="text-[#98c379]">'Data Scientist & Google-Certified Data Analyst Professional'</span>,</span>
@@ -82,7 +83,6 @@ export default function SummaryRunner({
 <span className="block">    <span className="text-[#98c379]">'tech_stack'</span>: <span className="text-[#d19a66]">[{stringList(techStack)}]</span>,</span>
 <span className="block">  {"}"}</span>
 <span className="block"></span>
-<span className="text-[#6a737d]"># TODO: wire this to a live dataset → pretty-print w/ pandas</span>
 <span className="block"><span className="text-[#c678dd]">if</span> <span className="text-[#d19a66]">__name__</span> == <span className="text-[#98c379]">"__main__"</span>:</span>
 <span className="block">  <span className="text-[#56b6c2]">print</span>(<span className="text-[#61afef]">summary</span>())</span>
             </pre>
@@ -128,40 +128,30 @@ export default function SummaryRunner({
                 visibleThreshold={0.6}
                 startDelayMs={150}
                 keepCursorOnDone={true}
-
-                /* === COLORED OUTPUT LINES === */
                 lines={[
                   { prompt: "$ ", text: "python summary.py" },
                   { prompt: "$ ", text: "compiling..." },
 
-                  // "{"
                   { segments: [{ text: "{", className: "text-[#e6edf3]" }] },
 
-                  // 'canyen_palmer_title': '...'
                   {
                     segments: [
                       { text: "  ", className: "" },
                       { text: "'", className: "text-[#e6edf3]" },
-                      { text: "canyen_palmer_title", className: "text-[#56b6c2]" }, // cyan key
+                      { text: "canyen_palmer_title", className: "text-[#56b6c2]" },
                       { text: "'", className: "text-[#e6edf3]" },
                       { text: ": ", className: "text-[#e6edf3]" },
                       { text: "'", className: "text-[#e6edf3]" },
-                      { text: "Data Scientist & Google-Certified Data Analyst Professional", className: "text-[#98c379]" }, // green string
+                      { text: "Data Scientist & Google-Certified Data Analyst Professional", className: "text-[#98c379]" },
                       { text: "'", className: "text-[#e6edf3]" },
                       { text: ",", className: "text-[#e6edf3]" },
                     ],
                   },
 
-                  // 'proficiency': ['Python', 'Excel', ...],
                   listLine("proficiency", proficiency),
-
-                  // 'familiarities': [...],
                   listLine("familiarities", familiarity),
-
-                  // 'tech_stack': [... (colored)],
                   listLine("tech_stack", techStack, true),
 
-                  // "}"
                   { segments: [{ text: "}", className: "text-[#e6edf3]" }] },
                 ]}
               />
@@ -178,21 +168,19 @@ function stringList(items: string[]) {
   return items.map((s) => `'${s}'`).join(", ");
 }
 
-// Build a colored list line like:   "  'key': ['A', 'B', 'C'],"
 function listLine(key: string, items: string[], isLast = false) {
   const segs = [
     { text: "  ", className: "" },
     { text: "'", className: "text-[#e6edf3]" },
-    { text: key, className: "text-[#56b6c2]" }, // cyan key
+    { text: key, className: "text-[#56b6c2]" },
     { text: "'", className: "text-[#e6edf3]" },
     { text: ": ", className: "text-[#e6edf3]" },
     { text: "[", className: "text-[#e6edf3]" },
-    // items
     ...items.flatMap((it, idx) => {
       const comma = idx < items.length - 1 ? "," : "";
       return [
         { text: "'", className: "text-[#e6edf3]" },
-        { text: it, className: "text-[#98c379]" }, // green string
+        { text: it, className: "text-[#98c379]" },
         { text: "'", className: "text-[#e6edf3]" },
         { text: comma + (comma ? " " : ""), className: "text-[#e6edf3]" },
       ];
