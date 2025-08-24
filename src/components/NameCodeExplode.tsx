@@ -6,13 +6,14 @@ import { motion, useAnimationControls } from "framer-motion";
 type Props = {
   text?: string;
   className?: string;
-  intensity?: number;       // how far letters + slide travel (px)
-  stagger?: number;         // letter staggering (s)
-  opacityClass?: string;    // code color, e.g. "text-white/25"
-  laneHeightEm?: number;    // lane height for clipping
-  laneWidthCh?: number;     // lane width for clipping (characters)
-  typeSpeedChPerSec?: number; // typing speed (characters per second)
-  holdAfterTypeMs?: number; // small pause before sliding out
+  intensity?: number;            // distance letters slide (px) & code slides off-screen
+  stagger?: number;              // per-letter stagger (seconds)
+  opacityClass?: string;         // color of code lines (e.g., "text-white/25")
+  laneHeightEm?: number;         // lane height (controls vertical spacing)
+  laneWidthCh?: number;          // lane width (clips long horizontal lines)
+  typeSpeedChPerSec?: number;    // typing speed for code lines
+  holdAfterTypeMs?: number;      // pause before code slides away
+  lanesGapEm?: number;           // gap between lanes
 };
 
 const HORIZ_LINES = [
@@ -27,24 +28,20 @@ const VERT_LINES = [
   "precision_at_k(y_te, y_prob, k=0.10)",
 ];
 
-/** A typed line that:
- *  1) types from width 0ch -> Nch (steps),
- *  2) holds briefly,
- *  3) then slides outward and fades,
- *  4) resets when hovered=false.
- */
+// Typed line component: types → optional hold → slides off in its lane
 function TypingLine({
   text,
-  direction,         // "left" | "right" | "up" | "down"
-  baseOffset,        // pixels to slide off after typing
+  direction,          // 'left' | 'right' | 'up' | 'down'
+  baseOffset,         // slide distance in px
   laneHeightEm,
   laneWidthCh,
   opacityClass,
   typeSpeedChPerSec,
   holdAfterTypeMs,
-  hover,
-  delay = 0,         // optional start delay in seconds
-  vertical = false,  // if true, render vertical-rl
+  hover,              // sync with letters: true when letters disperse
+  startDelay = 0,     // small lane staggering if desired
+  vertical = false,
+  lanesGapEm = 0.5,
 }: {
   text: string;
   direction: "left" | "right" | "up" | "down";
@@ -55,67 +52,66 @@ function TypingLine({
   typeSpeedChPerSec: number;
   holdAfterTypeMs: number;
   hover: boolean;
-  delay?: number;
+  startDelay?: number;
   vertical?: boolean;
+  lanesGapEm?: number;
 }) {
   const controls = useAnimationControls();
   const N = text.length;
-  const typeDuration = Math.max(0.15, N / typeSpeedChPerSec); // seconds
+  const typeDuration = Math.max(0.12, N / typeSpeedChPerSec); // seconds
+
   const slideVector =
     direction === "left" ? { x: -baseOffset, y: 0 } :
     direction === "right" ? { x:  baseOffset, y: 0 } :
     direction === "up" ? { x: 0, y: -baseOffset } :
-    { x: 0, y: baseOffset };
+                         { x: 0, y:  baseOffset };
 
-  // Kick off / reset timeline whenever hover changes
   React.useEffect(() => {
     let t: ReturnType<typeof setTimeout> | null = null;
 
     const run = async () => {
       if (!hover) {
-        // Reset to start: invisible, no width, centered
+        // reset immediately when mouse leaves (so name can reform)
         await controls.set({ x: 0, y: 0, opacity: 0, width: "0ch" });
         return;
       }
 
-      // 1) start hidden at center with width 0ch
+      // start aligned with letters dispersing
       await controls.set({ x: 0, y: 0, opacity: 0, width: "0ch" });
 
-      // small entrance fade to make caret visible
+      // tiny fade-in so caret isn’t jarring
       await controls.start({
         opacity: 1,
-        transition: { duration: 0.12, delay }
+        transition: { duration: 0.1, delay: startDelay },
       });
 
-      // 2) type to full width using steps (looks like true typing)
+      // “type” to full width (monospace makes this convincing)
       await controls.start({
         width: `${N}ch`,
         transition: {
           duration: typeDuration,
           ease: "linear",
-          // Step effect via keyframes—framer approximates; monospace makes it convincing
-        }
+          delay: startDelay,
+        },
       });
 
-      // 3) hold briefly, then slide outward + fade
+      // hold briefly, then slide off in lane direction
       t = setTimeout(() => {
         controls.start({
           ...slideVector,
           opacity: 0,
-          transition: { duration: 0.35, ease: "easeIn" }
+          transition: { duration: 0.35, ease: "easeIn" },
         });
       }, holdAfterTypeMs);
     };
 
     run();
-
     return () => { if (t) clearTimeout(t); };
-  }, [hover, controls, typeDuration, holdAfterTypeMs, slideVector, delay, N]);
+  }, [hover, controls, typeDuration, holdAfterTypeMs, slideVector, startDelay, N]);
 
-  // Lane clip
   const laneStyle: React.CSSProperties = vertical
-    ? { height: `${laneHeightEm}em`, width: `${Math.min(laneWidthCh, 10)}ch`, overflow: "hidden" }
-    : { height: `${laneHeightEm}em`, maxWidth: `${laneWidthCh}ch`, overflow: "hidden" };
+    ? { height: `${laneHeightEm}em`, width: `${Math.min(laneWidthCh, 10)}ch`, overflow: "hidden", margin: `${lanesGapEm/2}em` }
+    : { height: `${laneHeightEm}em`, maxWidth: `${laneWidthCh}ch`, overflow: "hidden", margin: `${lanesGapEm/2}em 0` };
 
   return (
     <div style={laneStyle}>
@@ -126,8 +122,7 @@ function TypingLine({
         style={{ writingMode: vertical ? ("vertical-rl" as any) : undefined }}
         aria-hidden
       >
-        {/* visible text area (clipped by width) */}
-        <span className="sr-only">{text}</span>
+        {/* visible text (clipped by width) */}
         <span aria-hidden className={`${vertical ? "" : "whitespace-nowrap"}`}>{text}</span>
         {/* caret */}
         <span
@@ -143,17 +138,18 @@ function TypingLine({
 export default function NameCodeExplode({
   text = "Canyen Palmer",
   className = "text-5xl md:text-7xl font-extrabold tracking-tight",
-  intensity = 70,
+  intensity = 72,
   stagger = 0.014,
   opacityClass = "text-white/25",
-  laneHeightEm = 1.45,
-  laneWidthCh = 44,
-  typeSpeedChPerSec = 28,
-  holdAfterTypeMs = 300,
+  laneHeightEm = 1.5,
+  laneWidthCh = 46,
+  typeSpeedChPerSec = 30,
+  holdAfterTypeMs = 250,
+  lanesGapEm = 0.6,
 }: Props) {
   const [hovered, setHovered] = React.useState(false);
 
-  // Letters: strictly cardinal motion (R, L, Up, Down). No rotation -> matches your gutters.
+  // Letters disperse only in cardinal directions; start immediately on hover
   const letterOffsets = React.useMemo(() => {
     return [...text].map((_, i) => {
       const dir = i % 4;
@@ -167,7 +163,7 @@ export default function NameCodeExplode({
   }, [text, intensity]);
 
   // Extra clip padding so typing/slide never touches nearby content
-  const pad = Math.round(intensity + 16);
+  const pad = Math.round(intensity + 18);
 
   return (
     <div
@@ -180,7 +176,7 @@ export default function NameCodeExplode({
       aria-label={text}
       tabIndex={0}
     >
-      {/* Base name keeps layout stable */}
+      {/* Base name keeps layout stable; letters disperse with small stagger */}
       <span aria-hidden className="relative inline-block">
         {[...text].map((ch, i) =>
           ch === " " ? (
@@ -203,13 +199,13 @@ export default function NameCodeExplode({
         )}
       </span>
 
-      {/* Clip box for typing code lines (no overlap, no spill) */}
+      {/* CLIP BOX ensures code never overlaps itself or other text */}
       <div
         className="pointer-events-none absolute"
         style={{ left: -pad, right: -pad, top: -pad, bottom: -pad, overflow: "hidden" }}
       >
-        {/* Horizontal lanes (stacked vertically) */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center gap-2">
+        {/* Horizontal lanes (stacked vertically, centered). Start immediately on hover. */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center">
           {HORIZ_LINES.map((line, i) => (
             <TypingLine
               key={`h-${i}`}
@@ -221,15 +217,16 @@ export default function NameCodeExplode({
               opacityClass={opacityClass}
               typeSpeedChPerSec={typeSpeedChPerSec}
               holdAfterTypeMs={holdAfterTypeMs}
-              hover={hovered}
-              delay={i * 0.05}
+              hover={hovered}                   // <-- sync start with letters
+              startDelay={0}                    // no delay: appears with letters
               vertical={false}
+              lanesGapEm={lanesGapEm}
             />
           ))}
         </div>
 
-        {/* Vertical lanes (laid out horizontally) */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center gap-3">
+        {/* Vertical lanes (laid out horizontally, centered). Start immediately on hover. */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center">
           {VERT_LINES.map((line, i) => (
             <TypingLine
               key={`v-${i}`}
@@ -241,9 +238,10 @@ export default function NameCodeExplode({
               opacityClass={opacityClass}
               typeSpeedChPerSec={typeSpeedChPerSec}
               holdAfterTypeMs={holdAfterTypeMs}
-              hover={hovered}
-              delay={i * 0.05}
+              hover={hovered}                   // <-- sync start with letters
+              startDelay={0}
               vertical
+              lanesGapEm={lanesGapEm}
             />
           ))}
         </div>
