@@ -3,21 +3,13 @@
 import * as React from "react";
 
 type Props = {
-  /** The line to type */
   text: string;
-  /** Optional prompt prefix (e.g., "$ ", "> ") */
   prompt?: string;
-  /** Tailwind / class names for the wrapper */
   className?: string;
-  /** ms per character (lower = faster) */
   typingSpeed?: number;
-  /** delay before typing after it becomes visible (ms) */
   startDelayMs?: number;
-  /** Retype each time it re-enters view (never deletes while visible). Default: true */
   retypeOnReenter?: boolean;
-  /** Intersection ratio (0..1) considered “in view”. Default: 0.6 */
   visibleThreshold?: number;
-  /** Accessible label */
   ariaLabel?: string;
 };
 
@@ -33,20 +25,17 @@ export default function InlineTypeLine({
 }: Props) {
   const rootRef = React.useRef<HTMLDivElement>(null);
 
-  // state machine
   const [started, setStarted] = React.useState(false);
   const [armed, setArmed] = React.useState(false);
   const [i, setI] = React.useState(0);
   const [done, setDone] = React.useState(false);
 
-  // timers cleanup
   const timers = React.useRef<number[]>([]);
   const clearTimers = () => {
     timers.current.forEach((t) => window.clearTimeout(t));
     timers.current = [];
   };
 
-  // visibility observer
   React.useEffect(() => {
     const el = rootRef.current;
     if (!el) return;
@@ -55,7 +44,6 @@ export default function InlineTypeLine({
       (entries) => {
         for (const e of entries) {
           if (e.intersectionRatio >= visibleThreshold) {
-            // Reset and arm each time it re-enters (if enabled)
             clearTimers();
             if (retypeOnReenter) {
               setI(0);
@@ -68,7 +56,6 @@ export default function InlineTypeLine({
             }, startDelayMs) as unknown as number;
             timers.current.push(t);
           } else {
-            // paused out of view; keep rendered text; never delete while visible
             clearTimers();
             setStarted(false);
             setArmed(false);
@@ -85,7 +72,6 @@ export default function InlineTypeLine({
     };
   }, [retypeOnReenter, visibleThreshold, startDelayMs]);
 
-  // typing loop
   React.useEffect(() => {
     if (!armed || !started || done) return;
     if (i >= text.length) {
@@ -104,7 +90,6 @@ export default function InlineTypeLine({
       <span className="font-mono">
         {prompt && <span className="text-emerald-400">{prompt}</span>}
         <span>{done ? text : shown}</span>
-        {/* Blinking block cursor always visible while typing; remains at end when done */}
         <span
           className="inline-block w-[8px] h-[1.1em] align-[-0.15em] bg-white/80 ml-1 animate-[blink_1s_steps(1)_infinite]"
           aria-hidden
@@ -112,11 +97,7 @@ export default function InlineTypeLine({
       </span>
 
       <style jsx>{`
-        @keyframes blink {
-          50% {
-            opacity: 0;
-          }
-        }
+        @keyframes blink { 50% { opacity: 0; } }
       `}</style>
     </div>
   );
