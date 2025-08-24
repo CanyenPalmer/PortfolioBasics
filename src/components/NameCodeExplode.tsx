@@ -22,7 +22,7 @@ type Props = {
   // Reform timing
   reformHoldMs?: number;
 
-  // Optional: customize the tokens that define the “gap”
+  // Gap definition (kept, but defaults match “Canyen Palmer”)
   gapLeftToken?: string;            // defaults to "Canyen"
   gapRightToken?: string;           // defaults to "Palmer"
   gapOccurrence?: number;           // 1 = first pair found
@@ -70,7 +70,6 @@ export default function NameCodeExplode({
   gapOccurrence = 1,
 }: Props) {
   const containerRef = React.useRef<HTMLDivElement>(null);
-  const probeRef = React.useRef<HTMLDivElement>(null);
 
   const chars = React.useMemo(() => [...text], [text]);
   const [mag, setMag] = React.useState(intensity);
@@ -98,40 +97,41 @@ export default function NameCodeExplode({
     return null;
   }
 
-  // Measure per-letter targets and compute origin at the GAP between tokens
+  // Measure per-letter targets and compute origin at the GAP using **visible** letters
   const measure = React.useCallback(() => {
     const container = containerRef.current;
-    const probe = probeRef.current;
-    if (!container || !probe) return;
+    if (!container) return;
 
     const cbox = container.getBoundingClientRect();
     const containerCenterX = cbox.left + cbox.width / 2;
     const containerCenterY = cbox.top + cbox.height / 2;
 
-    // Collect glyph rects & centers
-    const spans = Array.from(probe.querySelectorAll<HTMLSpanElement>("[data-letter-idx]"));
-    const rects: Array<DOMRect | null> = [];
-    const absCenters: Array<{ x: number; y: number }> = [];
+    // We render visible letters as individual spans in-flow (opacity toggled by variants).
+    const spans = Array.from(container.querySelectorAll<HTMLSpanElement>('[data-letter-idx="1"],[data-letter-idx="0"],[data-letter-idx]'))
+      .filter(el => el.getAttribute("data-layer") === "visible");
+    if (!spans.length) return;
 
-    spans.forEach((el, i) => {
+    const rects: Array<DOMRect | null> = Array(chars.length).fill(null);
+    const centersAbs: Array<{ x: number; y: number } | null> = Array(chars.length).fill(null);
+
+    for (const el of spans) {
+      const idx = Number(el.dataset.letterIdx);
       const r = el.getBoundingClientRect();
-      rects[i] = r;
-      const cx = r.left + r.width / 2;
-      const cy = r.top + r.height / 2;
-      absCenters[i] = { x: cx, y: cy };
-    });
+      rects[idx] = r;
+      centersAbs[idx] = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    }
 
     // Default origin = container center (fallback)
     let originX = containerCenterX;
     let originY = containerCenterY;
 
-    // Preferred: compute gap between gapLeftToken (end) and gapRightToken (start)
+    // Preferred: compute exact gap between end of gapLeftToken and start of gapRightToken
     const leftStart = findTokenStart(chars, gapLeftToken, gapOccurrence);
     const rightStart = findTokenStart(chars, gapRightToken, gapOccurrence);
 
     if (leftStart !== null && rightStart !== null) {
       const leftEndIdx = leftStart + gapLeftToken.length - 1; // last char index of left token
-      const rightStartIdx = rightStart; // first char index of right token
+      const rightStartIdx = rightStart;                        // first char index of right token
       const leftRect = rects[leftEndIdx];
       const rightRect = rects[rightStartIdx];
 
@@ -146,7 +146,7 @@ export default function NameCodeExplode({
         originY = (leftCY + rightCY) / 2;
       }
     } else {
-      // Secondary fallback: if there is a space, use the gap around it
+      // Secondary fallback: use a space gap if present
       const spaceIdx = chars.findIndex((c) => c === " ");
       if (spaceIdx >= 1 && spaceIdx < chars.length - 1) {
         const prev = rects[spaceIdx - 1];
@@ -160,15 +160,16 @@ export default function NameCodeExplode({
       }
     }
 
-    // Convert absolute target centers to offsets *relative to origin*
-    const relTargets = absCenters.map((pt) => ({ x: pt.x - originX, y: pt.y - originY }));
+    // Convert absolute centers to offsets **relative to that gap-origin**
+    const relTargets = centersAbs.map((pt) =>
+      pt ? { x: pt.x - originX, y: pt.y - originY } : { x: 0, y: 0 }
+    );
 
-    // Store delta to shift the explosion inner layer from container center to the gap origin
+    // Shift explosion layer from container center → gap origin
     setOriginDelta({
       dx: originX - containerCenterX,
       dy: originY - containerCenterY,
     });
-
     setTargets(relTargets);
   }, [chars, gapLeftToken, gapRightToken, gapOccurrence]);
 
@@ -182,7 +183,7 @@ export default function NameCodeExplode({
     return () => window.removeEventListener("resize", onResize);
   }, [measure]);
 
-  // Build shards using stable seeds; add target x/y once measured
+  // Build shards using stable seeds; target x/y are patched after measure
   const { codeShards, letterShards } = React.useMemo(() => {
     const code: CodeShard[] = [];
     const letters: LetterShard[] = [];
@@ -234,10 +235,9 @@ export default function NameCodeExplode({
     });
 
     return { codeShards: code, letterShards: letters };
-    // Rebuild when target count changes (after measuring)
   }, [chars, mag, codeShardsPerLetter, targets.length]);
 
-  // Keep letterShards in sync with measured targets
+  // Patch shards with measured targets
   const patchedLetterShards = React.useMemo(
     () => letterShards.map((ls, i) => {
       const t = targets[i];
@@ -250,15 +250,17 @@ export default function NameCodeExplode({
   const TRANS = React.useMemo(() => ({ duration: durationMs / 1000, ease }), [durationMs, ease]);
   const [state, setState] = React.useState<"rest" | "explode" | "implode">("rest");
   const [snapping, setSnapping] = React.useState(false);
+  const snappedOnceRef = React.useRef(false);
 
-  // Base name visible only at REST; shards run the show during explode/implode
+  // Visible text layer: kept in-flow for layout; opacity toggled.
+  // Important: we do **instant** toggles so there’s no cross-fade.
   const nameVariants: Variants = {
-    rest:    { opacity: 1 },
+    rest:    { opacity: 1, transition: { duration: 0.001 } },
     explode: { opacity: 0, transition: { duration: 0.001 } },
     implode: { opacity: 0, transition: { duration: 0.001 } },
   };
 
-  // Letter shards (these become the word during reform)
+  // Letter shards (these *become* the letters during reform)
   const letterShardVariants: Variants = {
     rest:    { x: 0, y: 0, opacity: 0, rotate: 0, scale: 1 },
     explode: (p: { dx: number; dy: number; rot: number }) => ({
@@ -266,6 +268,7 @@ export default function NameCodeExplode({
       scale: 1 + shardScale * 0.25,
       transition: { ...TRANS, opacity: { duration: 0.001 } },
     }),
+    // Fly to the exact letter position and **stay visible** (this is the reform moment)
     implode: (p: { tx: number; ty: number }) => ({
       x: p.tx, y: p.ty, rotate: 0, opacity: 1, scale: 1,
       transition: { type: "spring", ...returnSpring },
@@ -290,6 +293,7 @@ export default function NameCodeExplode({
     setSnapping(true);
     const t = window.setTimeout(() => {
       setSnapping(false);
+      snappedOnceRef.current = true;
       setState("rest");
     }, reformHoldMs);
     return () => window.clearTimeout(t);
@@ -316,21 +320,20 @@ export default function NameCodeExplode({
       aria-label={text}
       tabIndex={0}
     >
-      {/* Visible name only at REST */}
-      <motion.span variants={nameVariants} className={`relative inline-block ${letterClassName}`}>
-        {text}
+      {/* Visible text, per-letter spans kept in the same DOM flow we measure.
+          We tag them data-layer="visible" so measurement finds these exact boxes. */}
+      <motion.span variants={nameVariants} className={`relative inline-block whitespace-pre ${letterClassName}`}>
+        {chars.map((ch, i) => (
+          <span
+            key={`visible-${i}`}
+            data-letter-idx={i}
+            data-layer="visible"
+            className="inline-block"
+          >
+            {ch}
+          </span>
+        ))}
       </motion.span>
-
-      {/* Hidden probe for precise per-letter measurement */}
-      <div className="absolute inset-0 pointer-events-none opacity-0 -z-50">
-        <div ref={probeRef} className={`whitespace-pre ${letterClassName}`}>
-          {chars.map((ch, i) => (
-            <span key={`probe-${i}`} data-letter-idx={i} className="inline-block">
-              {ch}
-            </span>
-          ))}
-        </div>
-      </div>
 
       {/* EXPLOSION LAYER — shifted so origin is the EXACT GAP between “Canyen” and “Palmer” */}
       <div className="pointer-events-none absolute inset-0 -z-10">
