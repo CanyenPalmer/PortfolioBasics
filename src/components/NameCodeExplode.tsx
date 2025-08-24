@@ -1,23 +1,23 @@
 "use client";
 
 import * as React from "react";
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 
 type Props = {
   text?: string;
   className?: string;
 
   // Motion
-  intensity?: number;      // how far everything flies (px)
-  durationMs?: number;     // total time for explode OR implode (ms)
-  ease?: string;           // easing name for both letters and code
-  opacityClass?: string;   // color for code lines (e.g. "text-white/25")
+  intensity?: number;        // how far everything flies (px)
+  durationMs?: number;       // explode/implode duration
+  ease?: string;             // easing for both letters & code
 
   // Visuals
-  codeScale?: number;      // how long code shards look (multiplier)
+  opacityClass?: string;     // code color (e.g., "text-white/25")
+  codeScale?: number;        // extra streak scale for code (0..2)
 };
 
-// Long-ish code strings to look like flares
+// Long-ish code strings
 const HORIZ_LINES = [
   "import pandas as pd    df = pd.read_csv('golf_stats.csv')",
   "X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2)",
@@ -36,59 +36,65 @@ export default function NameCodeExplode({
   text = "Canyen Palmer",
   className = "text-5xl md:text-7xl font-extrabold tracking-tight",
   intensity = 90,
-  durationMs = 320,
+  durationMs = 280,
   ease = "easeInOut",
   opacityClass = "text-white/25",
-  codeScale = 1.0,
+  codeScale = 0.45,
 }: Props) {
-  const [hovered, setHovered] = React.useState(false);
-  const [burstId, setBurstId] = React.useState(0);
+  // Shared transition object guarantees the same clock
+  const TRANS = React.useMemo(
+    () => ({ duration: durationMs / 1000, ease }),
+    [durationMs, ease]
+  );
 
-  // Remount everything on each enter/leave so the whole burst starts the same frame
-  React.useEffect(() => {
-    setBurstId((n) => n + 1);
-  }, [hovered]);
+  // Letters alternate LEFT / UP to match code directions
+  const letterDirs = React.useMemo(
+    () => [...text].map((_, i) => (i % 2 === 0 ? { x: -1, y: 0 } : { x: 0, y: -1 })),
+    [text]
+  );
 
-  // Letters: alternate LEFT / UP so motion mirrors code directions
-  const letterOffsets = React.useMemo(() => {
-    return [...text].map((_, i) => (i % 2 === 0 ? { x: -intensity, y: 0 } : { x: 0, y: -intensity }));
-  }, [text, intensity]);
+  // Letter variants — same transition for all
+  const letterVariants: Variants = {
+    implode: { x: 0, y: 0, opacity: 1, transition: TRANS },
+    explode: (dir: { x: number; y: number }) => ({
+      x: dir.x * intensity,
+      y: dir.y * intensity,
+      opacity: 0,
+      transition: TRANS,
+    }),
+  };
 
-  // SHARED TIMING / OPACITY (perfect sync)
-  const animFrom = { x: 0, y: 0, opacity: 1 };
-  const animTo   = { x: 0, y: 0, opacity: 0 };
-
-  // Code shards configs (no clip — allowed to overlap text; only move left or up)
-  // Horizontal: slide LEFT, scaleX to feel like a streak; Vertical: slide UP, scaleY.
-  const codeTransition = { duration: durationMs / 1000, ease };
+  // Code variants — LEFT (horizontal) and UP (vertical), same transition
+  const codeHVariants: Variants = {
+    implode: { x: 0, opacity: 1, scaleX: 1, transition: TRANS },
+    explode: { x: -intensity, opacity: 0, scaleX: 1 + codeScale, transition: TRANS },
+  };
+  const codeVVariants: Variants = {
+    implode: { y: 0, opacity: 1, scaleY: 1, transition: TRANS },
+    explode: { y: -intensity, opacity: 0, scaleY: 1 + codeScale, transition: TRANS },
+  };
 
   return (
-    <div
+    <motion.div
       className={`relative inline-block select-none ${className}`}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onFocus={() => setHovered(true)}
-      onBlur={() => setHovered(false)}
+      initial="implode"
+      animate="implode"
+      whileHover="explode"  // <-- one parent hover drives EVERYTHING in perfect sync
       role="img"
       aria-label={text}
       tabIndex={0}
     >
-      {/* NAME — letters explode/implode in EXACT sync w/ code */}
+      {/* NAME — every letter uses the same variants/transition clock */}
       <span aria-hidden className="relative inline-block">
         {[...text].map((ch, i) =>
           ch === " " ? (
             <span key={`sp-${i}`} className="inline-block w-[0.4em]" />
           ) : (
             <motion.span
-              key={`ch-${i}-${ch}-${burstId}`}
+              key={`ch-${i}-${ch}`}
               className="inline-block"
-              initial={animFrom}
-              animate={
-                hovered
-                  ? { x: letterOffsets[i].x, y: letterOffsets[i].y, opacity: 0 }
-                  : animFrom
-              }
-              transition={codeTransition}
+              custom={letterDirs[i]}
+              variants={letterVariants}
             >
               {ch}
             </motion.span>
@@ -96,26 +102,15 @@ export default function NameCodeExplode({
         )}
       </span>
 
-      {/* CODE FLARE — synchronized with letters, no clipping, only LEFT / UP */}
-      {/* Horizontal lines (LEFT) */}
+      {/* CODE FLARE — synced with letters, can overlap text (but only LEFT/UP) */}
       <div className="pointer-events-none absolute inset-0 -z-10">
+        {/* Horizontal (LEFT) */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center gap-2">
           {HORIZ_LINES.map((line, i) => (
             <motion.span
-              key={`h-${i}-${burstId}`}
+              key={`h-${i}`}
               className={`font-mono ${opacityClass} text-[0.32em] md:text-[0.28em] whitespace-nowrap`}
-              initial={{
-                x: 0,
-                y: 0,
-                opacity: 1,
-                scaleX: 1,
-              }}
-              animate={
-                hovered
-                  ? { x: -intensity, y: 0, opacity: 0, scaleX: 1 + 0.35 * codeScale }
-                  : { x: 0, y: 0, opacity: 1, scaleX: 1 }
-              }
-              transition={codeTransition}
+              variants={codeHVariants}
               aria-hidden
             >
               {line}
@@ -123,25 +118,14 @@ export default function NameCodeExplode({
           ))}
         </div>
 
-        {/* Vertical lines (UP) */}
+        {/* Vertical (UP) */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center gap-3">
           {VERT_LINES.map((line, i) => (
             <motion.span
-              key={`v-${i}-${burstId}`}
+              key={`v-${i}`}
               className={`font-mono ${opacityClass} text-[0.32em] md:text-[0.28em]`}
               style={{ writingMode: "vertical-rl" as any }}
-              initial={{
-                x: 0,
-                y: 0,
-                opacity: 1,
-                scaleY: 1,
-              }}
-              animate={
-                hovered
-                  ? { x: 0, y: -intensity, opacity: 0, scaleY: 1 + 0.35 * codeScale }
-                  : { x: 0, y: 0, opacity: 1, scaleY: 1 }
-              }
-              transition={codeTransition}
+              variants={codeVVariants}
               aria-hidden
             >
               {line}
@@ -149,6 +133,6 @@ export default function NameCodeExplode({
           ))}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
