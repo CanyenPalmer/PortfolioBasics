@@ -7,94 +7,146 @@ type Props = {
   text?: string;
   className?: string;
 
-  // Motion
-  intensity?: number;        // how far everything flies (px)
-  durationMs?: number;       // explode duration for both letters & code
-  ease?: string;             // easing for both letters & code
+  // Motion & feel
+  intensity?: number;        // how far code shards fly (px)
+  durationMs?: number;       // explosion duration (ms) for both layers
+  ease?: string;             // easing curve name
+  returnSpring?: { stiffness: number; damping: number }; // warp-back spring
 
-  // Visual
-  opacityClass?: string;     // code color (e.g., "text-white/25")
-  codeScale?: number;        // streak stretch (0..2)
+  // Visuals
+  opacityClass?: string;     // code color (e.g. "text-white/25")
+  shardScale?: number;       // extra streakiness (0..1.2)
+  shardsPerLetter?: number;  // how many code shards per letter
 };
 
-// Long-ish code strings
-const HORIZ_LINES = [
-  "import pandas as pd    df = pd.read_csv('golf_stats.csv')",
-  "X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2)",
-  "model = RandomForestClassifier(n_estimators=300, random_state=42)",
-  "y_prob = model.predict_proba(X_te)[:,1]    auc = roc_auc_score(y_te, y_prob)",
+// Short code tokens used as particles
+const CODE_FRAGMENTS = [
+  "import", "def", "return", "if", "else", "for", "while",
+  "SELECT *", "JOIN", "GROUP BY", "=>", "lambda",
+  "fit()", "predict()", "ROC", "AUC", "mean()", "std()",
+  "pd.read_csv()", "groupby()", "merge()", "plt.plot()", "{ }", "< />"
 ];
 
-const VERT_LINES = [
-  "df.groupby('hole')['strokes'].mean()",
-  "statsmodels.api.OLS(y, X).fit().summary()",
-  "precision_at_k(y_te, y_prob, k=0.10)",
-  "pandas.merge(a,b,on='id',how='inner')",
-];
+// deterministic-ish pseudo-random (so SSR/CSR match)
+function seeded(n: number) {
+  let x = Math.sin(n * 99991) * 10000;
+  return x - Math.floor(x);
+}
 
 export default function NameCodeExplode({
   text = "Canyen Palmer",
   className = "text-5xl md:text-7xl font-extrabold tracking-tight",
-  intensity = 92,
-  durationMs = 280,
+  intensity = 140,
+  durationMs = 260,
   ease = "easeInOut",
+  returnSpring = { stiffness: 360, damping: 32 },
   opacityClass = "text-white/25",
-  codeScale = 0.5,
+  shardScale = 0.45,
+  shardsPerLetter = 6,
 }: Props) {
-  // Shared transition → one clock for everything
+  // Build shard data once (stable across renders)
+  const shards = React.useMemo(() => {
+    const chars = [...text];
+    const out: Array<{
+      id: string;
+      token: string;
+      // target offsets for the explosion (left/up only)
+      dx: number;
+      dy: number;
+      rot: number;
+      vertical?: boolean;
+    }> = [];
+
+    let gid = 0;
+    chars.forEach((ch, ci) => {
+      if (ch === " ") return; // skip spaces
+      for (let s = 0; s < shardsPerLetter; s++) {
+        const seed = ci * 1000 + s * 7 + 13;
+        const r1 = seeded(seed);
+        const r2 = seeded(seed + 1);
+        const r3 = seeded(seed + 2);
+
+        // Angle biased toward LEFT/UP so it doesn't go into the image (no right/down)
+        // Range: -170°..-10° (mostly up-left)
+        const angleDeg = -170 + r1 * 160;
+        const angle = (angleDeg * Math.PI) / 180;
+
+        // Range multiplier so some shards go farther
+        const mag = intensity * (0.6 + 0.6 * r2);
+
+        const dx = Math.cos(angle) * mag;
+        const dy = Math.sin(angle) * mag;
+
+        // Some shards vertical-rl to look more "codey"
+        const vertical = r3 > 0.6;
+
+        const token = CODE_FRAGMENTS[(ci + s) % CODE_FRAGMENTS.length];
+
+        out.push({
+          id: `shard-${gid++}`,
+          token,
+          dx,
+          dy,
+          rot: (-20 + 40 * seeded(seed + 3)), // small twist
+          vertical,
+        });
+      }
+    });
+    return out;
+  }, [text, intensity, shardsPerLetter]);
+
+  // Shared transitions
   const TRANS = React.useMemo(
     () => ({ duration: durationMs / 1000, ease }),
     [durationMs, ease]
   );
 
-  // Letters alternate LEFT / UP to match code directions
-  const letterDirs = React.useMemo(
-    () => [...text].map((_, i) => (i % 2 === 0 ? { x: -1, y: 0 } : { x: 0, y: -1 })),
-    [text]
-  );
-
-  // Letters: visible at rest, vanish & fly on hover; return smoothly on leave
+  // LETTERS: visible at rest, fade to 0 on explode; fade back on return
   const letterVariants: Variants = {
-    rest:     { x: 0, y: 0, opacity: 1, transition: TRANS },
-    explode:  (dir: { x: number; y: number }) => ({
-      x: dir.x * intensity,
-      y: dir.y * intensity,
-      opacity: 0,
+    rest: { opacity: 1, transition: TRANS },
+    explode: { opacity: 0, transition: TRANS },
+    implode: { opacity: 1, transition: { type: "spring", ...returnSpring } },
+  };
+
+  // SHARDS: hidden at rest; on explode they appear + fly away (left/up only) with streak scale;
+  // on implode they warp (spring) back to center and fade out immediately (no slide-in).
+  const shardVariants: Variants = {
+    rest: { x: 0, y: 0, opacity: 0, rotate: 0, scale: 1 },
+    explode: (p: { dx: number; dy: number; rot: number; vertical?: boolean }) => ({
+      x: p.dx,
+      y: p.dy,
+      rotate: p.rot,
+      opacity: 1,
+      scaleX: p.vertical ? 1 : 1 + shardScale,
+      scaleY: p.vertical ? 1 + shardScale : 1,
       transition: TRANS,
     }),
+    implode: {
+      x: 0,
+      y: 0,
+      rotate: 0,
+      opacity: 0,
+      scaleX: 1,
+      scaleY: 1,
+      transition: { type: "spring", ...returnSpring },
+    },
   };
 
-  // Code (H): invisible at rest; on hover it APPEARS and RUNS LEFT.
-  // On leave: it quickly fades to 0 and THEN snaps back to center invisibly.
-  const codeHVariants: Variants = {
-    rest:    { x: 0, opacity: 0, scaleX: 1, transition: { duration: 0.12 } },
-    explode: { x: -intensity, opacity: 1, scaleX: 1 + codeScale, transition: TRANS },
-    // after hover ends, fade out fast, then snap back
-    implode: { opacity: 0, transition: { duration: 0.12 }, transitionEnd: { x: 0, scaleX: 1 } },
-  };
-
-  // Code (V): same logic, but UP and scaleY
-  const codeVVariants: Variants = {
-    rest:    { y: 0, opacity: 0, scaleY: 1, transition: { duration: 0.12 } },
-    explode: { y: -intensity, opacity: 1, scaleY: 1 + codeScale, transition: TRANS },
-    implode: { opacity: 0, transition: { duration: 0.12 }, transitionEnd: { y: 0, scaleY: 1 } },
-  };
+  // Parent drives one timeline for EVERYTHING -> perfect sync
+  const [state, setState] = React.useState<"rest" | "explode" | "implode">("rest");
 
   return (
     <motion.div
       className={`relative inline-block select-none ${className}`}
       initial="rest"
-      animate="rest"
-      whileHover="explode"        // explode on hover…
-      onHoverEnd={(e) => {        // …and force the code to "implode" (fade out + snap back)
-        // We can’t target children directly here, so we rely on having both
-        // rest & implode variants; Framer will interpolate correctly on exit.
-      }}
+      animate={state}
+      onHoverStart={() => setState("explode")}
+      onHoverEnd={() => setState("implode")}
       role="img"
       aria-label={text}
       tabIndex={0}
     >
-      {/* NAME — letters sync with code via same TRANS */}
+      {/* NAME (fades out/in exactly with shard timeline) */}
       <span aria-hidden className="relative inline-block">
         {[...text].map((ch, i) =>
           ch === " " ? (
@@ -103,7 +155,6 @@ export default function NameCodeExplode({
             <motion.span
               key={`ch-${i}-${ch}`}
               className="inline-block"
-              custom={letterDirs[i]}
               variants={letterVariants}
             >
               {ch}
@@ -112,40 +163,20 @@ export default function NameCodeExplode({
         )}
       </span>
 
-      {/* CODE FLARE — invisible until hover; runs away; no slide back in */}
+      {/* CODE EXPLOSION (behind the letters; allowed to overlap text) */}
       <div className="pointer-events-none absolute inset-0 -z-10">
-        {/* Horizontal (LEFT) */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center gap-2">
-          {HORIZ_LINES.map((line, i) => (
+        {/* We render all shards centered on the name block; they blast left/up only */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+          {shards.map((p) => (
             <motion.span
-              key={`h-${i}`}
-              className={`font-mono ${opacityClass} text-[0.32em] md:text-[0.28em] whitespace-nowrap`}
-              variants={codeHVariants}
-              // Tell Framer which state to go to when hover ends
-              animate="rest"
-              whileHover="explode"
-              whileTap="explode"
+              key={p.id}
+              custom={{ dx: p.dx, dy: p.dy, rot: p.rot, vertical: p.vertical }}
+              variants={shardVariants}
+              className={`absolute font-mono ${opacityClass} text-[0.34em] md:text-[0.30em]`}
+              style={{ writingMode: p.vertical ? ("vertical-rl" as any) : undefined }}
               aria-hidden
             >
-              {line}
-            </motion.span>
-          ))}
-        </div>
-
-        {/* Vertical (UP) */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center gap-3">
-          {VERT_LINES.map((line, i) => (
-            <motion.span
-              key={`v-${i}`}
-              className={`font-mono ${opacityClass} text-[0.32em] md:text-[0.28em]`}
-              style={{ writingMode: "vertical-rl" as any }}
-              variants={codeVVariants}
-              animate="rest"
-              whileHover="explode"
-              whileTap="explode"
-              aria-hidden
-            >
-              {line}
+              {p.token}
             </motion.span>
           ))}
         </div>
