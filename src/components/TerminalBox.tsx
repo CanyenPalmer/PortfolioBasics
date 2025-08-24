@@ -2,10 +2,10 @@
 
 import * as React from "react";
 
-type Line = { 
-  prompt?: string; 
-  text: string; 
-};
+type Segment = { text: string; className?: string };
+type Line =
+  | { prompt?: string; text: string }                           // simple text line
+  | { prompt?: string; segments: Segment[] };                   // colored segments
 
 type Props = {
   lines: Line[];
@@ -13,16 +13,9 @@ type Props = {
   typingSpeed?: number;   // ms per character
   lineDelay?: number;     // ms pause between lines
   ariaLabel?: string;
-
-  /** Retype each time the box re-enters the viewport (never deletes while visible). */
   retypeOnReenter?: boolean;
-  /** Intersection ratio (0..1) considered “in view”. Default 0.6 */
   visibleThreshold?: number;
-
-  /** Extra delay before typing begins after becoming visible (ms). */
   startDelayMs?: number;
-
-  /** Keep a blinking cursor visible at the end after the final line finishes typing. */
   keepCursorOnDone?: boolean;
 };
 
@@ -40,20 +33,20 @@ export default function TerminalBox({
   const rootRef = React.useRef<HTMLDivElement>(null);
 
   // typing state
-  const [armed, setArmed] = React.useState(false);   // becomes true after startDelayMs
+  const [armed, setArmed] = React.useState(false);
   const [started, setStarted] = React.useState(false);
   const [lineIndex, setLineIndex] = React.useState(0);
   const [charIndex, setCharIndex] = React.useState(0);
   const [done, setDone] = React.useState(false);
 
-  // Clear timers safely
+  // timers
   const timers = React.useRef<number[]>([]);
   const clearTimers = () => {
     timers.current.forEach((id) => window.clearTimeout(id));
     timers.current = [];
   };
 
-  // Visibility handling (retype on re-enter)
+  // visibility observer (retype on re-enter)
   React.useEffect(() => {
     const el = rootRef.current;
     if (!el) return;
@@ -62,7 +55,6 @@ export default function TerminalBox({
       (entries) => {
         for (const e of entries) {
           if (e.intersectionRatio >= visibleThreshold) {
-            // Arm after delay, then start typing
             clearTimers();
             if (retypeOnReenter) {
               setLineIndex(0);
@@ -76,7 +68,6 @@ export default function TerminalBox({
             }, startDelayMs) as unknown as number;
             timers.current.push(tid);
           } else {
-            // left view -> pause timers, keep rendered text as-is
             clearTimers();
             setStarted(false);
             setArmed(false);
@@ -93,6 +84,10 @@ export default function TerminalBox({
     };
   }, [retypeOnReenter, visibleThreshold, startDelayMs]);
 
+  // Return the full plain text of a line (used for typing counts)
+  const getFullText = (ln: Line) =>
+    "text" in ln ? ln.text : ln.segments.map((s) => s.text).join("");
+
   // Typing loop
   React.useEffect(() => {
     if (!armed || !started || done) return;
@@ -102,7 +97,8 @@ export default function TerminalBox({
       return;
     }
 
-    if (charIndex >= cur.text.length) {
+    const full = getFullText(cur);
+    if (charIndex >= full.length) {
       const t = window.setTimeout(() => {
         if (lineIndex < lines.length - 1) {
           setLineIndex((i) => i + 1);
@@ -122,25 +118,56 @@ export default function TerminalBox({
     return () => window.clearTimeout(id);
   }, [armed, started, done, lines, lineIndex, charIndex, typingSpeed, lineDelay]);
 
-  // Render current state of each line
-  const rendered = lines.map((ln, i) => {
-    const isActive = i === lineIndex && !done && started;
-    const text =
-      i < lineIndex
-        ? ln.text
-        : isActive
-        ? ln.text.slice(0, charIndex)
-        : i === lineIndex && done
-        ? ln.text
-        : "";
-    return { prompt: ln.prompt ?? "", text, isActive, idx: i };
-  });
+  // Render a line with partial characters visible (supports segments)
+  const renderLineBody = (ln: Line, isActive: boolean, isFinalAndDone: boolean) => {
+    const prompt = (ln as any).prompt ?? "";
+    const full = getFullText(ln);
 
-  // Helpers to decide whether to show the cursor
-  const showCursor = (r: {isActive: boolean; idx: number}) => {
-    if (r.isActive) return true;
-    if (keepCursorOnDone && done && r.idx === lines.length - 1) return true;
-    return false;
+    let visibleCount: number;
+    if (done && isFinalAndDone) {
+      visibleCount = full.length;
+    } else if (isActive && !done) {
+      visibleCount = Math.min(charIndex, full.length);
+    } else if (lines.indexOf(ln) < lineIndex) {
+      visibleCount = full.length;
+    } else {
+      visibleCount = 0;
+    }
+
+    // Build colored spans up to visibleCount
+    const spans: React.ReactNode[] = [];
+    if ("text" in ln) {
+      const show = ln.text.slice(0, visibleCount);
+      spans.push(<span key="t">{show}</span>);
+    } else {
+      let remaining = visibleCount;
+      ln.segments.forEach((seg, i) => {
+        if (remaining <= 0) return;
+        const take = Math.min(seg.text.length, remaining);
+        const show = seg.text.slice(0, take);
+        spans.push(
+          <span key={i} className={seg.className ?? ""}>
+            {show}
+          </span>
+        );
+        remaining -= take;
+      });
+    }
+
+    // Cursor visibility
+    const showCursor = (isActive && !done) || (keepCursorOnDone && isFinalAndDone);
+    return (
+      <>
+        <span className="text-emerald-400">{prompt}</span>
+        {spans}
+        {showCursor && (
+          <span
+            className="inline-block w-[8px] h-[1.1em] align-[-0.15em] bg-white/80 ml-0.5 animate-[blink_1s_steps(1)_infinite]"
+            aria-hidden
+          />
+        )}
+      </>
+    );
   };
 
   return (
@@ -150,31 +177,28 @@ export default function TerminalBox({
       className={`rounded-xl overflow-hidden border border-white/10 bg-[#0f141b]/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_10px_40px_rgba(0,0,0,0.35)] ${className}`}
       role="region"
     >
-      {/* fake terminal header */}
+      {/* header */}
       <div className="flex items-center gap-2 px-4 py-2 border-b border-white/10 text-xs text-white/60">
         <span className="inline-flex gap-1.5">
           <span className="h-2.5 w-2.5 rounded-full bg-red-500/70" />
-          <span className="h-2.5 w-2.5 rounded-full bg-yellow-500/70" />
+        <span className="h-2.5 w-2.5 rounded-full bg-yellow-500/70" />
           <span className="h-2.5 w-2.5 rounded-full bg-green-500/70" />
         </span>
         <span className="ml-3 font-mono">terminal — portfolio</span>
       </div>
 
-      {/* body */}
-      <div className="px-4 py-5 font-mono text-[13px] leading-6 text-[#e6edf3]">
+      {/* body (scrollable just in case; prevents clipping) */}
+      <div className="px-4 py-5 font-mono text-[13px] leading-6 text-[#e6edf3] overflow-auto">
         <div className="space-y-1 whitespace-pre-wrap break-words">
-          {rendered.map((ln, i) => (
-            <div key={i}>
-              <span className="text-emerald-400">{ln.prompt}</span>
-              <span className="align-middle">{ln.text}</span>
-              {showCursor(ln) && (
-                <span
-                  className="inline-block w-[8px] h-[1.1em] align-[-0.15em] bg-white/80 ml-0.5 animate-[blink_1s_steps(1)_infinite]"
-                  aria-hidden
-                />
-              )}
-            </div>
-          ))}
+          {lines.map((ln, i) => {
+            const isActive = i === lineIndex && !done && started;
+            const isFinalAndDone = done && i === lines.length - 1;
+            return (
+              <div key={i}>
+                {renderLineBody(ln, isActive, isFinalAndDone)}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -185,7 +209,6 @@ export default function TerminalBox({
   );
 }
 
-/** Generate threshold values for smooth intersection observer behavior */
 function buildThresholds(core: number) {
   const steps = [0, 0.1, 0.25, 0.5, core, 0.75, 0.9, 1];
   return Array.from(new Set(steps)).sort((a, b) => a - b);
