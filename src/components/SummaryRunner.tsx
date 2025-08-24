@@ -38,7 +38,9 @@ export default function SummaryRunner({
     <div className={`relative ${className}`} style={minHStyle}>
       <style jsx>{`
         @media (min-width: 768px) {
-          div[data-summary-runner] { min-height: ${minHeightPxMd}px; }
+          div[data-summary-runner] {
+            min-height: ${minHeightPxMd}px;
+          }
         }
       `}</style>
       <div data-summary-runner />
@@ -50,7 +52,12 @@ export default function SummaryRunner({
             key="code"
             initial={{ opacity: 1, y: 0 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.98, y: -4, transition: { duration: 0.18 } }}
+            exit={{
+              opacity: 0,
+              scale: 0.98,
+              y: -4,
+              transition: { duration: 0.18 },
+            }}
             className="absolute inset-0 rounded-xl overflow-hidden border border-white/10 bg-[#10151d]/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_10px_40px_rgba(0,0,0,0.35)]"
           >
             <div className="flex items-center justify-between px-4 py-2 border-b border-white/10 text-xs text-white/60">
@@ -71,7 +78,7 @@ export default function SummaryRunner({
               </button>
             </div>
 
-            {/* summary.py contents with subtle syntax highlighting */}
+            {/* summary.py contents */}
             <pre className="px-4 py-4 font-mono text-[13px] leading-6 text-[#e6edf3] whitespace-pre-wrap h-[calc(100%-36px)] overflow-auto">
 <span className="text-[#6a737d]"># Run_For_Details</span>
 <span className="block"></span>
@@ -129,11 +136,13 @@ export default function SummaryRunner({
                 startDelayMs={150}
                 keepCursorOnDone={true}
                 lines={[
-                  { prompt: "$ ", text: "python summary.py" },
-                  { prompt: "$ ", text: "compiling..." },
+                  // NEW: running message
+                  { segments: [{ text: "Running 'summary.py'...", className: "text-[#e6edf3]" }] },
+                  // compiling
+                  { segments: [{ text: "compiling...", className: "text-[#e6edf3]" }] },
 
+                  // Dict output
                   { segments: [{ text: "{", className: "text-[#e6edf3]" }] },
-
                   {
                     segments: [
                       { text: "  ", className: "" },
@@ -142,16 +151,17 @@ export default function SummaryRunner({
                       { text: "'", className: "text-[#e6edf3]" },
                       { text: ": ", className: "text-[#e6edf3]" },
                       { text: "'", className: "text-[#e6edf3]" },
-                      { text: "Data Scientist & Google-Certified Data Analyst Professional", className: "text-[#98c379]" },
+                      {
+                        text: "Data Scientist & Google-Certified Data Analyst Professional",
+                        className: "text-[#98c379]",
+                      },
                       { text: "'", className: "text-[#e6edf3]" },
                       { text: ",", className: "text-[#e6edf3]" },
                     ],
                   },
-
                   listLine("proficiency", proficiency),
                   listLine("familiarities", familiarity),
                   listLine("tech_stack", techStack, true),
-
                   { segments: [{ text: "}", className: "text-[#e6edf3]" }] },
                 ]}
               />
