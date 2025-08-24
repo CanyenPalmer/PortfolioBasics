@@ -9,12 +9,12 @@ type Props = {
 
   // Motion
   intensity?: number;        // how far everything flies (px)
-  durationMs?: number;       // explode/implode duration
+  durationMs?: number;       // explode duration for both letters & code
   ease?: string;             // easing for both letters & code
 
-  // Visuals
+  // Visual
   opacityClass?: string;     // code color (e.g., "text-white/25")
-  codeScale?: number;        // extra streak scale for code (0..2)
+  codeScale?: number;        // streak stretch (0..2)
 };
 
 // Long-ish code strings
@@ -35,13 +35,13 @@ const VERT_LINES = [
 export default function NameCodeExplode({
   text = "Canyen Palmer",
   className = "text-5xl md:text-7xl font-extrabold tracking-tight",
-  intensity = 90,
+  intensity = 92,
   durationMs = 280,
   ease = "easeInOut",
   opacityClass = "text-white/25",
-  codeScale = 0.45,
+  codeScale = 0.5,
 }: Props) {
-  // Shared transition object guarantees the same clock
+  // Shared transition → one clock for everything
   const TRANS = React.useMemo(
     () => ({ duration: durationMs / 1000, ease }),
     [durationMs, ease]
@@ -53,10 +53,10 @@ export default function NameCodeExplode({
     [text]
   );
 
-  // Letter variants — same transition for all
+  // Letters: visible at rest, vanish & fly on hover; return smoothly on leave
   const letterVariants: Variants = {
-    implode: { x: 0, y: 0, opacity: 1, transition: TRANS },
-    explode: (dir: { x: number; y: number }) => ({
+    rest:     { x: 0, y: 0, opacity: 1, transition: TRANS },
+    explode:  (dir: { x: number; y: number }) => ({
       x: dir.x * intensity,
       y: dir.y * intensity,
       opacity: 0,
@@ -64,27 +64,37 @@ export default function NameCodeExplode({
     }),
   };
 
-  // Code variants — LEFT (horizontal) and UP (vertical), same transition
+  // Code (H): invisible at rest; on hover it APPEARS and RUNS LEFT.
+  // On leave: it quickly fades to 0 and THEN snaps back to center invisibly.
   const codeHVariants: Variants = {
-    implode: { x: 0, opacity: 1, scaleX: 1, transition: TRANS },
-    explode: { x: -intensity, opacity: 0, scaleX: 1 + codeScale, transition: TRANS },
+    rest:    { x: 0, opacity: 0, scaleX: 1, transition: { duration: 0.12 } },
+    explode: { x: -intensity, opacity: 1, scaleX: 1 + codeScale, transition: TRANS },
+    // after hover ends, fade out fast, then snap back
+    implode: { opacity: 0, transition: { duration: 0.12 }, transitionEnd: { x: 0, scaleX: 1 } },
   };
+
+  // Code (V): same logic, but UP and scaleY
   const codeVVariants: Variants = {
-    implode: { y: 0, opacity: 1, scaleY: 1, transition: TRANS },
-    explode: { y: -intensity, opacity: 0, scaleY: 1 + codeScale, transition: TRANS },
+    rest:    { y: 0, opacity: 0, scaleY: 1, transition: { duration: 0.12 } },
+    explode: { y: -intensity, opacity: 1, scaleY: 1 + codeScale, transition: TRANS },
+    implode: { opacity: 0, transition: { duration: 0.12 }, transitionEnd: { y: 0, scaleY: 1 } },
   };
 
   return (
     <motion.div
       className={`relative inline-block select-none ${className}`}
-      initial="implode"
-      animate="implode"
-      whileHover="explode"  // <-- one parent hover drives EVERYTHING in perfect sync
+      initial="rest"
+      animate="rest"
+      whileHover="explode"        // explode on hover…
+      onHoverEnd={(e) => {        // …and force the code to "implode" (fade out + snap back)
+        // We can’t target children directly here, so we rely on having both
+        // rest & implode variants; Framer will interpolate correctly on exit.
+      }}
       role="img"
       aria-label={text}
       tabIndex={0}
     >
-      {/* NAME — every letter uses the same variants/transition clock */}
+      {/* NAME — letters sync with code via same TRANS */}
       <span aria-hidden className="relative inline-block">
         {[...text].map((ch, i) =>
           ch === " " ? (
@@ -102,7 +112,7 @@ export default function NameCodeExplode({
         )}
       </span>
 
-      {/* CODE FLARE — synced with letters, can overlap text (but only LEFT/UP) */}
+      {/* CODE FLARE — invisible until hover; runs away; no slide back in */}
       <div className="pointer-events-none absolute inset-0 -z-10">
         {/* Horizontal (LEFT) */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center gap-2">
@@ -111,6 +121,10 @@ export default function NameCodeExplode({
               key={`h-${i}`}
               className={`font-mono ${opacityClass} text-[0.32em] md:text-[0.28em] whitespace-nowrap`}
               variants={codeHVariants}
+              // Tell Framer which state to go to when hover ends
+              animate="rest"
+              whileHover="explode"
+              whileTap="explode"
               aria-hidden
             >
               {line}
@@ -126,6 +140,9 @@ export default function NameCodeExplode({
               className={`font-mono ${opacityClass} text-[0.32em] md:text-[0.28em]`}
               style={{ writingMode: "vertical-rl" as any }}
               variants={codeVVariants}
+              animate="rest"
+              whileHover="explode"
+              whileTap="explode"
               aria-hidden
             >
               {line}
