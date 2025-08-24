@@ -28,19 +28,20 @@ export default function Hero() {
                 className="text-5xl md:text-7xl font-extrabold tracking-tight"
                 intensity={70}
                 stagger={0.012}
+                opacityClass="text-white/25"
               />
             </div>
 
-            {/* Original Headline */}
-            <h1 className="text-3xl md:text-5xl font-bold leading-tight max-w-[34ch]">
+            {/* Title (slightly smaller than before) */}
+            <h1 className="text-2xl md:text-4xl font-bold leading-tight max-w-[34ch]">
               {hero.headline}
             </h1>
 
-            <p className="mt-4 text-lg md:text-xl text-white/80 max-w-[66ch]">
-              {hero.subheadline}
-            </p>
+            {/* Removed subheadline + personal blurb on purpose */}
+            {/* <p className="mt-4 text-lg md:text-xl text-white/80 max-w-[66ch]">{hero.subheadline}</p> */}
+            {/* <p className="mt-6 text-white/70 max-w-[70ch]">{hero.personal}</p> */}
 
-            {/* Skills snapshot */}
+            {/* Skills snapshot (kept) */}
             <div className="mt-6 space-y-3 text-sm text-white/70">
               <p>
                 <span className="font-semibold">Proficiency:</span>{" "}
@@ -56,10 +57,7 @@ export default function Hero() {
               </p>
             </div>
 
-            <p className="mt-6 text-white/70 max-w-[70ch]">
-              {hero.personal}
-            </p>
-
+            {/* CTAs (kept) */}
             <div className="mt-8 flex gap-4">
               {hero.ctas.map((cta, i) => (
                 <a
@@ -92,14 +90,10 @@ export default function Hero() {
                 { text: "df = pd.read_csv('golf_stats.csv')" },
               ]}
               bottom={[
-                {
-                  text: "from sklearn.model_selection import train_test_split",
-                },
+                { text: "from sklearn.model_selection import train_test_split" },
               ]}
               left={[
-                {
-                  text: "SELECT hole, avg(strokes) FROM rounds GROUP BY hole;",
-                },
+                { text: "SELECT hole, avg(strokes) FROM rounds GROUP BY hole;" },
               ]}
               right={[]}
             />
@@ -153,14 +147,10 @@ export default function Hero() {
               top={[{ text: "df.groupby('hole')['strokes'].mean()" }]}
               bottom={[
                 { text: "from sklearn.metrics import roc_auc_score" },
-                {
-                  text: "auc = roc_auc_score(y_te, model.predict_proba(X_te)[:,1])",
-                },
+                { text: "auc = roc_auc_score(y_te, model.predict_proba(X_te)[:,1])" },
               ]}
               left={[
-                {
-                  text: "model = RandomForestClassifier(n_estimators=300, random_state=42)",
-                },
+                { text: "model = RandomForestClassifier(n_estimators=300, random_state=42)" },
                 { text: "model.fit(X_tr, y_tr)" },
               ]}
               right={[]}
