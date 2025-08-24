@@ -1,21 +1,27 @@
 "use client";
 
 import * as React from "react";
-import { motion, useAnimationControls } from "framer-motion";
+import { motion } from "framer-motion";
 
 type Props = {
   text?: string;
   className?: string;
-  intensity?: number;            // distance letters slide (px) & code slides off-screen
-  stagger?: number;              // per-letter stagger (seconds)
-  opacityClass?: string;         // color of code lines (e.g., "text-white/25")
-  laneHeightEm?: number;         // lane height (controls vertical spacing)
+
+  // Motion + layout knobs
+  intensity?: number;            // how far letters + code slide (px)
+  stagger?: number;              // per-letter stagger (s)
+  opacityClass?: string;         // code color (e.g., "text-white/25")
+  laneHeightEm?: number;         // lane height (vertical spacing)
   laneWidthCh?: number;          // lane width (clips long horizontal lines)
-  typeSpeedChPerSec?: number;    // typing speed for code lines
-  holdAfterTypeMs?: number;      // pause before code slides away
-  lanesGapEm?: number;           // gap between lanes
+  lanesGapEm?: number;           // extra gap between lanes
+
+  // Typing timing
+  typeSpeedChPerSec?: number;    // characters per second for "typing"
+  deleteSpeedChPerSec?: number;  // characters per second for "deleting"
+  slideMs?: number;              // slide duration (ms) for the off/on movement
 };
 
+// Long, linear lines (match your data‑science vibe)
 const HORIZ_LINES = [
   "import pandas as pd    df = pd.read_csv('golf_stats.csv')",
   "X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2)",
@@ -28,20 +34,67 @@ const VERT_LINES = [
   "precision_at_k(y_te, y_prob, k=0.10)",
 ];
 
-// Typed line component: types → optional hold → slides off in its lane
-function TypingLine({
+/** Build a keyframed animation spec that:
+ *  - types in → deletes while sliding outward (hover=true),
+ *  - types in → deletes while sliding inward (hover=false).
+ */
+function buildKeyframes(opts: {
+  n: number;                  // chars
+  direction: "left" | "right" | "up" | "down";
+  baseOffset: number;         // px slide distance
+  typeSec: number;            // typing duration (s)
+  deleteSec: number;          // deleting duration (s)
+  slideSec: number;           // slide duration (s)
+  hover: boolean;             // true = out, false = in
+}) {
+  const { n, direction, baseOffset, typeSec, deleteSec, slideSec, hover } = opts;
+
+  const offsetX = direction === "left" ? -baseOffset : direction === "right" ? baseOffset : 0;
+  const offsetY = direction === "up" ? -baseOffset : direction === "down" ? baseOffset : 0;
+
+  // Timeline proportions (typing → deleting → slide)
+  const total = typeSec + deleteSec + slideSec;
+  const t1 = typeSec / total;
+  const t2 = (typeSec + deleteSec) / total;
+
+  // Keyframes for width (simulate typing/deleting)
+  const widthFrames = ["0ch", `${n}ch`, "0ch"];
+
+  // Slide direction depends on hover:
+  //  - hover=true: center → offscreen
+  //  - hover=false: offscreen → center
+  const xFrames = hover ? [0, 0, offsetX] : [offsetX, 0, 0];
+  const yFrames = hover ? [0, 0, offsetY] : [offsetY, 0, 0];
+
+  // Opacity: visible during type/delete, fades on final slide leg
+  const opacityFrames = hover ? [1, 1, 0] : [0, 1, 0];
+
+  return {
+    width: widthFrames,
+    x: xFrames,
+    y: yFrames,
+    opacity: opacityFrames,
+    transition: {
+      ease: "linear",
+      duration: total,
+      times: [0, t1, t2], // aligns width, slide, opacity
+    },
+  };
+}
+
+function TypingDeletingLine({
   text,
-  direction,          // 'left' | 'right' | 'up' | 'down'
-  baseOffset,         // slide distance in px
+  direction,
+  baseOffset,
   laneHeightEm,
   laneWidthCh,
   opacityClass,
   typeSpeedChPerSec,
-  holdAfterTypeMs,
-  hover,              // sync with letters: true when letters disperse
-  startDelay = 0,     // small lane staggering if desired
+  deleteSpeedChPerSec,
+  slideMs,
+  hover,
   vertical = false,
-  lanesGapEm = 0.5,
+  laneMarginEm,
 }: {
   text: string;
   direction: "left" | "right" | "up" | "down";
@@ -50,81 +103,44 @@ function TypingLine({
   laneWidthCh: number;
   opacityClass: string;
   typeSpeedChPerSec: number;
-  holdAfterTypeMs: number;
+  deleteSpeedChPerSec: number;
+  slideMs: number;
   hover: boolean;
-  startDelay?: number;
   vertical?: boolean;
-  lanesGapEm?: number;
+  laneMarginEm: number;
 }) {
-  const controls = useAnimationControls();
-  const N = text.length;
-  const typeDuration = Math.max(0.12, N / typeSpeedChPerSec); // seconds
+  const n = text.length;
+  const typeSec = Math.max(0.12, n / typeSpeedChPerSec);
+  const deleteSec = Math.max(0.10, n / deleteSpeedChPerSec);
+  const slideSec = Math.max(0.18, slideMs / 1000);
 
-  const slideVector =
-    direction === "left" ? { x: -baseOffset, y: 0 } :
-    direction === "right" ? { x:  baseOffset, y: 0 } :
-    direction === "up" ? { x: 0, y: -baseOffset } :
-                         { x: 0, y:  baseOffset };
-
-  React.useEffect(() => {
-    let t: ReturnType<typeof setTimeout> | null = null;
-
-    const run = async () => {
-      if (!hover) {
-        // reset immediately when mouse leaves (so name can reform)
-        await controls.set({ x: 0, y: 0, opacity: 0, width: "0ch" });
-        return;
-      }
-
-      // start aligned with letters dispersing
-      await controls.set({ x: 0, y: 0, opacity: 0, width: "0ch" });
-
-      // tiny fade-in so caret isn’t jarring
-      await controls.start({
-        opacity: 1,
-        transition: { duration: 0.1, delay: startDelay },
-      });
-
-      // “type” to full width (monospace makes this convincing)
-      await controls.start({
-        width: `${N}ch`,
-        transition: {
-          duration: typeDuration,
-          ease: "linear",
-          delay: startDelay,
-        },
-      });
-
-      // hold briefly, then slide off in lane direction
-      t = setTimeout(() => {
-        controls.start({
-          ...slideVector,
-          opacity: 0,
-          transition: { duration: 0.35, ease: "easeIn" },
-        });
-      }, holdAfterTypeMs);
-    };
-
-    run();
-    return () => { if (t) clearTimeout(t); };
-  }, [hover, controls, typeDuration, holdAfterTypeMs, slideVector, startDelay, N]);
+  const kf = buildKeyframes({
+    n,
+    direction,
+    baseOffset,
+    typeSec,
+    deleteSec,
+    slideSec,
+    hover,
+  });
 
   const laneStyle: React.CSSProperties = vertical
-    ? { height: `${laneHeightEm}em`, width: `${Math.min(laneWidthCh, 10)}ch`, overflow: "hidden", margin: `${lanesGapEm/2}em` }
-    : { height: `${laneHeightEm}em`, maxWidth: `${laneWidthCh}ch`, overflow: "hidden", margin: `${lanesGapEm/2}em 0` };
+    ? { height: `${laneHeightEm}em`, width: `${Math.min(laneWidthCh, 10)}ch`, overflow: "hidden", margin: `${laneMarginEm}em` }
+    : { height: `${laneHeightEm}em`, maxWidth: `${laneWidthCh}ch`, overflow: "hidden", margin: `${laneMarginEm}em 0` };
 
   return (
     <div style={laneStyle}>
       <motion.span
-        animate={controls}
+        // re-run animation when hover flips
+        animate={kf}
         initial={{ x: 0, y: 0, opacity: 0, width: "0ch" }}
         className={`inline-flex items-center font-mono ${opacityClass} text-[0.32em] md:text-[0.28em] ${vertical ? "" : "whitespace-nowrap"}`}
         style={{ writingMode: vertical ? ("vertical-rl" as any) : undefined }}
         aria-hidden
       >
-        {/* visible text (clipped by width) */}
+        {/* visible text area (width is keyframed) */}
         <span aria-hidden className={`${vertical ? "" : "whitespace-nowrap"}`}>{text}</span>
-        {/* caret */}
+        {/* caret block */}
         <span
           aria-hidden
           className="ml-[1px] inline-block h-[1.15em] w-[0.55ch] align-text-bottom bg-current opacity-70"
@@ -143,9 +159,10 @@ export default function NameCodeExplode({
   opacityClass = "text-white/25",
   laneHeightEm = 1.5,
   laneWidthCh = 46,
-  typeSpeedChPerSec = 30,
-  holdAfterTypeMs = 250,
   lanesGapEm = 0.6,
+  typeSpeedChPerSec = 30,
+  deleteSpeedChPerSec = 42,
+  slideMs = 360,
 }: Props) {
   const [hovered, setHovered] = React.useState(false);
 
@@ -199,15 +216,15 @@ export default function NameCodeExplode({
         )}
       </span>
 
-      {/* CLIP BOX ensures code never overlaps itself or other text */}
+      {/* CLIP BOX ensures code never overlaps itself or nearby text */}
       <div
         className="pointer-events-none absolute"
         style={{ left: -pad, right: -pad, top: -pad, bottom: -pad, overflow: "hidden" }}
       >
-        {/* Horizontal lanes (stacked vertically, centered). Start immediately on hover. */}
+        {/* Horizontal code lanes — stacked vertically, centered */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center">
           {HORIZ_LINES.map((line, i) => (
-            <TypingLine
+            <TypingDeletingLine
               key={`h-${i}`}
               text={line}
               direction={i % 2 === 0 ? "right" : "left"}
@@ -216,19 +233,19 @@ export default function NameCodeExplode({
               laneWidthCh={laneWidthCh}
               opacityClass={opacityClass}
               typeSpeedChPerSec={typeSpeedChPerSec}
-              holdAfterTypeMs={holdAfterTypeMs}
-              hover={hovered}                   // <-- sync start with letters
-              startDelay={0}                    // no delay: appears with letters
+              deleteSpeedChPerSec={deleteSpeedChPerSec}
+              slideMs={slideMs}
+              hover={hovered}               // start exactly with letters
               vertical={false}
-              lanesGapEm={lanesGapEm}
+              laneMarginEm={lanesGapEm}
             />
           ))}
         </div>
 
-        {/* Vertical lanes (laid out horizontally, centered). Start immediately on hover. */}
+        {/* Vertical code lanes — laid out horizontally, centered */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center">
           {VERT_LINES.map((line, i) => (
-            <TypingLine
+            <TypingDeletingLine
               key={`v-${i}`}
               text={line}
               direction={i % 2 === 0 ? "up" : "down"}
@@ -237,11 +254,11 @@ export default function NameCodeExplode({
               laneWidthCh={laneWidthCh}
               opacityClass={opacityClass}
               typeSpeedChPerSec={typeSpeedChPerSec}
-              holdAfterTypeMs={holdAfterTypeMs}
-              hover={hovered}                   // <-- sync start with letters
-              startDelay={0}
+              deleteSpeedChPerSec={deleteSpeedChPerSec}
+              slideMs={slideMs}
+              hover={hovered}               // start exactly with letters
               vertical
-              lanesGapEm={lanesGapEm}
+              laneMarginEm={lanesGapEm}
             />
           ))}
         </div>
