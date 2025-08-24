@@ -21,7 +21,7 @@ type Props = {
   slideMs?: number;              // slide duration (ms) for the off/on movement
 };
 
-// Long, linear lines (match your data‑science vibe)
+// Long, linear lines (data-science flavored)
 const HORIZ_LINES = [
   "import pandas as pd    df = pd.read_csv('golf_stats.csv')",
   "X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2)",
@@ -35,12 +35,12 @@ const VERT_LINES = [
 ];
 
 /** Build a keyframed animation spec that:
- *  - types in → deletes while sliding outward (hover=true),
- *  - types in → deletes while sliding inward (hover=false).
+ *  - hover=true: type → delete while sliding outward (left/up),
+ *  - hover=false: type → delete while sliding inward (from left/top to center).
  */
 function buildKeyframes(opts: {
   n: number;                  // chars
-  direction: "left" | "right" | "up" | "down";
+  direction: "left" | "up";   // only left/up for this design
   baseOffset: number;         // px slide distance
   typeSec: number;            // typing duration (s)
   deleteSec: number;          // deleting duration (s)
@@ -49,24 +49,22 @@ function buildKeyframes(opts: {
 }) {
   const { n, direction, baseOffset, typeSec, deleteSec, slideSec, hover } = opts;
 
-  const offsetX = direction === "left" ? -baseOffset : direction === "right" ? baseOffset : 0;
-  const offsetY = direction === "up" ? -baseOffset : direction === "down" ? baseOffset : 0;
+  const offsetX = direction === "left" ? -baseOffset : 0;
+  const offsetY = direction === "up" ? -baseOffset : 0;
 
-  // Timeline proportions (typing → deleting → slide)
+  // Timing proportions: type → delete → slide
   const total = typeSec + deleteSec + slideSec;
   const t1 = typeSec / total;
   const t2 = (typeSec + deleteSec) / total;
 
-  // Keyframes for width (simulate typing/deleting)
+  // Width keyframes emulate typing/deleting in monospace
   const widthFrames = ["0ch", `${n}ch`, "0ch"];
 
-  // Slide direction depends on hover:
-  //  - hover=true: center → offscreen
-  //  - hover=false: offscreen → center
+  // Slide path: center⟷offscreen
   const xFrames = hover ? [0, 0, offsetX] : [offsetX, 0, 0];
   const yFrames = hover ? [0, 0, offsetY] : [offsetY, 0, 0];
 
-  // Opacity: visible during type/delete, fades on final slide leg
+  // Opacity: visible during type/delete, fade on slide leg
   const opacityFrames = hover ? [1, 1, 0] : [0, 1, 0];
 
   return {
@@ -77,14 +75,14 @@ function buildKeyframes(opts: {
     transition: {
       ease: "linear",
       duration: total,
-      times: [0, t1, t2], // aligns width, slide, opacity
+      times: [0, t1, t2],
     },
   };
 }
 
 function TypingDeletingLine({
   text,
-  direction,
+  direction, // "left" | "up"
   baseOffset,
   laneHeightEm,
   laneWidthCh,
@@ -97,7 +95,7 @@ function TypingDeletingLine({
   laneMarginEm,
 }: {
   text: string;
-  direction: "left" | "right" | "up" | "down";
+  direction: "left" | "up";
   baseOffset: number;
   laneHeightEm: number;
   laneWidthCh: number;
@@ -138,9 +136,8 @@ function TypingDeletingLine({
         style={{ writingMode: vertical ? ("vertical-rl" as any) : undefined }}
         aria-hidden
       >
-        {/* visible text area (width is keyframed) */}
         <span aria-hidden className={`${vertical ? "" : "whitespace-nowrap"}`}>{text}</span>
-        {/* caret block */}
+        {/* caret */}
         <span
           aria-hidden
           className="ml-[1px] inline-block h-[1.15em] w-[0.55ch] align-text-bottom bg-current opacity-70"
@@ -166,20 +163,16 @@ export default function NameCodeExplode({
 }: Props) {
   const [hovered, setHovered] = React.useState(false);
 
-  // Letters disperse only in cardinal directions; start immediately on hover
+  // Letters explode only LEFT or UP to match the code directions
   const letterOffsets = React.useMemo(() => {
     return [...text].map((_, i) => {
-      const dir = i % 4;
-      switch (dir) {
-        case 0: return { x: +intensity, y: 0 };   // right
-        case 1: return { x: -intensity, y: 0 };   // left
-        case 2: return { x: 0, y: -intensity };   // up
-        default: return { x: 0, y: +intensity };  // down
-      }
+      // Alternate: left, up, left, up...
+      const left = i % 2 === 0;
+      return left ? { x: -intensity, y: 0 } : { x: 0, y: -intensity };
     });
   }, [text, intensity]);
 
-  // Extra clip padding so typing/slide never touches nearby content
+  // Clip padding so typing/slide never spills into neighbors
   const pad = Math.round(intensity + 18);
 
   return (
@@ -193,7 +186,7 @@ export default function NameCodeExplode({
       aria-label={text}
       tabIndex={0}
     >
-      {/* Base name keeps layout stable; letters disperse with small stagger */}
+      {/* Base name keeps layout stable; letters explode with small stagger */}
       <span aria-hidden className="relative inline-block">
         {[...text].map((ch, i) =>
           ch === " " ? (
@@ -216,18 +209,18 @@ export default function NameCodeExplode({
         )}
       </span>
 
-      {/* CLIP BOX ensures code never overlaps itself or nearby text */}
+      {/* CLIP BOX: lines never overlap themselves or other text */}
       <div
         className="pointer-events-none absolute"
         style={{ left: -pad, right: -pad, top: -pad, bottom: -pad, overflow: "hidden" }}
       >
-        {/* Horizontal code lanes — stacked vertically, centered */}
+        {/* Horizontal lanes (LEFT only), stacked vertically, centered */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center">
           {HORIZ_LINES.map((line, i) => (
             <TypingDeletingLine
               key={`h-${i}`}
               text={line}
-              direction={i % 2 === 0 ? "right" : "left"}
+              direction="left"                 // ← only left
               baseOffset={intensity * 1.25}
               laneHeightEm={laneHeightEm}
               laneWidthCh={laneWidthCh}
@@ -235,20 +228,20 @@ export default function NameCodeExplode({
               typeSpeedChPerSec={typeSpeedChPerSec}
               deleteSpeedChPerSec={deleteSpeedChPerSec}
               slideMs={slideMs}
-              hover={hovered}               // start exactly with letters
+              hover={hovered}                   // start in sync with letters
               vertical={false}
               laneMarginEm={lanesGapEm}
             />
           ))}
         </div>
 
-        {/* Vertical code lanes — laid out horizontally, centered */}
+        {/* Vertical lanes (UP only), laid out horizontally, centered */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center">
           {VERT_LINES.map((line, i) => (
             <TypingDeletingLine
               key={`v-${i}`}
               text={line}
-              direction={i % 2 === 0 ? "up" : "down"}
+              direction="up"                    // ↑ only up
               baseOffset={intensity * 1.25}
               laneHeightEm={laneHeightEm}
               laneWidthCh={laneWidthCh}
@@ -256,7 +249,7 @@ export default function NameCodeExplode({
               typeSpeedChPerSec={typeSpeedChPerSec}
               deleteSpeedChPerSec={deleteSpeedChPerSec}
               slideMs={slideMs}
-              hover={hovered}               // start exactly with letters
+              hover={hovered}                   // start in sync with letters
               vertical
               laneMarginEm={lanesGapEm}
             />
