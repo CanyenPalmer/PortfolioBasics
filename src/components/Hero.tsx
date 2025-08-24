@@ -6,7 +6,7 @@ import { hero } from "../content/hero.data";
 import CodeEdgesTyped from "./CodeEdgesTyped";
 import NameCodeExplode from "./NameCodeExplode";
 import SummaryRunner from "./SummaryRunner";
-import InlineTypeLine from "./InlineTypeLine"; // <-- NEW
+import InlineTypeLine from "./InlineTypeLine"; 
 
 export default function Hero() {
   return (
