@@ -136,11 +136,18 @@ export default function SummaryRunner({
                 startDelayMs={150}
                 keepCursorOnDone={true}
                 lines={[
-                  // NEW: running message
-                  { segments: [{ text: "Running 'summary.py'...", className: "text-[#e6edf3]" }] },
-                  // compiling
-                  { segments: [{ text: "compiling...", className: "text-[#e6edf3]" }] },
-
+                  // Running message (slower + longer delay)
+                  {
+                    segments: [{ text: "Running 'summary.py'...", className: "text-[#e6edf3]" }],
+                    delayMs: 800, // long pause
+                    typingSpeed: 40, // slower typing
+                  },
+                  // Compiling (faster + shorter delay)
+                  {
+                    segments: [{ text: "compiling...", className: "text-[#e6edf3]" }],
+                    delayMs: 400,
+                    typingSpeed: 28,
+                  },
                   // Dict output
                   { segments: [{ text: "{", className: "text-[#e6edf3]" }] },
                   {
@@ -200,3 +207,4 @@ function listLine(key: string, items: string[], isLast = false) {
   ];
   return { segments: segs };
 }
+
