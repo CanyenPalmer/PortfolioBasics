@@ -6,17 +6,29 @@ import { motion } from "framer-motion";
 type Props = {
   text?: string;
   className?: string;
-  intensity?: number;     // how far characters/code fly (px)
+  intensity?: number;     // how far the break travels (px)
   stagger?: number;       // letter staggering (s)
-  opacityClass?: string;  // match your code color, default text-white/25
-  laneHeightEm?: number;  // per-line lane height
-  laneWidthCh?: number;   // per-line lane width (characters)
+  opacityClass?: string;  // match your code color (default: text-white/25)
+  laneHeightEm?: number;  // lane height for clipping
+  laneWidthCh?: number;   // lane width (characters) for clipping
 };
 
-const CODE_TOKENS = [
-  "import", "def", "SELECT *", "lambda", "Σ", "JOIN",
-  "fit()", "=>", "while", "return", "from", "if",
-  "else", "ROC", "∇", "groupby()", "mean()", "{ }", "< />"
+const HORIZ_LINES = [
+  "import pandas as pd    df = pd.read_csv('golf_stats.csv')",
+  "X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2)",
+  "model = RandomForestClassifier(n_estimators=300, random_state=42)",
+  "y_prob = model.predict_proba(X_te)[:, 1]      auc = roc_auc_score(y_te, y_prob)",
+  "SELECT hole, AVG(strokes) AS avg_strokes FROM rounds GROUP BY hole;",
+  "precision_at_k(y_te, y_prob, k=0.10)     recall_at_k(y_te, y_prob, k=0.10)",
+];
+
+const VERT_LINES = [
+  "df.groupby('hole')['strokes'].mean()",
+  "sns.barplot(data=df, x='hole', y='strokes')",
+  "statsmodels.api.OLS(y, X).fit().summary()",
+  "plt.figure(figsize=(8,5)); plt.plot(y_prob)",
+  "tidyverse::mutate(score = scale(x))",
+  "pandas.merge(left=a, right=b, on='id', how='inner')",
 ];
 
 export default function NameCodeExplode({
@@ -25,12 +37,12 @@ export default function NameCodeExplode({
   intensity = 60,
   stagger = 0.014,
   opacityClass = "text-white/25",
-  laneHeightEm = 1.35,
-  laneWidthCh = 38,
+  laneHeightEm = 1.45,
+  laneWidthCh = 44,
 }: Props) {
   const [hovered, setHovered] = React.useState(false);
 
-  // Letters: move only in cardinal directions (R, L, Up, Down)
+  // Letters: only cardinal motion (R, L, Up, Down)
   const letterOffsets = React.useMemo(() => {
     return [...text].map((_, i) => {
       const dir = i % 4;
@@ -43,24 +55,25 @@ export default function NameCodeExplode({
     });
   }, [text, intensity]);
 
-  // Split code shards into horizontal and vertical sets (cleaner & non-overlapping)
-  const horizTokens = React.useMemo(() => CODE_TOKENS.slice(0, 6), []);
-  const vertTokens  = React.useMemo(() => CODE_TOKENS.slice(6, 12), []);
-
-  // Invisible clip padding around the name so shards never spill into neighbors
+  // Clip padding so moving code never spills into neighbors
   const pad = Math.round(intensity + 12);
 
-  // Reusable lane container
-  const Lane = ({ children }: { children: React.ReactNode }) => (
-    <div
-      className="overflow-hidden"
-      style={{ height: `${laneHeightEm}em`, maxWidth: `${laneWidthCh}ch` }}
-    >
+  // Lane wrappers (clip area)
+  const LaneH = ({ children }: { children: React.ReactNode }) => (
+    <div className="overflow-hidden" style={{ height: `${laneHeightEm}em`, maxWidth: `${laneWidthCh}ch` }}>
+      {children}
+    </div>
+  );
+  const LaneV = ({ children }: { children: React.ReactNode }) => (
+    <div className="overflow-hidden" style={{ height: `${laneHeightEm}em`, width: `${Math.min(laneWidthCh, 10)}ch` }}>
       {children}
     </div>
   );
 
-  const codeClass = `font-mono ${opacityClass} text-[0.32em] md:text-[0.28em] whitespace-pre`;
+  const codeClass = `font-mono ${opacityClass} text-[0.32em] md:text-[0.28em] whitespace-nowrap`;
+
+  // Small ping‑pong oscillation for code while hovered
+  const osc = Math.max(8, Math.min(18, intensity * 0.22));
 
   return (
     <div
@@ -73,7 +86,7 @@ export default function NameCodeExplode({
       aria-label={text}
       tabIndex={0}
     >
-      {/* Letters (cardinal motion) */}
+      {/* Base name (keeps layout size; letters move/fade but container stays) */}
       <span aria-hidden className="relative inline-block">
         {[...text].map((ch, i) =>
           ch === " " ? (
@@ -83,16 +96,8 @@ export default function NameCodeExplode({
               key={`ch-${i}-${ch}`}
               className="inline-block"
               initial={{ x: 0, y: 0, opacity: 1 }}
-              animate={
-                hovered
-                  ? { x: letterOffsets[i].x, y: letterOffsets[i].y, opacity: 0 }
-                  : { x: 0, y: 0, opacity: 1 }
-              }
-              transition={{
-                type: "tween",
-                duration: hovered ? 0.35 : 0.5,
-                delay: i * (stagger ?? 0),
-              }}
+              animate={hovered ? { x: letterOffsets[i].x, y: letterOffsets[i].y, opacity: 0 } : { x: 0, y: 0, opacity: 1 }}
+              transition={{ type: "tween", duration: hovered ? 0.35 : 0.5, delay: i * (stagger ?? 0) }}
             >
               {ch}
             </motion.span>
@@ -100,27 +105,18 @@ export default function NameCodeExplode({
         )}
       </span>
 
-      {/* CLIP BOX for moving code shards */}
+      {/* Clip box for long linear code lines */}
       <div
         className="pointer-events-none absolute"
-        style={{
-          left: -pad,
-          right: -pad,
-          top: -pad,
-          bottom: -pad,
-          overflow: "hidden",
-        }}
+        style={{ left: -pad, right: -pad, top: -pad, bottom: -pad, overflow: "hidden" }}
       >
-        {/* Horizontal lanes: tokens slide left/right with a subtle ping‑pong while hovered */}
+        {/* Horizontal code lanes — stacked vertically, centered */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center gap-2">
-          {horizTokens.map((tok, i) => {
+          {HORIZ_LINES.map((line, i) => {
             const dirRight = i % 2 === 0;
-            // base offset (where it "breaks" to)
-            const baseX = (dirRight ? +1 : -1) * intensity * 1.1;
-            // small oscillation amount
-            const osc = Math.max(8, Math.min(16, intensity * 0.22));
+            const baseX = (dirRight ? +1 : -1) * intensity * 1.12;
             return (
-              <Lane key={`hx-${i}`}>
+              <LaneH key={`h-${i}`}>
                 <motion.span
                   className={codeClass}
                   initial={{ x: 0, opacity: 0 }}
@@ -131,46 +127,44 @@ export default function NameCodeExplode({
                   }
                   transition={
                     hovered
-                      ? { duration: 1.4, ease: "easeInOut", repeat: Infinity }
+                      ? { duration: 1.6, ease: "easeInOut", repeat: Infinity, delay: i * 0.04 }
                       : { duration: 0.25 }
                   }
                   aria-hidden
                 >
-                  {tok}
+                  {line}
                 </motion.span>
-              </Lane>
+              </LaneH>
             );
           })}
         </div>
 
-        {/* Vertical lanes: tokens slide up/down with a subtle ping‑pong while hovered */}
+        {/* Vertical code lanes — laid out horizontally, centered (vertical writing mode) */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center gap-3">
-          {vertTokens.map((tok, i) => {
+          {VERT_LINES.map((line, i) => {
             const dirUp = i % 2 === 0;
-            const baseY = (dirUp ? -1 : +1) * intensity * 1.1;
-            const osc   = Math.max(8, Math.min(16, intensity * 0.22));
+            const baseY = (dirUp ? -1 : +1) * intensity * 1.12;
             return (
-              <div key={`vy-${i}`} style={{ width: `${Math.min(laneWidthCh, 10)}ch` }}>
-                <div className="overflow-hidden" style={{ height: `${laneHeightEm}em` }}>
-                  <motion.span
-                    className={codeClass}
-                    initial={{ y: 0, opacity: 0 }}
-                    animate={
-                      hovered
-                        ? { y: [baseY - osc, baseY + osc, baseY - osc], opacity: 1 }
-                        : { y: 0, opacity: 0 }
-                    }
-                    transition={
-                      hovered
-                        ? { duration: 1.4, ease: "easeInOut", repeat: Infinity }
-                        : { duration: 0.25 }
-                    }
-                    aria-hidden
-                  >
-                    {tok}
-                  </motion.span>
-                </div>
-              </div>
+              <LaneV key={`v-${i}`}>
+                <motion.span
+                  className={`${codeClass}`}
+                  style={{ writingMode: "vertical-rl" as any }}
+                  initial={{ y: 0, opacity: 0 }}
+                  animate={
+                    hovered
+                      ? { y: [baseY - osc, baseY + osc, baseY - osc], opacity: 1 }
+                      : { y: 0, opacity: 0 }
+                  }
+                  transition={
+                    hovered
+                      ? { duration: 1.6, ease: "easeInOut", repeat: Infinity, delay: i * 0.04 }
+                      : { duration: 0.25 }
+                  }
+                  aria-hidden
+                >
+                  {line}
+                </motion.span>
+              </LaneV>
             );
           })}
         </div>
