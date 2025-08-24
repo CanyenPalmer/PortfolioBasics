@@ -5,6 +5,7 @@ import Image from "next/image";
 import { hero } from "../content/hero.data";
 import CodeEdgesTyped from "./CodeEdgesTyped";
 import NameCodeExplode from "./NameCodeExplode";
+import TerminalBox from "./TerminalBox"; // <-- NEW
 
 export default function Hero() {
   return (
@@ -32,30 +33,35 @@ export default function Hero() {
               />
             </div>
 
-            {/* Title (slightly smaller than before) */}
+            {/* Title */}
             <h1 className="text-2xl md:text-4xl font-bold leading-tight max-w-[34ch]">
               {hero.headline}
             </h1>
 
-            {/* Removed subheadline + personal blurb on purpose */}
-            {/* <p className="mt-4 text-lg md:text-xl text-white/80 max-w-[66ch]">{hero.subheadline}</p> */}
-            {/* <p className="mt-6 text-white/70 max-w-[70ch]">{hero.personal}</p> */}
+            {/* Terminal typing skills snapshot */}
+            <TerminalBox
+              className="mt-6"
+              typingSpeed={22}
+              lineDelay={420}
+              retypeOnReenter={true}
+              visibleThreshold={0.6}
+              lines={[
+                { prompt: "$ ", text: "whoami" },
+                {
+                  prompt: "> ",
+                  text: "Data Scientist & Google-Certified Data Analyst Professional",
+                },
 
-            {/* Skills snapshot (kept) */}
-            <div className="mt-6 space-y-3 text-sm text-white/70">
-              <p>
-                <span className="font-semibold">Proficiency:</span>{" "}
-                {hero.skills.proficiency.join(", ")}
-              </p>
-              <p>
-                <span className="font-semibold">Familiarities:</span>{" "}
-                {hero.skills.familiarity.join(", ")}
-              </p>
-              <p>
-                <span className="font-semibold">Tech Stack:</span>{" "}
-                {hero.skills.techStack.join(", ")}
-              </p>
-            </div>
+                { prompt: "$ ", text: "proficiency" },
+                { prompt: "> ", text: hero.skills.proficiency.join(", ") },
+
+                { prompt: "$ ", text: "familiarities" },
+                { prompt: "> ", text: hero.skills.familiarity.join(", ") },
+
+                { prompt: "$ ", text: "tech_stack --list" },
+                { prompt: "> ", text: hero.skills.techStack.join(", ") },
+              ]}
+            />
 
             {/* CTAs (kept) */}
             <div className="mt-8 flex gap-4">
@@ -75,7 +81,7 @@ export default function Hero() {
             </div>
           </motion.div>
 
-          {/* Typed code edges — LEFT (hidden on mobile, shown from md+) */}
+          {/* Typed code edges — LEFT */}
           <div className="hidden md:block">
             <CodeEdgesTyped
               zClass="-z-10"
@@ -134,7 +140,7 @@ export default function Hero() {
             </div>
           </motion.div>
 
-          {/* Typed code edges — RIGHT (hidden on mobile, shown from md+) */}
+          {/* Typed code edges — RIGHT */}
           <div className="hidden md:block">
             <CodeEdgesTyped
               zClass="-z-10"
@@ -147,10 +153,14 @@ export default function Hero() {
               top={[{ text: "df.groupby('hole')['strokes'].mean()" }]}
               bottom={[
                 { text: "from sklearn.metrics import roc_auc_score" },
-                { text: "auc = roc_auc_score(y_te, model.predict_proba(X_te)[:,1])" },
+                {
+                  text: "auc = roc_auc_score(y_te, model.predict_proba(X_te)[:,1])",
+                },
               ]}
               left={[
-                { text: "model = RandomForestClassifier(n_estimators=300, random_state=42)" },
+                {
+                  text: "model = RandomForestClassifier(n_estimators=300, random_state=42)",
+                },
                 { text: "model.fit(X_tr, y_tr)" },
               ]}
               right={[]}
