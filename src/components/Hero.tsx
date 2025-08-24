@@ -5,7 +5,7 @@ import Image from "next/image";
 import { hero } from "../content/hero.data";
 import CodeEdgesTyped from "./CodeEdgesTyped";
 import NameCodeExplode from "./NameCodeExplode";
-import SummaryRunner from "./SummaryRunner"; // <-- NEW
+import SummaryRunner from "./SummaryRunner"; // <-- added
 
 export default function Hero() {
   return (
@@ -33,20 +33,22 @@ export default function Hero() {
               />
             </div>
 
-            {/* (Removed) sub-headline under the name */}
+            {/* Removed headline under name — it's now shown inside terminal */}
             {/* <h1 className="text-2xl md:text-4xl font-bold leading-tight max-w-[34ch]">
               {hero.headline}
             </h1> */}
 
-            {/* Code card with Run button -> overlays terminal with output */}
+            {/* Code card with Run -> overlays terminal with output */}
             <SummaryRunner
-              className="mt-4"
+              className="mt-4 mb-6"
               proficiency={hero.skills.proficiency}
               familiarity={hero.skills.familiarity}
               techStack={hero.skills.techStack}
+              minHeightPx={320}     // ensures terminal never cuts off
+              minHeightPxMd={420}   // more height on md+ screens
             />
 
-            {/* CTAs (kept) */}
+            {/* CTAs (kept, never overlapped) */}
             <div className="mt-8 flex gap-4">
               {hero.ctas.map((cta, i) => (
                 <a
