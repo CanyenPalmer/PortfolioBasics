@@ -5,7 +5,8 @@ import Image from "next/image";
 import { hero } from "../content/hero.data";
 import CodeEdgesTyped from "./CodeEdgesTyped";
 import NameCodeExplode from "./NameCodeExplode";
-import SummaryRunner from "./SummaryRunner"; // uses canyen_palmer_title + reset/run flow
+import SummaryRunner from "./SummaryRunner";
+import InlineTypeLine from "./InlineTypeLine"; // <-- NEW
 
 export default function Hero() {
   return (
@@ -23,7 +24,7 @@ export default function Hero() {
             "
           >
             {/* Animated Name */}
-            <div className="mb-4">
+            <div className="mb-3">
               <NameCodeExplode
                 text="Canyen Palmer"
                 className="text-5xl md:text-7xl font-extrabold tracking-tight"
@@ -33,14 +34,21 @@ export default function Hero() {
               />
             </div>
 
-            {/* Removed headline under name — now handled via terminal output */}
-            {/* <h1 className="text-2xl md:text-4xl font-bold leading-tight max-w-[34ch]">
-              {hero.headline}
-            </h1> */}
+            {/* NEW: typed tagline line (acts like terminal, with blinking cursor) */}
+            <InlineTypeLine
+              className="text-[15px] md:text-[17px] text-white/80 mt-1 mb-2"
+              prompt="" // keep clean; add "$ " or "> " if you want a visible prompt
+              text="Turning data into decisions through science, code, and storytelling."
+              typingSpeed={18}
+              startDelayMs={180}
+              retypeOnReenter={true}
+              visibleThreshold={0.6}
+              ariaLabel="Tagline"
+            />
 
             {/* summary.py card -> Run -> terminal overlay (never clips / no CTA overlap) */}
             <SummaryRunner
-              className="mt-4 mb-6"
+              className="mt-3 mb-6"
               proficiency={hero.skills.proficiency}
               familiarity={hero.skills.familiarity}
               techStack={hero.skills.techStack}
