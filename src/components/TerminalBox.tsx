@@ -2,10 +2,7 @@
 
 import * as React from "react";
 
-type Line = { 
-  prompt?: string; 
-  text: string; 
-};
+type Line = { prompt?: string; text: string };
 
 type Props = {
   lines: Line[];
@@ -18,6 +15,9 @@ type Props = {
   retypeOnReenter?: boolean;
   /** Intersection ratio (0..1) considered “in view”. Default 0.6 */
   visibleThreshold?: number;
+
+  /** Extra delay before typing begins after becoming visible (ms). */
+  startDelayMs?: number;
 };
 
 export default function TerminalBox({
@@ -28,10 +28,12 @@ export default function TerminalBox({
   ariaLabel = "Terminal output",
   retypeOnReenter = true,
   visibleThreshold = 0.6,
+  startDelayMs = 0,
 }: Props) {
   const rootRef = React.useRef<HTMLDivElement>(null);
 
   // typing state
+  const [armed, setArmed] = React.useState(false);   // becomes true after startDelayMs
   const [started, setStarted] = React.useState(false);
   const [lineIndex, setLineIndex] = React.useState(0);
   const [charIndex, setCharIndex] = React.useState(0);
@@ -53,19 +55,25 @@ export default function TerminalBox({
       (entries) => {
         for (const e of entries) {
           if (e.intersectionRatio >= visibleThreshold) {
+            // Arm after delay, then start typing
+            clearTimers();
             if (retypeOnReenter) {
-              clearTimers();
               setLineIndex(0);
               setCharIndex(0);
               setDone(false);
-              setStarted(true);
-            } else {
-              setStarted((prev) => prev || true);
+              setStarted(false);
             }
+            // delay arming
+            const tid = window.setTimeout(() => {
+              setArmed(true);
+              setStarted(true);
+            }, startDelayMs) as unknown as number;
+            timers.current.push(tid);
           } else {
             // left view -> pause timers, keep rendered text as-is
             clearTimers();
             setStarted(false);
+            setArmed(false);
           }
         }
       },
@@ -77,11 +85,11 @@ export default function TerminalBox({
       io.disconnect();
       clearTimers();
     };
-  }, [retypeOnReenter, visibleThreshold]);
+  }, [retypeOnReenter, visibleThreshold, startDelayMs]);
 
   // Typing loop
   React.useEffect(() => {
-    if (!started || done) return;
+    if (!armed || !started || done) return;
     const cur = lines[lineIndex];
     if (!cur) {
       setDone(true);
@@ -106,7 +114,7 @@ export default function TerminalBox({
     }, typingSpeed) as unknown as number;
     timers.current.push(id);
     return () => window.clearTimeout(id);
-  }, [started, done, lines, lineIndex, charIndex, typingSpeed, lineDelay]);
+  }, [armed, started, done, lines, lineIndex, charIndex, typingSpeed, lineDelay]);
 
   // Render current state of each line
   const rendered = lines.map((ln, i) => {
@@ -158,11 +166,7 @@ export default function TerminalBox({
       </div>
 
       <style jsx>{`
-        @keyframes blink {
-          50% {
-            opacity: 0;
-          }
-        }
+        @keyframes blink { 50% { opacity: 0; } }
       `}</style>
     </div>
   );
