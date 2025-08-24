@@ -5,11 +5,11 @@ import { createPortal } from "react-dom";
 import { motion, useMotionValue, animate } from "framer-motion";
 
 /**
- * NameCodeExplode
+ * NameCodeExplode (soft-edge drift)
  * - Origin = exact midpoint between "...Canye[n]" and "[P]almer"
- * - Fullscreen fixed overlay so shards can overlap other sections (not clipped)
- * - Explode → coast with decelerating drift (never offscreen) → reverse to origin on mouse move/leave
- * - Reverse path is perfectly symmetric for smooth return
+ * - Fullscreen fixed overlay for overlap (not clipped)
+ * - Explode → decelerating space-drift with SOFT EDGE FORCE (never offscreen) → rewind on mouse move/leave
+ * - Reverse path is perfectly symmetric for the return
  */
 
 type Props = {
@@ -28,22 +28,31 @@ type Props = {
   codeShardsPerLetter?: number;
   upLeftSpreadDeg?: number;
 
-  // Floating (decelerating, bounded)
-  floatMaxPx?: number;         // soft cap for extra drift distance (before bounds)
-  floatDecayPerSec?: number;   // higher = slows sooner; used in (1 - e^{-k t})
+  // Floating (decelerating, soft-bounded)
+  floatMaxPx?: number;         // nominal extra drift distance if unbounded
+  floatDecayPerSec?: number;   // 1 - e^(-k t) rate; higher = slows sooner
   viewportMarginPx?: number;   // keep shards this many px inside the viewport
+
+  // Soft-edge shaping (how gently we approach the cap)
+  edgeSoftness?: number;       // 1..5 good range; higher = softer approach to the cap
+
   overlayZ?: number;           // z-index for overlay
 };
 
 const CODE_FRAGMENTS = [
-  "import","def","return","if","else","for","while",
-  "SELECT *","JOIN","GROUP BY","=>","lambda",
-  "fit()","predict()","ROC","AUC","mean()","std()",
-  "pd.read_csv()","groupby()","merge()","plt.plot()","{ }","< />"
+  "import", "def", "return", "if", "else", "for", "while",
+  "SELECT *", "JOIN", "GROUP BY", "=>", "lambda",
+  "fit()", "predict()", "ROC", "AUC", "mean()", "std()",
+  "pd.read_csv()", "groupby()", "merge()", "plt.plot()", "{ }", "< />"
 ];
 
 function seeded(n: number) { const x = Math.sin(n * 99991) * 10000; return x - Math.floor(x); }
-function easeInOutCubic(t: number) { return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3)/2; }
+function easeInOutCubic(t: number) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+// Quintic smootherstep: smooth 0→1 ramp without sharp knees
+function smootherstep01(s: number) {
+  const x = Math.min(1, Math.max(0, s));
+  return x * x * x * (x * (6 * x - 15) + 10);
+}
 
 type LetterShard = {
   id: string; char: string;
@@ -71,9 +80,13 @@ export default function NameCodeExplode({
   codeShardsPerLetter = 6,
 
   // drift
-  floatMaxPx = 160,          // typical extra outward drift distance
-  floatDecayPerSec = 0.55,   // 0.55 → clear deceleration; raise for quicker slow-down
-  viewportMarginPx = 24,     // keep shards fully on-screen
+  floatMaxPx = 160,
+  floatDecayPerSec = 0.55,
+  viewportMarginPx = 24,
+
+  // soft-edge: 3 = very gentle; 1.5 = firmer
+  edgeSoftness = 3,
+
   overlayZ = 50,
 }: Props) {
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -199,41 +212,46 @@ export default function NameCodeExplode({
     return { codeShards: code, letterShards: letters };
   }, [chars, mag, codeShardsPerLetter, upLeftSpreadDeg]);
 
-  // -------- decelerating drift --------
-  // We use fd(t) = cap * (1 - e^{-k t}) so velocity decays smoothly.
-  const [floatT, setFloatT] = React.useState(0); // time since float began (seconds)
+  // -------- soft-edge decelerating drift --------
+  // nominal outward drift curve: D_nominal(t) = floatMaxPx * (1 - e^{-k t})
+  // soft-edge gain: given a cap distance 'cap' along the shard's direction, we apply
+  // D_actual = cap * smootherstep( (D_nominal / cap) ^ softness )
+  // → approaches 'cap' smoothly, never exceeds it, and eases as we near edges.
   const [capsLetters, setCapsLetters] = React.useState<number[]>([]);
   const [capsCode, setCapsCode] = React.useState<number[]>([]);
+  const [floatT, setFloatT] = React.useState(0);
 
-  // compute per-shard caps so shards never leave the viewport while floating
+  // compute per-shard directional cap to keep fully inside viewport (with margin)
   const recomputeCaps = React.useCallback(() => {
     if (typeof window === "undefined") return;
     const vw = window.innerWidth, vh = window.innerHeight;
     const M = viewportMarginPx;
 
+    // Available travel along a unit direction (dirX,dirY) starting from pos = origin + [dx,dy]
     const capFor = (dx: number, dy: number, dirX: number, dirY: number) => {
-      // start at position after full explosion (t≈1): (originAbs + [dx,dy])
-      // we allow an additional fd * dir along that vector
-      // ensure [x,y] stays within [M, vw-M] x [M, vh-M]
+      const startX = originAbs.x + dx;
+      const startY = originAbs.y + dy;
+
+      // How far to each edge along dir; pick the nearest
       let capX = Number.POSITIVE_INFINITY;
       let capY = Number.POSITIVE_INFINITY;
 
       if (Math.abs(dirX) > 1e-6) {
-        if (dirX > 0) capX = (vw - M - (originAbs.x + dx)) / dirX;
-        else capX = ((originAbs.x + dx) - M) / (-dirX);
+        if (dirX > 0) capX = (vw - M - startX) / dirX;
+        else capX = (startX - M) / (-dirX);
       }
       if (Math.abs(dirY) > 1e-6) {
-        if (dirY > 0) capY = (vh - M - (originAbs.y + dy)) / dirY;
-        else capY = ((originAbs.y + dy) - M) / (-dirY);
+        if (dirY > 0) capY = (vh - M - startY) / dirY;
+        else capY = (startY - M) / (-dirY);
       }
 
-      const cap = Math.max(0, Math.min(capX, capY, floatMaxPx));
+      const cap = Math.max(0, Math.min(capX, capY));
       return isFinite(cap) ? cap : 0;
     };
 
     setCapsLetters(letterShards.map(s => capFor(s.dx, s.dy, s.dirX, s.dirY)));
     setCapsCode(codeShards.map(s => capFor(s.dx, s.dy, s.dirX, s.dirY)));
-  }, [originAbs.x, originAbs.y, letterShards, codeShards, viewportMarginPx, floatMaxPx]);
+  }, [originAbs.x, originAbs.y, letterShards, codeShards, viewportMarginPx]);
 
   React.useEffect(() => { recomputeCaps(); }, [recomputeCaps]);
   React.useEffect(() => {
@@ -251,7 +269,7 @@ export default function NameCodeExplode({
       onComplete: () => {
         if (target === 1) {
           setMode("floating");
-          setFloatT(0); // start decelerating drift timer
+          setFloatT(0);
         } else {
           setMode("idle");
           setFloatT(0);
@@ -295,7 +313,7 @@ export default function NameCodeExplode({
     return unsub;
   }, [progress]);
 
-  // RAF loop to increment floatT while floating (slows via 1 - e^{-k t})
+  // RAF loop to increment floatT while floating
   React.useEffect(() => {
     let raf = 0;
     let last = performance.now();
@@ -332,8 +350,22 @@ export default function NameCodeExplode({
     </span>
   );
 
-  // helper to compute decelerating outward drift amount for shard i
-  const driftAmount = (cap: number) => cap * (1 - Math.exp(-floatDecayPerSec * floatT));
+  // nominal outward drift distance since float began (no bounds)
+  const nominalDrift = React.useMemo(() => {
+    return (t: number) => floatMaxPx * (1 - Math.exp(-floatDecayPerSec * t));
+  }, [floatMaxPx, floatDecayPerSec]);
+
+  // Given a desired drift D_des and a cap, apply soft approach:
+  //   gain = smootherstep( (D_des / cap) ^ (1/edgeSoftness) )
+  //   D_actual = cap * gain
+  // → as D_des approaches cap, D_actual eases toward cap without slamming.
+  const applySoftCap = React.useCallback((desired: number, cap: number) => {
+    if (cap <= 1e-6) return 0;
+    const ratio = desired / cap;
+    const shaped = Math.pow(Math.max(0, Math.min(1, ratio)), 1 / edgeSoftness);
+    const gain = smootherstep01(shaped);
+    return cap * gain;
+  }, [edgeSoftness]);
 
   // fullscreen overlay
   const overlay = (
@@ -347,11 +379,14 @@ export default function NameCodeExplode({
         {letterShards.map((p, i) => {
           const t = eased.current;
           const show = progress.get() >= THRESH;
-          const fd = (mode === "floating") ? driftAmount(capsLetters[i] || 0) : 0;
+
+          // soft-edge drift along direction while floating
+          const fd_nominal = mode === "floating" ? nominalDrift(floatT) : 0;
+          const fd = mode === "floating" ? applySoftCap(fd_nominal, capsLetters[i] || 0) : 0;
 
           const x = p.dx * t + p.dirX * fd;
           const y = p.dy * t + p.dirY * fd;
-          const r = p.rot * t; // we keep rotation from explosion; no extra spin
+          const r = p.rot * t;
 
           return (
             <motion.span
@@ -373,7 +408,9 @@ export default function NameCodeExplode({
         {codeShards.map((p, i) => {
           const t = eased.current;
           const show = progress.get() >= THRESH;
-          const fd = (mode === "floating") ? driftAmount(capsCode[i] || 0) : 0;
+
+          const fd_nominal = mode === "floating" ? nominalDrift(floatT) : 0;
+          const fd = mode === "floating" ? applySoftCap(fd_nominal, capsCode[i] || 0) : 0;
 
           const x = p.dx * t + p.dirX * fd;
           const y = p.dy * t + p.dirY * fd;
@@ -406,15 +443,38 @@ export default function NameCodeExplode({
     <div
       ref={containerRef}
       className={`relative inline-block select-none ${className}`}
-      onMouseEnter={beginExplode}
-      onMouseLeave={beginReturn}
-      onFocus={beginExplode}
-      onBlur={beginReturn}
+      onMouseEnter={() => {
+        if (mode === "idle" || mode === "returning") {
+          setMode("exploding");
+          runTo(1, explodeSpring);
+        }
+      }}
+      onMouseLeave={() => {
+        if (mode !== "idle") {
+          setMode("returning");
+          runTo(0, returnSpring);
+        }
+      }}
+      onFocus={() => {
+        if (mode === "idle" || mode === "returning") {
+          setMode("exploding");
+          runTo(1, explodeSpring);
+        }
+      }}
+      onBlur={() => {
+        if (mode !== "idle") {
+          setMode("returning");
+          runTo(0, returnSpring);
+        }
+      }}
       role="img"
       aria-label={text}
       tabIndex={0}
     >
+      {/* base text kept in-flow for measurement; opacity toggles instantly */}
       {baseText}
+
+      {/* Fullscreen overlay via portal so shards aren't clipped */}
       {mounted ? createPortal(overlay, document.body) : null}
     </div>
   );
