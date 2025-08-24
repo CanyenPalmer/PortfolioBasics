@@ -5,7 +5,7 @@ import Image from "next/image";
 import { hero } from "../content/hero.data";
 import CodeEdgesTyped from "./CodeEdgesTyped";
 import NameCodeExplode from "./NameCodeExplode";
-import SummaryRunner from "./SummaryRunner"; // <-- added
+import SummaryRunner from "./SummaryRunner"; // uses canyen_palmer_title + reset/run flow
 
 export default function Hero() {
   return (
@@ -33,22 +33,22 @@ export default function Hero() {
               />
             </div>
 
-            {/* Removed headline under name — it's now shown inside terminal */}
+            {/* Removed headline under name — now handled via terminal output */}
             {/* <h1 className="text-2xl md:text-4xl font-bold leading-tight max-w-[34ch]">
               {hero.headline}
             </h1> */}
 
-            {/* Code card with Run -> overlays terminal with output */}
+            {/* summary.py card -> Run -> terminal overlay (never clips / no CTA overlap) */}
             <SummaryRunner
               className="mt-4 mb-6"
               proficiency={hero.skills.proficiency}
               familiarity={hero.skills.familiarity}
               techStack={hero.skills.techStack}
-              minHeightPx={320}     // ensures terminal never cuts off
-              minHeightPxMd={420}   // more height on md+ screens
+              minHeightPx={320}      // ensure terminal fully visible on mobile
+              minHeightPxMd={420}    // extra space on md+ so it never touches buttons
             />
 
-            {/* CTAs (kept, never overlapped) */}
+            {/* CTAs (kept) */}
             <div className="mt-8 flex gap-4">
               {hero.ctas.map((cta, i) => (
                 <a
