@@ -1,9 +1,10 @@
 "use client";
 
 import { motion } from "framer-motion";
-import Image from "next/image"; // ✅ Next/Image for better resampling
+import Image from "next/image";
 import { hero } from "../content/hero.data";
 import CodeEdgesTyped from "./CodeEdgesTyped";
+import NameCodeExplode from "./NameCodeExplode";
 
 export default function Hero() {
   return (
@@ -20,6 +21,17 @@ export default function Hero() {
               min-h-[420px] md:min-h-[clamp(520px,70vh,860px)]
             "
           >
+            {/* Animated Name above the headline */}
+            <div className="mb-4">
+              <NameCodeExplode
+                text="Canyen Palmer"
+                className="text-5xl md:text-7xl font-extrabold tracking-tight"
+                intensity={70}
+                stagger={0.012}
+              />
+            </div>
+
+            {/* Original Headline */}
             <h1 className="text-3xl md:text-5xl font-bold leading-tight max-w-[34ch]">
               {hero.headline}
             </h1>
@@ -30,12 +42,23 @@ export default function Hero() {
 
             {/* Skills snapshot */}
             <div className="mt-6 space-y-3 text-sm text-white/70">
-              <p><span className="font-semibold">Proficiency:</span> {hero.skills.proficiency.join(", ")}</p>
-              <p><span className="font-semibold">Familiarities:</span> {hero.skills.familiarity.join(", ")}</p>
-              <p><span className="font-semibold">Tech Stack:</span> {hero.skills.techStack.join(", ")}</p>
+              <p>
+                <span className="font-semibold">Proficiency:</span>{" "}
+                {hero.skills.proficiency.join(", ")}
+              </p>
+              <p>
+                <span className="font-semibold">Familiarities:</span>{" "}
+                {hero.skills.familiarity.join(", ")}
+              </p>
+              <p>
+                <span className="font-semibold">Tech Stack:</span>{" "}
+                {hero.skills.techStack.join(", ")}
+              </p>
             </div>
 
-            <p className="mt-6 text-white/70 max-w-[70ch]">{hero.personal}</p>
+            <p className="mt-6 text-white/70 max-w-[70ch]">
+              {hero.personal}
+            </p>
 
             <div className="mt-8 flex gap-4">
               {hero.ctas.map((cta, i) => (
@@ -69,17 +92,21 @@ export default function Hero() {
                 { text: "df = pd.read_csv('golf_stats.csv')" },
               ]}
               bottom={[
-                { text: "from sklearn.model_selection import train_test_split" },
+                {
+                  text: "from sklearn.model_selection import train_test_split",
+                },
               ]}
               left={[
-                { text: "SELECT hole, avg(strokes) FROM rounds GROUP BY hole;" },
+                {
+                  text: "SELECT hole, avg(strokes) FROM rounds GROUP BY hole;",
+                },
               ]}
               right={[]}
             />
           </div>
         </div>
 
-        {/* RIGHT COLUMN — Headshot (responsive frame) */}
+        {/* RIGHT COLUMN — Headshot */}
         <div className="relative">
           <motion.div
             initial={{ opacity: 0, x: 30 }}
@@ -97,14 +124,13 @@ export default function Hero() {
                 flex items-center justify-center
               "
             >
-              {/* ⬇️ Change: blur removed, quality bumped */}
               <Image
                 src={hero.headshot}
                 alt="Headshot of Canyen Palmer"
                 fill
                 priority
                 sizes="(min-width: 768px) min(46vw, 620px), 100vw"
-                quality={95} 
+                quality={95}
                 className="
                   object-cover rounded-2xl
                   [image-rendering:auto]
@@ -127,10 +153,14 @@ export default function Hero() {
               top={[{ text: "df.groupby('hole')['strokes'].mean()" }]}
               bottom={[
                 { text: "from sklearn.metrics import roc_auc_score" },
-                { text: "auc = roc_auc_score(y_te, model.predict_proba(X_te)[:,1])" },
+                {
+                  text: "auc = roc_auc_score(y_te, model.predict_proba(X_te)[:,1])",
+                },
               ]}
               left={[
-                { text: "model = RandomForestClassifier(n_estimators=300, random_state=42)" },
+                {
+                  text: "model = RandomForestClassifier(n_estimators=300, random_state=42)",
+                },
                 { text: "model.fit(X_tr, y_tr)" },
               ]}
               right={[]}
