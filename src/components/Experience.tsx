@@ -28,7 +28,7 @@ const EXPERIENCES: ExperienceItem[] = [
   {
     id: "lead_analyst",
     title: "Lead Analyst",
-    company: "<<< COMPANY NAME >>>",
+    company: "Iconic Care Inc.",
     location: "Indianapolis, Indiana",
     dates: "June 2025 – Aug 2025",
     tech: [
