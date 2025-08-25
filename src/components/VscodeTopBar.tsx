@@ -1,6 +1,9 @@
 "use client";
 
 import * as React from "react";
+import { Satisfy } from "next/font/google";
+
+const satisfy = Satisfy({ subsets: ["latin"], weight: "400", display: "swap" });
 
 type Section = { id: string; label: string };
 
@@ -30,6 +33,7 @@ export default function VscodeTopBar({
 }: Props) {
   const [activeId, setActiveId] = React.useState<string>(sections[0]?.id ?? "home");
 
+  // Observe sections and set active tab on scroll
   React.useEffect(() => {
     const observers: IntersectionObserver[] = [];
     const headerHeight = 72;
@@ -37,9 +41,12 @@ export default function VscodeTopBar({
     sections.forEach((s) => {
       const el = document.getElementById(s.id);
       if (!el) return;
+
       const io = new IntersectionObserver(
         (entries) => {
-          for (const e of entries) if (e.isIntersecting) setActiveId(s.id);
+          for (const e of entries) {
+            if (e.isIntersecting) setActiveId(s.id);
+          }
         },
         { rootMargin: `-${headerHeight}px 0px -66% 0px`, threshold: 0.1 }
       );
@@ -80,8 +87,15 @@ export default function VscodeTopBar({
               <span className="h-3 w-3 rounded-full bg-yellow-500/80" />
               <span className="h-3 w-3 rounded-full bg-green-500/80" />
             </div>
+
+            {/* Signature with Satisfy font + ripple */}
             <div
-              className="select-none text-white/90 font-semibold italic tracking-[0.02em] [text-shadow:0_1px_0_rgba(0,0,0,0.4)] truncate"
+              className={`
+                ${satisfy.className} signature-ripple
+                select-none text-white/90 font-semibold
+                tracking-[0.02em] [text-shadow:0_1px_0_rgba(0,0,0,0.4)]
+                truncate
+              `}
               aria-label="Signature"
               title={signature}
             >
@@ -89,7 +103,7 @@ export default function VscodeTopBar({
             </div>
           </div>
 
-          {/* CENTER — tabs (start-left on mobile to avoid 'cut off', center on md+) */}
+          {/* CENTER — tabs (start-left on mobile, center on md+) */}
           <nav
             className="min-w-0 overflow-x-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
             aria-label="Section tabs"
@@ -166,6 +180,29 @@ export default function VscodeTopBar({
 
       {/* subtle bottom accent line */}
       <div className="h-[2px] w-full bg-gradient-to-r from-emerald-400/40 via-blue-400/40 to-purple-400/40" />
+
+      {/* Ripple keyframes (scoped global so Tailwind won't purge) */}
+      <style jsx global>{`
+        /**
+         * signature-pulse: runs a short ~1.8s ripple, then idles so the total cycle is ~9.3s
+         * (≈ 7.5s rest + 1.8s ripple), i.e., a ripple every ~7.5s.
+         */
+        @keyframes signature-pulse {
+          0% { transform: scale(1); opacity: 1; }
+          8% { transform: scale(1.08); opacity: 0.85; }
+          14% { transform: scale(0.97); opacity: 0.9; }
+          19.35% { transform: scale(1); opacity: 1; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        .signature-ripple {
+          animation: signature-pulse 9.3s ease-in-out infinite;
+          transform-origin: left center;
+          will-change: transform, opacity;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .signature-ripple { animation: none; }
+        }
+      `}</style>
     </header>
   );
 }
