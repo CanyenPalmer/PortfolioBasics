@@ -37,23 +37,18 @@ export default function VscodeTopBar({
   React.useEffect(() => {
     const observers: IntersectionObserver[] = [];
     const headerHeight = 72;
-
     sections.forEach((s) => {
       const el = document.getElementById(s.id);
       if (!el) return;
-
       const io = new IntersectionObserver(
         (entries) => {
-          for (const e of entries) {
-            if (e.isIntersecting) setActiveId(s.id);
-          }
+          for (const e of entries) if (e.isIntersecting) setActiveId(s.id);
         },
         { rootMargin: `-${headerHeight}px 0px -66% 0px`, threshold: 0.1 }
       );
       io.observe(el);
       observers.push(io);
     });
-
     return () => observers.forEach((o) => o.disconnect());
   }, [sections]);
 
@@ -66,6 +61,9 @@ export default function VscodeTopBar({
     window.scrollTo({ top, behavior: "smooth" });
   };
 
+  // Split signature into per-letter spans for wave
+  const sigChars = React.useMemo(() => signature.split(""), [signature]);
+
   return (
     <header
       className="
@@ -76,9 +74,9 @@ export default function VscodeTopBar({
       role="navigation"
       aria-label="Primary"
     >
-      {/* full-bleed row, with edge padding only */}
+      {/* Full-bleed row with edge padding */}
       <div className="px-4 md:px-6">
-        {/* grid: LEFT (lights+signature) | CENTER (tabs) | RIGHT (actions) */}
+        {/* Grid: LEFT (lights+signature) | CENTER (tabs) | RIGHT (actions) */}
         <div className="h-14 grid grid-cols-[auto_1fr_auto] items-center gap-3">
           {/* LEFT — traffic lights flush-left + signature */}
           <div className="flex items-center gap-3 min-w-0">
@@ -88,18 +86,27 @@ export default function VscodeTopBar({
               <span className="h-3 w-3 rounded-full bg-green-500/80" />
             </div>
 
-            {/* Signature with Satisfy font + ripple */}
+            {/* Signature in Satisfy font with per-letter crowd wave */}
             <div
               className={`
-                ${satisfy.className} signature-ripple
+                ${satisfy.className}
                 select-none text-white/90 font-semibold
                 tracking-[0.02em] [text-shadow:0_1px_0_rgba(0,0,0,0.4)]
-                truncate
+                truncate flex
               `}
               aria-label="Signature"
               title={signature}
             >
-              {signature}
+              {sigChars.map((ch, i) => (
+                <span
+                  key={i}
+                  className="sig-ch"
+                  style={{ ["--i" as any]: i }}
+                  aria-hidden={ch === " " ? undefined : true}
+                >
+                  {ch}
+                </span>
+              ))}
             </div>
           </div>
 
@@ -178,29 +185,40 @@ export default function VscodeTopBar({
         </div>
       </div>
 
-      {/* subtle bottom accent line */}
+      {/* Subtle bottom accent line */}
       <div className="h-[2px] w-full bg-gradient-to-r from-emerald-400/40 via-blue-400/40 to-purple-400/40" />
 
-      {/* Ripple keyframes (scoped global so Tailwind won't purge) */}
+      {/* Wave keyframes (scoped global so Tailwind won't purge) */}
       <style jsx global>{`
         /**
-         * signature-pulse: runs a short ~1.8s ripple, then idles so the total cycle is ~9.3s
-         * (≈ 7.5s rest + 1.8s ripple), i.e., a ripple every ~7.5s.
+         * Crowd wave across signature:
+         * - Each character runs a short 0.9s wave.
+         * - Staggered by index so it travels left→right.
+         * - Continuous but gentle; visually reads as one wave ~every few seconds.
+         *   (Adjust DURATION_BASE and STAGGER for cadence.)
          */
-        @keyframes signature-pulse {
-          0% { transform: scale(1); opacity: 1; }
-          8% { transform: scale(1.08); opacity: 0.85; }
-          14% { transform: scale(0.97); opacity: 0.9; }
-          19.35% { transform: scale(1); opacity: 1; }
-          100% { transform: scale(1); opacity: 1; }
+        :root {
+          --SIG_WAVE_DURATION: 0.9s; /* wave duration per letter */
+          --SIG_WAVE_STAGGER: 0.08s; /* delay step between letters */
         }
-        .signature-ripple {
-          animation: signature-pulse 9.3s ease-in-out infinite;
-          transform-origin: left center;
+        @keyframes signature-wave {
+          0%   { transform: translateY(0) rotate(0)   scale(1);    opacity: 1; }
+          25%  { transform: translateY(-2px) rotate(-1deg) scale(1.02); opacity: 0.95; }
+          50%  { transform: translateY(0) rotate(0)   scale(1);    opacity: 1; }
+          100% { transform: translateY(0) rotate(0)   scale(1);    opacity: 1; }
+        }
+        .sig-ch {
+          display: inline-block;
+          transform-origin: center bottom;
+          animation-name: signature-wave;
+          animation-duration: var(--SIG_WAVE_DURATION);
+          animation-timing-function: ease-in-out;
+          animation-iteration-count: infinite;
+          animation-delay: calc(var(--i, 0) * var(--SIG_WAVE_STAGGER));
           will-change: transform, opacity;
         }
         @media (prefers-reduced-motion: reduce) {
-          .signature-ripple { animation: none; }
+          .sig-ch { animation: none; }
         }
       `}</style>
     </header>
@@ -218,7 +236,11 @@ function LinkedInIcon({ className = "" }: { className?: string }) {
 function GitHubIcon({ className = "" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
-      <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.589 2 12.254c0 4.53 2.865 8.366 6.839 9.723.5.095.682-.222.682-.493 0-.243-.009-.888-.014-1.744-2.782.615-3.37-1.365-3.37-1.365-.455-1.172-1.111-1.485-1.111-1.485-.908-.64.07-.627.07-.627 1.003.073 1.531 1.05 1.531 1.05.892 1.557 2.341 1.108 2.91.847.091-.662.35-1.108.636-1.362-2.221-.257-4.555-1.137-4.555-5.06 0-1.117.389-2.03 1.027-2.747-.103-.259-.445-1.298.097-2.706 0 0 .839-.27 2.75 1.05A9.362 9.362 0 0 1 12 7.802c.85.004 1.705.117 2.504.343 1.91-1.32 2.748-1.05 2.748-1.05.544 1.408.202 2.447.1 2.706.64.717 1.026 1.63 1.026 2.747 0 3.934-2.337 4.8-4.565 5.052.357.315.675.935.675 1.885 0 1.361-.013 2.458-.013 2.794 0 .274.18.593.688.492C19.139 20.616 22 16.782 22 12.254 22 6.589 17.523 2 12 2Z" />
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M12 2C6.477 2 2 6.589 2 12.254c0 4.53 2.865 8.366 6.839 9.723.5.095.682-.222.682-.493 0-.243-.009-.888-.014-1.744-2.782.615-3.37-1.365-3.37-1.365-.455-1.172-1.111-1.485-1.111-1.485-.908-.64.07-.627.07-.627 1.003.073 1.531 1.05 1.531 1.05.892 1.557 2.341 1.108 2.91.847.091-.662.35-1.108.636-1.362-2.221-.257-4.555-1.137-4.555-5.06 0-1.117.389-2.03 1.027-2.747-.103-.259-.445-1.298.097-2.706 0 0 .839-.27 2.75 1.05A9.362 9.362 0 0 1 12 7.802c.85.004 1.705.117 2.504.343 1.91-1.32 2.748-1.05 2.748-1.05.544 1.408.202 2.447.1 2.706.64.717 1.026 1.63 1.026 2.747 0 3.934-2.337 4.8-4.565 5.052.357.315.675.935.675 1.885 0 1.361-.013 2.458-.013 2.794 0 .274.18.593.688.492C19.139 20.616 22 16.782 22 12.254 22 6.589 17.523 2 12 2Z"
+      />
     </svg>
   );
 }
