@@ -5,7 +5,7 @@ import Image from "next/image";
 import { hero } from "../content/hero.data";
 import CodeEdgesTyped from "./CodeEdgesTyped";
 import NameCodeExplode from "./NameCodeExplode";
-import SummaryRunner from "./SummaryRunner"; // keep this as a separate file
+import SummaryRunner from "./SummaryRunner";
 
 /** ---------- InlineTypeLine (embedded to avoid module path issues) ---------- */
 import * as React from "react";
@@ -119,7 +119,10 @@ function InlineTypeLine({
 
 export default function Hero() {
   return (
-    <section className="relative isolate w-full min-h-screen flex items-center justify-center px-6 md:px-12">
+    <section
+      id="home"
+      className="relative isolate w-full min-h-screen flex items-center justify-center px-6 md:px-12 pt-20"
+    >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch w-full max-w-6xl">
         {/* LEFT COLUMN — Text */}
         <div className="relative">
@@ -146,7 +149,7 @@ export default function Hero() {
             {/* Typed tagline line (terminal-style) */}
             <InlineTypeLine
               className="text-[15px] md:text-[17px] text-white/80 mt-1 mb-2"
-              prompt="" // or "$ " to show a prompt
+              prompt=""
               text="Turning data into decisions through science, code, and storytelling."
               typingSpeed={18}
               startDelayMs={180}
@@ -155,7 +158,7 @@ export default function Hero() {
               ariaLabel="Tagline"
             />
 
-            {/* summary.py card -> Run -> terminal overlay (never clips / no CTA overlap) */}
+            {/* summary.py card -> Run -> terminal overlay */}
             <SummaryRunner
               className="mt-3 mb-6"
               proficiency={hero.skills.proficiency}
@@ -251,15 +254,10 @@ export default function Hero() {
               top={[{ text: "df.groupby('hole')['strokes'].mean()" }]}
               bottom={[
                 { text: "from sklearn.metrics import roc_auc_score" },
-                {
-                  text: "auc = roc_auc_score(y_te, model.predict_proba(X_te)[:,1])",
-                },
+                { text: "auc = roc_auc_score(y_te, model.predict_proba(X_te)[:,1])" },
               ]}
               left={[
-                {
-                  text:
-                    "model = RandomForestClassifier(n_estimators=300, random_state=42)",
-                },
+                { text: "model = RandomForestClassifier(n_estimators=300, random_state=42)" },
                 { text: "model.fit(X_tr, y_tr)" },
               ]}
               right={[]}
