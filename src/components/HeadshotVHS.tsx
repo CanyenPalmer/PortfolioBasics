@@ -1,18 +1,18 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
+import Image, { StaticImageData } from "next/image";
 
 type Props = {
-  src: string;
+  src: string | StaticImageData;   // ← accept static import or URL string
   alt: string;
   sizes?: string;
   priority?: boolean;
-  className?: string;              // extra classes for the OUTER frame
-  imgClassName?: string;           // extra classes for the image itself
-  glitchEveryMs?: number;          // how often to glitch
-  glitchDurationMs?: number;       // how long a glitch lasts
-  roundedClass?: string;           // e.g., "rounded-2xl"
+  className?: string;
+  imgClassName?: string;
+  glitchEveryMs?: number;
+  glitchDurationMs?: number;
+  roundedClass?: string;
 };
 
 export default function HeadshotVHS({
@@ -27,6 +27,7 @@ export default function HeadshotVHS({
   roundedClass = "rounded-2xl",
 }: Props) {
   const [glitch, setGlitch] = React.useState(false);
+  const [imgOk, setImgOk] = React.useState(true);
 
   React.useEffect(() => {
     let mounted = true;
@@ -60,7 +61,10 @@ export default function HeadshotVHS({
         className,
       ].join(" ")}
     >
-      {/* Base image */}
+      {/* fallback tint so you can tell the frame is rendered even if the image fails */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,#1b2430_0%,#0b0f15_60%)]" />
+
+      {/* Base image (explicit z-index to sit under overlays) */}
       <Image
         src={src}
         alt={alt}
@@ -68,8 +72,9 @@ export default function HeadshotVHS({
         priority={priority}
         sizes={sizes}
         quality={95}
+        onError={() => setImgOk(false)}
         className={[
-          "object-cover",
+          "object-cover z-0",
           roundedClass,
           "will-change-transform",
           imgClassName,
@@ -79,7 +84,7 @@ export default function HeadshotVHS({
       {/* VHS scanlines (subtle) */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 mix-blend-overlay opacity-30"
+        className="pointer-events-none absolute inset-0 z-10 mix-blend-overlay opacity-30"
         style={{
           background:
             "repeating-linear-gradient(to bottom, rgba(255,255,255,0.08) 0px, rgba(255,255,255,0.08) 1px, transparent 2px, transparent 3px)",
@@ -89,17 +94,17 @@ export default function HeadshotVHS({
       {/* Vignette */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0"
+        className="pointer-events-none absolute inset-0 z-20"
         style={{
           boxShadow:
             "inset 0 0 80px rgba(0,0,0,0.55), inset 0 0 180px rgba(0,0,0,0.35)",
         }}
       />
 
-      {/* Soft rolling brightness (like tracking drift) */}
+      {/* Rolling brightness drift */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 mix-blend-soft-light"
+        className="pointer-events-none absolute inset-0 z-30 mix-blend-soft-light"
         style={{
           background:
             "radial-gradient(120% 60% at 50% -10%, rgba(255,255,255,0.14), transparent 60%)",
@@ -107,10 +112,10 @@ export default function HeadshotVHS({
         }}
       />
 
-      {/* Fine film grain */}
+      {/* Film grain */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.08]"
+        className="pointer-events-none absolute inset-0 z-40 opacity-[0.08]"
         style={{
           background:
             "radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.5) 1px, transparent 1px), radial-gradient(1px 1px at 70% 80%, rgba(255,255,255,0.35) 1px, transparent 1px)",
@@ -123,23 +128,27 @@ export default function HeadshotVHS({
       <div
         aria-hidden
         className={[
-          "pointer-events-none absolute inset-0 transition duration-75 ease-out",
+          "pointer-events-none absolute inset-0 z-50 transition duration-75 ease-out",
           glitch ? "opacity-100" : "opacity-0",
         ].join(" ")}
         style={{
-          // RGB split using drop-shadow; small skew/translate during glitch
           filter: glitch
             ? "drop-shadow(2px 0 rgba(255,0,0,0.5)) drop-shadow(-2px 0 rgba(0,255,255,0.5))"
             : "none",
           transform: glitch ? "skewX(-1.2deg) translateY(-0.6px)" : "none",
         }}
       >
-        {/* A couple of horizontal slice bars that jitter briefly */}
-        <div className="absolute left-0 right-0 h-[10%] top-[18%] bg-white/4 mix-blend-overlay animate-slice1" />
-        <div className="absolute left-0 right-0 h-[12%] top-[62%] bg-white/4 mix-blend-overlay animate-slice2" />
+        <div className="absolute left-0 right-0 h-[10%] top-[18%] bg-white/10 mix-blend-overlay animate-slice1" />
+        <div className="absolute left-0 right-0 h-[12%] top-[62%] bg-white/10 mix-blend-overlay animate-slice2" />
       </div>
 
-      {/* Motion-reduction safeguard */}
+      {/* Tiny badge if the image failed (helps diagnose path/domain issues) */}
+      {!imgOk && (
+        <div className="absolute bottom-2 right-2 z-60 text-[10px] px-2 py-1 rounded bg-red-600/70 text-white font-mono">
+          image failed to load
+        </div>
+      )}
+
       <style jsx global>{`
         @keyframes vhsRoll {
           0% { opacity: 0.0; transform: translateY(0); }
@@ -167,7 +176,6 @@ export default function HeadshotVHS({
         }
         .animate-slice1 { animation: slice1 0.26s ease-out; }
         .animate-slice2 { animation: slice2 0.26s ease-out; }
-
         @media (prefers-reduced-motion: reduce) {
           .animate-slice1, .animate-slice2 { animation: none !important; }
         }
