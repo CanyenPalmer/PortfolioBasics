@@ -1,24 +1,12 @@
-import "./globals.css";
-import type { Metadata } from "next";
-import VscodeTopBar from "@/components/VscodeTopBar";
+// src/app/layout.tsx
+import "./globals.css"; // ✅ this makes Tailwind styles apply
 
-export const metadata: Metadata = {
-  title: "Canyen Palmer • Portfolio",
-  description: "Turning data into decisions through science, code, and storytelling.",
-};
+export const metadata = { title: "Canyen Palmer", description: "Portfolio" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="bg-[#0b1016] text-white">
-        <VscodeTopBar
-          resumeHref="/Canyen_Palmer_Resume.pdf"
-          linkedinHref="https://www.linkedin.com/in/your-handle"
-          githubHref="https://github.com/your-handle"
-          signature="Canyen Palmer"
-        />
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
