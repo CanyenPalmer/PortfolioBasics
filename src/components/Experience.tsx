@@ -98,9 +98,31 @@ const EXPERIENCES: ExperienceItem[] = [
   {
     id: "ceo_founder_data_scientist",
     title: "CEO & Founder | Data Scientist",
-    company: "<<< COMPANY >>>",
-    dates: "<<< DATES >>>",
-    highlights: ["<<< Placeholder until details are added >>>"],
+    company: "Palmer Projects - Freelance",
+    location: "Global",
+    dates: "May 2023 – Present",
+    tech: ["Python", "R", "SQL", "Tableau", "Excel"],
+    skills: [
+      "Analytics",
+      "Machine Learning",
+      "Software Development",
+      "System Testing",
+      "Stakeholder Engagement",
+    ],
+    highlights: [
+      "Founded Palmer Projects to deliver freelance analytics, machine learning, and software solutions for global clients.",
+      "Worked across diverse industries to provide actionable insights through advanced data engineering, visualization, and reporting.",
+    ],
+    creations: [
+      {
+        name: "MyGolf © 2025 Palmer Projects | Golfer's Guide to Better Play",
+        details: [
+          "Built MyCaddy, a multi-interface, physics-based shot distance calculator developed to help golfers make data-driven club selections.",
+          "MyCaddy models the true impact of environmental and surface conditions to optimize decision-making.",
+          "MyCaddy is highlighted in the Projects section for further detail.",
+        ],
+      },
+    ],
     fileName: "ceo_founder_data_scientist.py",
   },
 ];
