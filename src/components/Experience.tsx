@@ -66,9 +66,33 @@ const EXPERIENCES: ExperienceItem[] = [
   {
     id: "billing_revenue_specialist",
     title: "Billing & Revenue Specialist",
-    company: "<<< COMPANY >>>",
-    dates: "<<< DATES >>>",
-    highlights: ["<<< Placeholder until details are added >>>"],
+    company: "Iconic Care Inc.",
+    location: "Indianapolis, Indiana",
+    dates: "May 2025 – Jun 2025",
+    tech: ["Python", "Excel", "Google Sheets/Docs", "Brightree"],
+    skills: [
+      "Analytics",
+      "Project Management",
+      "System Testing",
+      "Medical Billing",
+      "Databases",
+    ],
+    highlights: [
+      "Optimized Payor Level Dashboards, Billing Cycle Processes, Patient Information Checklist, HPCPS Code Validations, Cost/Reimbursement Data, and BrightTree Consignment to be interpreted throughout all departments of Iconic Care Inc.",
+      "Expressed analytical insights throughout a multitude of departments while maintaining the confidentiality of crucial company metrics.",
+      "Created denial tracking and prevention dashboards to increase success rates.",
+      "Constructed Iconic Care's first-ever balance sheet for tracking all crucial financial metrics.",
+    ],
+    creations: [
+      {
+        name: "Operational Assets",
+        details: [
+          "15+ Dashboards across billing, denial tracking, and reimbursement.",
+          "10+ Quality Checklists for Denials/Claims management.",
+          "Automated Packages/Kits that eliminated half of the processing time.",
+        ],
+      },
+    ],
     fileName: "billing_revenue_specialist.json",
   },
   {
@@ -323,7 +347,8 @@ export default function Experience() {
         <details className="mt-4 group">
           <summary className="cursor-pointer text-white/80 font-mono text-sm select-none">
             <span className="group-open:hidden">▸</span>
-            <span className="hidden group-open:inline">▾</span> view_highlights_as_list
+            <span className="hidden group-open:inline">▾</span>{" "}
+            view_highlights_as_list
           </summary>
           <ul className="mt-2 list-disc pl-6 text-white/85">
             {active.highlights.map((h, i) => (
