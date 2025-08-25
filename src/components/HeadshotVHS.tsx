@@ -4,7 +4,7 @@ import * as React from "react";
 import Image, { StaticImageData } from "next/image";
 
 type Props = {
-  src: string | StaticImageData;   // ← accept static import or URL string
+  src: string | StaticImageData;
   alt: string;
   sizes?: string;
   priority?: boolean;
@@ -33,7 +33,6 @@ export default function HeadshotVHS({
     let mounted = true;
     let t1: number | undefined;
     let t2: number | undefined;
-
     const loop = () => {
       if (!mounted) return;
       t1 = window.setTimeout(() => {
@@ -44,7 +43,6 @@ export default function HeadshotVHS({
         }, glitchDurationMs);
       }, glitchEveryMs);
     };
-
     loop();
     return () => {
       mounted = false;
@@ -56,15 +54,15 @@ export default function HeadshotVHS({
   return (
     <div
       className={[
-        "relative overflow-hidden shadow-lg ring-1 ring-white/15",
+        // base visible frame even if image fails:
+        "relative overflow-hidden shadow-lg ring-1 ring-white/15 bg-[#0f131a]",
+        // extra guard so the grid never collapses width:
+        "min-w-[220px]",
         roundedClass,
         className,
       ].join(" ")}
     >
-      {/* fallback tint so you can tell the frame is rendered even if the image fails */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,#1b2430_0%,#0b0f15_60%)]" />
-
-      {/* Base image (explicit z-index to sit under overlays) */}
+      {/* Base image */}
       <Image
         src={src}
         alt={alt}
@@ -81,7 +79,7 @@ export default function HeadshotVHS({
         ].join(" ")}
       />
 
-      {/* VHS scanlines (subtle) */}
+      {/* VHS scanlines */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 z-10 mix-blend-overlay opacity-30"
@@ -90,7 +88,6 @@ export default function HeadshotVHS({
             "repeating-linear-gradient(to bottom, rgba(255,255,255,0.08) 0px, rgba(255,255,255,0.08) 1px, transparent 2px, transparent 3px)",
         }}
       />
-
       {/* Vignette */}
       <div
         aria-hidden
@@ -100,7 +97,6 @@ export default function HeadshotVHS({
             "inset 0 0 80px rgba(0,0,0,0.55), inset 0 0 180px rgba(0,0,0,0.35)",
         }}
       />
-
       {/* Rolling brightness drift */}
       <div
         aria-hidden
@@ -111,7 +107,6 @@ export default function HeadshotVHS({
           animation: "vhsRoll 9s ease-in-out infinite",
         }}
       />
-
       {/* Film grain */}
       <div
         aria-hidden
@@ -123,8 +118,7 @@ export default function HeadshotVHS({
           animation: "grainShift 1.8s steps(2) infinite",
         }}
       />
-
-      {/* Glitch overlay (brief RGB split + slice jitter) */}
+      {/* Glitch overlay */}
       <div
         aria-hidden
         className={[
@@ -142,9 +136,8 @@ export default function HeadshotVHS({
         <div className="absolute left-0 right-0 h-[12%] top-[62%] bg-white/10 mix-blend-overlay animate-slice2" />
       </div>
 
-      {/* Tiny badge if the image failed (helps diagnose path/domain issues) */}
       {!imgOk && (
-        <div className="absolute bottom-2 right-2 z-60 text-[10px] px-2 py-1 rounded bg-red-600/70 text-white font-mono">
+        <div className="absolute bottom-2 right-2 z-[60] text-[10px] px-2 py-1 rounded bg-red-600/70 text-white font-mono">
           image failed to load
         </div>
       )}
