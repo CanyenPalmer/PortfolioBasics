@@ -16,15 +16,16 @@ type Props = {
   /** Bars & motion */
   waveBars?: boolean;
   waveBarCount?: number;
-  wavePeriodMs?: number;        // bar cycle period
+  wavePeriodMs?: number;        // full sweep duration
   waveBarHeightPct?: number;
   waveIntensity?: number;
 
-  /** Wobble shaping (photo warp) */
-  wobbleAmplitudePx?: number;
-  wobbleWavelengthPx?: number;
-  wobblePhaseSpeed?: number;
-  wobbleFeatherPct?: number;
+  /** Distortion shaping (visual only, no geometry shift) */
+  distortMaxBlurPx?: number;    // max blur under bar
+  distortContrastBoost?: number;// e.g. 0.6 -> +60% at peak
+  distortSaturationBoost?: number; // e.g. 0.7 -> +70%
+  distortBrightnessBoost?: number; // e.g. 0.2 -> +20%
+  distortFeatherPct?: number;   // softness outside bar core (0..1 of bar height)
 
   /** Flicker */
   flicker?: boolean;
@@ -46,21 +47,26 @@ export default function HoloHeadshotAuto({
   className = "",
   glowColor = "rgba(0, 200, 255, 0.75)",
 
+  // mask & look
   edgeSharpness = 0.7,
   posterizeLevels = 5,
   bgCutoff = 0.18,
 
+  // bars
   waveBars = true,
   waveBarCount = 3,
-  wavePeriodMs = 6000,             // slowed down (was 3800)
+  wavePeriodMs = 9000,              // much slower (was 3800/6000)
   waveBarHeightPct = 12,
   waveIntensity = 1.0,
 
-  wobbleAmplitudePx = 12,
-  wobbleWavelengthPx = 42,
-  wobblePhaseSpeed = 0.0065,
-  wobbleFeatherPct = 0.25,
+  // visual distortion only (no wobble/shift)
+  distortMaxBlurPx = 1.2,
+  distortContrastBoost = 0.6,
+  distortSaturationBoost = 0.7,
+  distortBrightnessBoost = 0.2,
+  distortFeatherPct = 0.28,
 
+  // flicker
   flicker = true,
   flickerIntensity = 0.25,
   flickerSpeedMs = 1750,
@@ -72,7 +78,7 @@ export default function HoloHeadshotAuto({
   const [ready, setReady] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  /** ---------- Load image & preprocess ---------- */
+  /** ---------- Load image & preprocess (mask + posterize) ---------- */
   React.useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -96,7 +102,7 @@ export default function HoloHeadshotAuto({
         const id = octx.getImageData(0, 0, w, h);
         const a = id.data;
 
-        // Mask background by luminance
+        // Luminance-based alpha mask
         for (let y = 0; y < h; y++) {
           for (let x = 0; x < w; x++) {
             const i4 = (y * w + x) * 4;
@@ -107,7 +113,7 @@ export default function HoloHeadshotAuto({
           }
         }
 
-        // Posterize
+        // Posterize for a hologram-y, quantized look
         if (posterizeLevels >= 2) {
           const levels = Math.max(2, Math.min(16, Math.floor(posterizeLevels)));
           const step = 255 / (levels - 1);
@@ -129,9 +135,7 @@ export default function HoloHeadshotAuto({
         setReady(true);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [src, edgeSharpness, posterizeLevels, bgCutoff]);
 
   /** ---------- Cover-fit mapping ---------- */
@@ -141,15 +145,10 @@ export default function HoloHeadshotAuto({
     if (!masked || !container) return null;
     const cw = container.clientWidth;
     const ch = container.clientHeight;
-    const sw = masked.width,
-      sh = masked.height;
-    const srcAspect = sw / sh,
-      dstAspect = cw / ch;
+    const sw = masked.width, sh = masked.height;
+    const srcAspect = sw / sh, dstAspect = cw / ch;
 
-    let sx = 0,
-      sy = 0,
-      sWidth = sw,
-      sHeight = sh;
+    let sx = 0, sy = 0, sWidth = sw, sHeight = sh;
     if (srcAspect > dstAspect) {
       sHeight = sh;
       sWidth = sh * dstAspect;
@@ -165,10 +164,10 @@ export default function HoloHeadshotAuto({
   /** ---------- Bar specs ---------- */
   const barsRef = React.useRef<BarSpec[]>([]);
   React.useEffect(() => {
-    const n = waveBarCount ?? 3;
-    const period = wavePeriodMs ?? 6000;   // slower default
+    const n = Math.max(1, waveBarCount ?? 3);
+    const period = wavePeriodMs ?? 9000;
     barsRef.current = Array.from({ length: n }, (_, i) => ({
-      speedScale: 0.95 + Math.random() * 0.15,
+      speedScale: 0.94 + Math.random() * 0.12,
       delayMs: Math.round((i / n) * period),
       hueShift: Math.round(Math.random() * 36) - 18,
       pulseDelayMs: Math.round(Math.random() * 900),
@@ -176,10 +175,11 @@ export default function HoloHeadshotAuto({
     }));
   }, [waveBarCount, wavePeriodMs]);
 
-  /** ---------- Main RAF loop ---------- */
+  /** ---------- Main RAF loop: position bars + draw with visual distortion ---------- */
   React.useEffect(() => {
     let raf = 0;
     const t0 = performance.now();
+
     const loop = () => {
       const t = performance.now() - t0;
       const map = computeCoverMap();
@@ -187,12 +187,13 @@ export default function HoloHeadshotAuto({
       const dest = baseCanvasRef.current;
       const container = containerRef.current;
 
+      // Move visual bars
       if (container && waveBars) {
         const ch = container.clientHeight;
         const barH = (waveBarHeightPct / 100) * ch;
         barsRef.current.forEach((b) => {
           if (!b.el) return;
-          const sweep = (wavePeriodMs ?? 6000) * b.speedScale;
+          const sweep = (wavePeriodMs ?? 9000) * b.speedScale;
           let p = ((t - b.delayMs) % sweep) / sweep;
           if (p < 0) p += 1;
           const top = -0.2 * ch + p * (1.3 * ch);
@@ -201,6 +202,7 @@ export default function HoloHeadshotAuto({
         });
       }
 
+      // Draw with distortion only under bars (no geometric wobble)
       if (map && masked && dest) {
         const { cw, ch, sx, sy, sWidth, sHeight } = map;
         dest.width = cw;
@@ -208,13 +210,19 @@ export default function HoloHeadshotAuto({
         const ctx = dest.getContext("2d")!;
         ctx.clearRect(0, 0, cw, ch);
 
+        // First, draw the whole image normally (no filter)
+        ctx.filter = "none";
+        ctx.drawImage(masked, sx, sy, sWidth, sHeight, 0, 0, cw, ch);
+
+        // Then sweep through rows again; for rows near a bar, re-draw that row slice WITH filter
         const barH = (waveBarHeightPct / 100) * ch;
         const halfH = barH * 0.5;
-        const feather = barH * (wobbleFeatherPct ?? 0.25);
-        const centers: number[] = [];
+        const feather = Math.max(1, barH * (distortFeatherPct ?? 0.28));
 
+        // Collect centers for current time
+        const centers: number[] = [];
         barsRef.current.forEach((b) => {
-          const sweep = (wavePeriodMs ?? 6000) * b.speedScale;
+          const sweep = (wavePeriodMs ?? 9000) * b.speedScale;
           let p = ((t - b.delayMs) % sweep) / sweep;
           if (p < 0) p += 1;
           const top = -0.2 * ch + p * (1.3 * ch);
@@ -223,30 +231,36 @@ export default function HoloHeadshotAuto({
 
         const rowH = 2;
         const srcToDst = sHeight / ch;
-        const phase = t * (wobblePhaseSpeed ?? 0.0065);
 
         for (let y = 0; y < ch; y += rowH) {
-          const srcY = sy + y * srcToDst;
-          const srcH = Math.min(rowH * srcToDst, sHeight - (srcY - sy));
-
-          let dx = 0;
-          if (centers.length) {
-            let minDist = Infinity;
-            centers.forEach((c) => {
-              const d = Math.abs(y - c);
-              if (d < minDist) minDist = d;
-            });
-            if (minDist <= halfH + feather) {
-              const strength =
-                1 - Math.min(1, Math.max(0, (minDist - halfH) / feather));
-              const baseSin = Math.sin((y / wobbleWavelengthPx) + phase);
-              dx = baseSin * (wobbleAmplitudePx ?? 12) * strength;
-            }
+          // distance to nearest bar center
+          let minDist = Infinity;
+          for (let i = 0; i < centers.length; i++) {
+            const d = Math.abs(y - centers[i]);
+            if (d < minDist) minDist = d;
           }
 
-          ctx.drawImage(masked, sx, srcY, sWidth, srcH, dx, y, cw, rowH);
+          // If near a bar, compute strength 0..1 and apply filters on a re-draw of that row
+          if (centers.length && minDist <= halfH + feather) {
+            const strength =
+              1 - Math.min(1, Math.max(0, (minDist - halfH) / feather));
+
+            // Build a filter stack that visually distorts without shifting geometry
+            const blur = (distortMaxBlurPx || 0) * strength;
+            const contrast = 1 + (distortContrastBoost || 0) * strength;
+            const saturate = 1 + (distortSaturationBoost || 0) * strength;
+            const brightness = 1 + (distortBrightnessBoost || 0) * strength;
+
+            ctx.filter = `contrast(${contrast}) saturate(${saturate}) brightness(${brightness}) blur(${blur}px)`;
+
+            const srcY = sy + y * srcToDst;
+            const srcH = Math.min(rowH * srcToDst, sHeight - (srcY - sy));
+            ctx.drawImage(masked, sx, srcY, sWidth, srcH, 0, y, cw, rowH);
+          }
         }
 
+        // Subtle hologram tint overlay
+        ctx.filter = "none";
         ctx.globalCompositeOperation = "screen";
         ctx.fillStyle = "rgba(0,255,255,0.06)";
         ctx.fillRect(0, 0, cw, ch);
@@ -255,6 +269,7 @@ export default function HoloHeadshotAuto({
 
       raf = requestAnimationFrame(loop);
     };
+
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
   }, [
@@ -262,10 +277,11 @@ export default function HoloHeadshotAuto({
     waveBars,
     waveBarHeightPct,
     wavePeriodMs,
-    wobbleAmplitudePx,
-    wobbleWavelengthPx,
-    wobblePhaseSpeed,
-    wobbleFeatherPct,
+    distortMaxBlurPx,
+    distortContrastBoost,
+    distortSaturationBoost,
+    distortBrightnessBoost,
+    distortFeatherPct,
   ]);
 
   return (
@@ -274,7 +290,7 @@ export default function HoloHeadshotAuto({
       className={`relative overflow-hidden rounded-2xl shadow-lg ring-1 ring-white/15 ${className}`}
       style={{ background: "#080c11" }}
     >
-      {/* Glow */}
+      {/* Glow behind */}
       <div
         aria-hidden
         className="absolute inset-0"
@@ -286,7 +302,7 @@ export default function HoloHeadshotAuto({
         }}
       />
 
-      {/* Warped canvas */}
+      {/* Canvas (image + distortion) */}
       <div className="absolute inset-0 z-[4]">
         <canvas
           ref={baseCanvasRef}
@@ -296,7 +312,7 @@ export default function HoloHeadshotAuto({
         />
       </div>
 
-      {/* Bars */}
+      {/* Visual bars sweeping (match the computed centers above) */}
       {waveBars &&
         barsRef.current.map((b, i) => (
           <div
@@ -307,14 +323,15 @@ export default function HoloHeadshotAuto({
               top: "-20%",
               height: `${waveBarHeightPct}%`,
               background:
-                "linear-gradient(180deg, rgba(0,255,255,0.2), rgba(255,0,150,0.15))",
+                "linear-gradient(180deg, rgba(0,255,255,0.18), rgba(255,0,150,0.15))",
               opacity: 0.7,
               mixBlendMode: "screen",
+              filter: `hue-rotate(${b.hueShift}deg)`,
             }}
           />
         ))}
 
-      {/* Flicker overlay */}
+      {/* Optional flicker overlay */}
       {flicker && ready && (
         <div
           className="absolute inset-0 z-[10] pointer-events-none"
