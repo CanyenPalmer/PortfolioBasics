@@ -88,10 +88,7 @@ function InlineTypeLine({
       setDone(true);
       return;
     }
-    const id = window.setTimeout(
-      () => setI((n) => n + 1),
-      typingSpeed
-    ) as unknown as number;
+    const id = window.setTimeout(() => setI((n) => n + 1), typingSpeed) as unknown as number;
     timers.current.push(id);
     return () => window.clearTimeout(id);
   }, [armed, started, done, i, text.length, typingSpeed]);
@@ -116,7 +113,7 @@ function InlineTypeLine({
 }
 /** ---------- /InlineTypeLine ---------- */
 
-/** ---------- PixelHologram (no tilt, strong FX) ---------- */
+/** ---------- PixelHologram (overlays ABOVE the image) ---------- */
 function PixelHologram({
   src,
   alt = "Headshot of Canyen Palmer",
@@ -129,9 +126,8 @@ function PixelHologram({
   return (
     <div
       className="relative overflow-hidden rounded-2xl shadow-lg ring-1 ring-white/15 w-full max-w-full h-full bg-[#080c11]"
-      style={{}}
     >
-      {/* Base image (static, always on top of overlays except subtle chroma) */}
+      {/* Base image (z: 10) */}
       <img
         src={src}
         alt={alt}
@@ -142,17 +138,17 @@ function PixelHologram({
           height: "100%",
           objectFit: "cover",
           display: "block",
-          zIndex: 10,
           borderRadius: 16,
+          zIndex: 10,
         }}
       />
 
-      {/* Cyan glow aura (behind) */}
+      {/* Aura glow (behind image to light frame) — z: 5 */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
         style={{
-          zIndex: 0,
+          zIndex: 5,
           borderRadius: 16,
           boxShadow: `0 0 36px ${glowColor}, 0 0 120px ${glowColor}`,
           opacity: 0.45,
@@ -160,54 +156,56 @@ function PixelHologram({
         }}
       />
 
-      {/* Pixel matrix (dot grid) behind base image */}
+      {/* === HOLOGRAM OVERLAYS ABOVE THE IMAGE === */}
+
+      {/* Pixel matrix (dot grid) — z: 30 */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
         style={{
-          zIndex: 2,
+          zIndex: 30,
           borderRadius: 16,
-          opacity: 0.26,
+          opacity: 0.30,
           mixBlendMode: "screen",
           background:
-            "radial-gradient(circle, rgba(0,220,255,0.9) 0 45%, rgba(0,220,255,0) 51%)",
-          backgroundSize: "6px 6px", // denser pixels
+            "radial-gradient(circle, rgba(0,220,255,0.95) 0 45%, rgba(0,220,255,0) 51%)",
+          backgroundSize: "6px 6px",
           animation: "pixelDrift 9s linear infinite",
         }}
       />
 
-      {/* Scanlines (subtle) */}
+      {/* Scanlines — z: 32 */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
         style={{
-          zIndex: 3,
+          zIndex: 32,
           borderRadius: 16,
-          opacity: 0.18,
+          opacity: 0.20,
           mixBlendMode: "screen",
           background:
-            "repeating-linear-gradient(to bottom, rgba(0,255,255,0.12) 0px, rgba(0,255,255,0.12) 1px, transparent 2px, transparent 5px)",
+            "repeating-linear-gradient(to bottom, rgba(0,255,255,0.18) 0px, rgba(0,255,255,0.18) 1px, transparent 2px, transparent 5px)",
           animation: "scanWobble 6s ease-in-out infinite",
         }}
       />
 
-      {/* Volumetric shimmer curtain */}
+      {/* Shimmer curtain — z: 34 */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
         style={{
-          zIndex: 4,
+          zIndex: 34,
           borderRadius: 16,
           mixBlendMode: "screen",
           background:
-            "linear-gradient(115deg, rgba(0,180,255,0) 15%, rgba(0,220,255,0.22) 40%, rgba(255,255,255,0.16) 50%, rgba(0,220,255,0.22) 60%, rgba(0,180,255,0) 85%)",
-          backgroundSize: "200% 100%",
+            "linear-gradient(115deg, rgba(0,180,255,0) 15%, rgba(0,220,255,0.26) 40%, rgba(255,255,255,0.18) 50%, rgba(0,220,255,0.26) 60%, rgba(0,180,255,0) 85%)",
+          backgroundSize: "220% 100%",
           animation: "shimmerSweep 5.8s ease-in-out infinite",
-          opacity: 0.35,
+          opacity: 0.40,
         }}
       />
 
-      {/* Chromatic aberration layers (very faint, above base) */}
+      {/* Chromatic fringe (subtle duplicates) — z: 36/37 */}
       <img
         src={src}
         alt=""
@@ -219,12 +217,11 @@ function PixelHologram({
           height: "100%",
           objectFit: "cover",
           borderRadius: 16,
-          zIndex: 12,
-          opacity: 0.18,
+          zIndex: 36,
+          opacity: 0.22,
           mixBlendMode: "screen",
-          filter: "contrast(1.1) brightness(1.05) hue-rotate(200deg)",
-          transform: "translateX(0)",
-          animation: "chromaShift1 4.5s ease-in-out infinite",
+          filter: "contrast(1.1) brightness(1.05) hue-rotate(210deg)",
+          animation: "chromaShift1 4.8s ease-in-out infinite",
         }}
       />
       <img
@@ -238,36 +235,30 @@ function PixelHologram({
           height: "100%",
           objectFit: "cover",
           borderRadius: 16,
-          zIndex: 11,
-          opacity: 0.18,
+          zIndex: 37,
+          opacity: 0.22,
           mixBlendMode: "screen",
-          filter: "contrast(1.1) brightness(1.05) hue-rotate(320deg)",
-          transform: "translateX(0)",
-          animation: "chromaShift2 4.5s ease-in-out infinite",
+          filter: "contrast(1.1) brightness(1.05) hue-rotate(330deg)",
+          animation: "chromaShift2 4.8s ease-in-out infinite",
         }}
       />
 
-      {/* Occasional glitch slices (thin horizontal bands) */}
+      {/* Glitch bands — z: 40 */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
-        style={{
-          zIndex: 14,
-          borderRadius: 16,
-          overflow: "hidden",
-        }}
+        style={{ zIndex: 40, borderRadius: 16, overflow: "hidden" }}
       >
-        {/* two bands with different timing */}
         <div className="h-[12%] w-full absolute left-0 top-[18%] glitchBand" />
         <div className="h-[8%]  w-full absolute left-0 top-[62%] glitchBand2" />
       </div>
 
-      {/* Vignette edges */}
+      {/* Vignette edges (over everything) — z: 50 */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
         style={{
-          zIndex: 6,
+          zIndex: 50,
           borderRadius: 16,
           boxShadow:
             "inset 0 0 80px rgba(0,0,0,0.6), inset 0 0 160px rgba(0,0,0,0.35)",
@@ -303,9 +294,9 @@ function PixelHologram({
           inset: 0;
           background:
             linear-gradient(to right,
-              rgba(0,200,255,0.15) 0%,
-              rgba(255,255,255,0.22) 40%,
-              rgba(0,200,255,0.15) 100%);
+              rgba(0,200,255,0.22) 0%,
+              rgba(255,255,255,0.28) 40%,
+              rgba(0,200,255,0.22) 100%);
           mix-blend-mode: screen;
           opacity: 0.0;
         }
