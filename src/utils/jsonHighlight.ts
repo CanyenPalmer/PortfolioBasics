@@ -23,21 +23,20 @@ export function highlightJson(json: string): string {
   // Escape first to keep output safe
   let esc = escapeHtml(json);
 
-  // Order matters: colorize keys first so we don't re-match them as generic strings
-  // Keys:   "key":
+  // Keys: "key":
   esc = esc.replace(
     /(^|[\r\n])(\s*)(".*?")(\s*):/g,
     (_, br, ws, key, after) =>
-      `${br}${ws}<span class="text-blue-400">${key}</span>${after}:`
+      `${br}${ws}<span class="text-sky-300">${key}</span>${after}:`
   );
 
-  // String values (anything in quotes not already colored as keys)
+  // String values
   esc = esc.replace(
     /(:\s*)(".*?")/g,
-    (_, pre, val) => `${pre}<span class="text-green-400">${val}</span>`
+    (_, pre, val) => `${pre}<span class="text-emerald-300">${val}</span>`
   );
 
-  // Numbers
+  // Numbers (incl. scientific)
   esc = esc.replace(
     /(:\s*)(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g,
     (_, pre, num) => `${pre}<span class="text-amber-300">${num}</span>`
@@ -46,15 +45,14 @@ export function highlightJson(json: string): string {
   // Booleans & null
   esc = esc.replace(
     /(:\s*)(true|false|null)/g,
-    (_, pre, kw) => `${pre}<span class="text-purple-300">${kw}</span>`
+    (_, pre, kw) => `${pre}<span class="text-fuchsia-300">${kw}</span>`
   );
 
-  // Braces/brackets can stay default; your monospace + overall color handles it nicely.
   return esc;
 }
 
 /**
- * Helper to build a “printable” version of your Experience item,
+ * Helper to build a “printable” version of an Experience item,
  * controlling which fields appear in the typed JSON.
  */
 export function buildExperienceJson(exp: {
