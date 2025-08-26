@@ -2,18 +2,19 @@
 
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTypewriter } from "@/hooks/useTypewriter";
+import { highlightJson, buildExperienceJson } from "@/utils/jsonHighlight";
 
 /** -----------------------------------------------------------------------
  * Experience (Terminal/Editor theme + Tabs + JSON viewer)
- * Enhancements added per request:
- *  - Visual hierarchy (featured role styling, badge)
- *  - Engagement (hover/press states, glowing accents)
- *  - Context line (1‑liner for each company/role)
- *  - Highlight most impressive role (featured)
- *  - Interactive timeline rail (clickable dots sync with tabs)
- *  - Expandable details (creations) with smooth animations
- *  - Subtle animations (panel transitions, caret blink)
- *  - Responsive nav: Tabs on mobile, Timeline rail on desktop
+ * - Visual hierarchy (featured role styling, badge)
+ * - Engagement (hover/press states, glowing accents)
+ * - Context line (1-liner for each company/role)
+ * - Highlight most impressive role (featured)
+ * - Interactive timeline rail (desktop)
+ * - Expandable details (creations) with smooth animations
+ * - Subtle animations (panel transitions, caret blink)
+ * - Typewriter JSON output (replays on role change)
  * ----------------------------------------------------------------------*/
 
 type Creation = { name: string; details: string[] };
@@ -29,8 +30,8 @@ type ExperienceItem = {
   highlights: string[];
   creations?: Creation[];
   fileName?: string;
-  context?: string; // one‑liner explainer
-  featured?: boolean; // highlight this role
+  context?: string;
+  featured?: boolean;
 };
 
 const EXPERIENCES: ExperienceItem[] = [
@@ -41,14 +42,7 @@ const EXPERIENCES: ExperienceItem[] = [
     location: "Indianapolis, Indiana",
     dates: "June 2025 – Aug 2025",
     context: "Internal Analytics & Custom ML Models for Data Insights.",
-    tech: [
-      "Python",
-      "SQLite",
-      "Excel",
-      "Google Sheets/Slides",
-      "GitHub",
-      "Jupyter Notebooks",
-    ],
+    tech: ["Python", "SQLite", "Excel", "Google Sheets/Slides", "GitHub", "Jupyter Notebooks"],
     skills: ["Analytics", "Custom ML Models", "Revenue Cycle KPIs"],
     highlights: [
       "Built internal analytics tools using Python, Google Sheets, and ML models to support billing, rep performance, and operational forecasting.",
@@ -81,13 +75,7 @@ const EXPERIENCES: ExperienceItem[] = [
     dates: "May 2025 – Jun 2025",
     context: "Billing Ops & Analytics; dashboards, denials, reimbursement.",
     tech: ["Python", "Excel", "Google Sheets/Docs", "Brightree"],
-    skills: [
-      "Analytics",
-      "Project Management",
-      "System Testing",
-      "Medical Billing",
-      "Databases",
-    ],
+    skills: ["Analytics", "Project Management", "System Testing", "Medical Billing", "Databases"],
     highlights: [
       "Optimized Payor Level Dashboards, Billing Cycle Processes, Patient Information Checklist, HPCPS Code Validations, Cost/Reimbursement Data, and BrightTree Consignment to be interpreted throughout all departments of Iconic Care Inc.",
       "Expressed analytical insights throughout a multitude of departments while maintaining the confidentiality of crucial company metrics.",
@@ -114,13 +102,7 @@ const EXPERIENCES: ExperienceItem[] = [
     dates: "May 2023 – Present",
     context: "Independent studio delivering analytics, ML, and software projects.",
     tech: ["Python", "R", "SQL", "Tableau", "Excel"],
-    skills: [
-      "Analytics",
-      "Machine Learning",
-      "Software Development",
-      "System Testing",
-      "Stakeholder Engagement",
-    ],
+    skills: ["Analytics", "Machine Learning", "Software Development", "System Testing", "Stakeholder Engagement"],
     highlights: [
       "Founded Palmer Projects to deliver freelance analytics, machine learning, and software solutions for global clients.",
       "Worked across diverse industries to provide actionable insights through advanced data engineering, visualization, and reporting.",
@@ -140,135 +122,26 @@ const EXPERIENCES: ExperienceItem[] = [
   },
 ];
 
-/* ---------------- Helpers for JSON pretty rendering ------------------- */
-function JsonArray({
-  items,
-  itemColor = "text-green-400",
-  commaColor = "text-white/50",
-}: {
-  items: React.ReactNode[];
-  itemColor?: string;
-  commaColor?: string;
-}) {
-  return (
-    <span>
-      [
-      {items.map((v, i) => (
-        <React.Fragment key={i}>
-          <span className={itemColor}>{v}</span>
-          {i < items.length - 1 ? (
-            <span className={`mx-0.5 ${commaColor}`}>, </span>
-          ) : null}
-        </React.Fragment>
-      ))}
-      ]
-    </span>
-  );
-}
+/* ---------------- Typed JSON view ------------------- */
+function TypedJsonView({ exp }: { exp: ExperienceItem }) {
+  const full = React.useMemo(() => buildExperienceJson(exp), [exp]);
+  const { output, done } = useTypewriter(full, { speed: 10, startDelay: 60 });
+  const html = React.useMemo(() => highlightJson(output), [output]);
 
-function ExperienceJsonView({ exp }: { exp: ExperienceItem }) {
   return (
     <pre className="relative font-mono text-[13px] leading-relaxed text-white/90 whitespace-pre-wrap">
-      <code>
-        <span className="text-white/80">{"{"}</span>
-        {"\n"}
-        {"  "}
-        <span className="text-blue-400">"title"</span>: {" "}
-        <span className="text-green-400">"{exp.title}"</span>,
-        {"\n"}
-        {"  "}
-        <span className="text-blue-400">"company"</span>: {" "}
-        <span className="text-green-400">"{exp.company}"</span>,
-        {"\n"}
-        {exp.location && (
-          <>
-            {"  "}
-            <span className="text-blue-400">"location"</span>: {" "}
-            <span className="text-green-400">"{exp.location}"</span>,
-            {"\n"}
-          </>
-        )}
-        {exp.context && (
-          <>
-            {"  "}
-            <span className="text-blue-400">"context"</span>: {" "}
-            <span className="text-purple-300">"{exp.context}"</span>,
-            {"\n"}
-          </>
-        )}
-        {"  "}
-        <span className="text-blue-400">"dates"</span>: {" "}
-        <span className="text-orange-300">"{exp.dates}"</span>,
-        {"\n"}
-        {exp.tech && (
-          <>
-            {"  "}
-            <span className="text-blue-400">"tech"</span>: {" "}
-            <JsonArray items={exp.tech.map((t, i) => <span key={i}>"{t}"</span>)} />
-            ,{"\n"}
-          </>
-        )}
-        {exp.skills && (
-          <>
-            {"  "}
-            <span className="text-blue-400">"skills"</span>: {" "}
-            <JsonArray items={exp.skills.map((s, i) => <span key={i}>"{s}"</span>)} />
-            ,{"\n"}
-          </>
-        )}
-        {"  "}
-        <span className="text-blue-400">"highlights"</span>: [\n
-        {exp.highlights.map((h, i) => (
-          <div key={i} className="pl-6">
-            <span className="text-green-400">"{h}"</span>
-            {i < exp.highlights.length - 1 ? (
-              <span className="text-white/60">,</span>
-            ) : null}
-          </div>
-        ))}
-        {"  ]"}
-        {exp.creations && (
-          <>
-            ,{"\n"}
-            {"  "}
-            <span className="text-blue-400">"creations"</span>: [\n
-            {exp.creations.map((c, i) => (
-              <div key={i} className="pl-6">
-                <span className="text-white/80">{"{"}</span>
-                {"\n"}
-                {"    "}
-                <span className="text-blue-400">"name"</span>: {" "}
-                <span className="text-green-400">"{c.name}"</span>,
-                {"\n"}
-                {"    "}
-                <span className="text-blue-400">"details"</span>: [\n
-                {c.details.map((d, j) => (
-                  <div key={j} className="pl-10">
-                    <span className="text-green-400">"{d}"</span>
-                    {j < c.details.length - 1 ? (
-                      <span className="text-white/60">,</span>
-                    ) : null}
-                  </div>
-                ))}
-                {"    ]\n"}
-                <span className="text-white/80">{"  }"}</span>
-                {i < exp.creations.length - 1 ? (
-                  <span className="text-white/60">,</span>
-                ) : null}
-              </div>
-            ))}
-            {"  ]"}
-          </>
-        )}
-        {"\n"}
-        <span className="text-white/80">{"}"}</span>
-      </code>
-      <span className="ml-1 inline-block h-4 w-[7px] align-baseline bg-white/70 animate-pulse rounded-sm translate-y-[3px]" />
+      {/* eslint-disable-next-line react/no-danger */}
+      <code dangerouslySetInnerHTML={{ __html: html }} />
+      <span
+        className={`ml-1 inline-block h-4 w-[7px] align-baseline rounded-sm translate-y-[3px] ${
+          done ? "bg-white/70 animate-pulse" : "bg-white/80 animate-pulse"
+        }`}
+      />
     </pre>
   );
 }
 
-/* ---------------- Tabs (used inside TopBar on mobile only) ------------------- */
+/* ---------------- Tabs (mobile only) ------------------- */
 function Tabs({
   items,
   activeId,
@@ -279,11 +152,7 @@ function Tabs({
   onChange: (id: string) => void;
 }) {
   return (
-    <ul
-      role="tablist"
-      aria-label="Experience files"
-      className="flex-1 flex items-center gap-1 overflow-x-auto py-1 no-scrollbar"
-    >
+    <ul role="tablist" aria-label="Experience files" className="flex-1 flex items-center gap-1 overflow-x-auto py-1 no-scrollbar">
       {items.map((t) => {
         const active = t.id === activeId;
         return (
@@ -295,33 +164,16 @@ function Tabs({
               id={`tab-${t.id}`}
               aria-current={active ? "page" : undefined}
               onClick={() => onChange(t.id)}
-              onKeyDown={(e) => {
-                if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
-                  e.preventDefault();
-                  const idx = items.findIndex((x) => x.id === activeId);
-                  const next =
-                    e.key === "ArrowRight"
-                      ? items[(idx + 1) % items.length]
-                      : items[(idx - 1 + items.length) % items.length];
-                  onChange(next.id);
-                }
-              }}
               className={`group inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md text-[12.5px] font-mono transition ${
                 active
                   ? "bg-white/10 text-white border border-white/10 shadow-[inset_0_-2px_0_rgba(56,189,248,0.6)]"
                   : "text-white/70 hover:text-white/95 hover:bg-white/5 border border-transparent"
               }`}
             >
-              <span
-                className={`inline-block h-1 w-1 rounded-full ${
-                  active ? "bg-emerald-400" : "bg-white/30 group-hover:bg-white/50"
-                }`}
-              />
+              <span className={`inline-block h-1 w-1 rounded-full ${active ? "bg-emerald-400" : "bg-white/30 group-hover:bg-white/50"}`} />
               {t.label}
               {t.featured && (
-                <span className="ml-1 rounded-sm border border-cyan-400/40 bg-cyan-400/10 text-cyan-200 px-1 py-[1px] text-[10px]">
-                  FEATURED
-                </span>
+                <span className="ml-1 rounded-sm border border-cyan-400/40 bg-cyan-400/10 text-cyan-200 px-1 py-[1px] text-[10px]">FEATURED</span>
               )}
             </button>
           </li>
@@ -331,7 +183,7 @@ function Tabs({
   );
 }
 
-/* ---------------- Top Bar: traffic lights + tabs (mobile) + filename ------------------- */
+/* ---------------- Top Bar ------------------- */
 function TopBar({
   items,
   activeId,
@@ -343,19 +195,16 @@ function TopBar({
 }) {
   return (
     <div className="mb-4 flex items-center gap-2 border-b border-white/10 py-1">
-      {/* traffic lights */}
       <span className="inline-flex gap-1.5 shrink-0 ml-1">
         <span className="h-3 w-3 rounded-full bg-red-500/80" />
         <span className="h-3 w-3 rounded-full bg-yellow-500/80" />
         <span className="h-3 w-3 rounded-full bg-green-500/80" />
       </span>
 
-      {/* tabs show on mobile only to avoid duplicate nav with the timeline rail */}
       <div className="flex-1 md:hidden">
         <Tabs items={items} activeId={activeId} onChange={onChange} />
       </div>
 
-      {/* filename pinned at right */}
       <span className="shrink-0 text-white/75 font-mono text-sm px-2">experience.json</span>
     </div>
   );
@@ -375,7 +224,6 @@ function TimelineRail({
 
   return (
     <div className="relative hidden md:block pr-4">
-      {/* rail */}
       <div className="relative ml-3">
         <motion.div
           initial={{ scaleY: 0 }}
@@ -394,7 +242,6 @@ function TimelineRail({
                     active ? "text-white" : "text-white/60 hover:text-white/90"
                   }`}
                 >
-                  {/* dot */}
                   <span
                     className={`absolute -left-[13px] h-2.5 w-2.5 rounded-full border ${
                       active
@@ -403,14 +250,13 @@ function TimelineRail({
                     }`}
                   />
                   <span className="truncate max-w-[160px]">
-                    {e.fileName ?? e.title.toLowerCase().replace(/\s+/g, "_") + ".json"}
+                    {e.fileName ?? e.title.toLowerCase().replace(/\\s+/g, "_") + ".json"}
                   </span>
                 </button>
               </li>
             );
           })}
         </ul>
-        {/* progress indicator aligned to active index */}
         <motion.div
           aria-hidden
           className="absolute left-0 w-px bg-cyan-400/60"
@@ -424,25 +270,21 @@ function TimelineRail({
   );
 }
 
+/* ---------------- Main Component ------------------- */
 export default function Experience() {
   const [activeId, setActiveId] = React.useState(EXPERIENCES[0]?.id ?? "");
   const active = EXPERIENCES.find((e) => e.id === activeId) ?? EXPERIENCES[0];
 
   return (
-    <section
-      id="experience"
-      className="relative w-full max-w-6xl mx-auto py-20 px-6 md:px-8"
-      aria-labelledby="experience-title"
-    >
+    <section id="experience" className="relative w-full max-w-6xl mx-auto py-20 px-6 md:px-8" aria-labelledby="experience-title">
       <h2 id="experience-title" className="sr-only">
         Experience
       </h2>
 
-      {/* unified top bar: lights + (mobile tabs) + filename */}
       <TopBar
         items={EXPERIENCES.map((e) => ({
           id: e.id,
-          label: e.fileName ?? e.title.toLowerCase().replace(/\s+/g, "_") + ".json",
+          label: e.fileName ?? e.title.toLowerCase().replace(/\\s+/g, "_") + ".json",
           featured: e.featured,
         }))}
         activeId={activeId}
@@ -450,10 +292,8 @@ export default function Experience() {
       />
 
       <div className="grid grid-cols-1 md:grid-cols-[180px,1fr] gap-4">
-        {/* Interactive timeline rail (desktop) */}
         <TimelineRail items={EXPERIENCES} activeId={activeId} onChange={setActiveId} />
 
-        {/* Panel */}
         <AnimatePresence mode="wait">
           <motion.div
             key={active.id}
@@ -470,7 +310,6 @@ export default function Experience() {
                 : "border-white/10 bg-black/20"
             }`}
           >
-            {/* Context strip */}
             <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-white/70 font-mono">
               <span className="text-white/85">{active.company}</span>
               {active.location && <span>• {active.location}</span>}
@@ -486,10 +325,7 @@ export default function Experience() {
                   <span className="hidden sm:inline">•</span>
                   <div className="flex flex-wrap gap-1">
                     {active.tech.map((t) => (
-                      <span
-                        key={t}
-                        className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/70"
-                      >
+                      <span key={t} className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/70">
                         {t}
                       </span>
                     ))}
@@ -503,15 +339,13 @@ export default function Experience() {
               )}
             </div>
 
-            {/* JSON view */}
-            <ExperienceJsonView exp={active} />
+            {/* Typed JSON view */}
+            <TypedJsonView exp={active} />
 
-            {/* Highlights plain list */}
             <details className="mt-4 group">
               <summary className="cursor-pointer text-white/80 font-mono text-sm select-none">
                 <span className="group-open:hidden">▸</span>
-                <span className="hidden group-open:inline">▾</span>{" "}
-                view_highlights_as_list
+                <span className="hidden group-open:inline">▾</span> view_highlights_as_list
               </summary>
               <ul className="mt-2 list-disc pl-6 text-white/85">
                 {active.highlights.map((h, i) => (
@@ -522,14 +356,12 @@ export default function Experience() {
               </ul>
             </details>
 
-            {/* Expandable creations with animation */}
             {active.creations && active.creations.length > 0 && (
               <div className="mt-4">
                 <details className="group">
                   <summary className="cursor-pointer text-white/80 font-mono text-sm select-none">
                     <span className="group-open:hidden">▸</span>
-                    <span className="hidden group-open:inline">▾</span>{" "}
-                    view_creations
+                    <span className="hidden group-open:inline">▾</span> view_creations
                   </summary>
                   <motion.ul
                     initial={{ opacity: 0 }}
@@ -539,10 +371,7 @@ export default function Experience() {
                     className="mt-2 space-y-3"
                   >
                     {active.creations.map((c) => (
-                      <li
-                        key={c.name}
-                        className="rounded-lg border border-white/10 bg-white/5 p-3"
-                      >
+                      <li key={c.name} className="rounded-lg border border-white/10 bg-white/5 p-3">
                         <p className="font-medium text-white/90">{c.name}</p>
                         <ul className="mt-1 list-disc pl-5 text-white/85">
                           {c.details.map((d, j) => (
