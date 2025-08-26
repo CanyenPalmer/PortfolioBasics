@@ -1,8 +1,6 @@
 "use client";
 
 import * as React from "react";
-import * as bodyPix from "@tensorflow-models/body-pix";
-import "@tensorflow/tfjs"; // runs on WebGL in the browser
 
 type Props = {
   src: string;               // e.g. "/images/headshot.jpg"
@@ -25,13 +23,18 @@ export default function HoloHeadshotAuto({
 }: Props) {
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const [ready, setReady] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     let cancelled = false;
 
     (async () => {
       try {
-        // Load lightweight model
+        // IMPORTANT: dynamic imports so SSR/build doesn't choke
+        const tfjs = await import("@tensorflow/tfjs"); // eslint-disable-line @typescript-eslint/no-unused-vars
+        const bodyPixMod = await import("@tensorflow-models/body-pix");
+        const bodyPix = bodyPixMod.default ?? bodyPixMod;
+
         const net = await bodyPix.load({
           architecture: "MobileNetV1",
           outputStride: 16,
@@ -39,7 +42,6 @@ export default function HoloHeadshotAuto({
           quantBytes: 2,
         });
 
-        // Load image
         const img = new Image();
         img.crossOrigin = "anonymous";
         img.src = src;
@@ -49,17 +51,16 @@ export default function HoloHeadshotAuto({
         });
         if (cancelled) return;
 
-        // Segment
         const seg = await net.segmentPerson(img, {
           internalResolution: "medium",
-          segmentationThreshold: 0.7, // stricter foreground
+          segmentationThreshold: 0.7,
         });
         if (cancelled) return;
 
         const fullW = img.naturalWidth;
         const fullH = img.naturalHeight;
 
-        // Build alpha mask (with simple feathering via neighborhood sampling)
+        // Build alpha mask with simple feathering via neighborhood sampling
         const maskCanvas = document.createElement("canvas");
         maskCanvas.width = fullW;
         maskCanvas.height = fullH;
@@ -87,7 +88,7 @@ export default function HoloHeadshotAuto({
             const idx = y * fullW + x;
             const i4 = idx * 4;
             const k = neighbors(x, y);
-            const sharpened = Math.pow(k, edgeSharpness); // tighten the edge
+            const sharpened = Math.pow(k, edgeSharpness);
             md[i4 + 0] = 255;
             md[i4 + 1] = 255;
             md[i4 + 2] = 255;
@@ -104,25 +105,26 @@ export default function HoloHeadshotAuto({
         const octx = out.getContext("2d")!;
         octx.clearRect(0, 0, fullW, fullH);
 
-        // Draw original image into temp, inject mask alpha, then draw to out
         const temp = document.createElement("canvas");
         temp.width = fullW;
         temp.height = fullH;
         const tctx = temp.getContext("2d")!;
         tctx.drawImage(img, 0, 0);
+
         const td = tctx.getImageData(0, 0, fullW, fullH);
         const ta = td.data;
         const ma = mctx.getImageData(0, 0, fullW, fullH).data;
         for (let i = 0; i < ta.length; i += 4) {
-          ta[i + 3] = ma[i + 3]; // replace alpha with our mask
+          ta[i + 3] = ma[i + 3]; // inject mask alpha
         }
         tctx.putImageData(td, 0, 0);
 
         octx.drawImage(temp, 0, 0);
 
         setReady(true);
-      } catch (e) {
+      } catch (e: any) {
         console.error(e);
+        setError(e?.message || "Model/image load failed");
         setReady(true);
       }
     })();
@@ -190,7 +192,7 @@ export default function HoloHeadshotAuto({
             width: "100%",
             height: "100%",
             imageRendering: "pixelated",
-            // Make it look like a hologram (not a photo):
+            // Force hologram vibe (not photo-real):
             filter: "contrast(1.35) brightness(1.22) saturate(0) hue-rotate(190deg)",
             borderRadius: 16,
           }}
@@ -218,6 +220,11 @@ export default function HoloHeadshotAuto({
       {!ready && (
         <div className="absolute inset-0 grid place-items-center text-white/60 text-sm font-mono">
           loading model…
+        </div>
+      )}
+      {ready && error && (
+        <div className="absolute inset-0 grid place-items-center text-white/60 text-xs font-mono px-3 text-center">
+          hologram fallback (segmentation failed)
         </div>
       )}
     </div>
