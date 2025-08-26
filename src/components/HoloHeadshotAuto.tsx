@@ -11,6 +11,12 @@ type Props = {
   edgeSharpness?: number;
   /** downscale the image for faster segmentation — 1 = full, 0.5 = half, etc. */
   scale?: number;
+
+  /** extra: make it feel intentionally broken */
+  glitch?: boolean;
+  glitchEveryMs?: number;     // cadence between bursts
+  glitchDurationMs?: number;  // how long each burst lasts
+  posterizeLevels?: number;   // 0/1 to skip; 3..8 recommended
 };
 
 export default function HoloHeadshotAuto({
@@ -20,10 +26,41 @@ export default function HoloHeadshotAuto({
   glowColor = "rgba(0, 200, 255, 0.75)",
   edgeSharpness = 0.65,
   scale = 0.75,
+
+  glitch = true,
+  glitchEveryMs = 2600,
+  glitchDurationMs = 420,
+  posterizeLevels = 5,
 }: Props) {
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const [ready, setReady] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+
+  const [glitchOn, setGlitchOn] = React.useState(false);
+  const glitchTimer = React.useRef<number | null>(null);
+  const glitchOffTimer = React.useRef<number | null>(null);
+
+  // Periodic glitch trigger (CSS-only visual overlays)
+  React.useEffect(() => {
+    if (!glitch) return;
+    const tick = () => {
+      setGlitchOn(true);
+      // turn off after duration
+      glitchOffTimer.current = window.setTimeout(() => setGlitchOn(false), glitchDurationMs) as unknown as number;
+    };
+    // initial slight random offset so it doesn't sync with other animations
+    const startDelay = 300 + Math.random() * 400;
+    const startId = window.setTimeout(() => {
+      tick();
+      glitchTimer.current = window.setInterval(tick, glitchEveryMs) as unknown as number;
+    }, startDelay) as unknown as number;
+
+    return () => {
+      window.clearTimeout(startId as unknown as number);
+      if (glitchTimer.current) window.clearInterval(glitchTimer.current);
+      if (glitchOffTimer.current) window.clearTimeout(glitchOffTimer.current);
+    };
+  }, [glitch, glitchEveryMs, glitchDurationMs]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -111,14 +148,29 @@ export default function HoloHeadshotAuto({
         const tctx = temp.getContext("2d")!;
         tctx.drawImage(img, 0, 0);
 
+        // inject mask alpha
         const td = tctx.getImageData(0, 0, fullW, fullH);
         const ta = td.data;
         const ma = mctx.getImageData(0, 0, fullW, fullH).data;
         for (let i = 0; i < ta.length; i += 4) {
-          ta[i + 3] = ma[i + 3]; // inject mask alpha
+          ta[i + 3] = ma[i + 3];
         }
-        tctx.putImageData(td, 0, 0);
 
+        // optional posterize (gives a more synthetic/phosphor feel)
+        if (posterizeLevels && posterizeLevels >= 2) {
+          const levels = Math.max(2, Math.min(16, Math.floor(posterizeLevels)));
+          const step = 255 / (levels - 1);
+          for (let i = 0; i < ta.length; i += 4) {
+            // only affect visible pixels
+            if (ta[i + 3] > 6) {
+              ta[i + 0] = Math.round(ta[i + 0] / step) * step;
+              ta[i + 1] = Math.round(ta[i + 1] / step) * step;
+              ta[i + 2] = Math.round(ta[i + 2] / step) * step;
+            }
+          }
+        }
+
+        tctx.putImageData(td, 0, 0);
         octx.drawImage(temp, 0, 0);
 
         setReady(true);
@@ -132,7 +184,22 @@ export default function HoloHeadshotAuto({
     return () => {
       cancelled = true;
     };
-  }, [src, edgeSharpness, scale]);
+  }, [src, edgeSharpness, scale, posterizeLevels]);
+
+  // Build 6 glitch bar configs (top/height/phase vary slightly each render)
+  const bars = React.useMemo(() => {
+    const out: Array<{ top: string; height: string; delay: number; skew: number }> = [];
+    let y = 6;
+    for (let i = 0; i < 6; i++) {
+      const h = 6 + Math.round(Math.random() * 7); // 6–13%
+      const delay = Math.random() * 0.25;          // 0–0.25s phase
+      const skew = (Math.random() - 0.5) * 1.2;    // small skew
+      out.push({ top: `${y}%`, height: `${h}%`, delay, skew });
+      y += h + 3 + Math.round(Math.random() * 4);
+      if (y > 85) break;
+    }
+    return out;
+  }, []); // compute once per mount so it doesn't jump constantly
 
   return (
     <div
@@ -192,18 +259,73 @@ export default function HoloHeadshotAuto({
             width: "100%",
             height: "100%",
             imageRendering: "pixelated",
-            filter: "contrast(1.35) brightness(1.22) saturate(0) hue-rotate(190deg)",
+            // push it toward a synthetic phosphor color space
+            filter: "contrast(1.35) brightness(1.22) saturate(0.85) hue-rotate(190deg)",
             borderRadius: 16,
           }}
         />
       </div>
 
+      {/* Chromatic border flicker (subtle) */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 z-[6]"
+        style={{
+          borderRadius: 16,
+          animation: "holoAberration 7.5s ease-in-out infinite",
+          mixBlendMode: "screen",
+        }}
+      >
+        <div
+          className="absolute inset-0"
+          style={{
+            border: "1px solid rgba(0,255,255,0.24)",
+            filter:
+              "drop-shadow(1px 0 rgba(255,0,80,0.20)) drop-shadow(-1px 0 rgba(0,220,255,0.20))",
+            borderRadius: 16,
+          }}
+        />
+      </div>
+
+      {/* Glitch bars (cyan/magenta bursts that imply broken signal) */}
+      {glitch && (
+        <div className="absolute inset-0 z-[7] pointer-events-none">
+          {bars.map((b, i) => (
+            <div key={i} className="absolute left-0 right-0" style={{ top: b.top, height: b.height }}>
+              {/* cyan bar */}
+              <div
+                className={`h-full ${glitchOn ? "glitch-run" : ""}`}
+                style={{
+                  mixBlendMode: "screen",
+                  background:
+                    "linear-gradient(90deg, rgba(0,255,255,0.12), rgba(0,255,255,0.35), rgba(0,255,255,0.12))",
+                  transform: `skewX(${b.skew}deg)`,
+                  filter: "blur(0.3px)",
+                  animationDelay: `${b.delay}s`,
+                }}
+              />
+              {/* magenta echo */}
+              <div
+                className={`h-full absolute inset-0 ${glitchOn ? "glitch-run-echo" : ""}`}
+                style={{
+                  mixBlendMode: "screen",
+                  background:
+                    "linear-gradient(90deg, rgba(255,0,120,0.10), rgba(255,0,120,0.28), rgba(255,0,120,0.10))",
+                  transform: `translateY(1px) skewX(${b.skew * -0.8}deg)`,
+                  filter: "blur(0.5px)",
+                  animationDelay: `${b.delay + 0.07}s`,
+                }}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Vignette */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0"
+        className="pointer-events-none absolute inset-0 z-[8]"
         style={{
-          zIndex: 6,
           borderRadius: 16,
           boxShadow:
             "inset 0 0 80px rgba(0,0,0,0.6), inset 0 0 160px rgba(0,0,0,0.35)",
@@ -214,6 +336,21 @@ export default function HoloHeadshotAuto({
       <style jsx global>{`
         @keyframes pixelDrift { 0% { background-position: 0 0; } 100% { background-position: 0 -18px; } }
         @keyframes scanWobble { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1px); } }
+        @keyframes holoAberration {
+          0%, 92%, 100% { opacity: 0; transform: none; }
+          93% { opacity: 1; transform: skewX(-0.6deg) translateY(-0.5px); }
+          95% { opacity: 0.6; transform: skewX(0.4deg) translateY(0.3px); }
+          97% { opacity: 0.3; transform: none; }
+        }
+        @keyframes glitchSlide {
+          0% { transform: translateX(-6%); opacity: 0.0; }
+          25% { transform: translateX(3%); opacity: 0.9; }
+          50% { transform: translateX(-3%); opacity: 0.75; }
+          75% { transform: translateX(5%); opacity: 0.85; }
+          100% { transform: translateX(0%); opacity: 0.0; }
+        }
+        .glitch-run { animation: glitchSlide 0.42s ease-in-out; }
+        .glitch-run-echo { animation: glitchSlide 0.42s ease-in-out reverse; }
       `}</style>
 
       {!ready && (
@@ -229,3 +366,4 @@ export default function HoloHeadshotAuto({
     </div>
   );
 }
+
