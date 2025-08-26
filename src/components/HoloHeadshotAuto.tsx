@@ -9,19 +9,18 @@ type Props = {
   glowColor?: string;
   /** 0..1 — higher = sharper edge (less feather) */
   edgeSharpness?: number;
-  /** downscale hint (kept for API; not used to avoid resizing artifacts) */
+  /** downscale hint (API only) */
   scale?: number;
 
-  /** broken hologram options (kept) */
-  glitch?: boolean;
-  glitchEveryMs?: number;     // burst cadence
-  glitchDurationMs?: number;  // burst length
+  /** stylization */
   posterizeLevels?: number;   // 0/1 -> off; 3..8 recommended
 
-  /** NEW: cascading wave bars for “transmission” feel */
+  /** NEW: horizontal wave bars (downward sweep that distorts image) */
   waveBars?: boolean;
-  wavePeriodMs?: number;      // time for one bar to sweep top→bottom
-  waveBarCount?: number;      // number of concurrent bars
+  waveBarCount?: number;      // how many bars in flight
+  wavePeriodMs?: number;      // time each bar takes to sweep top→bottom
+  waveBarHeightPct?: number;  // bar height in % of box (e.g., 10 = 10%)
+  waveIntensity?: number;     // how strong the distortion/brightness bump feels
 };
 
 export default function HoloHeadshotAuto({
@@ -32,45 +31,17 @@ export default function HoloHeadshotAuto({
   edgeSharpness = 0.65,
   scale = 0.75,
 
-  glitch = true,
-  glitchEveryMs = 2600,
-  glitchDurationMs = 420,
   posterizeLevels = 5,
 
   waveBars = true,
-  wavePeriodMs = 2400,
-  waveBarCount = 8,
+  waveBarCount = 5,
+  wavePeriodMs = 2600,
+  waveBarHeightPct = 10,
+  waveIntensity = 1.0, // 0.5–1.6 nice range
 }: Props) {
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const [ready, setReady] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-
-  /** ---------------- Periodic glitch bursts (optional) ---------------- */
-  const [glitchOn, setGlitchOn] = React.useState(false);
-  const glitchTimer = React.useRef<number | null>(null);
-  const glitchOffTimer = React.useRef<number | null>(null);
-
-  React.useEffect(() => {
-    if (!glitch) return;
-    const tick = () => {
-      setGlitchOn(true);
-      glitchOffTimer.current = window.setTimeout(
-        () => setGlitchOn(false),
-        glitchDurationMs
-      ) as unknown as number;
-    };
-    const startDelay = 300 + Math.random() * 400;
-    const startId = window.setTimeout(() => {
-      tick();
-      glitchTimer.current = window.setInterval(tick, glitchEveryMs) as unknown as number;
-    }, startDelay) as unknown as number;
-
-    return () => {
-      window.clearTimeout(startId as unknown as number);
-      if (glitchTimer.current) window.clearInterval(glitchTimer.current);
-      if (glitchOffTimer.current) window.clearTimeout(glitchOffTimer.current);
-    };
-  }, [glitch, glitchEveryMs, glitchDurationMs]);
 
   /** ---------------- BodyPix segmentation → masked canvas ------------- */
   React.useEffect(() => {
@@ -108,7 +79,7 @@ export default function HoloHeadshotAuto({
         const fullW = img.naturalWidth;
         const fullH = img.naturalHeight;
 
-        // Build a soft alpha mask from the segmentation with neighbor feathering
+        // Build soft alpha mask from segmentation
         const maskCanvas = document.createElement("canvas");
         maskCanvas.width = fullW;
         maskCanvas.height = fullH;
@@ -145,7 +116,7 @@ export default function HoloHeadshotAuto({
         }
         mctx.putImageData(maskImg, 0, 0);
 
-        // Composite image with injected alpha to the output canvas
+        // Composite masked image to output canvas
         const out = canvasRef.current;
         if (!out) return;
         out.width = fullW;
@@ -163,12 +134,12 @@ export default function HoloHeadshotAuto({
         const ta = td.data;
         const ma = mctx.getImageData(0, 0, fullW, fullH).data;
 
-        // Apply alpha from mask
+        // Inject alpha from mask
         for (let i = 0; i < ta.length; i += 4) {
           ta[i + 3] = ma[i + 3];
         }
 
-        // Optional posterize for more synthetic/phosphor look
+        // Optional posterize to push a synthetic look
         if (posterizeLevels && posterizeLevels >= 2) {
           const levels = Math.max(2, Math.min(16, Math.floor(posterizeLevels)));
           const step = 255 / (levels - 1);
@@ -197,44 +168,21 @@ export default function HoloHeadshotAuto({
     };
   }, [src, edgeSharpness, scale, posterizeLevels]);
 
-  /** ---------------- Pre-generate bar specs --------------------------- */
-  // Glitch bars (short, horizontal, random vertical positions)
-  const glitchBars = React.useMemo(() => {
-    const out: Array<{ top: string; height: string; delay: number; skew: number }> = [];
-    let y = 6;
-    for (let i = 0; i < 6; i++) {
-      const h = 6 + Math.round(Math.random() * 7); // 6–13%
-      const delay = Math.random() * 0.25;
-      const skew = (Math.random() - 0.5) * 1.2;
-      out.push({ top: `${y}%`, height: `${h}%`, delay, skew });
-      y += h + 3 + Math.round(Math.random() * 4);
-      if (y > 85) break;
-    }
-    return out;
-  }, []);
-
-  // Wave bars (tall, vertical sweep top→bottom with stagger)
-  const waves = React.useMemo(() => {
+  /** ---------------- Pre-generate wave bars --------------------------- */
+  const bars = React.useMemo(() => {
     if (!waveBars) return [];
     const arr: Array<{
-      left: string;
-      width: string;
       delayMs: number;
-      skew: number;
+      opacity: number;
       hueShift: number;
+      speedScale: number;
     }> = [];
     for (let i = 0; i < waveBarCount; i++) {
-      const left = Math.round(Math.random() * 70);         // 0–70%
-      const width = 24 + Math.round(Math.random() * 32);   // 24–56%
-      const delayMs = Math.round((i / waveBarCount) * wavePeriodMs);
-      const skew = (Math.random() - 0.5) * 1.5;
-      const hueShift = Math.round(Math.random() * 40) - 20; // -20..20
       arr.push({
-        left: `${left}%`,
-        width: `${width}%`,
-        delayMs,
-        skew,
-        hueShift,
+        delayMs: Math.round((i / waveBarCount) * wavePeriodMs),
+        opacity: 0.18 + Math.random() * 0.12,         // 0.18–0.30
+        hueShift: Math.round(Math.random() * 36) - 18, // -18..18 deg
+        speedScale: 0.9 + Math.random() * 0.3,         // 0.9–1.2
       });
     }
     return arr;
@@ -327,62 +275,39 @@ export default function HoloHeadshotAuto({
         />
       </div>
 
-      {/* Cascading WAVE bars (continuous top→bottom sweep) */}
+      {/* HORIZONTAL WAVE BARS — move down & distort underlying content */}
       {waveBars && (
         <div className="absolute inset-0 z-[7] pointer-events-none">
-          {waves.map((w, i) => (
+          {bars.map((b, i) => (
             <div
-              key={`wave-${i}`}
-              className="absolute"
+              key={`hb-${i}`}
+              className="absolute left-[-10%] right-[-10%]"
               style={{
-                left: w.left,
-                width: w.width,
-                top: "-25%",         // start above
-                height: "150%",      // overflow to fully sweep
-                transform: `skewX(${w.skew}deg)`,
-                animation: `waveDown ${wavePeriodMs}ms linear infinite`,
-                animationDelay: `${w.delayMs}ms`,
-                filter: `hue-rotate(${w.hueShift}deg)`,
-                opacity: 0.25,
+                top: "-20%",
+                height: `${waveBarHeightPct}%`,
+                opacity: b.opacity,
+                // wavey silhouette edges (animated clip path)
+                clipPath:
+                  "polygon(0% 10%, 10% 7%, 25% 10%, 40% 6%, 55% 10%, 70% 7%, 85% 10%, 100% 8%, 100% 90%, 85% 93%, 70% 90%, 55% 94%, 40% 90%, 25% 93%, 10% 90%, 0% 92%)",
+                animation: `waveDown ${Math.round(
+                  wavePeriodMs * b.speedScale
+                )}ms linear infinite, waveShape 2200ms ease-in-out infinite`,
+                animationDelay: `${b.delayMs}ms, ${b.delayMs}ms`,
+                // Distortion of underlying content:
+                backdropFilter: `
+                  brightness(${1 + 0.25 * waveIntensity})
+                  saturate(${1 + 0.35 * waveIntensity})
+                  contrast(${1 + 0.2 * waveIntensity})
+                  hue-rotate(${b.hueShift}deg)
+                  blur(${0.4 * waveIntensity}px)
+                `,
+                // Light emissive tint so the bar is visible but subtle
                 background:
-                  "linear-gradient(180deg, rgba(0,255,255,0.02) 0%, rgba(0,255,255,0.35) 35%, rgba(255,0,130,0.22) 60%, rgba(0,255,255,0.05) 100%)",
+                  "linear-gradient(180deg, rgba(0,255,255,0.03) 0%, rgba(0,255,255,0.18) 50%, rgba(255,0,150,0.12) 100%)",
                 mixBlendMode: "screen",
+                filter: "blur(0.2px)",
               }}
             />
-          ))}
-        </div>
-      )}
-
-      {/* Glitch bars (brief bursts for broken-signal moments) */}
-      {glitch && (
-        <div className="absolute inset-0 z-[8] pointer-events-none">
-          {glitchBars.map((b, i) => (
-            <div key={`g-${i}`} className="absolute left-0 right-0" style={{ top: b.top, height: b.height }}>
-              {/* cyan bar */}
-              <div
-                className={`h-full ${glitchOn ? "glitch-run" : ""}`}
-                style={{
-                  mixBlendMode: "screen",
-                  background:
-                    "linear-gradient(90deg, rgba(0,255,255,0.12), rgba(0,255,255,0.35), rgba(0,255,255,0.12))",
-                  transform: `skewX(${b.skew}deg)`,
-                  filter: "blur(0.3px)",
-                  animationDelay: `${b.delay}s`,
-                }}
-              />
-              {/* magenta echo */}
-              <div
-                className={`h-full absolute inset-0 ${glitchOn ? "glitch-run-echo" : ""}`}
-                style={{
-                  mixBlendMode: "screen",
-                  background:
-                    "linear-gradient(90deg, rgba(255,0,120,0.10), rgba(255,0,120,0.28), rgba(255,0,120,0.10))",
-                  transform: `translateY(1px) skewX(${b.skew * -0.8}deg)`,
-                  filter: "blur(0.5px)",
-                  animationDelay: `${b.delay + 0.07}s`,
-                }}
-              />
-            </div>
           ))}
         </div>
       )}
@@ -408,21 +333,22 @@ export default function HoloHeadshotAuto({
           95% { opacity: 0.6; transform: skewX(0.4deg) translateY(0.3px); }
           97% { opacity: 0.3; transform: none; }
         }
-        /* Glitch burst bars */
-        @keyframes glitchSlide {
-          0% { transform: translateX(-6%); opacity: 0.0; }
-          25% { transform: translateX(3%); opacity: 0.9; }
-          50% { transform: translateX(-3%); opacity: 0.75; }
-          75% { transform: translateX(5%); opacity: 0.85; }
-          100% { transform: translateX(0%); opacity: 0.0; }
-        }
-        .glitch-run { animation: glitchSlide 0.42s ease-in-out; }
-        .glitch-run-echo { animation: glitchSlide 0.42s ease-in-out reverse; }
-
-        /* Continuous wave sweep (top -> bottom) */
+        /* Horizontal sweep top -> bottom */
         @keyframes waveDown {
-          0%   { transform: translateY(-25%) skewX(var(--wave-skew, 0deg)); }
-          100% { transform: translateY(100%)  skewX(var(--wave-skew, 0deg)); }
+          0%   { transform: translateY(-20%); }
+          100% { transform: translateY(110%); }
+        }
+        /* Gently morph the bar edges to feel like a live signal */
+        @keyframes waveShape {
+          0% {
+            clip-path: polygon(0% 10%, 10% 7%, 25% 10%, 40% 6%, 55% 10%, 70% 7%, 85% 10%, 100% 8%, 100% 90%, 85% 93%, 70% 90%, 55% 94%, 40% 90%, 25% 93%, 10% 90%, 0% 92%);
+          }
+          50% {
+            clip-path: polygon(0% 12%, 10% 9%, 25% 12%, 40% 8%, 55% 12%, 70% 9%, 85% 12%, 100% 10%, 100% 88%, 85% 91%, 70% 88%, 55% 92%, 40% 88%, 25% 91%, 10% 88%, 0% 90%);
+          }
+          100% {
+            clip-path: polygon(0% 10%, 10% 7%, 25% 10%, 40% 6%, 55% 10%, 70% 7%, 85% 10%, 100% 8%, 100% 90%, 85% 93%, 70% 90%, 55% 94%, 40% 90%, 25% 93%, 10% 90%, 0% 92%);
+          }
         }
       `}</style>
 
