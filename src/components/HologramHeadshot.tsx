@@ -13,7 +13,7 @@ type Props = {
   glowColor?: string;      // neon glow color
   tilt?: boolean;          // parallax tilt on hover
   intensity?: number;      // tilt intensity (px)
-  effect?: "grid" | "pixel" | "none"; // NEW: choose overlay style
+  effect?: "grid" | "pixel" | "none";
 };
 
 export default function HologramHeadshot({
@@ -26,14 +26,15 @@ export default function HologramHeadshot({
   glowColor = "rgba(0, 200, 255, 0.6)",
   tilt = true,
   intensity = 10,
-  effect = "pixel", // default to pixel matrix
+  effect = "pixel",
 }: Props) {
   const ref = React.useRef<HTMLDivElement>(null);
   const [imgOk, setImgOk] = React.useState(false);
+  const [imgErr, setImgErr] = React.useState(false);
   const [tx, setTx] = React.useState(0);
   const [ty, setTy] = React.useState(0);
 
-  // Subtle parallax tilt
+  // Parallax tilt
   React.useEffect(() => {
     if (!tilt) return;
     const el = ref.current;
@@ -58,6 +59,9 @@ export default function HologramHeadshot({
     };
   }, [tilt, intensity]);
 
+  // If src is StaticImageData, extract the URL for <img> fallback
+  const srcUrl = typeof src === "string" ? src : src?.src ?? "";
+
   return (
     <div
       ref={ref}
@@ -67,11 +71,11 @@ export default function HologramHeadshot({
         className,
       ].join(" ")}
       style={{
-        background: "#0b0f15", // safe base behind everything
+        background: "#0b0f15",
         perspective: "1000px",
       }}
     >
-      {/* IMAGE is always above overlays */}
+      {/* IMAGE LAYER (always above effects). If next/image errors, show <img>. */}
       <div
         className={`absolute inset-0 z-20 ${roundedClass}`}
         style={{
@@ -80,19 +84,29 @@ export default function HologramHeadshot({
           willChange: "transform",
         }}
       >
-        <Image
-          src={src}
-          alt={alt}
-          fill
-          priority={priority}
-          sizes={sizes}
-          quality={95}
-          className={["object-cover", roundedClass].join(" ")}
-          onLoadingComplete={() => setImgOk(true)}
-        />
+        {!imgErr ? (
+          <Image
+            src={src}
+            alt={alt}
+            fill
+            priority={priority}
+            sizes={sizes}
+            quality={95}
+            className={["object-cover", roundedClass].join(" ")}
+            onLoadingComplete={() => setImgOk(true)}
+            onError={() => setImgErr(true)}
+          />
+        ) : (
+          // Fallback that cannot fail due to Next config
+          <img
+            src={srcUrl}
+            alt={alt}
+            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+          />
+        )}
       </div>
 
-      {/* Soft neon glow (behind image) */}
+      {/* Subtle neon glow (behind image) */}
       <div
         aria-hidden
         className={`pointer-events-none absolute inset-0 z-0 ${roundedClass}`}
@@ -103,12 +117,11 @@ export default function HologramHeadshot({
         }}
       />
 
-      {/* EFFECT LAYERS (all behind the image) */}
+      {/* EFFECTS (all behind image) */}
       {imgOk && effect !== "none" && (
         <>
           {effect === "grid" && (
             <>
-              {/* Subtle hologram grid */}
               <div
                 aria-hidden
                 className={`pointer-events-none absolute inset-0 z-0 ${roundedClass}`}
@@ -122,7 +135,6 @@ export default function HologramHeadshot({
                   animation: "holoRise 6s linear infinite",
                 }}
               />
-              {/* Scanlines */}
               <div
                 aria-hidden
                 className={`pointer-events-none absolute inset-0 z-0 ${roundedClass}`}
@@ -139,14 +151,12 @@ export default function HologramHeadshot({
 
           {effect === "pixel" && (
             <>
-              {/* Dot-matrix cyan layer (gives the pixelated hologram feel) */}
               <div
                 aria-hidden
                 className={`pointer-events-none absolute inset-0 z-0 ${roundedClass}`}
                 style={{
-                  // cyan sheet with circular mask grid -> looks like pixels/LEDs
                   background:
-                    "radial-gradient(circle at center, rgba(0,220,255,0.85) 0 45%, rgba(0,220,255,0.0) 50%)",
+                    "radial-gradient(circle, rgba(0,220,255,0.85) 0 45%, rgba(0,220,255,0.0) 50%)",
                   backgroundSize: "8px 8px",
                   backgroundPosition: "0 0",
                   opacity: 0.18,
@@ -155,7 +165,6 @@ export default function HologramHeadshot({
                   animation: "pixelDrift 8s linear infinite",
                 }}
               />
-              {/* Very light scanlines to sell the hologram */}
               <div
                 aria-hidden
                 className={`pointer-events-none absolute inset-0 z-0 ${roundedClass}`}
@@ -169,7 +178,6 @@ export default function HologramHeadshot({
             </>
           )}
 
-          {/* Subtle chromatic border shimmer */}
           <div
             aria-hidden
             className={`pointer-events-none absolute inset-0 z-0 ${roundedClass}`}
@@ -190,7 +198,7 @@ export default function HologramHeadshot({
         </>
       )}
 
-      {/* Vignette edges (behind image) */}
+      {/* Vignette (behind image) */}
       <div
         aria-hidden
         className={`pointer-events-none absolute inset-0 z-0 ${roundedClass}`}
