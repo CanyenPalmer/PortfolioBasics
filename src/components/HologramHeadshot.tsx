@@ -8,11 +8,12 @@ type Props = {
   alt: string;
   sizes?: string;
   priority?: boolean;
-  className?: string;     // wrapper extras
-  roundedClass?: string;  // e.g. "rounded-2xl"
-  glowColor?: string;     // CSS color for neon glow
-  tilt?: boolean;         // enable subtle parallax tilt on hover
-  intensity?: number;     // tilt intensity in px
+  className?: string;      // wrapper extras
+  roundedClass?: string;   // e.g. "rounded-2xl"
+  glowColor?: string;      // neon glow color
+  tilt?: boolean;          // parallax tilt on hover
+  intensity?: number;      // tilt intensity (px)
+  effect?: "grid" | "pixel" | "none"; // NEW: choose overlay style
 };
 
 export default function HologramHeadshot({
@@ -22,9 +23,10 @@ export default function HologramHeadshot({
   priority = true,
   className = "",
   roundedClass = "rounded-2xl",
-  glowColor = "rgba(0, 200, 255, 0.6)", // cyan-teal
+  glowColor = "rgba(0, 200, 255, 0.6)",
   tilt = true,
   intensity = 10,
+  effect = "pixel", // default to pixel matrix
 }: Props) {
   const ref = React.useRef<HTMLDivElement>(null);
   const [imgOk, setImgOk] = React.useState(false);
@@ -46,10 +48,7 @@ export default function HologramHeadshot({
       setTx(-dx * intensity);
       setTy(dy * intensity);
     };
-    const onLeave = () => {
-      setTx(0);
-      setTy(0);
-    };
+    const onLeave = () => { setTx(0); setTy(0); };
 
     el.addEventListener("mousemove", onMove);
     el.addEventListener("mouseleave", onLeave);
@@ -68,13 +67,13 @@ export default function HologramHeadshot({
         className,
       ].join(" ")}
       style={{
-        background: "#0b0f15",   // safe base for blend modes
+        background: "#0b0f15", // safe base behind everything
         perspective: "1000px",
       }}
     >
-      {/* Base image (ALWAYS ABOVE overlays) */}
+      {/* IMAGE is always above overlays */}
       <div
-        className={`absolute inset-0 z-10 ${roundedClass}`}
+        className={`absolute inset-0 z-20 ${roundedClass}`}
         style={{
           transform: `translate3d(${tx}px, ${ty}px, 0)`,
           transition: "transform 180ms ease-out",
@@ -93,7 +92,7 @@ export default function HologramHeadshot({
         />
       </div>
 
-      {/* Outer neon glow (behind image) */}
+      {/* Soft neon glow (behind image) */}
       <div
         aria-hidden
         className={`pointer-events-none absolute inset-0 z-0 ${roundedClass}`}
@@ -104,67 +103,91 @@ export default function HologramHeadshot({
         }}
       />
 
-      {/* Hologram grid shimmer (behind image) */}
-      {imgOk && (
-        <div
-          aria-hidden
-          className={`pointer-events-none absolute inset-0 z-0 mix-blend-screen opacity-25 ${roundedClass}`}
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(0,255,255,0.12) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,255,0.08) 1px, transparent 1px)",
-            backgroundSize: "26px 26px, 26px 26px",
-            transform: `translate3d(${tx * 0.3}px, ${ty * 0.3}px, 0)`,
-            animation: "holoRise 6s linear infinite",
-          }}
-        />
-      )}
+      {/* EFFECT LAYERS (all behind the image) */}
+      {imgOk && effect !== "none" && (
+        <>
+          {effect === "grid" && (
+            <>
+              {/* Subtle hologram grid */}
+              <div
+                aria-hidden
+                className={`pointer-events-none absolute inset-0 z-0 ${roundedClass}`}
+                style={{
+                  opacity: 0.22,
+                  mixBlendMode: "screen",
+                  backgroundImage:
+                    "linear-gradient(rgba(0,255,255,0.12) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,255,0.08) 1px, transparent 1px)",
+                  backgroundSize: "26px 26px, 26px 26px",
+                  transform: `translate3d(${tx * 0.3}px, ${ty * 0.3}px, 0)`,
+                  animation: "holoRise 6s linear infinite",
+                }}
+              />
+              {/* Scanlines */}
+              <div
+                aria-hidden
+                className={`pointer-events-none absolute inset-0 z-0 ${roundedClass}`}
+                style={{
+                  opacity: 0.25,
+                  mixBlendMode: "screen",
+                  background:
+                    "repeating-linear-gradient(to bottom, rgba(0,255,255,0.06) 0px, rgba(0,255,255,0.06) 1px, transparent 2px, transparent 4px)",
+                  transform: `translate3d(0, ${ty * 0.2}px, 0)`,
+                }}
+              />
+            </>
+          )}
 
-      {/* Scanlines (behind image) */}
-      {imgOk && (
-        <div
-          aria-hidden
-          className={`pointer-events-none absolute inset-0 z-0 opacity-30 mix-blend-screen ${roundedClass}`}
-          style={{
-            background:
-              "repeating-linear-gradient(to bottom, rgba(0,255,255,0.06) 0px, rgba(0,255,255,0.06) 1px, transparent 2px, transparent 4px)",
-            transform: `translate3d(0, ${ty * 0.2}px, 0)`,
-          }}
-        />
-      )}
+          {effect === "pixel" && (
+            <>
+              {/* Dot-matrix cyan layer (gives the pixelated hologram feel) */}
+              <div
+                aria-hidden
+                className={`pointer-events-none absolute inset-0 z-0 ${roundedClass}`}
+                style={{
+                  // cyan sheet with circular mask grid -> looks like pixels/LEDs
+                  background:
+                    "radial-gradient(circle at center, rgba(0,220,255,0.85) 0 45%, rgba(0,220,255,0.0) 50%)",
+                  backgroundSize: "8px 8px",
+                  backgroundPosition: "0 0",
+                  opacity: 0.18,
+                  mixBlendMode: "screen",
+                  transform: `translate3d(${tx * 0.2}px, ${ty * 0.2}px, 0)`,
+                  animation: "pixelDrift 8s linear infinite",
+                }}
+              />
+              {/* Very light scanlines to sell the hologram */}
+              <div
+                aria-hidden
+                className={`pointer-events-none absolute inset-0 z-0 ${roundedClass}`}
+                style={{
+                  opacity: 0.12,
+                  mixBlendMode: "screen",
+                  background:
+                    "repeating-linear-gradient(to bottom, rgba(0,255,255,0.08) 0px, rgba(0,255,255,0.08) 1px, transparent 2px, transparent 5px)",
+                }}
+              />
+            </>
+          )}
 
-      {/* Chromatic aberration border flicker (behind image, subtle) */}
-      {imgOk && (
-        <div
-          aria-hidden
-          className={`pointer-events-none absolute inset-0 z-0 ${roundedClass}`}
-          style={{
-            animation: "holoAberration 7.5s ease-in-out infinite",
-            mixBlendMode: "screen",
-          }}
-        >
+          {/* Subtle chromatic border shimmer */}
           <div
-            className={`absolute inset-0 ${roundedClass}`}
+            aria-hidden
+            className={`pointer-events-none absolute inset-0 z-0 ${roundedClass}`}
             style={{
-              border: "1px solid rgba(0,255,255,0.22)",
-              filter:
-                "drop-shadow(1px 0 rgba(255,0,80,0.20)) drop-shadow(-1px 0 rgba(0,220,255,0.20))",
+              animation: "holoAberration 7.5s ease-in-out infinite",
+              mixBlendMode: "screen",
             }}
-          />
-        </div>
-      )}
-
-      {/* Sparkle noise (behind image) */}
-      {imgOk && (
-        <div
-          aria-hidden
-          className={`pointer-events-none absolute inset-0 z-0 opacity-[0.08] mix-blend-screen ${roundedClass}`}
-          style={{
-            background:
-              "radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,0.7), transparent 60%), radial-gradient(1px 1px at 70% 80%, rgba(255,255,255,0.5), transparent 60%)",
-            backgroundSize: "4px 4px, 5px 5px",
-            animation: "holoNoise 1.8s steps(2) infinite",
-          }}
-        />
+          >
+            <div
+              className={`absolute inset-0 ${roundedClass}`}
+              style={{
+                border: "1px solid rgba(0,255,255,0.22)",
+                filter:
+                  "drop-shadow(1px 0 rgba(255,0,80,0.20)) drop-shadow(-1px 0 rgba(0,220,255,0.20))",
+              }}
+            />
+          </div>
+        </>
       )}
 
       {/* Vignette edges (behind image) */}
@@ -183,16 +206,15 @@ export default function HologramHeadshot({
           0% { background-position: 0 100%, 100% 0; }
           100% { background-position: 0 0%, 0% 0; }
         }
+        @keyframes pixelDrift {
+          0% { background-position: 0 0; }
+          100% { background-position: 0 -16px; }
+        }
         @keyframes holoAberration {
           0%, 92%, 100% { opacity: 0; transform: none; }
           93% { opacity: 1; transform: skewX(-0.6deg) translateY(-0.5px); }
           95% { opacity: 0.6; transform: skewX(0.4deg) translateY(0.3px); }
           97% { opacity: 0.3; transform: none; }
-        }
-        @keyframes holoNoise {
-          0% { transform: translate(0,0); }
-          50% { transform: translate(1px,-1px); }
-          100% { transform: translate(0,0); }
         }
         @media (prefers-reduced-motion: reduce) {
           .mix-blend-screen { animation: none !important; }
