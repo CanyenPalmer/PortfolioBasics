@@ -5,7 +5,6 @@ import { hero } from "../content/hero.data";
 import CodeEdgesTyped from "./CodeEdgesTyped";
 import NameCodeExplode from "./NameCodeExplode";
 import SummaryRunner from "./SummaryRunner";
-import HologramHeadshot from "./HologramHeadshot";
 
 /** ---------- InlineTypeLine (embedded to avoid module path issues) ---------- */
 import * as React from "react";
@@ -108,16 +107,145 @@ function InlineTypeLine({
       </span>
 
       <style jsx>{`
-        @keyframes blink {
-          50% {
-            opacity: 0;
-          }
-        }
+        @keyframes blink { 50% { opacity: 0; } }
       `}</style>
     </div>
   );
 }
 /** ---------- /InlineTypeLine ---------- */
+
+/** ---------- PixelHologram (inline, zero import, failsafe) ---------- */
+function PixelHologram({
+  src,
+  alt = "Headshot of Canyen Palmer",
+  glowColor = "rgba(0, 200, 255, 0.6)",
+}: { src: string; alt?: string; glowColor?: string }) {
+  const ref = React.useRef<HTMLDivElement>(null);
+
+  // Lightweight tilt (no React state churn)
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const onMove = (e: MouseEvent) => {
+      const r = el.getBoundingClientRect();
+      const dx = (e.clientX - (r.left + r.width / 2)) / (r.width / 2);
+      const dy = (e.clientY - (r.top + r.height / 2)) / (r.height / 2);
+      el.style.setProperty("--tx", `${-dx * 8}px`);
+      el.style.setProperty("--ty", `${dy * 8}px`);
+    };
+    const onLeave = () => {
+      el.style.setProperty("--tx", `0px`);
+      el.style.setProperty("--ty", `0px`);
+    };
+    el.addEventListener("mousemove", onMove);
+    el.addEventListener("mouseleave", onLeave);
+    return () => {
+      el.removeEventListener("mousemove", onMove);
+      el.removeEventListener("mouseleave", onLeave);
+    };
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      className="
+        relative overflow-hidden rounded-2xl shadow-lg ring-1 ring-white/15
+        w-full max-w-full h-full
+      "
+      style={{
+        background: "#0b0f15",
+        transform: "translate3d(var(--tx,0), var(--ty,0), 0)",
+        transition: "transform 180ms ease-out",
+      }}
+    >
+      {/* IMAGE: plain <img> so Next config can't block it */}
+      <img
+        src={src}
+        alt={alt}
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          display: "block",
+          zIndex: 20, // always above effects
+          borderRadius: 16,
+        }}
+      />
+
+      {/* Glow behind image */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          inset: 0,
+          borderRadius: 16,
+          boxShadow: `0 0 40px ${glowColor}, 0 0 120px ${glowColor}`,
+          opacity: 0.35,
+          filter: "blur(0.5px)",
+          zIndex: 0,
+          pointerEvents: "none",
+        }}
+      />
+
+      {/* Pixel matrix (dot grid) behind image */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: "none",
+          borderRadius: 16,
+          opacity: 0.18,
+          mixBlendMode: "screen",
+          background:
+            "radial-gradient(circle, rgba(0,220,255,0.85) 0 45%, rgba(0,220,255,0) 50%)",
+          backgroundSize: "8px 8px",
+          animation: "pixelDrift 8s linear infinite",
+        }}
+      />
+
+      {/* Light scanlines for hologram feel */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: "none",
+          borderRadius: 16,
+          opacity: 0.12,
+          mixBlendMode: "screen",
+          background:
+            "repeating-linear-gradient(to bottom, rgba(0,255,255,0.08) 0px, rgba(0,255,255,0.08) 1px, transparent 2px, transparent 5px)",
+        }}
+      />
+
+      {/* Vignette */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: "none",
+          borderRadius: 16,
+          boxShadow: "inset 0 0 80px rgba(0,0,0,0.6), inset 0 0 160px rgba(0,0,0,0.35)",
+        }}
+      />
+
+      <style jsx global>{`
+        @keyframes pixelDrift {
+          0% { background-position: 0 0; }
+          100% { background-position: 0 -16px; }
+        }
+      `}</style>
+    </div>
+  );
+}
+/** ---------- /PixelHologram ---------- */
 
 export default function Hero() {
   return (
@@ -231,16 +359,7 @@ export default function Hero() {
                 flex items-center justify-center
               "
             >
-              <HologramHeadshot
-                src={hero.headshot}
-                alt="Headshot of Canyen Palmer"
-                sizes="(min-width: 768px) min(46vw, 620px), 100vw"
-                priority
-                roundedClass="rounded-2xl"
-                glowColor="rgba(0, 200, 255, 0.6)"
-                tilt={true}
-                intensity={10}
-              />
+              <PixelHologram src={typeof hero.headshot === "string" ? hero.headshot : "/images/headshot.jpg"} />
             </div>
           </motion.div>
 
@@ -257,14 +376,10 @@ export default function Hero() {
               top={[{ text: "df.groupby('hole')['strokes'].mean()" }]}
               bottom={[
                 { text: "from sklearn.metrics import roc_auc_score" },
-                {
-                  text: "auc = roc_auc_score(y_te, model.predict_proba(X_te)[:,1])",
-                },
+                { text: "auc = roc_auc_score(y_te, model.predict_proba(X_te)[:,1])" },
               ]}
               left={[
-                {
-                  text: "model = RandomForestClassifier(n_estimators=300, random_state=42)",
-                },
+                { text: "model = RandomForestClassifier(n_estimators=300, random_state=42)" },
                 { text: "model.fit(X_tr, y_tr)" },
               ]}
               right={[]}
