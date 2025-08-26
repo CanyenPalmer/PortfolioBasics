@@ -8,20 +8,19 @@ type Props = {
   className?: string;
   glowColor?: string;
   edgeSharpness?: number;    // 0..1 — higher = sharper edge (less feather)
-  scale?: number;            // API hint only (not resizing to avoid artifacts)
   posterizeLevels?: number;  // 0/1 -> off; 3..8 recommended
 
-  // Horizontal transmission bars (downward, wavy, transparent)
+  // Horizontal transmission bars
   waveBars?: boolean;
-  waveBarCount?: number;     // how many bars in flight
-  wavePeriodMs?: number;     // sweep top→bottom time per bar
-  waveBarHeightPct?: number; // % height of each bar (e.g., 10 = 10%)
-  waveIntensity?: number;    // distortion/brightness bump feel
+  waveBarCount?: number;
+  wavePeriodMs?: number;
+  waveBarHeightPct?: number;
+  waveIntensity?: number;
 
-  // NEW: flicker controls
-  flicker?: boolean;         // global hologram flicker overlay
-  flickerIntensity?: number; // 0.0–1.0 (visual strength of flicker)
-  flickerSpeedMs?: number;   // base speed of flicker loop
+  // Flicker
+  flicker?: boolean;
+  flickerIntensity?: number;
+  flickerSpeedMs?: number;
 };
 
 export default function HoloHeadshotAuto({
@@ -30,7 +29,6 @@ export default function HoloHeadshotAuto({
   className = "",
   glowColor = "rgba(0, 200, 255, 0.75)",
   edgeSharpness = 0.65,
-  scale = 0.75,
   posterizeLevels = 5,
 
   waveBars = true,
@@ -43,17 +41,22 @@ export default function HoloHeadshotAuto({
   flickerIntensity = 0.25,
   flickerSpeedMs = 1750,
 }: Props) {
-  const canvasRef = React.useRef<HTMLCanvasElement>(null);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const displayCanvasRef = React.useRef<HTMLCanvasElement>(null);
+
+  // Offscreen masked source (native image resolution)
+  const maskedCanvasRef = React.useRef<HTMLCanvasElement | null>(null);
+
   const [ready, setReady] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  // ---- BodyPix segmentation → masked canvas ----
+  /** ---------------- Load + segment + posterize (once) ---------------- */
   React.useEffect(() => {
     let cancelled = false;
 
     (async () => {
       try {
-        // Dynamic imports to avoid SSR issues (deps must still be installed)
+        // dynamic import so SSR doesn’t choke (deps must be installed)
         await import("@tensorflow/tfjs");
         const bodyPixMod = await import("@tensorflow-models/body-pix");
         const bodyPix = (bodyPixMod as any).default ?? bodyPixMod;
@@ -80,15 +83,15 @@ export default function HoloHeadshotAuto({
         });
         if (cancelled) return;
 
-        const fullW = img.naturalWidth;
-        const fullH = img.naturalHeight;
+        const w = img.naturalWidth;
+        const h = img.naturalHeight;
 
-        // Build soft alpha mask (feather via neighbor average)
+        // Build soft alpha mask at native size
         const maskCanvas = document.createElement("canvas");
-        maskCanvas.width = fullW;
-        maskCanvas.height = fullH;
+        maskCanvas.width = w;
+        maskCanvas.height = h;
         const mctx = maskCanvas.getContext("2d", { willReadFrequently: true })!;
-        const maskImg = mctx.createImageData(fullW, fullH);
+        const maskImg = mctx.createImageData(w, h);
         const md = maskImg.data;
 
         const neighbors = (x: number, y: number) => {
@@ -96,8 +99,8 @@ export default function HoloHeadshotAuto({
           for (let dy = -1; dy <= 1; dy++) {
             for (let dx = -1; dx <= 1; dx++) {
               const xx = x + dx, yy = y + dy;
-              if (xx >= 0 && yy >= 0 && xx < fullW && yy < fullH) {
-                const idx = yy * fullW + xx;
+              if (xx >= 0 && yy >= 0 && xx < w && yy < h) {
+                const idx = yy * w + xx;
                 sum += seg.data[idx] ? 1 : 0;
                 count++;
               }
@@ -106,58 +109,52 @@ export default function HoloHeadshotAuto({
           return sum / count; // 0..1
         };
 
-        for (let y = 0; y < fullH; y++) {
-          for (let x = 0; x < fullW; x++) {
-            const idx = y * fullW + x;
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            const idx = y * w + x;
             const i4 = idx * 4;
             const k = neighbors(x, y);
-            const sharpened = Math.pow(k, edgeSharpness);
+            const a = Math.pow(k, edgeSharpness) * 255;
             md[i4 + 0] = 255;
             md[i4 + 1] = 255;
             md[i4 + 2] = 255;
-            md[i4 + 3] = Math.round(sharpened * 255);
+            md[i4 + 3] = Math.round(a);
           }
         }
         mctx.putImageData(maskImg, 0, 0);
 
-        // Composite to output canvas with optional posterize
-        const out = canvasRef.current;
-        if (!out) return;
-        out.width = fullW;
-        out.height = fullH;
-        const octx = out.getContext("2d")!;
-        octx.clearRect(0, 0, fullW, fullH);
+        // Compose masked image into an offscreen canvas (source)
+        const masked = document.createElement("canvas");
+        masked.width = w;
+        masked.height = h;
+        const sctx = masked.getContext("2d")!;
+        sctx.drawImage(img, 0, 0);
+        const sd = sctx.getImageData(0, 0, w, h);
+        const sa = sd.data;
+        const ma = mctx.getImageData(0, 0, w, h).data;
 
-        const temp = document.createElement("canvas");
-        temp.width = fullW;
-        temp.height = fullH;
-        const tctx = temp.getContext("2d")!;
-        tctx.drawImage(img, 0, 0);
-
-        const td = tctx.getImageData(0, 0, fullW, fullH);
-        const ta = td.data;
-        const ma = mctx.getImageData(0, 0, fullW, fullH).data;
-
-        // Inject alpha from mask
-        for (let i = 0; i < ta.length; i += 4) {
-          ta[i + 3] = ma[i + 3];
+        for (let i = 0; i < sa.length; i += 4) {
+          sa[i + 3] = ma[i + 3];
         }
 
-        // Posterize for phosphor/synthetic feel
+        // Posterize (optional)
         if (posterizeLevels && posterizeLevels >= 2) {
           const levels = Math.max(2, Math.min(16, Math.floor(posterizeLevels)));
           const step = 255 / (levels - 1);
-          for (let i = 0; i < ta.length; i += 4) {
-            if (ta[i + 3] > 6) {
-              ta[i + 0] = Math.round(ta[i + 0] / step) * step;
-              ta[i + 1] = Math.round(ta[i + 1] / step) * step;
-              ta[i + 2] = Math.round(ta[i + 2] / step) * step;
+          for (let i = 0; i < sa.length; i += 4) {
+            if (sa[i + 3] > 6) {
+              sa[i + 0] = Math.round(sa[i + 0] / step) * step;
+              sa[i + 1] = Math.round(sa[i + 1] / step) * step;
+              sa[i + 2] = Math.round(sa[i + 2] / step) * step;
             }
           }
         }
 
-        tctx.putImageData(td, 0, 0);
-        octx.drawImage(temp, 0, 0);
+        sctx.putImageData(sd, 0, 0);
+        maskedCanvasRef.current = masked;
+
+        // First draw to the display canvas with cover-fit
+        drawToDisplayCanvas();
 
         setReady(true);
       } catch (e: any) {
@@ -170,9 +167,63 @@ export default function HoloHeadshotAuto({
     return () => {
       cancelled = true;
     };
-  }, [src, edgeSharpness, scale, posterizeLevels]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [src, edgeSharpness, posterizeLevels]);
 
-  // Pre-generate wave bars (staggered delays, slight speed variance)
+  /** --------------- ResizeObserver: cover-draw without distortion ------ */
+  const drawToDisplayCanvas = React.useCallback(() => {
+    const masked = maskedCanvasRef.current;
+    const display = displayCanvasRef.current;
+    const container = containerRef.current;
+    if (!masked || !display || !container) return;
+
+    const cw = Math.max(1, container.clientWidth);
+    const ch = Math.max(1, container.clientHeight);
+
+    // Size display canvas to container pixels
+    display.width = cw;
+    display.height = ch;
+    const dctx = display.getContext("2d")!;
+    dctx.clearRect(0, 0, cw, ch);
+
+    // “object-fit: cover” math: crop source to match container aspect
+    const sw = masked.width;
+    const sh = masked.height;
+    const srcAspect = sw / sh;
+    const dstAspect = cw / ch;
+
+    let sx = 0, sy = 0, sWidth = sw, sHeight = sh;
+    if (srcAspect > dstAspect) {
+      // source too wide, crop sides
+      sHeight = sh;
+      sWidth = sh * dstAspect;
+      sx = (sw - sWidth) / 2;
+      sy = 0;
+    } else {
+      // source too tall, crop top/bottom
+      sWidth = sw;
+      sHeight = sw / dstAspect;
+      sx = 0;
+      sy = (sh - sHeight) / 2;
+    }
+
+    dctx.filter = "contrast(1.35) brightness(1.22) saturate(0.85) hue-rotate(190deg)";
+    dctx.imageSmoothingEnabled = true;
+    dctx.imageSmoothingQuality = "high";
+    dctx.drawImage(masked, sx, sy, sWidth, sHeight, 0, 0, cw, ch);
+  }, []);
+
+  React.useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const ro = new ResizeObserver(() => {
+      drawToDisplayCanvas();
+    });
+    ro.observe(container);
+    return () => ro.disconnect();
+  }, [drawToDisplayCanvas]);
+
+  /** ---------------- Pre-generate wave bars --------------------------- */
   const bars = React.useMemo(() => {
     if (!waveBars) return [];
     const arr: Array<{ delayMs: number; speedScale: number; hueShift: number; pulseDelayMs: number }> = [];
@@ -189,6 +240,7 @@ export default function HoloHeadshotAuto({
 
   return (
     <div
+      ref={containerRef}
       className={`relative overflow-hidden rounded-2xl shadow-lg ring-1 ring-white/15 ${className}`}
       style={{ background: "#080c11" }}
     >
@@ -236,16 +288,13 @@ export default function HoloHeadshotAuto({
         }}
       />
 
-      {/* Segmented, posterized figure */}
+      {/* Segmented, posterized figure (cover-fit canvas) */}
       <div className="absolute inset-0 z-[5]">
         <canvas
-          ref={canvasRef}
+          ref={displayCanvasRef}
           aria-label={alt}
+          className="w-full h-full"
           style={{
-            width: "100%",
-            height: "100%",
-            imageRendering: "pixelated",
-            filter: "contrast(1.35) brightness(1.22) saturate(0.85) hue-rotate(190deg)",
             borderRadius: 16,
           }}
         />
@@ -272,7 +321,7 @@ export default function HoloHeadshotAuto({
         />
       </div>
 
-      {/* Horizontal Wavy Bars with pulse + distortion */}
+      {/* Horizontal Wavy Bars — animate TOP so they sweep to bottom reliably */}
       {waveBars &&
         ready &&
         bars.map((b, i) => (
@@ -283,28 +332,24 @@ export default function HoloHeadshotAuto({
             style={{
               top: "-20%",
               height: `${waveBarHeightPct}%`,
-              // soft emissive tint so bar is visible but not overpowering
               background:
                 "linear-gradient(180deg, rgba(0,255,255,0.18) 0%, rgba(0,255,255,0.35) 50%, rgba(255,0,150,0.20) 100%)",
               mixBlendMode: "screen",
               filter: `hue-rotate(${b.hueShift}deg) blur(0.3px)`,
-              // distortion of image beneath (requires Chromium/WebKit)
               backdropFilter: `
                 brightness(${1 + 0.45 * waveIntensity})
                 saturate(${1 + 0.55 * waveIntensity})
                 contrast(${1 + 0.30 * waveIntensity})
                 blur(${0.6 * waveIntensity}px)
               `,
-              // Sweep + edge morph + pulse
               animation: `
-                waveDown ${Math.round(wavePeriodMs * b.speedScale)}ms linear ${b.delayMs}ms infinite,
+                waveDownTop ${Math.round(wavePeriodMs * b.speedScale)}ms linear ${b.delayMs}ms infinite,
                 waveShape 2200ms ease-in-out ${b.delayMs}ms infinite,
                 barPulse ${1200 + Math.round(600 * b.speedScale)}ms ease-in-out ${b.pulseDelayMs}ms infinite
               `,
-              // Wavy silhouette edges
               clipPath:
                 "polygon(0% 10%, 10% 7%, 25% 10%, 40% 6%, 55% 10%, 70% 7%, 85% 10%, 100% 8%, 100% 90%, 85% 93%, 70% 90%, 55% 94%, 40% 90%, 25% 93%, 10% 90%, 0% 92%)",
-              opacity: 0.7, // base visibility; barPulse will modulate this
+              opacity: 0.7,
             }}
           />
         ))}
@@ -320,7 +365,7 @@ export default function HoloHeadshotAuto({
             background:
               "radial-gradient(60% 40% at 50% 50%, rgba(0,255,255,0.12), rgba(0,255,255,0.02) 60%, transparent 80%)",
             animation: `holoFlicker ${flickerSpeedMs}ms steps(2) infinite`,
-            opacity: 0.15 + 0.4 * flickerIntensity, // dial main flicker strength
+            opacity: 0.15 + 0.4 * flickerIntensity,
           }}
         />
       )}
@@ -346,13 +391,12 @@ export default function HoloHeadshotAuto({
           95% { opacity: 0.6; transform: skewX(0.4deg) translateY(0.3px); }
           97% { opacity: 0.3; transform: none; }
         }
-        /* Horizontal sweep top -> bottom */
-        @keyframes waveDown {
-          0%   { transform: translateY(-20%) skewX(-8deg); }
-          50%  { transform: translateY(45%)  skewX(8deg); }
-          100% { transform: translateY(120%) skewX(-8deg); }
+        /* Bar sweeps by animating TOP so it always reaches bottom */
+        @keyframes waveDownTop {
+          0%   { top: -20%; }
+          100% { top: 110%; }
         }
-        /* Gently morph the bar edges to feel like a live signal */
+        /* Edge morph to feel like a live signal */
         @keyframes waveShape {
           0% {
             clip-path: polygon(0% 10%, 10% 7%, 25% 10%, 40% 6%, 55% 10%, 70% 7%, 85% 10%, 100% 8%, 100% 90%, 85% 93%, 70% 90%, 55% 94%, 40% 90%, 25% 93%, 10% 90%, 0% 92%);
@@ -395,3 +439,4 @@ export default function HoloHeadshotAuto({
     </div>
   );
 }
+
