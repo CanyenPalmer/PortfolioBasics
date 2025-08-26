@@ -3,20 +3,12 @@
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTypewriter } from "@/hooks/useTypewriter";
-import { highlightJson, buildExperienceJson } from "@/utils/jsonHighlight";
+import { buildExperienceJson, tokenizeJson, JsonToken } from "@/utils/jsonHighlight";
 import { RichText } from "@/utils/richText";
 
 /** -----------------------------------------------------------------------
  * Experience (Terminal/Editor theme + Tabs + JSON viewer)
- * - Visual hierarchy (featured role styling, badge)
- * - Engagement (hover/press states, glowing accents)
- * - Context line (1-liner for each company/role)
- * - Highlight most impressive role (featured)
- * - Interactive timeline rail (desktop), tabs in topbar (mobile)
- * - Expandable details (creations) with smooth animations
- * - Subtle animations (panel transitions, caret blink)
- * - Typewriter JSON output (replays on role change) with syntax colors
- * - Rich-text emphasis for lists (bold/italic/code + auto $/%/numbers)
+ * ... (unchanged comment block)
  * ----------------------------------------------------------------------*/
 
 type Creation = { name: string; details: string[] };
@@ -124,16 +116,66 @@ const EXPERIENCES: ExperienceItem[] = [
   },
 ];
 
-/* ---------------- Typed JSON view ------------------- */
-function TypedJsonView({ exp }: { exp: ExperienceItem }) {
-  const full = React.useMemo(() => buildExperienceJson(exp), [exp]);
-  const { output, done } = useTypewriter(full, { speed: 10, startDelay: 60 });
-  const html = React.useMemo(() => highlightJson(output), [output]);
+/* ---------------- Real-time colored Typed JSON view ------------------- */
+function TypedColorJsonView({ exp }: { exp: ExperienceItem }) {
+  // Precompute tokens for the entire JSON once per exp
+  const tokens = React.useMemo<JsonToken[]>(() => {
+    const json = buildExperienceJson(exp);
+    return tokenizeJson(json);
+  }, [exp]);
+
+  // Count of visible characters (across *visible text*, not HTML)
+  const fullLen = React.useMemo(
+    () => tokens.reduce((sum, t) => sum + t.text.length, 0),
+    [tokens]
+  );
+
+  // Drive typing using your existing minimal hook (string not needed; we just need a tick count)
+  const { output } = (function useCharTicker(len: number, speed = 10, startDelay = 60) {
+    const [n, setN] = React.useState(0);
+    React.useEffect(() => {
+      setN(0);
+      const startId = window.setTimeout(() => {
+        const id = window.setInterval(() => {
+          setN((prev) => {
+            if (prev + 1 >= len) {
+              window.clearInterval(id);
+              return len;
+            }
+            return prev + 1;
+          });
+        }, speed);
+      }, startDelay);
+      return () => window.clearTimeout(startId);
+    }, [len, speed, startDelay]);
+    return { output: n };
+  })(fullLen, 10, 60);
+
+  // Build the partially-typed DOM: iterate tokens and render only up to `output` characters
+  let remaining = output;
+  const children: React.ReactNode[] = [];
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i];
+    if (remaining <= 0) break;
+    const take = Math.min(remaining, t.text.length);
+    const sliceText = t.text.slice(0, take);
+    children.push(
+      t.className ? (
+        <span key={i} className={t.className}>
+          {sliceText}
+        </span>
+      ) : (
+        <span key={i}>{sliceText}</span>
+      )
+    );
+    remaining -= take;
+  }
+
+  const done = output >= fullLen;
 
   return (
     <pre className="relative font-mono text-[13px] leading-relaxed text-white/90 whitespace-pre-wrap">
-      {/* eslint-disable-next-line react/no-danger */}
-      <code dangerouslySetInnerHTML={{ __html: html }} />
+      <code>{children}</code>
       <span
         className={`ml-1 inline-block h-4 w-[7px] align-baseline rounded-sm translate-y-[3px] ${
           done ? "bg-white/70 animate-pulse" : "bg-white/80 animate-pulse"
@@ -340,8 +382,8 @@ export default function Experience() {
               )}
             </div>
 
-            {/* Typed JSON view with colors */}
-            <TypedJsonView exp={active} />
+            {/* REAL-TIME colored typed JSON */}
+            <TypedColorJsonView exp={active} />
 
             {/* Highlights as rich text */}
             <details className="mt-4 group">
