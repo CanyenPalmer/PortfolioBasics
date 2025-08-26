@@ -4,6 +4,7 @@ import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTypewriter } from "@/hooks/useTypewriter";
 import { highlightJson, buildExperienceJson } from "@/utils/jsonHighlight";
+import { RichText } from "@/utils/richText";
 
 /** -----------------------------------------------------------------------
  * Experience (Terminal/Editor theme + Tabs + JSON viewer)
@@ -11,10 +12,11 @@ import { highlightJson, buildExperienceJson } from "@/utils/jsonHighlight";
  * - Engagement (hover/press states, glowing accents)
  * - Context line (1-liner for each company/role)
  * - Highlight most impressive role (featured)
- * - Interactive timeline rail (desktop)
+ * - Interactive timeline rail (desktop), tabs in topbar (mobile)
  * - Expandable details (creations) with smooth animations
  * - Subtle animations (panel transitions, caret blink)
- * - Typewriter JSON output (replays on role change)
+ * - Typewriter JSON output (replays on role change) with syntax colors
+ * - Rich-text emphasis for lists (bold/italic/code + auto $/%/numbers)
  * ----------------------------------------------------------------------*/
 
 type Creation = { name: string; details: string[] };
@@ -54,14 +56,14 @@ const EXPERIENCES: ExperienceItem[] = [
         name: "CGM Patient Responsibility Tracker",
         details: [
           "Machine-Learning Model capable of mass data upload via CSV, mining and manipulation for key insights, and output of newly constructed CSV.",
-          "Discovered $20,000 in transferable funds through CGM equipment alone.",
+          "Discovered **$20,000** in transferable funds through CGM equipment alone.",
         ],
       },
       {
         name: "CalendarExtractor",
         details: [
           "Python model that extracts specific information from Google Calendar entries across any period, exporting mined data to CSV for further testing.",
-          "Saves 12+ hours per week per sales rep.",
+          "Saves **12+ hours/week** per sales rep.",
         ],
       },
     ],
@@ -88,7 +90,7 @@ const EXPERIENCES: ExperienceItem[] = [
         details: [
           "15+ Dashboards across billing, denial tracking, and reimbursement.",
           "10+ Quality Checklists for Denials/Claims management.",
-          "Automated Packages/Kits that eliminated half of the processing time.",
+          "Automated Packages/Kits that eliminated **~50%** of the processing time.",
         ],
       },
     ],
@@ -104,16 +106,16 @@ const EXPERIENCES: ExperienceItem[] = [
     tech: ["Python", "R", "SQL", "Tableau", "Excel"],
     skills: ["Analytics", "Machine Learning", "Software Development", "System Testing", "Stakeholder Engagement"],
     highlights: [
-      "Founded Palmer Projects to deliver freelance analytics, machine learning, and software solutions for global clients.",
+      "Founded **Palmer Projects** to deliver freelance analytics, machine learning, and software solutions for global clients.",
       "Worked across diverse industries to provide actionable insights through advanced data engineering, visualization, and reporting.",
     ],
     creations: [
       {
         name: "MyGolf © 2025 Palmer Projects | Golfer's Guide to Better Play",
         details: [
-          "Built MyCaddy, a multi-interface, physics-based shot distance calculator developed to help golfers make data-driven club selections.",
-          "MyCaddy models the true impact of environmental and surface conditions to optimize decision-making.",
-          "MyCaddy is highlighted in the Projects section for further detail.",
+          "Built `MyCaddy`, a multi-interface, physics-based shot distance calculator developed to help golfers make data-driven club selections.",
+          "`MyCaddy` models the true impact of environmental and surface conditions to optimize decision-making.",
+          "`MyCaddy` is highlighted in the Projects section for further detail.",
         ],
       },
     ],
@@ -250,7 +252,7 @@ function TimelineRail({
                     }`}
                   />
                   <span className="truncate max-w-[160px]">
-                    {e.fileName ?? e.title.toLowerCase().replace(/\\s+/g, "_") + ".json"}
+                    {e.fileName ?? e.title.toLowerCase().replace(/\s+/g, "_") + ".json"}
                   </span>
                 </button>
               </li>
@@ -277,14 +279,12 @@ export default function Experience() {
 
   return (
     <section id="experience" className="relative w-full max-w-6xl mx-auto py-20 px-6 md:px-8" aria-labelledby="experience-title">
-      <h2 id="experience-title" className="sr-only">
-        Experience
-      </h2>
+      <h2 id="experience-title" className="sr-only">Experience</h2>
 
       <TopBar
         items={EXPERIENCES.map((e) => ({
           id: e.id,
-          label: e.fileName ?? e.title.toLowerCase().replace(/\\s+/g, "_") + ".json",
+          label: e.fileName ?? e.title.toLowerCase().replace(/\s+/g, "_") + ".json",
           featured: e.featured,
         }))}
         activeId={activeId}
@@ -310,6 +310,7 @@ export default function Experience() {
                 : "border-white/10 bg-black/20"
             }`}
           >
+            {/* Meta row with context pill */}
             <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-white/70 font-mono">
               <span className="text-white/85">{active.company}</span>
               {active.location && <span>• {active.location}</span>}
@@ -339,9 +340,10 @@ export default function Experience() {
               )}
             </div>
 
-            {/* Typed JSON view */}
+            {/* Typed JSON view with colors */}
             <TypedJsonView exp={active} />
 
+            {/* Highlights as rich text */}
             <details className="mt-4 group">
               <summary className="cursor-pointer text-white/80 font-mono text-sm select-none">
                 <span className="group-open:hidden">▸</span>
@@ -350,12 +352,13 @@ export default function Experience() {
               <ul className="mt-2 list-disc pl-6 text-white/85">
                 {active.highlights.map((h, i) => (
                   <li key={i} className="mb-1 text-[15px] leading-relaxed">
-                    {h}
+                    <RichText text={h} />
                   </li>
                 ))}
               </ul>
             </details>
 
+            {/* Creations as rich text */}
             {active.creations && active.creations.length > 0 && (
               <div className="mt-4">
                 <details className="group">
@@ -376,7 +379,7 @@ export default function Experience() {
                         <ul className="mt-1 list-disc pl-5 text-white/85">
                           {c.details.map((d, j) => (
                             <li key={j} className="leading-relaxed">
-                              {d}
+                              <RichText text={d} />
                             </li>
                           ))}
                         </ul>
