@@ -68,13 +68,13 @@ export default function HologramHeadshot({
         className,
       ].join(" ")}
       style={{
-        background: "#0b0f15",
+        background: "#0b0f15",   // safe base for blend modes
         perspective: "1000px",
       }}
     >
-      {/* Base image */}
+      {/* Base image (ALWAYS ABOVE overlays) */}
       <div
-        className="absolute inset-0"
+        className={`absolute inset-0 z-10 ${roundedClass}`}
         style={{
           transform: `translate3d(${tx}px, ${ty}px, 0)`,
           transition: "transform 180ms ease-out",
@@ -93,10 +93,10 @@ export default function HologramHeadshot({
         />
       </div>
 
-      {/* Outer neon glow */}
+      {/* Outer neon glow (behind image) */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0"
+        className={`pointer-events-none absolute inset-0 z-0 ${roundedClass}`}
         style={{
           boxShadow: `0 0 40px ${glowColor}, 0 0 120px ${glowColor}`,
           opacity: 0.35,
@@ -104,11 +104,11 @@ export default function HologramHeadshot({
         }}
       />
 
-      {/* Hologram grid shimmer */}
+      {/* Hologram grid shimmer (behind image) */}
       {imgOk && (
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 mix-blend-screen opacity-25"
+          className={`pointer-events-none absolute inset-0 z-0 mix-blend-screen opacity-25 ${roundedClass}`}
           style={{
             backgroundImage:
               "linear-gradient(rgba(0,255,255,0.12) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,255,0.08) 1px, transparent 1px)",
@@ -119,11 +119,11 @@ export default function HologramHeadshot({
         />
       )}
 
-      {/* Scanlines */}
+      {/* Scanlines (behind image) */}
       {imgOk && (
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-30 mix-blend-screen"
+          className={`pointer-events-none absolute inset-0 z-0 opacity-30 mix-blend-screen ${roundedClass}`}
           style={{
             background:
               "repeating-linear-gradient(to bottom, rgba(0,255,255,0.06) 0px, rgba(0,255,255,0.06) 1px, transparent 2px, transparent 4px)",
@@ -132,33 +132,32 @@ export default function HologramHeadshot({
         />
       )}
 
-      {/* Chromatic aberration border flicker */}
+      {/* Chromatic aberration border flicker (behind image, subtle) */}
       {imgOk && (
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0"
+          className={`pointer-events-none absolute inset-0 z-0 ${roundedClass}`}
           style={{
             animation: "holoAberration 7.5s ease-in-out infinite",
             mixBlendMode: "screen",
           }}
         >
           <div
-            className="absolute inset-0"
+            className={`absolute inset-0 ${roundedClass}`}
             style={{
-              border: "1px solid rgba(0,255,255,0.25)",
+              border: "1px solid rgba(0,255,255,0.22)",
               filter:
-                "drop-shadow(1px 0 rgba(255,0,80,0.25)) drop-shadow(-1px 0 rgba(0,220,255,0.25))",
-              borderRadius: "16px",
+                "drop-shadow(1px 0 rgba(255,0,80,0.20)) drop-shadow(-1px 0 rgba(0,220,255,0.20))",
             }}
           />
         </div>
       )}
 
-      {/* Sparkle noise */}
+      {/* Sparkle noise (behind image) */}
       {imgOk && (
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-[0.08] mix-blend-screen"
+          className={`pointer-events-none absolute inset-0 z-0 opacity-[0.08] mix-blend-screen ${roundedClass}`}
           style={{
             background:
               "radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,0.7), transparent 60%), radial-gradient(1px 1px at 70% 80%, rgba(255,255,255,0.5), transparent 60%)",
@@ -168,10 +167,10 @@ export default function HologramHeadshot({
         />
       )}
 
-      {/* Vignette edges */}
+      {/* Vignette edges (behind image) */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0"
+        className={`pointer-events-none absolute inset-0 z-0 ${roundedClass}`}
         style={{
           boxShadow:
             "inset 0 0 80px rgba(0,0,0,0.6), inset 0 0 160px rgba(0,0,0,0.35)",
