@@ -1,11 +1,11 @@
 "use client";
 
 import { motion } from "framer-motion";
-import Image from "next/image";
 import { hero } from "../content/hero.data";
 import CodeEdgesTyped from "./CodeEdgesTyped";
 import NameCodeExplode from "./NameCodeExplode";
 import SummaryRunner from "./SummaryRunner";
+import HologramHeadshot from "./HologramHeadshot";
 
 /** ---------- InlineTypeLine (embedded to avoid module path issues) ---------- */
 import * as React from "react";
@@ -109,7 +109,9 @@ function InlineTypeLine({
 
       <style jsx>{`
         @keyframes blink {
-          50% { opacity: 0; }
+          50% {
+            opacity: 0;
+          }
         }
       `}</style>
     </div>
@@ -229,14 +231,15 @@ export default function Hero() {
                 flex items-center justify-center
               "
             >
-              <Image
+              <HologramHeadshot
                 src={hero.headshot}
                 alt="Headshot of Canyen Palmer"
-                fill
-                priority
                 sizes="(min-width: 768px) min(46vw, 620px), 100vw"
-                quality={95}
-                className="object-cover rounded-2xl"
+                priority
+                roundedClass="rounded-2xl"
+                glowColor="rgba(0, 200, 255, 0.6)"
+                tilt={true}
+                intensity={10}
               />
             </div>
           </motion.div>
@@ -254,10 +257,14 @@ export default function Hero() {
               top={[{ text: "df.groupby('hole')['strokes'].mean()" }]}
               bottom={[
                 { text: "from sklearn.metrics import roc_auc_score" },
-                { text: "auc = roc_auc_score(y_te, model.predict_proba(X_te)[:,1])" },
+                {
+                  text: "auc = roc_auc_score(y_te, model.predict_proba(X_te)[:,1])",
+                },
               ]}
               left={[
-                { text: "model = RandomForestClassifier(n_estimators=300, random_state=42)" },
+                {
+                  text: "model = RandomForestClassifier(n_estimators=300, random_state=42)",
+                },
                 { text: "model.fit(X_tr, y_tr)" },
               ]}
               right={[]}
