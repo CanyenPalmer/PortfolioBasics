@@ -2,28 +2,29 @@
 
 import * as React from "react";
 
+// NOTE: No global CSS or other imports needed.
+
 type Props = {
   src: string;               // e.g. "/images/headshot.jpg"
   alt?: string;
   className?: string;
   glowColor?: string;
+
+  /** silhouette edge + posterize — keep for the hologram vibe */
   edgeSharpness?: number;    // 0..1 — higher = sharper edge (less feather)
   posterizeLevels?: number;  // 0/1 -> off; 3..8 recommended
 
-  // Horizontal transmission bars
+  /** Horizontal transmission bars */
   waveBars?: boolean;
   waveBarCount?: number;     // how many bars at once
   wavePeriodMs?: number;     // sweep duration top→bottom
   waveBarHeightPct?: number; // height of each bar in % of box
-  waveIntensity?: number;    // brightness/contrast bump inside bar
+  waveIntensity?: number;    // tint intensity
 
-  // Flicker
+  /** Flicker */
   flicker?: boolean;
   flickerIntensity?: number;
   flickerSpeedMs?: number;
-
-  // Shift the image inside the frame without moving the frame
-  imageYOffsetPx?: number;   // positive = push image down, negative = raise it
 };
 
 export default function HoloHeadshotAuto({
@@ -31,23 +32,20 @@ export default function HoloHeadshotAuto({
   alt = "Hologram",
   className = "",
   glowColor = "rgba(0, 200, 255, 0.75)",
+
   edgeSharpness = 0.65,
   posterizeLevels = 5,
 
-  // slower bars
   waveBars = true,
   waveBarCount = 3,
-  wavePeriodMs = 3600,
+  wavePeriodMs = 3600,       // slower sweep
   waveBarHeightPct = 12,
   waveIntensity = 1.0,
 
   flicker = true,
   flickerIntensity = 0.25,
   flickerSpeedMs = 1750,
-
-  imageYOffsetPx = -10,
 }: Props) {
-  const uid = React.useId();
   const containerRef = React.useRef<HTMLDivElement>(null);
 
   // Base canvas (cover-fit)
@@ -55,7 +53,7 @@ export default function HoloHeadshotAuto({
   // Offscreen masked source (native size)
   const maskedCanvasRef = React.useRef<HTMLCanvasElement | null>(null);
 
-  // Per-bar canvas clones (each clipped and warped)
+  // Per-bar canvas clones (each clipped and displaced in JS)
   const [barCanvases, setBarCanvases] = React.useState<
     Array<React.RefObject<HTMLCanvasElement>>
   >([]);
@@ -63,7 +61,7 @@ export default function HoloHeadshotAuto({
   const [ready, setReady] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  // Ensure we have one canvas ref per bar
+  // Make one canvas per bar
   React.useEffect(() => {
     if (!waveBars) { setBarCanvases([]); return; }
     const n = Math.max(0, waveBarCount || 0);
@@ -75,23 +73,18 @@ export default function HoloHeadshotAuto({
     });
   }, [waveBars, waveBarCount]);
 
-  /** ---------------- Load + segment + posterize (once) ---------------- */
+  /** ---------------- Load + segment + posterize (once) ----------------
+   * We keep the “soft cutout + posterize” look, but do it without heavy libs.
+   * This version assumes the existing photo is on a dark background; we
+   * approximate the silhouette by edge brightening + alpha feathering near
+   * darker pixels. (If you already installed TF/BodyPix earlier, you can
+   * replace this with the segmentation path again — this stays dependency-free.)
+   */
   React.useEffect(() => {
     let cancelled = false;
 
     (async () => {
       try {
-        await import("@tensorflow/tfjs");
-        const bodyPixMod = await import("@tensorflow-models/body-pix");
-        const bodyPix = (bodyPixMod as any).default ?? bodyPixMod;
-
-        const net = await bodyPix.load({
-          architecture: "MobileNetV1",
-          outputStride: 16,
-          multiplier: 0.75,
-          quantBytes: 2,
-        });
-
         const img = new Image();
         img.crossOrigin = "anonymous";
         img.src = src;
@@ -101,80 +94,70 @@ export default function HoloHeadshotAuto({
         });
         if (cancelled) return;
 
-        const seg = await net.segmentPerson(img, {
-          internalResolution: "medium",
-          segmentationThreshold: 0.7,
-        });
-        if (cancelled) return;
+        const w = img.naturalWidth || 1200;
+        const h = img.naturalHeight || 1600;
 
-        const w = img.naturalWidth;
-        const h = img.naturalHeight;
+        // Draw image to offscreen, read pixels
+        const off = document.createElement("canvas");
+        off.width = w; off.height = h;
+        const octx = off.getContext("2d", { willReadFrequently: true })!;
+        octx.drawImage(img, 0, 0);
 
-        // Build soft alpha mask at native size
-        const maskCanvas = document.createElement("canvas");
-        maskCanvas.width = w; maskCanvas.height = h;
-        const mctx = maskCanvas.getContext("2d", { willReadFrequently: true })!;
-        const maskImg = mctx.createImageData(w, h);
-        const md = maskImg.data;
+        const id = octx.getImageData(0, 0, w, h);
+        const a = id.data;
 
-        const neighbors = (x: number, y: number) => {
-          let sum = 0, count = 0;
-          for (let dy = -1; dy <= 1; dy++) {
-            for (let dx = -1; dx <= 1; dx++) {
-              const xx = x + dx, yy = y + dy;
-              if (xx >= 0 && yy >= 0 && xx < w && yy < h) {
-                const idx = yy * w + xx;
-                sum += seg.data[idx] ? 1 : 0;
-                count++;
-              }
-            }
-          }
-          return sum / count; // 0..1
-        };
-
+        // Build a soft alpha mask by boosting alpha for brighter pixels and
+        // feathering near darker background. This is heuristic, but good enough
+        // for a hologram look without external libs.
         for (let y = 0; y < h; y++) {
           for (let x = 0; x < w; x++) {
-            const idx = y * w + x, i4 = idx * 4;
-            const k = neighbors(x, y);
-            const a = Math.pow(k, edgeSharpness) * 255;
-            md[i4 + 0] = 255; md[i4 + 1] = 255; md[i4 + 2] = 255; md[i4 + 3] = Math.round(a);
+            const i4 = (y * w + x) * 4;
+            const r = a[i4 + 0], g = a[i4 + 1], b = a[i4 + 2];
+            // perceived luminance
+            const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b; // 0..255
+            // lift alpha for brighter pixels
+            let alpha = (lum / 255);
+            // feather: slightly erode edges by looking at neighbors (cheap blur)
+            let nb = 0, sum = 0;
+            for (let dy = -1; dy <= 1; dy++) {
+              for (let dx = -1; dx <= 1; dx++) {
+                const xx = x + dx, yy = y + dy;
+                if (xx >= 0 && yy >= 0 && xx < w && yy < h) {
+                  const j4 = (yy * w + xx) * 4;
+                  const rl = 0.2126 * a[j4+0] + 0.7152 * a[j4+1] + 0.0722 * a[j4+2];
+                  sum += rl / 255; nb++;
+                }
+              }
+            }
+            const avg = sum / Math.max(1, nb);
+            // combine center + neighbors to smooth edge, sharpen with edgeSharpness
+            alpha = Math.pow((alpha * 0.6 + avg * 0.4), edgeSharpness);
+            a[i4 + 3] = Math.round(alpha * 255);
           }
         }
-        mctx.putImageData(maskImg, 0, 0);
 
-        // Compose masked image into an offscreen canvas (source)
-        const masked = document.createElement("canvas");
-        masked.width = w; masked.height = h;
-        const sctx = masked.getContext("2d")!;
-        sctx.drawImage(img, 0, 0);
-        const sd = sctx.getImageData(0, 0, w, h);
-        const sa = sd.data;
-        const ma = mctx.getImageData(0, 0, w, h).data;
-
-        for (let i = 0; i < sa.length; i += 4) {
-          sa[i + 3] = ma[i + 3];
-        }
-
+        // Posterize colors (optional)
         if (posterizeLevels && posterizeLevels >= 2) {
           const levels = Math.max(2, Math.min(16, Math.floor(posterizeLevels)));
           const step = 255 / (levels - 1);
-          for (let i = 0; i < sa.length; i += 4) {
-            if (sa[i + 3] > 6) {
-              sa[i + 0] = Math.round(sa[i + 0] / step) * step;
-              sa[i + 1] = Math.round(sa[i + 1] / step) * step;
-              sa[i + 2] = Math.round(sa[i + 2] / step) * step;
+          for (let i = 0; i < a.length; i += 4) {
+            if (a[i + 3] > 6) {
+              a[i + 0] = Math.round(a[i + 0] / step) * step;
+              a[i + 1] = Math.round(a[i + 1] / step) * step;
+              a[i + 2] = Math.round(a[i + 2] / step) * step;
             }
           }
         }
 
-        sctx.putImageData(sd, 0, 0);
-        maskedCanvasRef.current = masked;
+        octx.putImageData(id, 0, 0);
+        maskedCanvasRef.current = off;
 
+        // First draw
         drawAllCanvases();
         setReady(true);
       } catch (e: any) {
         console.error(e);
-        setError(e?.message || "Model/image load failed");
+        setError(e?.message || "Image load failed");
         setReady(true);
       }
     })();
@@ -183,48 +166,55 @@ export default function HoloHeadshotAuto({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src, edgeSharpness, posterizeLevels]);
 
-  /** --------------- cover-fit drawing for any canvas ------------------ */
-  const drawCover = React.useCallback((dest: HTMLCanvasElement, yOffsetPxLocal: number) => {
+  /** --------------- cover-fit mapping helper ------------------ */
+  const computeCoverMap = React.useCallback(() => {
     const masked = maskedCanvasRef.current, container = containerRef.current;
-    if (!masked || !container) return;
+    if (!masked || !container) return null;
 
     const cw = Math.max(1, container.clientWidth);
     const ch = Math.max(1, container.clientHeight);
-
-    dest.width = cw; dest.height = ch;
-    const dctx = dest.getContext("2d")!;
-    dctx.clearRect(0, 0, cw, ch);
 
     const sw = masked.width, sh = masked.height;
     const srcAspect = sw / sh, dstAspect = cw / ch;
 
     let sx = 0, sy = 0, sWidth = sw, sHeight = sh;
     if (srcAspect > dstAspect) {
+      // source too wide, crop sides
       sHeight = sh;
       sWidth  = sh * dstAspect;
       sx = (sw - sWidth) / 2;
-      sy = 0 + (yOffsetPxLocal / ch) * sHeight;
-      sy = Math.max(0, Math.min(sh - sHeight, sy));
+      sy = 0;
     } else {
+      // source too tall, crop top/bottom
       sWidth  = sw;
       sHeight = sw / dstAspect;
       sx = 0;
-      sy = (sh - sHeight) / 2 + (yOffsetPxLocal / ch) * sHeight;
-      sy = Math.max(0, Math.min(sh - sHeight, sy));
+      sy = (sh - sHeight) / 2;
     }
 
-    dctx.filter = "contrast(1.35) brightness(1.22) saturate(0.85) hue-rotate(190deg)";
-    dctx.imageSmoothingEnabled = true;
-    dctx.imageSmoothingQuality = "high";
-    dctx.drawImage(masked, sx, sy, sWidth, sHeight, 0, 0, cw, ch);
+    return { cw, ch, sx, sy, sWidth, sHeight, sw, sh };
   }, []);
 
+  const drawBase = React.useCallback(() => {
+    const map = computeCoverMap();
+    if (!map || !baseCanvasRef.current || !maskedCanvasRef.current) return;
+
+    const { cw, ch, sx, sy, sWidth, sHeight } = map;
+    const ctx = baseCanvasRef.current.getContext("2d")!;
+    baseCanvasRef.current.width = cw;
+    baseCanvasRef.current.height = ch;
+
+    ctx.clearRect(0, 0, cw, ch);
+    ctx.filter = "contrast(1.35) brightness(1.22) saturate(0.85) hue-rotate(190deg)";
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(maskedCanvasRef.current, sx, sy, sWidth, sHeight, 0, 0, cw, ch);
+  }, [computeCoverMap]);
+
   const drawAllCanvases = React.useCallback(() => {
-    if (baseCanvasRef.current) drawCover(baseCanvasRef.current, imageYOffsetPx);
-    for (const ref of barCanvases) {
-      if (ref.current) drawCover(ref.current, imageYOffsetPx);
-    }
-  }, [drawCover, barCanvases, imageYOffsetPx]);
+    drawBase();
+    // bar canvases will be drawn by the RAF distortion loop
+  }, [drawBase]);
 
   React.useEffect(() => {
     const container = containerRef.current;
@@ -234,7 +224,69 @@ export default function HoloHeadshotAuto({
     return () => ro.disconnect();
   }, [drawAllCanvases]);
 
-  /** ---------------- Pre-generate wave bars --------------------------- */
+  /** ---------------- Real-time wobble for each bar (pure canvas) ------ */
+  React.useEffect(() => {
+    if (!waveBars) return;
+    let raf = 0;
+    const start = performance.now();
+
+    const render = () => {
+      const t = performance.now() - start;
+      const map = computeCoverMap();
+      if (map && maskedCanvasRef.current) {
+        const { cw, ch, sx, sy, sWidth, sHeight } = map;
+        // Displacement config
+        const amplitude = 8;                 // px left/right bend
+        const wavelength = 38;               // px per wave
+        const speed = 0.007;                 // radians per ms (phase speed)
+
+        for (let i = 0; i < barCanvases.length; i++) {
+          const c = barCanvases[i].current;
+          if (!c) continue;
+          c.width = cw; c.height = ch;
+          const ctx = c.getContext("2d")!;
+          ctx.clearRect(0, 0, cw, ch);
+
+          // Draw using horizontal strips with a sine offset
+          // To keep it fast, copy in ~2px rows.
+          const rowH = 2; // strip height
+          const srcToDst = sHeight / ch;
+
+          for (let y = 0; y < ch; y += rowH) {
+            const srcY = sy + y * srcToDst;
+            const srcH = Math.min(rowH * srcToDst, sHeight - (srcY - sy));
+            const phase = (t * speed) + (i * 0.7); // per-bar phase
+            const dx = Math.sin((y / wavelength) + phase) * amplitude;
+
+            ctx.drawImage(
+              maskedCanvasRef.current,
+              sx,             // source x
+              srcY,           // source y
+              sWidth,         // source w
+              Math.max(1, srcH), // source h
+              dx,             // dest x with wobble
+              y,              // dest y
+              cw,             // dest w
+              rowH            // dest h
+            );
+          }
+
+          // tint boost (subtle)
+          ctx.globalCompositeOperation = "screen";
+          ctx.fillStyle = `rgba(0, 255, 255, ${0.04 + 0.08 * waveIntensity})`;
+          ctx.fillRect(0, 0, cw, ch);
+          ctx.globalCompositeOperation = "source-over";
+        }
+      }
+
+      raf = requestAnimationFrame(render);
+    };
+
+    raf = requestAnimationFrame(render);
+    return () => cancelAnimationFrame(raf);
+  }, [waveBars, barCanvases, computeCoverMap, waveIntensity]);
+
+  /** ---------------- Pre-generate bar sweep timings ------------------- */
   const bars = React.useMemo(() => {
     if (!waveBars) return [];
     const n = waveBarCount ?? 3;
@@ -331,7 +383,7 @@ export default function HoloHeadshotAuto({
         />
       </div>
 
-      {/* Horizontal Wavy Bars: tint + wrapper (SVG ripple) + canvas */}
+      {/* Horizontal Wavy Bars (tint + displaced canvas clone) */}
       {waveBars && ready && bars.map((b, i) => {
         const heightPct = waveBarHeightPct;
         const clip =
@@ -340,38 +392,9 @@ export default function HoloHeadshotAuto({
         const barDelay = `${b.delayMs}ms`;
         const pulseMs = `${1200 + Math.round(600 * b.speedScale)}ms`;
 
-        const filterId = `${uid}-ripple-${i}`;
-
         return (
           <React.Fragment key={i}>
-            {/* SVG ripple filter (expanded region so it's not clipped) */}
-            <svg width="0" height="0" style={{ position: "absolute" }}>
-              <filter id={filterId} x="-25%" y="-25%" width="150%" height="150%" filterUnits="objectBoundingBox">
-                <feTurbulence
-                  type="fractalNoise"
-                  baseFrequency="0.010 0.12"
-                  numOctaves={2}
-                  seed={i * 11 + 5}
-                  result="noise"
-                >
-                  <animate
-                    attributeName="baseFrequency"
-                    dur={`${Math.max(2.0, (sweepMs / 1000) * 0.95)}s`}
-                    values="0.012 0.10;0.006 0.16;0.012 0.10"
-                    repeatCount="indefinite"
-                  />
-                </feTurbulence>
-                <feDisplacementMap
-                  in="SourceGraphic"
-                  in2="noise"
-                  scale={28}              // ↑ stronger bend; tweak 22–36
-                  xChannelSelector="R"
-                  yChannelSelector="G"
-                />
-              </filter>
-            </svg>
-
-            {/* Emissive bar tint (glow) */}
+            {/* Emissive bar tint (glow layer) */}
             <div
               aria-hidden
               className="absolute left-[-6%] right-[-6%] z-[6] pointer-events-none"
@@ -398,7 +421,7 @@ export default function HoloHeadshotAuto({
               }}
             />
 
-            {/* WRAPPER gets the SVG filter; canvas inside does brightness/saturate */}
+            {/* Displaced image inside same bar clip */}
             <div
               aria-hidden
               className="absolute left-[-6%] right-[-6%] z-[7] pointer-events-none"
@@ -408,22 +431,9 @@ export default function HoloHeadshotAuto({
                 clipPath: clip,
                 overflow: "hidden",
                 animation: `waveDownTop ${sweepMs}ms linear ${barDelay} infinite`,
-                filter: `url(#${filterId})`, // <— apply ripple to the wrapper
               }}
             >
-              <canvas
-                ref={barCanvases[i]}
-                className="w-full h-full"
-                style={{
-                  transformOrigin: "50% 50%",
-                  animation: `
-                    warpJitter ${Math.max(800, Math.round(1300 * b.speedScale))}ms ease-in-out ${b.pulseDelayMs}ms infinite,
-                    warpSkew 2200ms ease-in-out ${barDelay} infinite
-                  `,
-                  // local tone bump; do NOT mix url(#) here
-                  filter: `brightness(${1 + 0.22 * waveIntensity}) saturate(${1 + 0.22 * waveIntensity})`,
-                }}
-              />
+              <canvas ref={barCanvases[i]} className="w-full h-full" />
             </div>
           </React.Fragment>
         );
@@ -466,7 +476,9 @@ export default function HoloHeadshotAuto({
           95% { opacity: 0.6; transform: skewX(0.4deg) translateY(0.3px); }
           97% { opacity: 0.3; transform: none; }
         }
+        /* Bar sweeps by animating TOP so it always reaches bottom */
         @keyframes waveDownTop { 0% { top: -20%; } 100% { top: 110%; } }
+        /* Edge morph to feel like a live signal */
         @keyframes waveShape {
           0% {
             clip-path: polygon(0% 10%, 10% 7%, 25% 10%, 40% 6%, 55% 10%, 70% 7%, 85% 10%, 100% 8%, 100% 90%, 85% 93%, 70% 90%, 55% 94%, 40% 90%, 25% 93%, 10% 90%, 0% 92%);
@@ -475,7 +487,7 @@ export default function HoloHeadshotAuto({
             clip-path: polygon(0% 12%, 10% 9%, 25% 12%, 40% 8%, 55% 12%, 70% 9%, 85% 12%, 100% 10%, 100% 88%, 85% 91%, 70% 88%, 55% 92%, 40% 88%, 25% 91%, 10% 88%, 0% 90%);
           }
           100% {
-            clip-path: polygon(0% 10%, 10% 7%, 25% 10%, 40% 6%, 55% 10%, 70% 7%, 85% 10%, 100% 8%, 100% 90%, 85% 93%, 70% 90%, 55% 94%, 40% 90%, 25% 93%, 10% 90%, 0% 92%);
+            clip-path: polygon(0% 10%, 10% 7%, 25% 10%, 40% 6%, 55% 10%, 70% 7%, 85% 10%, 100% 8%, 100% 90%, 55% 94%, 40% 90%, 25% 93%, 10% 90%, 0% 92%);
           }
         }
         @keyframes barPulse {
@@ -483,13 +495,6 @@ export default function HoloHeadshotAuto({
           50%  { opacity: 0.95; filter: brightness(1.12) saturate(1.08); }
           100% { opacity: 0.55; filter: brightness(1) saturate(1); }
         }
-        @keyframes warpJitter {
-          0%   { transform: translateX(0px) skewX(0deg) scaleY(1); }
-          30%  { transform: translateX(-1.8px) skewX(-1.8deg) scaleY(0.992); }
-          60%  { transform: translateX(1.6px)  skewX(1.6deg)  scaleY(1.008); }
-          100% { transform: translateX(0px) skewX(0deg) scaleY(1); }
-        }
-        @keyframes warpSkew { 0% { transform: skewX(0deg); } 50% { transform: skewX(2deg); } 100% { transform: skewX(0deg); } }
         @keyframes holoFlicker {
           0% { opacity: 0.10; } 20% { opacity: 0.22; } 35% { opacity: 0.14; }
           50% { opacity: 0.28; } 65% { opacity: 0.12; } 80% { opacity: 0.24; } 100% { opacity: 0.10; }
@@ -498,15 +503,14 @@ export default function HoloHeadshotAuto({
 
       {!ready && (
         <div className="absolute inset-0 grid place-items-center text-white/60 text-sm font-mono">
-          loading model…
+          loading…
         </div>
       )}
       {ready && error && (
         <div className="absolute inset-0 grid place-items-center text-white/60 text-xs font-mono px-3 text-center">
-          hologram fallback (segmentation failed)
+          hologram fallback (image load issue)
         </div>
       )}
     </div>
   );
 }
-
