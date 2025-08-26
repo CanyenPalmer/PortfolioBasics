@@ -7,20 +7,16 @@ type Props = {
   alt?: string;
   className?: string;
   glowColor?: string;
-  /** 0..1 — higher = sharper edge (less feather) */
   edgeSharpness?: number;
-  /** downscale hint (API only) */
   scale?: number;
+  posterizeLevels?: number;
 
-  /** stylization */
-  posterizeLevels?: number;   // 0/1 -> off; 3..8 recommended
-
-  /** NEW: horizontal wave bars (downward sweep that distorts image) */
+  // Wavy horizontal transmission bars
   waveBars?: boolean;
-  waveBarCount?: number;      // how many bars in flight
-  wavePeriodMs?: number;      // time each bar takes to sweep top→bottom
-  waveBarHeightPct?: number;  // bar height in % of box (e.g., 10 = 10%)
-  waveIntensity?: number;     // how strong the distortion/brightness bump feels
+  waveBarCount?: number;
+  wavePeriodMs?: number;
+  waveBarHeightPct?: number;
+  waveIntensity?: number;
 };
 
 export default function HoloHeadshotAuto({
@@ -30,26 +26,23 @@ export default function HoloHeadshotAuto({
   glowColor = "rgba(0, 200, 255, 0.75)",
   edgeSharpness = 0.65,
   scale = 0.75,
-
   posterizeLevels = 5,
 
   waveBars = true,
-  waveBarCount = 5,
+  waveBarCount = 3,
   wavePeriodMs = 2600,
-  waveBarHeightPct = 10,
-  waveIntensity = 1.0, // 0.5–1.6 nice range
+  waveBarHeightPct = 12,
+  waveIntensity = 1.0,
 }: Props) {
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const [ready, setReady] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  /** ---------------- BodyPix segmentation → masked canvas ------------- */
   React.useEffect(() => {
     let cancelled = false;
 
     (async () => {
       try {
-        // Dynamic imports to avoid SSR bundling issues
         await import("@tensorflow/tfjs");
         const bodyPixMod = await import("@tensorflow-models/body-pix");
         const bodyPix = (bodyPixMod as any).default ?? bodyPixMod;
@@ -79,7 +72,6 @@ export default function HoloHeadshotAuto({
         const fullW = img.naturalWidth;
         const fullH = img.naturalHeight;
 
-        // Build soft alpha mask from segmentation
         const maskCanvas = document.createElement("canvas");
         maskCanvas.width = fullW;
         maskCanvas.height = fullH;
@@ -99,7 +91,7 @@ export default function HoloHeadshotAuto({
               }
             }
           }
-          return sum / count; // 0..1
+          return sum / count;
         };
 
         for (let y = 0; y < fullH; y++) {
@@ -116,7 +108,6 @@ export default function HoloHeadshotAuto({
         }
         mctx.putImageData(maskImg, 0, 0);
 
-        // Composite masked image to output canvas
         const out = canvasRef.current;
         if (!out) return;
         out.width = fullW;
@@ -134,12 +125,10 @@ export default function HoloHeadshotAuto({
         const ta = td.data;
         const ma = mctx.getImageData(0, 0, fullW, fullH).data;
 
-        // Inject alpha from mask
         for (let i = 0; i < ta.length; i += 4) {
           ta[i + 3] = ma[i + 3];
         }
 
-        // Optional posterize to push a synthetic look
         if (posterizeLevels && posterizeLevels >= 2) {
           const levels = Math.max(2, Math.min(16, Math.floor(posterizeLevels)));
           const step = 255 / (levels - 1);
@@ -168,200 +157,87 @@ export default function HoloHeadshotAuto({
     };
   }, [src, edgeSharpness, scale, posterizeLevels]);
 
-  /** ---------------- Pre-generate wave bars --------------------------- */
   const bars = React.useMemo(() => {
     if (!waveBars) return [];
-    const arr: Array<{
-      delayMs: number;
-      opacity: number;
-      hueShift: number;
-      speedScale: number;
-    }> = [];
-    for (let i = 0; i < waveBarCount; i++) {
+    const arr: Array<{ delayMs: number }> = [];
+    for (let i = 0; i < (waveBarCount ?? 3); i++) {
       arr.push({
-        delayMs: Math.round((i / waveBarCount) * wavePeriodMs),
-        opacity: 0.18 + Math.random() * 0.12,         // 0.18–0.30
-        hueShift: Math.round(Math.random() * 36) - 18, // -18..18 deg
-        speedScale: 0.9 + Math.random() * 0.3,         // 0.9–1.2
+        delayMs: Math.round((i / (waveBarCount ?? 3)) * (wavePeriodMs ?? 2600)),
       });
     }
     return arr;
   }, [waveBars, waveBarCount, wavePeriodMs]);
 
-  /** ---------------- Render ------------------------------------------- */
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl shadow-lg ring-1 ring-white/15 ${className}`}
-      style={{ background: "#080c11" }}
+      className={`relative overflow-hidden rounded-2xl shadow-lg ring-1 ring-white/15 bg-black/30 ${className}`}
+      style={{
+        perspective: "1000px",
+      }}
     >
+      <canvas
+        ref={canvasRef}
+        aria-label={alt}
+        className="w-full h-full object-cover"
+      />
+
       {/* Glow */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0"
+        className="pointer-events-none absolute inset-0 rounded-2xl"
         style={{
-          zIndex: 1,
-          borderRadius: 16,
-          boxShadow: `0 0 38px ${glowColor}, 0 0 140px ${glowColor}`,
-          opacity: 0.5,
+          boxShadow: `0 0 40px ${glowColor}, 0 0 120px ${glowColor}`,
+          opacity: 0.35,
           filter: "blur(0.6px)",
         }}
       />
 
-      {/* Pixel grid */}
+      {/* Horizontal Wavy Bars */}
+      {waveBars &&
+        ready &&
+        bars.map((b, i) => (
+          <div
+            key={i}
+            aria-hidden
+            className="absolute left-0 w-full"
+            style={{
+              height: `${waveBarHeightPct}%`,
+              background: `linear-gradient(to bottom, rgba(0,255,255,${0.12 *
+                waveIntensity}) 0%, rgba(0,255,255,${0.25 *
+                waveIntensity}) 50%, rgba(0,255,255,0) 100%)`,
+              mixBlendMode: "screen",
+              animation: `waveDown ${wavePeriodMs}ms linear ${b.delayMs}ms infinite`,
+              opacity: 0.8,
+              filter: "blur(2px)",
+            }}
+          />
+        ))}
+
+      {/* Vignette edges */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0"
+        className="pointer-events-none absolute inset-0 rounded-2xl"
         style={{
-          zIndex: 3,
-          borderRadius: 16,
-          opacity: 0.28,
-          mixBlendMode: "screen",
-          background:
-            "radial-gradient(circle, rgba(0,220,255,0.95) 0 45%, rgba(0,220,255,0) 51%)",
-          backgroundSize: "6px 6px",
-          animation: "pixelDrift 9s linear infinite",
-        }}
-      />
-
-      {/* Scanlines */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          zIndex: 4,
-          borderRadius: 16,
-          opacity: 0.20,
-          mixBlendMode: "screen",
-          background:
-            "repeating-linear-gradient(to bottom, rgba(0,255,255,0.16) 0px, rgba(0,255,255,0.16) 1px, transparent 2px, transparent 5px)",
-          animation: "scanWobble 6s ease-in-out infinite",
-        }}
-      />
-
-      {/* Silhouette canvas with stylizing filters */}
-      <div className="absolute inset-0 z-[5]">
-        <canvas
-          ref={canvasRef}
-          aria-label={alt}
-          style={{
-            width: "100%",
-            height: "100%",
-            imageRendering: "pixelated",
-            // synthetic phosphor look
-            filter: "contrast(1.35) brightness(1.22) saturate(0.85) hue-rotate(190deg)",
-            borderRadius: 16,
-          }}
-        />
-      </div>
-
-      {/* Chromatic border flicker (subtle) */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 z-[6]"
-        style={{
-          borderRadius: 16,
-          animation: "holoAberration 7.5s ease-in-out infinite",
-          mixBlendMode: "screen",
-        }}
-      >
-        <div
-          className="absolute inset-0"
-          style={{
-            border: "1px solid rgba(0,255,255,0.24)",
-            filter:
-              "drop-shadow(1px 0 rgba(255,0,80,0.20)) drop-shadow(-1px 0 rgba(0,220,255,0.20))",
-            borderRadius: 16,
-          }}
-        />
-      </div>
-
-      {/* HORIZONTAL WAVE BARS — move down & distort underlying content */}
-      {waveBars && (
-        <div className="absolute inset-0 z-[7] pointer-events-none">
-          {bars.map((b, i) => (
-            <div
-              key={`hb-${i}`}
-              className="absolute left-[-10%] right-[-10%]"
-              style={{
-                top: "-20%",
-                height: `${waveBarHeightPct}%`,
-                opacity: b.opacity,
-                // wavey silhouette edges (animated clip path)
-                clipPath:
-                  "polygon(0% 10%, 10% 7%, 25% 10%, 40% 6%, 55% 10%, 70% 7%, 85% 10%, 100% 8%, 100% 90%, 85% 93%, 70% 90%, 55% 94%, 40% 90%, 25% 93%, 10% 90%, 0% 92%)",
-                animation: `waveDown ${Math.round(
-                  wavePeriodMs * b.speedScale
-                )}ms linear infinite, waveShape 2200ms ease-in-out infinite`,
-                animationDelay: `${b.delayMs}ms, ${b.delayMs}ms`,
-                // Distortion of underlying content:
-                backdropFilter: `
-                  brightness(${1 + 0.25 * waveIntensity})
-                  saturate(${1 + 0.35 * waveIntensity})
-                  contrast(${1 + 0.2 * waveIntensity})
-                  hue-rotate(${b.hueShift}deg)
-                  blur(${0.4 * waveIntensity}px)
-                `,
-                // Light emissive tint so the bar is visible but subtle
-                background:
-                  "linear-gradient(180deg, rgba(0,255,255,0.03) 0%, rgba(0,255,255,0.18) 50%, rgba(255,0,150,0.12) 100%)",
-                mixBlendMode: "screen",
-                filter: "blur(0.2px)",
-              }}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Vignette */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 z-[9]"
-        style={{
-          borderRadius: 16,
           boxShadow:
             "inset 0 0 80px rgba(0,0,0,0.6), inset 0 0 160px rgba(0,0,0,0.35)",
         }}
       />
 
-      {/* Animations */}
       <style jsx global>{`
-        @keyframes pixelDrift { 0% { background-position: 0 0; } 100% { background-position: 0 -18px; } }
-        @keyframes scanWobble { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1px); } }
-        @keyframes holoAberration {
-          0%, 92%, 100% { opacity: 0; transform: none; }
-          93% { opacity: 1; transform: skewX(-0.6deg) translateY(-0.5px); }
-          95% { opacity: 0.6; transform: skewX(0.4deg) translateY(0.3px); }
-          97% { opacity: 0.3; transform: none; }
-        }
-        /* Horizontal sweep top -> bottom */
         @keyframes waveDown {
-          0%   { transform: translateY(-20%); }
-          100% { transform: translateY(110%); }
-        }
-        /* Gently morph the bar edges to feel like a live signal */
-        @keyframes waveShape {
           0% {
-            clip-path: polygon(0% 10%, 10% 7%, 25% 10%, 40% 6%, 55% 10%, 70% 7%, 85% 10%, 100% 8%, 100% 90%, 85% 93%, 70% 90%, 55% 94%, 40% 90%, 25% 93%, 10% 90%, 0% 92%);
+            top: -20%;
+            transform: skewX(-8deg);
           }
           50% {
-            clip-path: polygon(0% 12%, 10% 9%, 25% 12%, 40% 8%, 55% 12%, 70% 9%, 85% 12%, 100% 10%, 100% 88%, 85% 91%, 70% 88%, 55% 92%, 40% 88%, 25% 91%, 10% 88%, 0% 90%);
+            transform: skewX(8deg);
           }
           100% {
-            clip-path: polygon(0% 10%, 10% 7%, 25% 10%, 40% 6%, 55% 10%, 70% 7%, 85% 10%, 100% 8%, 100% 90%, 85% 93%, 70% 90%, 55% 94%, 40% 90%, 25% 93%, 10% 90%, 0% 92%);
+            top: 120%;
+            transform: skewX(-8deg);
           }
         }
       `}</style>
-
-      {!ready && (
-        <div className="absolute inset-0 grid place-items-center text-white/60 text-sm font-mono">
-          loading model…
-        </div>
-      )}
-      {ready && error && (
-        <div className="absolute inset-0 grid place-items-center text-white/60 text-xs font-mono px-3 text-center">
-          hologram fallback (segmentation failed)
-        </div>
-      )}
     </div>
   );
 }
