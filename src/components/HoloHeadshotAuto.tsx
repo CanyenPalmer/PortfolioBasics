@@ -30,10 +30,10 @@ export default function HoloHeadshotAuto({
 
     (async () => {
       try {
-        // IMPORTANT: dynamic imports so SSR/build doesn't choke
-        const tfjs = await import("@tensorflow/tfjs"); // eslint-disable-line @typescript-eslint/no-unused-vars
+        // Dynamic imports so build/SSR doesn’t try to bundle them
+        await import("@tensorflow/tfjs");
         const bodyPixMod = await import("@tensorflow-models/body-pix");
-        const bodyPix = bodyPixMod.default ?? bodyPixMod;
+        const bodyPix = (bodyPixMod as any).default ?? bodyPixMod;
 
         const net = await bodyPix.load({
           architecture: "MobileNetV1",
@@ -60,7 +60,7 @@ export default function HoloHeadshotAuto({
         const fullW = img.naturalWidth;
         const fullH = img.naturalHeight;
 
-        // Build alpha mask with simple feathering via neighborhood sampling
+        // Build alpha mask (soft edge)
         const maskCanvas = document.createElement("canvas");
         maskCanvas.width = fullW;
         maskCanvas.height = fullH;
@@ -192,7 +192,6 @@ export default function HoloHeadshotAuto({
             width: "100%",
             height: "100%",
             imageRendering: "pixelated",
-            // Force hologram vibe (not photo-real):
             filter: "contrast(1.35) brightness(1.22) saturate(0) hue-rotate(190deg)",
             borderRadius: 16,
           }}
