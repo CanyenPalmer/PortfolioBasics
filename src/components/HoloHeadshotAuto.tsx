@@ -12,10 +12,10 @@ type Props = {
 
   // Horizontal transmission bars
   waveBars?: boolean;
-  waveBarCount?: number;
-  wavePeriodMs?: number;
-  waveBarHeightPct?: number;
-  waveIntensity?: number;
+  waveBarCount?: number;     // how many bars at once
+  wavePeriodMs?: number;     // sweep duration top→bottom
+  waveBarHeightPct?: number; // height of each bar in % of box
+  waveIntensity?: number;    // brightness/contrast bump inside bar
 
   // Flicker
   flicker?: boolean;
@@ -42,13 +42,36 @@ export default function HoloHeadshotAuto({
   flickerSpeedMs = 1750,
 }: Props) {
   const containerRef = React.useRef<HTMLDivElement>(null);
-  const displayCanvasRef = React.useRef<HTMLCanvasElement>(null);
 
-  // Offscreen masked source (native image resolution)
+  // Base canvas (cover-fit)
+  const baseCanvasRef = React.useRef<HTMLCanvasElement>(null);
+  // Offscreen masked source (native size)
   const maskedCanvasRef = React.useRef<HTMLCanvasElement | null>(null);
+
+  // Per-bar canvas clones (each clipped and warped)
+  const [barCanvases, setBarCanvases] = React.useState<
+    Array<React.RefObject<HTMLCanvasElement>>
+  >([]);
 
   const [ready, setReady] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+
+  // Ensure we have one canvas ref per bar
+  React.useEffect(() => {
+    if (!waveBars) {
+      setBarCanvases([]);
+      return;
+    }
+    const n = Math.max(0, waveBarCount || 0);
+    setBarCanvases((prev) => {
+      if (prev.length === n) return prev;
+      const arr: Array<React.RefObject<HTMLCanvasElement>> = [];
+      for (let i = 0; i < n; i++) {
+        arr.push(React.createRef<HTMLCanvasElement>());
+      }
+      return arr;
+    });
+  }, [waveBars, waveBarCount]);
 
   /** ---------------- Load + segment + posterize (once) ---------------- */
   React.useEffect(() => {
@@ -153,8 +176,8 @@ export default function HoloHeadshotAuto({
         sctx.putImageData(sd, 0, 0);
         maskedCanvasRef.current = masked;
 
-        // First draw to the display canvas with cover-fit
-        drawToDisplayCanvas();
+        // Initial draw into base + bar canvases
+        drawAllCanvases();
 
         setReady(true);
       } catch (e: any) {
@@ -170,23 +193,20 @@ export default function HoloHeadshotAuto({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src, edgeSharpness, posterizeLevels]);
 
-  /** --------------- ResizeObserver: cover-draw without distortion ------ */
-  const drawToDisplayCanvas = React.useCallback(() => {
+  /** --------------- cover-fit drawing for any canvas ------------------ */
+  const drawCover = React.useCallback((dest: HTMLCanvasElement) => {
     const masked = maskedCanvasRef.current;
-    const display = displayCanvasRef.current;
     const container = containerRef.current;
-    if (!masked || !display || !container) return;
+    if (!masked || !container) return;
 
     const cw = Math.max(1, container.clientWidth);
     const ch = Math.max(1, container.clientHeight);
 
-    // Size display canvas to container pixels
-    display.width = cw;
-    display.height = ch;
-    const dctx = display.getContext("2d")!;
+    dest.width = cw;
+    dest.height = ch;
+    const dctx = dest.getContext("2d")!;
     dctx.clearRect(0, 0, cw, ch);
 
-    // “object-fit: cover” math: crop source to match container aspect
     const sw = masked.width;
     const sh = masked.height;
     const srcAspect = sw / sh;
@@ -194,13 +214,11 @@ export default function HoloHeadshotAuto({
 
     let sx = 0, sy = 0, sWidth = sw, sHeight = sh;
     if (srcAspect > dstAspect) {
-      // source too wide, crop sides
       sHeight = sh;
       sWidth = sh * dstAspect;
       sx = (sw - sWidth) / 2;
       sy = 0;
     } else {
-      // source too tall, crop top/bottom
       sWidth = sw;
       sHeight = sw / dstAspect;
       sx = 0;
@@ -213,23 +231,31 @@ export default function HoloHeadshotAuto({
     dctx.drawImage(masked, sx, sy, sWidth, sHeight, 0, 0, cw, ch);
   }, []);
 
+  const drawAllCanvases = React.useCallback(() => {
+    if (baseCanvasRef.current) drawCover(baseCanvasRef.current);
+    for (const ref of barCanvases) {
+      if (ref.current) drawCover(ref.current);
+    }
+  }, [drawCover, barCanvases]);
+
   React.useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
     const ro = new ResizeObserver(() => {
-      drawToDisplayCanvas();
+      drawAllCanvases();
     });
     ro.observe(container);
     return () => ro.disconnect();
-  }, [drawToDisplayCanvas]);
+  }, [drawAllCanvases]);
 
   /** ---------------- Pre-generate wave bars --------------------------- */
   const bars = React.useMemo(() => {
     if (!waveBars) return [];
+    const n = waveBarCount ?? 3;
     const arr: Array<{ delayMs: number; speedScale: number; hueShift: number; pulseDelayMs: number }> = [];
-    for (let i = 0; i < (waveBarCount ?? 3); i++) {
+    for (let i = 0; i < n; i++) {
       arr.push({
-        delayMs: Math.round((i / (waveBarCount ?? 3)) * (wavePeriodMs ?? 2600)),
+        delayMs: Math.round((i / n) * (wavePeriodMs ?? 2600)),
         speedScale: 0.9 + Math.random() * 0.3,     // 0.9–1.2
         hueShift: Math.round(Math.random() * 36) - 18,
         pulseDelayMs: Math.round(Math.random() * 900),
@@ -262,7 +288,7 @@ export default function HoloHeadshotAuto({
         aria-hidden
         className="pointer-events-none absolute inset-0"
         style={{
-          zIndex: 3,
+          zIndex: 2,
           borderRadius: 16,
           opacity: 0.28,
           mixBlendMode: "screen",
@@ -278,7 +304,7 @@ export default function HoloHeadshotAuto({
         aria-hidden
         className="pointer-events-none absolute inset-0"
         style={{
-          zIndex: 4,
+          zIndex: 3,
           borderRadius: 16,
           opacity: 0.20,
           mixBlendMode: "screen",
@@ -288,22 +314,20 @@ export default function HoloHeadshotAuto({
         }}
       />
 
-      {/* Segmented, posterized figure (cover-fit canvas) */}
-      <div className="absolute inset-0 z-[5]">
+      {/* Base (normal) canvas */}
+      <div className="absolute inset-0 z-[4]">
         <canvas
-          ref={displayCanvasRef}
+          ref={baseCanvasRef}
           aria-label={alt}
           className="w-full h-full"
-          style={{
-            borderRadius: 16,
-          }}
+          style={{ borderRadius: 16 }}
         />
       </div>
 
       {/* Chromatic border shimmer */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 z-[6]"
+        className="pointer-events-none absolute inset-0 z-[9]"
         style={{
           borderRadius: 16,
           animation: "holoAberration 7.5s ease-in-out infinite",
@@ -321,44 +345,80 @@ export default function HoloHeadshotAuto({
         />
       </div>
 
-      {/* Horizontal Wavy Bars — animate TOP so they sweep to bottom reliably */}
+      {/* Horizontal Wavy Bars: each has a gradient tint + a CLIPPED, WARPED canvas clone */}
       {waveBars &&
         ready &&
-        bars.map((b, i) => (
-          <div
-            key={i}
-            aria-hidden
-            className="absolute left-[-6%] right-[-6%] z-[7] pointer-events-none"
-            style={{
-              top: "-20%",
-              height: `${waveBarHeightPct}%`,
-              background:
-                "linear-gradient(180deg, rgba(0,255,255,0.18) 0%, rgba(0,255,255,0.35) 50%, rgba(255,0,150,0.20) 100%)",
-              mixBlendMode: "screen",
-              filter: `hue-rotate(${b.hueShift}deg) blur(0.3px)`,
-              backdropFilter: `
-                brightness(${1 + 0.45 * waveIntensity})
-                saturate(${1 + 0.55 * waveIntensity})
-                contrast(${1 + 0.30 * waveIntensity})
-                blur(${0.6 * waveIntensity}px)
-              `,
-              animation: `
-                waveDownTop ${Math.round(wavePeriodMs * b.speedScale)}ms linear ${b.delayMs}ms infinite,
-                waveShape 2200ms ease-in-out ${b.delayMs}ms infinite,
-                barPulse ${1200 + Math.round(600 * b.speedScale)}ms ease-in-out ${b.pulseDelayMs}ms infinite
-              `,
-              clipPath:
-                "polygon(0% 10%, 10% 7%, 25% 10%, 40% 6%, 55% 10%, 70% 7%, 85% 10%, 100% 8%, 100% 90%, 85% 93%, 70% 90%, 55% 94%, 40% 90%, 25% 93%, 10% 90%, 0% 92%)",
-              opacity: 0.7,
-            }}
-          />
-        ))}
+        bars.map((b, i) => {
+          const heightPct = waveBarHeightPct;
+          const clip = "polygon(0% 10%, 10% 7%, 25% 10%, 40% 6%, 55% 10%, 70% 7%, 85% 10%, 100% 8%, 100% 90%, 85% 93%, 70% 90%, 55% 94%, 40% 90%, 25% 93%, 10% 90%, 0% 92%)";
+          const sweepMs = Math.round((wavePeriodMs ?? 2600) * b.speedScale);
+          const barDelay = `${b.delayMs}ms`;
+          const pulseMs = `${1200 + Math.round(600 * b.speedScale)}ms`;
+
+          return (
+            <React.Fragment key={i}>
+              {/* Emissive bar tint (for the glow) */}
+              <div
+                aria-hidden
+                className="absolute left-[-6%] right-[-6%] z-[6] pointer-events-none"
+                style={{
+                  top: "-20%",
+                  height: `${heightPct}%`,
+                  background:
+                    "linear-gradient(180deg, rgba(0,255,255,0.18) 0%, rgba(0,255,255,0.35) 50%, rgba(255,0,150,0.20) 100%)",
+                  mixBlendMode: "screen",
+                  filter: `hue-rotate(${b.hueShift}deg) blur(0.3px)`,
+                  animation: `
+                    waveDownTop ${sweepMs}ms linear ${barDelay} infinite,
+                    waveShape 2200ms ease-in-out ${barDelay} infinite,
+                    barPulse ${pulseMs} ease-in-out ${b.pulseDelayMs}ms infinite
+                  `,
+                  clipPath: clip,
+                  opacity: 0.7,
+                  backdropFilter: `
+                    brightness(${1 + 0.45 * waveIntensity})
+                    saturate(${1 + 0.55 * waveIntensity})
+                    contrast(${1 + 0.30 * waveIntensity})
+                    blur(${0.6 * waveIntensity}px)
+                  `,
+                }}
+              />
+
+              {/* Warped clone of the image, clipped to the same bar shape */}
+              <div
+                aria-hidden
+                className="absolute left-[-6%] right-[-6%] z-[7] pointer-events-none"
+                style={{
+                  top: "-20%",
+                  height: `${heightPct}%`,
+                  clipPath: clip,
+                  overflow: "hidden",
+                  animation: `waveDownTop ${sweepMs}ms linear ${barDelay} infinite`,
+                }}
+              >
+                <canvas
+                  ref={barCanvases[i]}
+                  className="w-full h-full"
+                  style={{
+                    // Subtle local distortion to simulate displacement
+                    transformOrigin: "50% 50%",
+                    animation: `
+                      warpJitter ${Math.max(900, Math.round(1400 * b.speedScale))}ms ease-in-out ${b.pulseDelayMs}ms infinite,
+                      warpSkew 2400ms ease-in-out ${barDelay} infinite
+                    `,
+                    filter: `brightness(${1 + 0.2 * waveIntensity}) saturate(${1 + 0.2 * waveIntensity})`,
+                  }}
+                />
+              </div>
+            </React.Fragment>
+          );
+        })}
 
       {/* Global hologram flicker overlay */}
       {flicker && ready && (
         <div
           aria-hidden
-          className="absolute inset-0 z-[8] pointer-events-none"
+          className="absolute inset-0 z-[10] pointer-events-none"
           style={{
             borderRadius: 16,
             mixBlendMode: "screen",
@@ -373,7 +433,7 @@ export default function HoloHeadshotAuto({
       {/* Vignette edges */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 z-[9]"
+        className="pointer-events-none absolute inset-0 z-[11]"
         style={{
           borderRadius: 16,
           boxShadow:
@@ -408,11 +468,23 @@ export default function HoloHeadshotAuto({
             clip-path: polygon(0% 10%, 10% 7%, 25% 10%, 40% 6%, 55% 10%, 70% 7%, 85% 10%, 100% 8%, 100% 90%, 85% 93%, 70% 90%, 55% 94%, 40% 90%, 25% 93%, 10% 90%, 0% 92%);
           }
         }
-        /* Per-bar pulse (opacity+brightness shimmer) */
+        /* Per-bar pulse (opacity + brightness shimmer) */
         @keyframes barPulse {
           0%   { opacity: 0.55; filter: brightness(1) saturate(1); }
           50%  { opacity: 0.95; filter: brightness(1.12) saturate(1.08); }
           100% { opacity: 0.55; filter: brightness(1) saturate(1); }
+        }
+        /* Local warp motions to simulate displacement */
+        @keyframes warpJitter {
+          0%   { transform: translateX(0px) skewX(0deg) scaleY(1); }
+          30%  { transform: translateX(-1.2px) skewX(-1.2deg) scaleY(0.995); }
+          60%  { transform: translateX(1.0px) skewX(1.0deg) scaleY(1.003); }
+          100% { transform: translateX(0px) skewX(0deg) scaleY(1); }
+        }
+        @keyframes warpSkew {
+          0%   { transform: skewX(0deg); }
+          50%  { transform: skewX(1.4deg); }
+          100% { transform: skewX(0deg); }
         }
         /* Global hologram flicker overlay */
         @keyframes holoFlicker {
@@ -439,4 +511,3 @@ export default function HoloHeadshotAuto({
     </div>
   );
 }
-
