@@ -16,7 +16,7 @@ type Props = {
   /** Bars & motion */
   waveBars?: boolean;
   waveBarCount?: number;
-  wavePeriodMs?: number;
+  wavePeriodMs?: number;        // bar cycle period
   waveBarHeightPct?: number;
   waveIntensity?: number;
 
@@ -52,7 +52,7 @@ export default function HoloHeadshotAuto({
 
   waveBars = true,
   waveBarCount = 3,
-  wavePeriodMs = 3800,
+  wavePeriodMs = 6000,             // slowed down (was 3800)
   waveBarHeightPct = 12,
   waveIntensity = 1.0,
 
@@ -166,7 +166,7 @@ export default function HoloHeadshotAuto({
   const barsRef = React.useRef<BarSpec[]>([]);
   React.useEffect(() => {
     const n = waveBarCount ?? 3;
-    const period = wavePeriodMs ?? 3800;
+    const period = wavePeriodMs ?? 6000;   // slower default
     barsRef.current = Array.from({ length: n }, (_, i) => ({
       speedScale: 0.95 + Math.random() * 0.15,
       delayMs: Math.round((i / n) * period),
@@ -176,7 +176,7 @@ export default function HoloHeadshotAuto({
     }));
   }, [waveBarCount, wavePeriodMs]);
 
-  /** ---------- Main RAF loop: position bars + warp image ---------- */
+  /** ---------- Main RAF loop ---------- */
   React.useEffect(() => {
     let raf = 0;
     const t0 = performance.now();
@@ -192,7 +192,7 @@ export default function HoloHeadshotAuto({
         const barH = (waveBarHeightPct / 100) * ch;
         barsRef.current.forEach((b) => {
           if (!b.el) return;
-          const sweep = (wavePeriodMs ?? 3800) * b.speedScale;
+          const sweep = (wavePeriodMs ?? 6000) * b.speedScale;
           let p = ((t - b.delayMs) % sweep) / sweep;
           if (p < 0) p += 1;
           const top = -0.2 * ch + p * (1.3 * ch);
@@ -214,7 +214,7 @@ export default function HoloHeadshotAuto({
         const centers: number[] = [];
 
         barsRef.current.forEach((b) => {
-          const sweep = (wavePeriodMs ?? 3800) * b.speedScale;
+          const sweep = (wavePeriodMs ?? 6000) * b.speedScale;
           let p = ((t - b.delayMs) % sweep) / sweep;
           if (p < 0) p += 1;
           const top = -0.2 * ch + p * (1.3 * ch);
@@ -244,17 +244,7 @@ export default function HoloHeadshotAuto({
             }
           }
 
-          ctx.drawImage(
-            masked,
-            sx,
-            srcY,
-            sWidth,
-            srcH,
-            dx,
-            y,
-            cw,
-            rowH
-          );
+          ctx.drawImage(masked, sx, srcY, sWidth, srcH, dx, y, cw, rowH);
         }
 
         ctx.globalCompositeOperation = "screen";
@@ -339,7 +329,6 @@ export default function HoloHeadshotAuto({
         />
       )}
 
-      {/* CSS animations */}
       <style jsx global>{`
         @keyframes holoFlicker {
           0% { opacity: 0.1; }
