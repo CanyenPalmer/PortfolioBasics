@@ -7,7 +7,7 @@ export type TypewriterOptions = {
   speed?: number;
   /** Delay before typing begins (ms) */
   startDelay?: number;
-  /** Optional typing sound or side-effect callback per character */
+  /** Optional typing callback per character */
   onTypeChar?: (index: number, char: string) => void;
 };
 
@@ -25,7 +25,6 @@ export function useTypewriter(text: string, opts: TypewriterOptions = {}) {
     setOutput("");
     setDone(false);
 
-    // Guard: empty text → finish immediately
     if (!text || text.length === 0) {
       setDone(true);
       return;
@@ -33,9 +32,9 @@ export function useTypewriter(text: string, opts: TypewriterOptions = {}) {
 
     let i = 0;
     let intervalId: number | undefined;
+
     const startId = window.setTimeout(() => {
       intervalId = window.setInterval(() => {
-        // Append next char
         i++;
         const next = text.slice(0, i);
         setOutput(next);
