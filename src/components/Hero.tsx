@@ -6,7 +6,7 @@ import CodeEdgesTyped from "./CodeEdgesTyped";
 import NameCodeExplode from "./NameCodeExplode";
 import SummaryRunner from "./SummaryRunner";
 
-/** ---------- InlineTypeLine (embedded to avoid module path issues) ---------- */
+/** ---------- InlineTypeLine (typed tagline) ---------- */
 import * as React from "react";
 
 function buildThresholds(core: number) {
@@ -88,7 +88,10 @@ function InlineTypeLine({
       setDone(true);
       return;
     }
-    const id = window.setTimeout(() => setI((n) => n + 1), typingSpeed) as unknown as number;
+    const id = window.setTimeout(
+      () => setI((n) => n + 1),
+      typingSpeed
+    ) as unknown as number;
     timers.current.push(id);
     return () => window.clearTimeout(id);
   }, [armed, started, done, i, text.length, typingSpeed]);
@@ -105,24 +108,30 @@ function InlineTypeLine({
           aria-hidden
         />
       </span>
-
       <style jsx>{`
-        @keyframes blink { 50% { opacity: 0; } }
+        @keyframes blink {
+          50% {
+            opacity: 0;
+          }
+        }
       `}</style>
     </div>
   );
 }
 /** ---------- /InlineTypeLine ---------- */
 
-/** ---------- PixelHologram (inline, zero import, failsafe) ---------- */
+/** ---------- PixelHologram (headshot effect) ---------- */
 function PixelHologram({
   src,
   alt = "Headshot of Canyen Palmer",
   glowColor = "rgba(0, 200, 255, 0.6)",
-}: { src: string; alt?: string; glowColor?: string }) {
+}: {
+  src: string;
+  alt?: string;
+  glowColor?: string;
+}) {
   const ref = React.useRef<HTMLDivElement>(null);
 
-  // Lightweight tilt (no React state churn)
   React.useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -148,17 +157,14 @@ function PixelHologram({
   return (
     <div
       ref={ref}
-      className="
-        relative overflow-hidden rounded-2xl shadow-lg ring-1 ring-white/15
-        w-full max-w-full h-full
-      "
+      className="relative overflow-hidden rounded-2xl shadow-lg ring-1 ring-white/15 w-full max-w-full h-full"
       style={{
         background: "#0b0f15",
         transform: "translate3d(var(--tx,0), var(--ty,0), 0)",
         transition: "transform 180ms ease-out",
       }}
     >
-      {/* IMAGE: plain <img> so Next config can't block it */}
+      {/* Base image */}
       <img
         src={src}
         alt={alt}
@@ -169,12 +175,12 @@ function PixelHologram({
           height: "100%",
           objectFit: "cover",
           display: "block",
-          zIndex: 20, // always above effects
+          zIndex: 20,
           borderRadius: 16,
         }}
       />
 
-      {/* Glow behind image */}
+      {/* Glow */}
       <div
         aria-hidden
         style={{
@@ -185,18 +191,15 @@ function PixelHologram({
           opacity: 0.35,
           filter: "blur(0.5px)",
           zIndex: 0,
-          pointerEvents: "none",
         }}
       />
 
-      {/* Pixel matrix (dot grid) behind image */}
+      {/* Pixel grid */}
       <div
         aria-hidden
         style={{
           position: "absolute",
           inset: 0,
-          zIndex: 0,
-          pointerEvents: "none",
           borderRadius: 16,
           opacity: 0.18,
           mixBlendMode: "screen",
@@ -207,14 +210,12 @@ function PixelHologram({
         }}
       />
 
-      {/* Light scanlines for hologram feel */}
+      {/* Scanlines */}
       <div
         aria-hidden
         style={{
           position: "absolute",
           inset: 0,
-          zIndex: 0,
-          pointerEvents: "none",
           borderRadius: 16,
           opacity: 0.12,
           mixBlendMode: "screen",
@@ -229,17 +230,20 @@ function PixelHologram({
         style={{
           position: "absolute",
           inset: 0,
-          zIndex: 0,
-          pointerEvents: "none",
           borderRadius: 16,
-          boxShadow: "inset 0 0 80px rgba(0,0,0,0.6), inset 0 0 160px rgba(0,0,0,0.35)",
+          boxShadow:
+            "inset 0 0 80px rgba(0,0,0,0.6), inset 0 0 160px rgba(0,0,0,0.35)",
         }}
       />
 
       <style jsx global>{`
         @keyframes pixelDrift {
-          0% { background-position: 0 0; }
-          100% { background-position: 0 -16px; }
+          0% {
+            background-position: 0 0;
+          }
+          100% {
+            background-position: 0 -16px;
+          }
         }
       `}</style>
     </div>
@@ -254,18 +258,14 @@ export default function Hero() {
       className="relative isolate w-full min-h-screen flex items-center justify-center px-6 md:px-12 pt-20"
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch w-full max-w-6xl">
-        {/* LEFT COLUMN — Text */}
+        {/* LEFT COLUMN */}
         <div className="relative">
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6 }}
-            className="
-              flex flex-col justify-center h-full relative z-10 overflow-hidden
-              min-h-[420px] md:min-h-[clamp(520px,70vh,860px)]
-            "
+            className="flex flex-col justify-center h-full relative z-10 overflow-hidden min-h-[420px] md:min-h-[clamp(520px,70vh,860px)]"
           >
-            {/* Animated Name */}
             <div className="mb-3">
               <NameCodeExplode
                 text="Canyen Palmer"
@@ -276,10 +276,8 @@ export default function Hero() {
               />
             </div>
 
-            {/* Typed tagline line (terminal-style) */}
             <InlineTypeLine
               className="text-[15px] md:text-[17px] text-white/80 mt-1 mb-2"
-              prompt=""
               text="Turning data into decisions through science, code, and storytelling."
               typingSpeed={18}
               startDelayMs={180}
@@ -288,7 +286,6 @@ export default function Hero() {
               ariaLabel="Tagline"
             />
 
-            {/* summary.py card -> Run -> terminal overlay */}
             <SummaryRunner
               className="mt-3 mb-6"
               proficiency={hero.skills.proficiency}
@@ -298,7 +295,6 @@ export default function Hero() {
               minHeightPxMd={420}
             />
 
-            {/* CTAs */}
             <div className="mt-8 flex gap-4">
               {hero.ctas.map((cta, i) => (
                 <a
@@ -316,7 +312,7 @@ export default function Hero() {
             </div>
           </motion.div>
 
-          {/* Typed code edges — LEFT */}
+          {/* LEFT code edges */}
           <div className="hidden md:block">
             <CodeEdgesTyped
               zClass="-z-10"
@@ -334,14 +330,16 @@ export default function Hero() {
                 { text: "from sklearn.model_selection import train_test_split" },
               ]}
               left={[
-                { text: "SELECT hole, avg(strokes) FROM rounds GROUP BY hole;" },
+                {
+                  text: "SELECT hole, avg(strokes) FROM rounds GROUP BY hole;",
+                },
               ]}
               right={[]}
             />
           </div>
         </div>
 
-        {/* RIGHT COLUMN — Headshot */}
+        {/* RIGHT COLUMN */}
         <div className="relative">
           <motion.div
             initial={{ opacity: 0, x: 30 }}
@@ -350,20 +348,23 @@ export default function Hero() {
             className="flex items-center justify-center h-full relative z-10"
           >
             <div
-              className="
-                relative overflow-hidden rounded-2xl shadow-lg ring-1 ring-white/15
+              className="relative overflow-hidden rounded-2xl shadow-lg ring-1 ring-white/15
                 w-full max-w-full
                 h-[280px] sm:h-[340px] md:h-[clamp(520px,70vh,860px)]
                 md:w-[min(46vw,620px)]
-                aspect-[3/4]
-                flex items-center justify-center
-              "
+                aspect-[3/4] flex items-center justify-center"
             >
-              <PixelHologram src={typeof hero.headshot === "string" ? hero.headshot : "/images/headshot.jpg"} />
+              <PixelHologram
+                src={
+                  typeof hero.headshot === "string"
+                    ? hero.headshot
+                    : "/images/headshot.jpg"
+                }
+              />
             </div>
           </motion.div>
 
-          {/* Typed code edges — RIGHT */}
+          {/* RIGHT code edges */}
           <div className="hidden md:block">
             <CodeEdgesTyped
               zClass="-z-10"
@@ -376,10 +377,14 @@ export default function Hero() {
               top={[{ text: "df.groupby('hole')['strokes'].mean()" }]}
               bottom={[
                 { text: "from sklearn.metrics import roc_auc_score" },
-                { text: "auc = roc_auc_score(y_te, model.predict_proba(X_te)[:,1])" },
+                {
+                  text: "auc = roc_auc_score(y_te, model.predict_proba(X_te)[:,1])",
+                },
               ]}
               left={[
-                { text: "model = RandomForestClassifier(n_estimators=300, random_state=42)" },
+                {
+                  text: "model = RandomForestClassifier(n_estimators=300, random_state=42)",
+                },
                 { text: "model.fit(X_tr, y_tr)" },
               ]}
               right={[]}
