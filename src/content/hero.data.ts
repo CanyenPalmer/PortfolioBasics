@@ -1,19 +1,24 @@
+// src/content/hero.data.ts
+import headshot from "@/public/images/headshot.jpg"; 
+// If your "@" alias isn't rooted at the project root, use:
+// import headshot from "../../public/images/headshot.jpg";
+
 export const hero = {
-  headline: "Data Scientist & Google‑Certified Data Analyst Professional",
+  headline: "Data Scientist & Google-Certified Data Analyst Professional",
   subheadline:
     "Specializing in statistics, machine learning, predictive modeling, and optimization.",
   ctas: [
     { label: "See Experience", href: "#experience", variant: "primary" },
     { label: "Contact Me", href: "#contact", variant: "ghost" },
   ],
-  headshot: "/images/headshot.jpg",
+  headshot, // ✅ static import (no path/case issues)
   background: "",
   skills: {
     proficiency: ["Python", "Excel", "Tableau"],
     familiarity: ["R", "Java", "SQL", "Power BI", "AI"],
     techStack: [
-      "Pandas","NumPy","SciPy","seaborn","Matplotlib",
-      "statsmodels","Tidyverse","Git","Jupyter","CSV","Quarto (.qmd)"
+      "Pandas", "NumPy", "SciPy", "seaborn", "Matplotlib",
+      "statsmodels", "Tidyverse", "Git", "Jupyter", "CSV", "Quarto (.qmd)"
     ],
   },
   personal:
