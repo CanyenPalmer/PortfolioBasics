@@ -1,12 +1,18 @@
 "use client";
 
 import * as React from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 /** -----------------------------------------------------------------------
- * Experience (Hybrid: VS Code Tabs + JSON editor)
- * - Tabs per job (file-like)
- * - JSON-like editor with syntax colors
- * - Accessible; works with scroll or top-bar jump
+ * Experience (Terminal/Editor theme + Tabs + JSON viewer)
+ * Enhancements added per request:
+ *  - Visual hierarchy (featured role styling, badge)
+ *  - Engagement (hover/press states, glowing accents)
+ *  - Context line (1‑liner for each company/role)
+ *  - Highlight most impressive role (featured)
+ *  - Interactive timeline rail (clickable dots sync with tabs)
+ *  - Expandable details (creations) with smooth animations
+ *  - Subtle animations (panel transitions, caret blink)
  * ----------------------------------------------------------------------*/
 
 type Creation = { name: string; details: string[] };
@@ -22,6 +28,8 @@ type ExperienceItem = {
   highlights: string[];
   creations?: Creation[];
   fileName?: string;
+  context?: string; // NEW: one‑liner explainer
+  featured?: boolean; // NEW: highlight this role
 };
 
 const EXPERIENCES: ExperienceItem[] = [
@@ -31,6 +39,7 @@ const EXPERIENCES: ExperienceItem[] = [
     company: "Iconic Care Inc.",
     location: "Indianapolis, Indiana",
     dates: "June 2025 – Aug 2025",
+    context: "Healthcare DME provider; internal analytics & ML for revenue cycle.",
     tech: [
       "Python",
       "SQLite",
@@ -69,6 +78,7 @@ const EXPERIENCES: ExperienceItem[] = [
     company: "Iconic Care Inc.",
     location: "Indianapolis, Indiana",
     dates: "May 2025 – Jun 2025",
+    context: "Billing ops & data hygiene; dashboards, denials, reimbursement.",
     tech: ["Python", "Excel", "Google Sheets/Docs", "Brightree"],
     skills: [
       "Analytics",
@@ -101,6 +111,7 @@ const EXPERIENCES: ExperienceItem[] = [
     company: "Palmer Projects - Freelance",
     location: "Global",
     dates: "May 2023 – Present",
+    context: "Independent studio delivering analytics, ML, and software projects.",
     tech: ["Python", "R", "SQL", "Tableau", "Excel"],
     skills: [
       "Analytics",
@@ -124,6 +135,7 @@ const EXPERIENCES: ExperienceItem[] = [
       },
     ],
     fileName: "ceo_founder_data_scientist.py",
+    featured: true, // featured role for visual hierarchy
   },
 ];
 
@@ -160,29 +172,37 @@ function ExperienceJsonView({ exp }: { exp: ExperienceItem }) {
         <span className="text-white/80">{"{"}</span>
         {"\n"}
         {"  "}
-        <span className="text-blue-400">"title"</span>:{" "}
+        <span className="text-blue-400">"title"</span>: {" "}
         <span className="text-green-400">"{exp.title}"</span>,
         {"\n"}
         {"  "}
-        <span className="text-blue-400">"company"</span>:{" "}
+        <span className="text-blue-400">"company"</span>: {" "}
         <span className="text-green-400">"{exp.company}"</span>,
         {"\n"}
         {exp.location && (
           <>
             {"  "}
-            <span className="text-blue-400">"location"</span>:{" "}
+            <span className="text-blue-400">"location"</span>: {" "}
             <span className="text-green-400">"{exp.location}"</span>,
             {"\n"}
           </>
         )}
+        {exp.context && (
+          <>
+            {"  "}
+            <span className="text-blue-400">"context"</span>: {" "}
+            <span className="text-purple-300">"{exp.context}"</span>,
+            {"\n"}
+          </>
+        )}
         {"  "}
-        <span className="text-blue-400">"dates"</span>:{" "}
+        <span className="text-blue-400">"dates"</span>: {" "}
         <span className="text-orange-300">"{exp.dates}"</span>,
         {"\n"}
         {exp.tech && (
           <>
             {"  "}
-            <span className="text-blue-400">"tech"</span>:{" "}
+            <span className="text-blue-400">"tech"</span>: {" "}
             <JsonArray items={exp.tech.map((t, i) => <span key={i}>"{t}"</span>)} />
             ,{"\n"}
           </>
@@ -190,7 +210,7 @@ function ExperienceJsonView({ exp }: { exp: ExperienceItem }) {
         {exp.skills && (
           <>
             {"  "}
-            <span className="text-blue-400">"skills"</span>:{" "}
+            <span className="text-blue-400">"skills"</span>: {" "}
             <JsonArray items={exp.skills.map((s, i) => <span key={i}>"{s}"</span>)} />
             ,{"\n"}
           </>
@@ -216,7 +236,7 @@ function ExperienceJsonView({ exp }: { exp: ExperienceItem }) {
                 <span className="text-white/80">{"{"}</span>
                 {"\n"}
                 {"    "}
-                <span className="text-blue-400">"name"</span>:{" "}
+                <span className="text-blue-400">"name"</span>: {" "}
                 <span className="text-green-400">"{c.name}"</span>,
                 {"\n"}
                 {"    "}
@@ -242,6 +262,8 @@ function ExperienceJsonView({ exp }: { exp: ExperienceItem }) {
         {"\n"}
         <span className="text-white/80">{"}"}</span>
       </code>
+      {/* blinking caret for terminal vibe */}
+      <span className="ml-1 inline-block h-4 w-[7px] align-baseline bg-white/70 animate-pulse rounded-sm translate-y-[3px]" />
     </pre>
   );
 }
@@ -252,7 +274,7 @@ function Tabs({
   activeId,
   onChange,
 }: {
-  items: { id: string; label: string }[];
+  items: { id: string; label: string; featured?: boolean }[];
   activeId: string;
   onChange: (id: string) => void;
 }) {
@@ -282,12 +304,15 @@ function Tabs({
               >
                 <span
                   className={`inline-block h-1 w-1 rounded-full ${
-                    active
-                      ? "bg-emerald-400"
-                      : "bg-white/30 group-hover:bg-white/50"
+                    active ? "bg-emerald-400" : "bg-white/30 group-hover:bg-white/50"
                   }`}
                 />
                 {t.label}
+                {t.featured && (
+                  <span className="ml-1 rounded-sm border border-cyan-400/40 bg-cyan-400/10 text-cyan-200 px-1 py-[1px] text-[10px]">
+                    FEATURED
+                  </span>
+                )}
               </button>
             </li>
           );
@@ -297,15 +322,80 @@ function Tabs({
   );
 }
 
+/* ---------------- Timeline Rail (interactive) ------------------- */
+function TimelineRail({
+  items,
+  activeId,
+  onChange,
+}: {
+  items: ExperienceItem[];
+  activeId: string;
+  onChange: (id: string) => void;
+}) {
+  const activeIndex = Math.max(
+    0,
+    items.findIndex((e) => e.id === activeId)
+  );
+
+  return (
+    <div className="relative hidden md:block pr-4">
+      {/* rail */}
+      <div className="relative ml-3">
+        <motion.div
+          initial={{ scaleY: 0 }}
+          animate={{ scaleY: 1 }}
+          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+          className="absolute left-0 top-0 bottom-0 w-px origin-top bg-gradient-to-b from-cyan-500/60 via-cyan-400/20 to-transparent"
+        />
+        <ul className="relative space-y-4">
+          {items.map((e, i) => {
+            const active = e.id === activeId;
+            return (
+              <li key={e.id} className="pl-4">
+                <button
+                  onClick={() => onChange(e.id)}
+                  className={`relative group flex items-center gap-2 text-left font-mono text-[12px] transition ${
+                    active ? "text-white" : "text-white/60 hover:text-white/90"
+                  }`}
+                >
+                  {/* dot */}
+                  <span
+                    className={`absolute -left-[13px] h-2.5 w-2.5 rounded-full border ${
+                      active
+                        ? "bg-cyan-400 border-cyan-300 shadow-[0_0_0_6px_rgba(34,211,238,0.18)]"
+                        : "bg-slate-400/70 border-slate-300/80 shadow-[0_0_0_6px_rgba(148,163,184,0.10)] group-hover:bg-slate-300"
+                    }`}
+                  />
+                  <span className="truncate max-w-[160px]">
+                    {e.fileName ?? e.title.toLowerCase().replace(/\s+/g, "_") + ".json"}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+        {/* progress indicator aligned to active index */}
+        <motion.div
+          aria-hidden
+          className="absolute left-0 w-px bg-cyan-400/60"
+          initial={false}
+          animate={{ top: activeIndex * 28 }}
+          transition={{ type: "spring", stiffness: 300, damping: 30, mass: 0.6 }}
+          style={{ height: 28 }}
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function Experience() {
   const [activeId, setActiveId] = React.useState(EXPERIENCES[0]?.id ?? "");
-  const active =
-    EXPERIENCES.find((e) => e.id === activeId) ?? EXPERIENCES[0];
+  const active = EXPERIENCES.find((e) => e.id === activeId) ?? EXPERIENCES[0];
 
   return (
     <section
       id="experience"
-      className="relative w-full max-w-5xl mx-auto py-20 px-6 md:px-8"
+      className="relative w-full max-w-6xl mx-auto py-20 px-6 md:px-8"
       aria-labelledby="experience-title"
     >
       <div className="mb-4">
@@ -322,75 +412,127 @@ export default function Experience() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <Tabs
-        items={EXPERIENCES.map((e) => ({
-          id: e.id,
-          label:
-            e.fileName ??
-            e.title.toLowerCase().replace(/\s+/g, "_") + ".json",
-        }))}
-        activeId={activeId}
-        onChange={setActiveId}
-      />
+      <div className="grid grid-cols-1 md:grid-cols-[180px,1fr] gap-4">
+        {/* Interactive timeline rail */}
+        <TimelineRail items={EXPERIENCES} activeId={activeId} onChange={setActiveId} />
 
-      {/* Panel */}
-      <div
-        role="tabpanel"
-        id={`panel-${active.id}`}
-        aria-labelledby={`tab-${active.id}`}
-        className="mt-4 rounded-xl border border-white/10 bg-black/20 p-4 md:p-6"
-      >
-        <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-white/50 font-mono">
-          <span>{active.company}</span>
-          {active.location && <span>• {active.location}</span>}
-          <span>• {active.dates}</span>
-          {active.tech && (
-            <>
-              <span className="hidden sm:inline">•</span>
-              <div className="flex flex-wrap gap-1">
-                {active.tech.map((t) => (
-                  <span
-                    key={t}
-                    className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/70"
-                  >
-                    {t}
+        <div>
+          {/* Tabs */}
+          <Tabs
+            items={EXPERIENCES.map((e) => ({
+              id: e.id,
+              label: e.fileName ?? e.title.toLowerCase().replace(/\s+/g, "_") + ".json",
+              featured: e.featured,
+            }))}
+            activeId={activeId}
+            onChange={setActiveId}
+          />
+
+          {/* Panel */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={active.id}
+              role="tabpanel"
+              id={`panel-${active.id}`}
+              aria-labelledby={`tab-${active.id}`}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18 }}
+              className={`mt-4 rounded-xl border p-4 md:p-6 backdrop-blur ${
+                active.featured
+                  ? "border-cyan-400/40 bg-cyan-400/5 shadow-[0_10px_40px_-10px_rgba(34,211,238,0.25)]"
+                  : "border-white/10 bg-black/20"
+              }`}
+            >
+              {/* Context strip */}
+              <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-white/70 font-mono">
+                <span className="text-white/85">{active.company}</span>
+                {active.location && <span>• {active.location}</span>}
+                <span>• {active.dates}</span>
+                {active.context && (
+                  <span className="inline-flex items-center gap-1 rounded bg-white/5 px-1.5 py-0.5 border border-white/10 text-[11px]">
+                    <span className="h-1.5 w-1.5 rounded-full bg-cyan-400/80" />
+                    {active.context}
                   </span>
-                ))}
+                )}
+                {active.tech && (
+                  <>
+                    <span className="hidden sm:inline">•</span>
+                    <div className="flex flex-wrap gap-1">
+                      {active.tech.map((t) => (
+                        <span
+                          key={t}
+                          className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/70"
+                        >
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                )}
+                {active.featured && (
+                  <span className="ml-auto rounded-sm border border-cyan-400/40 bg-cyan-400/10 text-cyan-200 px-1.5 py-[2px] text-[10px]">
+                    FEATURED ROLE
+                  </span>
+                )}
               </div>
-            </>
-          )}
+
+              {/* JSON view */}
+              <ExperienceJsonView exp={active} />
+
+              {/* Highlights plain list */}
+              <details className="mt-4 group">
+                <summary className="cursor-pointer text-white/80 font-mono text-sm select-none">
+                  <span className="group-open:hidden">▸</span>
+                  <span className="hidden group-open:inline">▾</span>{" "}
+                  view_highlights_as_list
+                </summary>
+                <ul className="mt-2 list-disc pl-6 text-white/85">
+                  {active.highlights.map((h, i) => (
+                    <li key={i} className="mb-1 text-[15px] leading-relaxed">
+                      {h}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+
+              {/* Expandable creations with animation */}
+              {active.creations && active.creations.length > 0 && (
+                <div className="mt-4">
+                  <details className="group">
+                    <summary className="cursor-pointer text-white/80 font-mono text-sm select-none">
+                      <span className="group-open:hidden">▸</span>
+                      <span className="hidden group-open:inline">▾</span>{" "}
+                      view_creations
+                    </summary>
+                    <motion.ul
+                      initial={{ opacity: 0 }}
+                      whileInView={{ opacity: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.25 }}
+                      className="mt-2 space-y-3"
+                    >
+                      {active.creations.map((c) => (
+                        <li
+                          key={c.name}
+                          className="rounded-lg border border-white/10 bg-white/5 p-3"
+                        >
+                          <p className="font-medium text-white/90">{c.name}</p>
+                          <ul className="mt-1 list-disc pl-5 text-white/85">
+                            {c.details.map((d, j) => (
+                              <li key={j} className="leading-relaxed">{d}</li>
+                            ))}
+                          </ul>
+                        </li>
+                      ))}
+                    </motion.ul>
+                  </details>
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
         </div>
-
-        {/* JSON view */}
-        <ExperienceJsonView exp={active} />
-
-        {/* Highlights plain list */}
-        <details className="mt-4 group">
-          <summary className="cursor-pointer text-white/80 font-mono text-sm select-none">
-            <span className="group-open:hidden">▸</span>
-            <span className="hidden group-open:inline">▾</span>{" "}
-            view_highlights_as_list
-          </summary>
-          <ul className="mt-2 list-disc pl-6 text-white/85">
-            {active.highlights.map((h, i) => (
-              <li key={i} className="mb-1 text-[15px] leading-relaxed">
-                {h}
-              </li>
-            ))}
-            {active.creations &&
-              active.creations.map((c, i) => (
-                <li key={i} className="mt-2">
-                  <strong>{c.name}:</strong>
-                  <ul className="list-disc pl-6">
-                    {c.details.map((d, j) => (
-                      <li key={j}>{d}</li>
-                    ))}
-                  </ul>
-                </li>
-              ))}
-          </ul>
-        </details>
       </div>
     </section>
   );
