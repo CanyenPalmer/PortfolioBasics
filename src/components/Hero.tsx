@@ -113,218 +113,7 @@ function InlineTypeLine({
 }
 /** ---------- /InlineTypeLine ---------- */
 
-/** ---------- PixelHologram (overlays ABOVE the image) ---------- */
-function PixelHologram({
-  src,
-  alt = "Headshot of Canyen Palmer",
-  glowColor = "rgba(0, 200, 255, 0.7)",
-}: {
-  src: string;
-  alt?: string;
-  glowColor?: string;
-}) {
-  return (
-    <div
-      className="relative overflow-hidden rounded-2xl shadow-lg ring-1 ring-white/15 w-full max-w-full h-full bg-[#080c11]"
-    >
-      {/* Base image (z: 10) */}
-      <img
-        src={src}
-        alt={alt}
-        style={{
-          position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          display: "block",
-          borderRadius: 16,
-          zIndex: 10,
-        }}
-      />
-
-      {/* Aura glow (behind image to light frame) — z: 5 */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          zIndex: 5,
-          borderRadius: 16,
-          boxShadow: `0 0 36px ${glowColor}, 0 0 120px ${glowColor}`,
-          opacity: 0.45,
-          filter: "blur(0.5px)",
-        }}
-      />
-
-      {/* === HOLOGRAM OVERLAYS ABOVE THE IMAGE === */}
-
-      {/* Pixel matrix (dot grid) — z: 30 */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          zIndex: 30,
-          borderRadius: 16,
-          opacity: 0.30,
-          mixBlendMode: "screen",
-          background:
-            "radial-gradient(circle, rgba(0,220,255,0.95) 0 45%, rgba(0,220,255,0) 51%)",
-          backgroundSize: "6px 6px",
-          animation: "pixelDrift 9s linear infinite",
-        }}
-      />
-
-      {/* Scanlines — z: 32 */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          zIndex: 32,
-          borderRadius: 16,
-          opacity: 0.20,
-          mixBlendMode: "screen",
-          background:
-            "repeating-linear-gradient(to bottom, rgba(0,255,255,0.18) 0px, rgba(0,255,255,0.18) 1px, transparent 2px, transparent 5px)",
-          animation: "scanWobble 6s ease-in-out infinite",
-        }}
-      />
-
-      {/* Shimmer curtain — z: 34 */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          zIndex: 34,
-          borderRadius: 16,
-          mixBlendMode: "screen",
-          background:
-            "linear-gradient(115deg, rgba(0,180,255,0) 15%, rgba(0,220,255,0.26) 40%, rgba(255,255,255,0.18) 50%, rgba(0,220,255,0.26) 60%, rgba(0,180,255,0) 85%)",
-          backgroundSize: "220% 100%",
-          animation: "shimmerSweep 5.8s ease-in-out infinite",
-          opacity: 0.40,
-        }}
-      />
-
-      {/* Chromatic fringe (subtle duplicates) — z: 36/37 */}
-      <img
-        src={src}
-        alt=""
-        aria-hidden
-        style={{
-          position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          borderRadius: 16,
-          zIndex: 36,
-          opacity: 0.22,
-          mixBlendMode: "screen",
-          filter: "contrast(1.1) brightness(1.05) hue-rotate(210deg)",
-          animation: "chromaShift1 4.8s ease-in-out infinite",
-        }}
-      />
-      <img
-        src={src}
-        alt=""
-        aria-hidden
-        style={{
-          position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          borderRadius: 16,
-          zIndex: 37,
-          opacity: 0.22,
-          mixBlendMode: "screen",
-          filter: "contrast(1.1) brightness(1.05) hue-rotate(330deg)",
-          animation: "chromaShift2 4.8s ease-in-out infinite",
-        }}
-      />
-
-      {/* Glitch bands — z: 40 */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{ zIndex: 40, borderRadius: 16, overflow: "hidden" }}
-      >
-        <div className="h-[12%] w-full absolute left-0 top-[18%] glitchBand" />
-        <div className="h-[8%]  w-full absolute left-0 top-[62%] glitchBand2" />
-      </div>
-
-      {/* Vignette edges (over everything) — z: 50 */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          zIndex: 50,
-          borderRadius: 16,
-          boxShadow:
-            "inset 0 0 80px rgba(0,0,0,0.6), inset 0 0 160px rgba(0,0,0,0.35)",
-        }}
-      />
-
-      {/* Animations */}
-      <style jsx global>{`
-        @keyframes pixelDrift {
-          0% { background-position: 0 0; }
-          100% { background-position: 0 -18px; }
-        }
-        @keyframes scanWobble {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-1px); }
-        }
-        @keyframes shimmerSweep {
-          0% { background-position: -40% 0; opacity: 0.25; }
-          45% { background-position: 140% 0; opacity: 0.45; }
-          100% { background-position: 140% 0; opacity: 0.25; }
-        }
-        @keyframes chromaShift1 {
-          0%, 100% { transform: translateX(0); }
-          50% { transform: translateX(1.2px); }
-        }
-        @keyframes chromaShift2 {
-          0%, 100% { transform: translateX(0); }
-          50% { transform: translateX(-1.2px); }
-        }
-        .glitchBand::before, .glitchBand2::before {
-          content: "";
-          position: absolute;
-          inset: 0;
-          background:
-            linear-gradient(to right,
-              rgba(0,200,255,0.22) 0%,
-              rgba(255,255,255,0.28) 40%,
-              rgba(0,200,255,0.22) 100%);
-          mix-blend-mode: screen;
-          opacity: 0.0;
-        }
-        .glitchBand {
-          animation: bandShift 5.6s ease-in-out infinite;
-        }
-        .glitchBand2 {
-          animation: bandShift2 6.8s ease-in-out infinite;
-        }
-        @keyframes bandShift {
-          0%, 72%, 100% { transform: translateX(0); opacity: 0; }
-          74% { transform: translateX(-6px); opacity: 1; }
-          76% { transform: translateX(3px); }
-          78% { transform: translateX(-1px); opacity: 0.6; }
-          80% { transform: translateX(0); opacity: 0; }
-        }
-        @keyframes bandShift2 {
-          0%, 30%, 100% { transform: translateX(0); opacity: 0; }
-          32% { transform: translateX(4px); opacity: 0.9; }
-          34% { transform: translateX(-2px); }
-          36% { transform: translateX(1px); opacity: 0.5; }
-          38% { transform: translateX(0); opacity: 0; }
-        }
-      `}</style>
-    </div>
-  );
-}
-/** ---------- /PixelHologram ---------- */
+import HoloHeadshotAuto from "./HoloHeadshotAuto";
 
 export default function Hero() {
   return (
@@ -333,14 +122,18 @@ export default function Hero() {
       className="relative isolate w-full min-h-screen flex items-center justify-center px-6 md:px-12 pt-20"
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch w-full max-w-6xl">
-        {/* LEFT COLUMN */}
+        {/* LEFT COLUMN — Text */}
         <div className="relative">
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6 }}
-            className="flex flex-col justify-center h-full relative z-10 overflow-hidden min-h-[420px] md:min-h-[clamp(520px,70vh,860px)]"
+            className="
+              flex flex-col justify-center h-full relative z-10 overflow-hidden
+              min-h-[420px] md:min-h-[clamp(520px,70vh,860px)]
+            "
           >
+            {/* Animated Name */}
             <div className="mb-3">
               <NameCodeExplode
                 text="Canyen Palmer"
@@ -351,8 +144,10 @@ export default function Hero() {
               />
             </div>
 
+            {/* Typed tagline line (terminal-style) */}
             <InlineTypeLine
               className="text-[15px] md:text-[17px] text-white/80 mt-1 mb-2"
+              prompt=""
               text="Turning data into decisions through science, code, and storytelling."
               typingSpeed={18}
               startDelayMs={180}
@@ -361,6 +156,7 @@ export default function Hero() {
               ariaLabel="Tagline"
             />
 
+            {/* summary.py card -> Run -> terminal overlay */}
             <SummaryRunner
               className="mt-3 mb-6"
               proficiency={hero.skills.proficiency}
@@ -370,6 +166,7 @@ export default function Hero() {
               minHeightPxMd={420}
             />
 
+            {/* CTAs */}
             <div className="mt-8 flex gap-4">
               {hero.ctas.map((cta, i) => (
                 <a
@@ -387,7 +184,7 @@ export default function Hero() {
             </div>
           </motion.div>
 
-          {/* LEFT code edges */}
+          {/* Typed code edges — LEFT */}
           <div className="hidden md:block">
             <CodeEdgesTyped
               zClass="-z-10"
@@ -412,7 +209,7 @@ export default function Hero() {
           </div>
         </div>
 
-        {/* RIGHT COLUMN */}
+        {/* RIGHT COLUMN — Hologram Headshot (auto segmentation) */}
         <div className="relative">
           <motion.div
             initial={{ opacity: 0, x: 30 }}
@@ -420,24 +217,22 @@ export default function Hero() {
             transition={{ duration: 0.6 }}
             className="flex items-center justify-center h-full relative z-10"
           >
-            <div
-              className="relative overflow-hidden rounded-2xl shadow-lg ring-1 ring-white/15
+            <HoloHeadshotAuto
+              src={
+                typeof hero.headshot === "string"
+                  ? hero.headshot
+                  : "/images/headshot.jpg"
+              }
+              className="
                 w-full max-w-full
                 h-[280px] sm:h-[340px] md:h-[clamp(520px,70vh,860px)]
                 md:w-[min(46vw,620px)]
-                aspect-[3/4] flex items-center justify-center"
-            >
-              <PixelHologram
-                src={
-                  typeof hero.headshot === "string"
-                    ? hero.headshot
-                    : "/images/headshot.jpg"
-                }
-              />
-            </div>
+                aspect-[3/4]
+              "
+            />
           </motion.div>
 
-          {/* RIGHT code edges */}
+          {/* Typed code edges — RIGHT */}
           <div className="hidden md:block">
             <CodeEdgesTyped
               zClass="-z-10"
