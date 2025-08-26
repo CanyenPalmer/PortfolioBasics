@@ -39,7 +39,7 @@ const EXPERIENCES: ExperienceItem[] = [
     company: "Iconic Care Inc.",
     location: "Indianapolis, Indiana",
     dates: "June 2025 – Aug 2025",
-    context: "Healthcare DME provider; internal analytics & ML for revenue cycle.",
+    context: "Internal Analytics & Custom ML Models for Data Insights & Billing Cycle Ops.",
     tech: [
       "Python",
       "SQLite",
@@ -78,7 +78,7 @@ const EXPERIENCES: ExperienceItem[] = [
     company: "Iconic Care Inc.",
     location: "Indianapolis, Indiana",
     dates: "May 2025 – Jun 2025",
-    context: "Billing ops & data hygiene; dashboards, denials, reimbursement.",
+    context: "Billing Ops & Analytics ; dashboards, denials, reimbursement.",
     tech: ["Python", "Excel", "Google Sheets/Docs", "Brightree"],
     skills: [
       "Analytics",
