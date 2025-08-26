@@ -25,6 +25,7 @@ type Props = {
   wobbleWavelengthPx?: number;// sine wavelength (vertical px)
   wobblePhaseSpeed?: number;  // radians per ms for the sine phase
   wobbleFalloffFactor?: number;// sigma as fraction of bar height (0.3..1 good)
+  wobbleFeatherPct?: number;   // how soft the bar edge is (0..1 of bar height)
 
   /** Flicker */
   flicker?: boolean;
@@ -46,7 +47,7 @@ export default function HoloHeadshotAuto({
   // bars (also drive the warp)
   waveBars = true,
   waveBarCount = 3,
-  wavePeriodMs = 3800,       // a bit slower sweep
+  wavePeriodMs = 3800,
   waveBarHeightPct = 12,
   waveIntensity = 1.0,
 
@@ -55,7 +56,7 @@ export default function HoloHeadshotAuto({
   wobbleWavelengthPx = 42,
   wobblePhaseSpeed = 0.0065,
   wobbleFalloffFactor = 0.55,
-
+  wobbleFeatherPct = 0.25, // small soft edge around each bar
   // flicker
   flicker = true,
   flickerIntensity = 0.25,
@@ -179,7 +180,7 @@ export default function HoloHeadshotAuto({
     return { cw, ch, sx, sy, sWidth, sHeight, sw, sh };
   }, []);
 
-  /** ---------------- Warp the base image everywhere bars pass --------- */
+  /** ---------------- Warp only where bars pass (hard-masked to bars) --- */
   React.useEffect(() => {
     let raf = 0;
     const t0 = performance.now();
@@ -199,48 +200,53 @@ export default function HoloHeadshotAuto({
       const ctx = dest.getContext("2d")!;
       ctx.clearRect(0, 0, cw, ch);
 
-      // Compute bar centers in pixels at time t (drive warp + overlay sync)
+      // Precompute bar centers and usable band (half-height with feather)
       const barCentersY: number[] = [];
-      const barH = (waveBarHeightPct / 100) * ch;
       const period = wavePeriodMs ?? 3800;
+      const barHeightPx = (waveBarHeightPct / 100) * ch;
+      const halfH = barHeightPx * 0.5;
+      const feather = Math.max(1, barHeightPx * wobbleFeatherPct); // edge softness in px
 
       if (waveBars) {
         for (let i = 0; i < (waveBarCount ?? 0); i++) {
           const delay = (i / Math.max(1, waveBarCount ?? 1)) * period;
-          // progress from -0.2 to 1.1 (so bars start above and exit below)
           let p = ((t - delay) % period) / period;
           if (p < 0) p += 1;
           const topPct = -0.2 + p * 1.3; // -20% → 110%
-          const cy = topPct * ch + barH * 0.5;
+          const cy = topPct * ch + halfH;
           barCentersY.push(cy);
         }
       }
 
-      // Warp by drawing thin horizontal strips across the full image,
-      // offset horizontally based on the sum of bar influences at that y.
-      const rowH = 2; // pixels per strip (2–3 is a sweet spot for perf/quality)
+      // Draw: thin horizontal strips; ONLY wobble inside bar bands.
+      const rowH = 2;
       const srcToDst = sHeight / ch;
+      const phase = t * (wobblePhaseSpeed ?? 0.0065);
 
       for (let y = 0; y < ch; y += rowH) {
         const srcY = sy + y * srcToDst;
         const srcH = Math.min(rowH * srcToDst, sHeight - (srcY - sy));
 
-        // Sum of bar influences at scanline y (Gaussian falloff around each bar)
-        let influence = 0;
-        if (waveBars && barCentersY.length) {
-          const sigma = Math.max(2, (barH * wobbleFalloffFactor)); // px
-          const inv2Sigma2 = 1 / (2 * sigma * sigma);
-          for (let i = 0; i < barCentersY.length; i++) {
-            const d = y - barCentersY[i];
-            influence += Math.exp(-(d * d) * inv2Sigma2); // 0..1
-          }
-          // Clamp to 1.5 to avoid crazy extremes when bars overlap
-          influence = Math.min(1.5, influence);
-        }
+        // Default: no wobble
+        let dx = 0;
 
-        // Horizontal displacement at this y
-        const phase = t * wobblePhaseSpeed;
-        const dx = Math.sin((y / wobbleWavelengthPx) + phase) * wobbleAmplitudePx * influence;
+        if (waveBars && barCentersY.length) {
+          // Find nearest bar distance
+          let minDist = Infinity;
+          for (let i = 0; i < barCentersY.length; i++) {
+            const d = Math.abs(y - barCentersY[i]);
+            if (d < minDist) minDist = d;
+          }
+
+          // Only wobble within the bar band (+feather). Outside = zero.
+          if (minDist <= halfH + feather) {
+            // Strength: 1.0 at center, tapers to 0 at edge of (halfH + feather)
+            const edge = halfH + feather;
+            const strength = 1 - Math.min(1, Math.max(0, (minDist - halfH) / Math.max(1, feather)));
+            const baseSin = Math.sin((y / (wobbleWavelengthPx ?? 42)) + phase);
+            dx = baseSin * (wobbleAmplitudePx ?? 12) * strength;
+          }
+        }
 
         ctx.drawImage(
           masked,
@@ -248,7 +254,7 @@ export default function HoloHeadshotAuto({
           srcY,             // source y
           sWidth,           // source w
           Math.max(1, srcH),// source h
-          dx,               // dest x with wobble
+          dx,               // dest x with wobble (0 outside bars)
           y,                // dest y
           cw,               // dest w
           rowH              // dest h
@@ -269,7 +275,7 @@ export default function HoloHeadshotAuto({
   }, [
     computeCoverMap,
     waveBars, waveBarCount, waveBarHeightPct, wavePeriodMs,
-    wobbleAmplitudePx, wobbleWavelengthPx, wobblePhaseSpeed, wobbleFalloffFactor
+    wobbleAmplitudePx, wobbleWavelengthPx, wobblePhaseSpeed, wobbleFeatherPct
   ]);
 
   // Redraw on resize (ensures crisp cover-fit)
@@ -279,7 +285,6 @@ export default function HoloHeadshotAuto({
     const ro = new ResizeObserver(() => {
       const map = computeCoverMap();
       if (!map || !maskedCanvasRef.current || !baseCanvasRef.current) return;
-      // force a frame by tweaking canvas size (the RAF will draw next frame)
       baseCanvasRef.current.width = map.cw;
       baseCanvasRef.current.height = map.ch;
     });
@@ -353,7 +358,7 @@ export default function HoloHeadshotAuto({
         }}
       />
 
-      {/* Base (warped) canvas — whole photo bends under bars */}
+      {/* Base (warped) canvas — only bends where bars pass */}
       <div className="absolute inset-0 z-[4]">
         <canvas
           ref={baseCanvasRef}
@@ -384,7 +389,7 @@ export default function HoloHeadshotAuto({
         />
       </div>
 
-      {/* Horizontal Wavy Bars: visual tint only (warp is applied to whole image via canvas) */}
+      {/* Horizontal Wavy Bars: visual tint only (warp occurs on base canvas) */}
       {waveBars && ready && bars.map((b, i) => {
         const heightPct = waveBarHeightPct;
         const clip =
