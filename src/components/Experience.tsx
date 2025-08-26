@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from "framer-motion";
  *  - Interactive timeline rail (clickable dots sync with tabs)
  *  - Expandable details (creations) with smooth animations
  *  - Subtle animations (panel transitions, caret blink)
+ *  - Responsive nav: Tabs on mobile, Timeline rail on desktop
  * ----------------------------------------------------------------------*/
 
 type Creation = { name: string; details: string[] };
@@ -28,8 +29,8 @@ type ExperienceItem = {
   highlights: string[];
   creations?: Creation[];
   fileName?: string;
-  context?: string; // NEW: one‑liner explainer
-  featured?: boolean; // NEW: highlight this role
+  context?: string; // one‑liner explainer
+  featured?: boolean; // highlight this role
 };
 
 const EXPERIENCES: ExperienceItem[] = [
@@ -39,7 +40,7 @@ const EXPERIENCES: ExperienceItem[] = [
     company: "Iconic Care Inc.",
     location: "Indianapolis, Indiana",
     dates: "June 2025 – Aug 2025",
-    context: "Internal Analytics & Custom ML Models for Data Insights & Billing Cycle Ops.",
+    context: "Internal Analytics & Custom ML Models for Data Insights.",
     tech: [
       "Python",
       "SQLite",
@@ -78,7 +79,7 @@ const EXPERIENCES: ExperienceItem[] = [
     company: "Iconic Care Inc.",
     location: "Indianapolis, Indiana",
     dates: "May 2025 – Jun 2025",
-    context: "Billing Ops & Analytics ; dashboards, denials, reimbursement.",
+    context: "Billing Ops & Analytics; dashboards, denials, reimbursement.",
     tech: ["Python", "Excel", "Google Sheets/Docs", "Brightree"],
     skills: [
       "Analytics",
@@ -135,7 +136,7 @@ const EXPERIENCES: ExperienceItem[] = [
       },
     ],
     fileName: "ceo_founder_data_scientist.py",
-    featured: true, // featured role for visual hierarchy
+    featured: true,
   },
 ];
 
@@ -262,13 +263,12 @@ function ExperienceJsonView({ exp }: { exp: ExperienceItem }) {
         {"\n"}
         <span className="text-white/80">{"}"}</span>
       </code>
-      {/* blinking caret for terminal vibe */}
       <span className="ml-1 inline-block h-4 w-[7px] align-baseline bg-white/70 animate-pulse rounded-sm translate-y-[3px]" />
     </pre>
   );
 }
 
-/* ---------------- Tabs ------------------- */
+/* ---------------- Tabs (used inside TopBar on mobile only) ------------------- */
 function Tabs({
   items,
   activeId,
@@ -279,50 +279,89 @@ function Tabs({
   onChange: (id: string) => void;
 }) {
   return (
-    <div className="border-b border-white/10">
-      <ul
-        role="tablist"
-        aria-label="Experience files"
-        className="flex items-center gap-1 overflow-x-auto py-1"
-      >
-        {items.map((t) => {
-          const active = t.id === activeId;
-          return (
-            <li key={t.id} className="shrink-0">
-              <button
-                role="tab"
-                aria-selected={active}
-                aria-controls={`panel-${t.id}`}
-                id={`tab-${t.id}`}
-                onClick={() => onChange(t.id)}
-                className={`group inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md text-[12.5px] font-mono transition
-                  ${
-                    active
-                      ? "bg-white/10 text-white border border-white/10 shadow-[inset_0_-2px_0_rgba(56,189,248,0.6)]"
-                      : "text-white/70 hover:text-white/95 hover:bg-white/5 border border-transparent"
-                  }`}
-              >
-                <span
-                  className={`inline-block h-1 w-1 rounded-full ${
-                    active ? "bg-emerald-400" : "bg-white/30 group-hover:bg-white/50"
-                  }`}
-                />
-                {t.label}
-                {t.featured && (
-                  <span className="ml-1 rounded-sm border border-cyan-400/40 bg-cyan-400/10 text-cyan-200 px-1 py-[1px] text-[10px]">
-                    FEATURED
-                  </span>
-                )}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
+    <ul
+      role="tablist"
+      aria-label="Experience files"
+      className="flex-1 flex items-center gap-1 overflow-x-auto py-1 no-scrollbar"
+    >
+      {items.map((t) => {
+        const active = t.id === activeId;
+        return (
+          <li key={t.id} className="shrink-0">
+            <button
+              role="tab"
+              aria-selected={active}
+              aria-controls={`panel-${t.id}`}
+              id={`tab-${t.id}`}
+              aria-current={active ? "page" : undefined}
+              onClick={() => onChange(t.id)}
+              onKeyDown={(e) => {
+                if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+                  e.preventDefault();
+                  const idx = items.findIndex((x) => x.id === activeId);
+                  const next =
+                    e.key === "ArrowRight"
+                      ? items[(idx + 1) % items.length]
+                      : items[(idx - 1 + items.length) % items.length];
+                  onChange(next.id);
+                }
+              }}
+              className={`group inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md text-[12.5px] font-mono transition ${
+                active
+                  ? "bg-white/10 text-white border border-white/10 shadow-[inset_0_-2px_0_rgba(56,189,248,0.6)]"
+                  : "text-white/70 hover:text-white/95 hover:bg-white/5 border border-transparent"
+              }`}
+            >
+              <span
+                className={`inline-block h-1 w-1 rounded-full ${
+                  active ? "bg-emerald-400" : "bg-white/30 group-hover:bg-white/50"
+                }`}
+              />
+              {t.label}
+              {t.featured && (
+                <span className="ml-1 rounded-sm border border-cyan-400/40 bg-cyan-400/10 text-cyan-200 px-1 py-[1px] text-[10px]">
+                  FEATURED
+                </span>
+              )}
+            </button>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+/* ---------------- Top Bar: traffic lights + tabs (mobile) + filename ------------------- */
+function TopBar({
+  items,
+  activeId,
+  onChange,
+}: {
+  items: { id: string; label: string; featured?: boolean }[];
+  activeId: string;
+  onChange: (id: string) => void;
+}) {
+  return (
+    <div className="mb-4 flex items-center gap-2 border-b border-white/10 py-1">
+      {/* traffic lights */}
+      <span className="inline-flex gap-1.5 shrink-0 ml-1">
+        <span className="h-3 w-3 rounded-full bg-red-500/80" />
+        <span className="h-3 w-3 rounded-full bg-yellow-500/80" />
+        <span className="h-3 w-3 rounded-full bg-green-500/80" />
+      </span>
+
+      {/* tabs show on mobile only to avoid duplicate nav with the timeline rail */}
+      <div className="flex-1 md:hidden">
+        <Tabs items={items} activeId={activeId} onChange={onChange} />
+      </div>
+
+      {/* filename pinned at right */}
+      <span className="shrink-0 text-white/75 font-mono text-sm px-2">experience.json</span>
     </div>
   );
 }
 
-/* ---------------- Timeline Rail (interactive) ------------------- */
+/* ---------------- Timeline Rail (desktop) ------------------- */
 function TimelineRail({
   items,
   activeId,
@@ -332,10 +371,7 @@ function TimelineRail({
   activeId: string;
   onChange: (id: string) => void;
 }) {
-  const activeIndex = Math.max(
-    0,
-    items.findIndex((e) => e.id === activeId)
-  );
+  const activeIndex = Math.max(0, items.findIndex((e) => e.id === activeId));
 
   return (
     <div className="relative hidden md:block pr-4">
@@ -348,7 +384,7 @@ function TimelineRail({
           className="absolute left-0 top-0 bottom-0 w-px origin-top bg-gradient-to-b from-cyan-500/60 via-cyan-400/20 to-transparent"
         />
         <ul className="relative space-y-4">
-          {items.map((e, i) => {
+          {items.map((e) => {
             const active = e.id === activeId;
             return (
               <li key={e.id} className="pl-4">
@@ -398,141 +434,131 @@ export default function Experience() {
       className="relative w-full max-w-6xl mx-auto py-20 px-6 md:px-8"
       aria-labelledby="experience-title"
     >
-      <div className="mb-4">
-        <h2 id="experience-title" className="sr-only">
-          Experience
-        </h2>
-        <div className="flex items-center gap-2 text-white/75 font-mono text-sm">
-          <span className="inline-flex gap-1.5">
-            <span className="h-3 w-3 rounded-full bg-red-500/80" />
-            <span className="h-3 w-3 rounded-full bg-yellow-500/80" />
-            <span className="h-3 w-3 rounded-full bg-green-500/80" />
-          </span>
-          <span className="opacity-80">experience.json</span>
-        </div>
-      </div>
+      <h2 id="experience-title" className="sr-only">
+        Experience
+      </h2>
+
+      {/* unified top bar: lights + (mobile tabs) + filename */}
+      <TopBar
+        items={EXPERIENCES.map((e) => ({
+          id: e.id,
+          label: e.fileName ?? e.title.toLowerCase().replace(/\s+/g, "_") + ".json",
+          featured: e.featured,
+        }))}
+        activeId={activeId}
+        onChange={setActiveId}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-[180px,1fr] gap-4">
-        {/* Interactive timeline rail */}
+        {/* Interactive timeline rail (desktop) */}
         <TimelineRail items={EXPERIENCES} activeId={activeId} onChange={setActiveId} />
 
-        <div>
-          {/* Tabs */}
-          <Tabs
-            items={EXPERIENCES.map((e) => ({
-              id: e.id,
-              label: e.fileName ?? e.title.toLowerCase().replace(/\s+/g, "_") + ".json",
-              featured: e.featured,
-            }))}
-            activeId={activeId}
-            onChange={setActiveId}
-          />
-
-          {/* Panel */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={active.id}
-              role="tabpanel"
-              id={`panel-${active.id}`}
-              aria-labelledby={`tab-${active.id}`}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.18 }}
-              className={`mt-4 rounded-xl border p-4 md:p-6 backdrop-blur ${
-                active.featured
-                  ? "border-cyan-400/40 bg-cyan-400/5 shadow-[0_10px_40px_-10px_rgba(34,211,238,0.25)]"
-                  : "border-white/10 bg-black/20"
-              }`}
-            >
-              {/* Context strip */}
-              <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-white/70 font-mono">
-                <span className="text-white/85">{active.company}</span>
-                {active.location && <span>• {active.location}</span>}
-                <span>• {active.dates}</span>
-                {active.context && (
-                  <span className="inline-flex items-center gap-1 rounded bg-white/5 px-1.5 py-0.5 border border-white/10 text-[11px]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-cyan-400/80" />
-                    {active.context}
-                  </span>
-                )}
-                {active.tech && (
-                  <>
-                    <span className="hidden sm:inline">•</span>
-                    <div className="flex flex-wrap gap-1">
-                      {active.tech.map((t) => (
-                        <span
-                          key={t}
-                          className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/70"
-                        >
-                          {t}
-                        </span>
-                      ))}
-                    </div>
-                  </>
-                )}
-                {active.featured && (
-                  <span className="ml-auto rounded-sm border border-cyan-400/40 bg-cyan-400/10 text-cyan-200 px-1.5 py-[2px] text-[10px]">
-                    FEATURED ROLE
-                  </span>
-                )}
-              </div>
-
-              {/* JSON view */}
-              <ExperienceJsonView exp={active} />
-
-              {/* Highlights plain list */}
-              <details className="mt-4 group">
-                <summary className="cursor-pointer text-white/80 font-mono text-sm select-none">
-                  <span className="group-open:hidden">▸</span>
-                  <span className="hidden group-open:inline">▾</span>{" "}
-                  view_highlights_as_list
-                </summary>
-                <ul className="mt-2 list-disc pl-6 text-white/85">
-                  {active.highlights.map((h, i) => (
-                    <li key={i} className="mb-1 text-[15px] leading-relaxed">
-                      {h}
-                    </li>
-                  ))}
-                </ul>
-              </details>
-
-              {/* Expandable creations with animation */}
-              {active.creations && active.creations.length > 0 && (
-                <div className="mt-4">
-                  <details className="group">
-                    <summary className="cursor-pointer text-white/80 font-mono text-sm select-none">
-                      <span className="group-open:hidden">▸</span>
-                      <span className="hidden group-open:inline">▾</span>{" "}
-                      view_creations
-                    </summary>
-                    <motion.ul
-                      initial={{ opacity: 0 }}
-                      whileInView={{ opacity: 1 }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 0.25 }}
-                      className="mt-2 space-y-3"
-                    >
-                      {active.creations.map((c) => (
-                        <li
-                          key={c.name}
-                          className="rounded-lg border border-white/10 bg-white/5 p-3"
-                        >
-                          <p className="font-medium text-white/90">{c.name}</p>
-                          <ul className="mt-1 list-disc pl-5 text-white/85">
-                            {c.details.map((d, j) => (
-                              <li key={j} className="leading-relaxed">{d}</li>
-                            ))}
-                          </ul>
-                        </li>
-                      ))}
-                    </motion.ul>
-                  </details>
-                </div>
+        {/* Panel */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={active.id}
+            role="tabpanel"
+            id={`panel-${active.id}`}
+            aria-labelledby={`tab-${active.id}`}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+            className={`rounded-xl border p-4 md:p-6 backdrop-blur ${
+              active.featured
+                ? "border-cyan-400/40 bg-cyan-400/5 shadow-[0_10px_40px_-10px_rgba(34,211,238,0.25)]"
+                : "border-white/10 bg-black/20"
+            }`}
+          >
+            {/* Context strip */}
+            <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-white/70 font-mono">
+              <span className="text-white/85">{active.company}</span>
+              {active.location && <span>• {active.location}</span>}
+              <span>• {active.dates}</span>
+              {active.context && (
+                <span className="inline-flex items-center gap-1 rounded bg-white/5 px-1.5 py-0.5 border border-white/10 text-[11px]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-cyan-400/80" />
+                  {active.context}
+                </span>
               )}
-            </motion.div>
-          </AnimatePresence>
-        </div>
+              {active.tech && (
+                <>
+                  <span className="hidden sm:inline">•</span>
+                  <div className="flex flex-wrap gap-1">
+                    {active.tech.map((t) => (
+                      <span
+                        key={t}
+                        className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/70"
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                </>
+              )}
+              {active.featured && (
+                <span className="ml-auto rounded-sm border border-cyan-400/40 bg-cyan-400/10 text-cyan-200 px-1.5 py-[2px] text-[10px]">
+                  FEATURED ROLE
+                </span>
+              )}
+            </div>
+
+            {/* JSON view */}
+            <ExperienceJsonView exp={active} />
+
+            {/* Highlights plain list */}
+            <details className="mt-4 group">
+              <summary className="cursor-pointer text-white/80 font-mono text-sm select-none">
+                <span className="group-open:hidden">▸</span>
+                <span className="hidden group-open:inline">▾</span>{" "}
+                view_highlights_as_list
+              </summary>
+              <ul className="mt-2 list-disc pl-6 text-white/85">
+                {active.highlights.map((h, i) => (
+                  <li key={i} className="mb-1 text-[15px] leading-relaxed">
+                    {h}
+                  </li>
+                ))}
+              </ul>
+            </details>
+
+            {/* Expandable creations with animation */}
+            {active.creations && active.creations.length > 0 && (
+              <div className="mt-4">
+                <details className="group">
+                  <summary className="cursor-pointer text-white/80 font-mono text-sm select-none">
+                    <span className="group-open:hidden">▸</span>
+                    <span className="hidden group-open:inline">▾</span>{" "}
+                    view_creations
+                  </summary>
+                  <motion.ul
+                    initial={{ opacity: 0 }}
+                    whileInView={{ opacity: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.25 }}
+                    className="mt-2 space-y-3"
+                  >
+                    {active.creations.map((c) => (
+                      <li
+                        key={c.name}
+                        className="rounded-lg border border-white/10 bg-white/5 p-3"
+                      >
+                        <p className="font-medium text-white/90">{c.name}</p>
+                        <ul className="mt-1 list-disc pl-5 text-white/85">
+                          {c.details.map((d, j) => (
+                            <li key={j} className="leading-relaxed">
+                              {d}
+                            </li>
+                          ))}
+                        </ul>
+                      </li>
+                    ))}
+                  </motion.ul>
+                </details>
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </section>
   );
