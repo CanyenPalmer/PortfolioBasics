@@ -6,6 +6,7 @@ import CodeEdgesTyped from "./CodeEdgesTyped";
 import NameCodeExplode from "./NameCodeExplode";
 import SummaryRunner from "./SummaryRunner";
 import SkillsBelt from "./SkillsBelt";
+import { LINKS } from "../content/links";
 
 /** ---------- InlineTypeLine (typed tagline) ---------- */
 import * as React from "react";
@@ -116,6 +117,17 @@ function InlineTypeLine({
 
 import HoloHeadshotAuto from "./HoloHeadshotAuto";
 
+/* Helper: resolve CTA hrefs without editing hero.data */
+function resolveHref(label: string, fallback?: string) {
+  const lower = label.toLowerCase();
+  if (lower.includes("experience")) return "#experience";
+  if (lower.includes("resume")) return LINKS.resume;
+  if (lower.includes("github")) return LINKS.github;
+  if (lower.includes("linkedin")) return LINKS.linkedin;
+  // Leave "Contact Me" as-is for now
+  return fallback ?? "#";
+}
+
 export default function Hero() {
   return (
     <section
@@ -196,7 +208,7 @@ export default function Hero() {
                 { text: "SELECT hole, avg(strokes) FROM rounds GROUP BY hole;" },
               ]}
               right={[]}
-              offsetBottom="2ch"  /* ← NEW: push bottom rail down ~2 character widths */
+              offsetBottom="2ch"  /* keep your rail offset */
             />
           </div>
         </div>
@@ -225,19 +237,24 @@ export default function Hero() {
 
             {/* CTAs UNDER HEADSHOT */}
             <div className="mt-6 flex flex-wrap gap-4 justify-center md:justify-start">
-              {hero.ctas.map((cta, i) => (
-                <a
-                  key={i}
-                  href={cta.href}
-                  className={`px-5 py-3 rounded-xl font-medium transition ${
-                    cta.variant === "primary"
-                      ? "bg-blue-600 hover:bg-blue-700 text-white"
-                      : "border border-white/30 hover:bg-white/10 text-white"
-                  }`}
-                >
-                  {cta.label}
-                </a>
-              ))}
+              {hero.ctas.map((cta, i) => {
+                const href = resolveHref(cta.label, cta.href);
+                const external = href.startsWith("http");
+                return (
+                  <a
+                    key={i}
+                    href={href}
+                    {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                    className={`px-5 py-3 rounded-xl font-medium transition ${
+                      cta.variant === "primary"
+                        ? "bg-blue-600 hover:bg-blue-700 text-white"
+                        : "border border-white/30 hover:bg-white/10 text-white"
+                    }`}
+                  >
+                    {cta.label}
+                  </a>
+                );
+              })}
             </div>
           </motion.div>
 
@@ -261,7 +278,7 @@ export default function Hero() {
                 { text: "model.fit(X_tr, y_tr)" },
               ]}
               right={[]}
-              offsetBottom="2ch"  /* ← NEW */
+              offsetBottom="2ch"
             />
           </div>
         </div>
