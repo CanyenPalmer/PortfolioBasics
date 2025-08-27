@@ -2,21 +2,35 @@
 
 import * as React from "react";
 import { Satisfy } from "next/font/google";
+import { LINKS } from "@/content/links";
 
 const satisfy = Satisfy({ subsets: ["latin"], weight: "400", display: "swap" });
-
-/** Use your exact filename; URL-encode it so the link is safe */
-const DEFAULT_RESUME = encodeURI("/Resume (LaTeX).pdf"); // -> "/Resume%20(LaTeX).pdf"
 
 type Section = { id: string; label: string };
 
 type Props = {
   sections?: Section[];
-  resumeHref?: string;
-  linkedinHref?: string;
-  githubHref?: string;
+  resumeHref?: string;    // may be placeholder; we sanitize below
+  linkedinHref?: string;  // may be placeholder
+  githubHref?: string;    // may be placeholder
   signature?: string;
 };
+
+/** Replace bad/placeholder links with a safe fallback */
+function sanitizeHref(input: string | undefined, fallback: string) {
+  if (!input) return fallback;
+  const s = input.trim();
+  if (!s) return fallback;
+
+  // Obvious placeholders or homepages → fallback
+  const isPlaceholder =
+    /YOUR-?HANDLE/i.test(s) ||
+    /your-?handle/i.test(s) ||
+    /^https?:\/\/(www\.)?linkedin\.com\/?(:?in\/?)?$/i.test(s) ||
+    /^https?:\/\/(www\.)?github\.com\/?$/i.test(s);
+
+  return isPlaceholder ? fallback : s;
+}
 
 export default function VscodeTopBar({
   sections = [
@@ -29,12 +43,18 @@ export default function VscodeTopBar({
     { id: "testimonials", label: "Testimonials" },
     { id: "contact", label: "Contact" },
   ],
-  resumeHref = DEFAULT_RESUME,
-  linkedinHref = "https://www.linkedin.com/in/canyen-palmer-b0b6762a0",
-  githubHref = "https://github.com/CanyenPalmer",
+  // Defaults (still overridable, but sanitized below)
+  resumeHref = LINKS.resume,
+  linkedinHref = LINKS.linkedin,
+  githubHref = LINKS.github,
   signature = "Canyen Palmer",
 }: Props) {
   const [activeId, setActiveId] = React.useState<string>(sections[0]?.id ?? "home");
+
+  // Final resolved + sanitized hrefs
+  const resolvedResume  = sanitizeHref(resumeHref,  LINKS.resume);
+  const resolvedLinked  = sanitizeHref(linkedinHref, LINKS.linkedin);
+  const resolvedGitHub  = sanitizeHref(githubHref,  LINKS.github);
 
   // Observe sections and set active tab on scroll
   React.useEffect(() => {
@@ -113,7 +133,7 @@ export default function VscodeTopBar({
             </div>
           </div>
 
-          {/* CENTER — tabs (start-left on mobile, center on md+) */}
+          {/* CENTER — tabs */}
           <nav
             className="min-w-0 overflow-x-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
             aria-label="Section tabs"
@@ -156,7 +176,7 @@ export default function VscodeTopBar({
           <div className="flex items-center gap-2.5 pl-2 justify-end">
             {/* NOTE: hidden on <sm> by design */}
             <a
-              href={resumeHref}
+              href={resolvedResume}
               target="_blank"
               rel="noopener noreferrer"
               className="hidden sm:inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md text-[12.5px] font-medium border border-white/15 text-white/90 hover:bg-white/10 transition"
@@ -167,7 +187,7 @@ export default function VscodeTopBar({
             </a>
 
             <a
-              href={linkedinHref}
+              href={resolvedLinked}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center h-9 w-9 rounded-md border border-white/15 hover:bg-white/10 transition text-white"
@@ -178,7 +198,7 @@ export default function VscodeTopBar({
             </a>
 
             <a
-              href={githubHref}
+              href={resolvedGitHub}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center h-9 w-9 rounded-md border border-white/15 hover:bg-white/10 transition text-white"
@@ -194,11 +214,11 @@ export default function VscodeTopBar({
       {/* Subtle bottom accent line */}
       <div className="h-[2px] w-full bg-gradient-to-r from-emerald-400/40 via-blue-400/40 to-purple-400/40" />
 
-      {/* Wave keyframes (scoped global so Tailwind won't purge) */}
+      {/* Wave keyframes */}
       <style jsx global>{`
         :root {
-          --SIG_WAVE_DURATION: 0.9s; /* wave duration per letter */
-          --SIG_WAVE_STAGGER: 0.08s; /* delay step between letters */
+          --SIG_WAVE_DURATION: 0.9s;
+          --SIG_WAVE_STAGGER: 0.08s;
         }
         @keyframes signature-wave {
           0%   { transform: translateY(0) rotate(0)   scale(1);    opacity: 1; }
