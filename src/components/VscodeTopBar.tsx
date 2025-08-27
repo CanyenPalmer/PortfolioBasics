@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { Satisfy } from "next/font/google";
-import { LINKS } from "@/content/links";
 
 const satisfy = Satisfy({ subsets: ["latin"], weight: "400", display: "swap" });
 
@@ -10,27 +9,11 @@ type Section = { id: string; label: string };
 
 type Props = {
   sections?: Section[];
-  resumeHref?: string;    // may be placeholder; we sanitize below
-  linkedinHref?: string;  // may be placeholder
-  githubHref?: string;    // may be placeholder
+  resumeHref?: string;
+  linkedinHref?: string;
+  githubHref?: string;
   signature?: string;
 };
-
-/** Replace bad/placeholder links with a safe fallback */
-function sanitizeHref(input: string | undefined, fallback: string) {
-  if (!input) return fallback;
-  const s = input.trim();
-  if (!s) return fallback;
-
-  // Obvious placeholders or homepages → fallback
-  const isPlaceholder =
-    /YOUR-?HANDLE/i.test(s) ||
-    /your-?handle/i.test(s) ||
-    /^https?:\/\/(www\.)?linkedin\.com\/?(:?in\/?)?$/i.test(s) ||
-    /^https?:\/\/(www\.)?github\.com\/?$/i.test(s);
-
-  return isPlaceholder ? fallback : s;
-}
 
 export default function VscodeTopBar({
   sections = [
@@ -43,20 +26,14 @@ export default function VscodeTopBar({
     { id: "testimonials", label: "Testimonials" },
     { id: "contact", label: "Contact" },
   ],
-  // Defaults (still overridable, but sanitized below)
-  resumeHref = LINKS.resume,
-  linkedinHref = LINKS.linkedin,
-  githubHref = LINKS.github,
+  // 👇 point at the rewrite alias
+  resumeHref = "/resume",
+  linkedinHref = "https://www.linkedin.com/in/canyen-palmer-b0b6762a0",
+  githubHref = "https://github.com/CanyenPalmer",
   signature = "Canyen Palmer",
 }: Props) {
   const [activeId, setActiveId] = React.useState<string>(sections[0]?.id ?? "home");
 
-  // Final resolved + sanitized hrefs
-  const resolvedResume  = sanitizeHref(resumeHref,  LINKS.resume);
-  const resolvedLinked  = sanitizeHref(linkedinHref, LINKS.linkedin);
-  const resolvedGitHub  = sanitizeHref(githubHref,  LINKS.github);
-
-  // Observe sections and set active tab on scroll
   React.useEffect(() => {
     const observers: IntersectionObserver[] = [];
     const headerHeight = 72;
@@ -84,7 +61,6 @@ export default function VscodeTopBar({
     window.scrollTo({ top, behavior: "smooth" });
   };
 
-  // Split signature into per-letter spans for wave
   const sigChars = React.useMemo(() => signature.split(""), [signature]);
 
   return (
@@ -97,19 +73,14 @@ export default function VscodeTopBar({
       role="navigation"
       aria-label="Primary"
     >
-      {/* Full-bleed row with edge padding */}
       <div className="px-4 md:px-6">
-        {/* Grid: LEFT (lights+signature) | CENTER (tabs) | RIGHT (actions) */}
         <div className="h-14 grid grid-cols-[auto_1fr_auto] items-center gap-3">
-          {/* LEFT — traffic lights flush-left + signature */}
           <div className="flex items-center gap-3 min-w-0">
             <div className="inline-flex gap-1.5">
               <span className="h-3 w-3 rounded-full bg-red-500/80" />
               <span className="h-3 w-3 rounded-full bg-yellow-500/80" />
               <span className="h-3 w-3 rounded-full bg-green-500/80" />
             </div>
-
-            {/* Signature in Satisfy font with per-letter crowd wave */}
             <div
               className={`
                 ${satisfy.className}
@@ -121,19 +92,13 @@ export default function VscodeTopBar({
               title={signature}
             >
               {sigChars.map((ch, i) => (
-                <span
-                  key={i}
-                  className="sig-ch"
-                  style={{ ["--i" as any]: i }}
-                  aria-hidden={ch === " " ? undefined : true}
-                >
+                <span key={i} className="sig-ch" style={{ ["--i" as any]: i }}>
                   {ch}
                 </span>
               ))}
             </div>
           </div>
 
-          {/* CENTER — tabs */}
           <nav
             className="min-w-0 overflow-x-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
             aria-label="Section tabs"
@@ -172,11 +137,9 @@ export default function VscodeTopBar({
             </ul>
           </nav>
 
-          {/* RIGHT — actions */}
           <div className="flex items-center gap-2.5 pl-2 justify-end">
-            {/* NOTE: hidden on <sm> by design */}
             <a
-              href={resolvedResume}
+              href={resumeHref}
               target="_blank"
               rel="noopener noreferrer"
               className="hidden sm:inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md text-[12.5px] font-medium border border-white/15 text-white/90 hover:bg-white/10 transition"
@@ -187,7 +150,7 @@ export default function VscodeTopBar({
             </a>
 
             <a
-              href={resolvedLinked}
+              href="https://www.linkedin.com/in/canyen-palmer-b0b6762a0"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center h-9 w-9 rounded-md border border-white/15 hover:bg-white/10 transition text-white"
@@ -198,7 +161,7 @@ export default function VscodeTopBar({
             </a>
 
             <a
-              href={resolvedGitHub}
+              href="https://github.com/CanyenPalmer"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center h-9 w-9 rounded-md border border-white/15 hover:bg-white/10 transition text-white"
@@ -211,40 +174,29 @@ export default function VscodeTopBar({
         </div>
       </div>
 
-      {/* Subtle bottom accent line */}
       <div className="h-[2px] w-full bg-gradient-to-r from-emerald-400/40 via-blue-400/40 to-purple-400/40" />
 
-      {/* Wave keyframes */}
       <style jsx global>{`
-        :root {
-          --SIG_WAVE_DURATION: 0.9s;
-          --SIG_WAVE_STAGGER: 0.08s;
-        }
+        :root { --SIG_WAVE_DURATION: 0.9s; --SIG_WAVE_STAGGER: 0.08s; }
         @keyframes signature-wave {
-          0%   { transform: translateY(0) rotate(0)   scale(1);    opacity: 1; }
-          25%  { transform: translateY(-2px) rotate(-1deg) scale(1.02); opacity: 0.95; }
-          50%  { transform: translateY(0) rotate(0)   scale(1);    opacity: 1; }
-          100% { transform: translateY(0) rotate(0)   scale(1);    opacity: 1; }
+          0% { transform: translateY(0) rotate(0) scale(1); opacity: 1; }
+          25% { transform: translateY(-2px) rotate(-1deg) scale(1.02); opacity: 0.95; }
+          50% { transform: translateY(0) rotate(0) scale(1); opacity: 1; }
+          100% { transform: translateY(0) rotate(0) scale(1); opacity: 1; }
         }
         .sig-ch {
-          display: inline-block;
-          transform-origin: center bottom;
-          animation-name: signature-wave;
-          animation-duration: var(--SIG_WAVE_DURATION);
-          animation-timing-function: ease-in-out;
-          animation-iteration-count: infinite;
+          display: inline-block; transform-origin: center bottom;
+          animation: signature-wave var(--SIG_WAVE_DURATION) ease-in-out infinite;
           animation-delay: calc(var(--i, 0) * var(--SIG_WAVE_STAGGER));
           will-change: transform, opacity;
         }
-        @media (prefers-reduced-motion: reduce) {
-          .sig-ch { animation: none; }
-        }
+        @media (prefers-reduced-motion: reduce) { .sig-ch { animation: none; } }
       `}</style>
     </header>
   );
 }
 
-/* Icons */
+/* Icons unchanged */
 function LinkedInIcon({ className = "" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
@@ -255,11 +207,7 @@ function LinkedInIcon({ className = "" }: { className?: string }) {
 function GitHubIcon({ className = "" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
-      <path
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M12 2C6.477 2 2 6.589 2 12.254c0 4.53 2.865 8.366 6.839 9.723.5.095.682-.222.682-.493 0-.243-.009-.888-.014-1.744-2.782.615-3.37-1.365-3.37-1.365-.455-1.172-1.111-1.485-1.111-1.485-.908-.64.07-.627.07-.627 1.003.073 1.531 1.05 1.531 1.05.892 1.557 2.341 1.108 2.91.847.091-.662.35-1.108.636-1.362-2.221-.257-4.555-1.137-4.555-5.06 0-1.117.389-2.03 1.027-2.747-.103-.259-.445-1.298.097-2.706 0 0 .839-.27 2.75 1.05A9.362 9.362 0 0 1 12 7.802c.85.004 1.705.117 2.504.343 1.91-1.32 2.748-1.05 2.748-1.05.544 1.408.202 2.447.1 2.706.64.717 1.026 1.63 1.026 2.747 0 3.934-2.337 4.8-4.565 5.052.357.315.675.935.675 1.885 0 1.361-.013 2.458-.013 2.794 0 .274.18.593.688.492C19.139 20.616 22 16.782 22 12.254 22 6.589 17.523 2 12 2Z"
-      />
+      <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.589 2 12.254c0 4.53 2.865 8.366 6.839 9.723.5.095.682-.222.682-.493 0-.243-.009-.888-.014-1.744-2.782.615-3.37-1.365-3.37-1.365-.455-1.172-1.111-1.485-1.111-1.485-.908-.64.07-.627.07-.627 1.003.073 1.531 1.05 1.531 1.05.892 1.557 2.341 1.108 2.91.847.091-.662.35-1.108.636-1.362-2.221-.257-4.555-1.137-4.555-5.06 0-1.117.389-2.03 1.027-2.747-.103-.259-.445-1.298.097-2.706 0 0 .839-.27 2.75 1.05A9.362 9.362 0 0 1 12 7.802c.85.004 1.705.117 2.504.343 1.91-1.32 2.748-1.05 2.748-1.05.544 1.408.202 2.447.1 2.706.64.717 1.026 1.63 1.026 2.747 0 3.934-2.337 4.8-4.565 5.052.357.315.675.935.675 1.885 0 1.361-.013 2.458-.013 2.794 0 .274.18.593.688.492C19.139 20.616 22 16.782 22 12.254 22 6.589 17.523 2 12 2Z" />
     </svg>
   );
 }
