@@ -5,6 +5,9 @@ import { Satisfy } from "next/font/google";
 
 const satisfy = Satisfy({ subsets: ["latin"], weight: "400", display: "swap" });
 
+/** Use your exact filename; URL-encode it so the link is safe */
+const DEFAULT_RESUME = encodeURI("/Resume (LaTeX).pdf");
+
 type Section = { id: string; label: string };
 
 type Props = {
@@ -26,9 +29,9 @@ export default function VscodeTopBar({
     { id: "testimonials", label: "Testimonials" },
     { id: "contact", label: "Contact" },
   ],
-  resumeHref = "/resume.pdf",
-  linkedinHref = "https://www.linkedin.com/",
-  githubHref = "https://github.com/",
+  resumeHref = DEFAULT_RESUME,
+  linkedinHref = "https://www.linkedin.com/in/canyen-palmer-b0b6762a0",
+  githubHref = "https://github.com/CanyenPalmer",
   signature = "Canyen Palmer",
 }: Props) {
   const [activeId, setActiveId] = React.useState<string>(sections[0]?.id ?? "home");
@@ -128,9 +131,11 @@ export default function VscodeTopBar({
                         px-4 py-2 rounded-md
                         font-mono text-[13px]
                         transition
-                        ${isActive
-                          ? "bg-white/10 text-white border border-white/10 shadow-[inset_0_-2px_0_rgba(56,189,248,0.6)]"
-                          : "text-white/70 hover:text-white/95 hover:bg-white/5 border border-transparent hover:shadow-[inset_0_-2px_0_rgba(255,255,255,0.25)]"}
+                        ${
+                          isActive
+                            ? "bg-white/10 text-white border border-white/10 shadow-[inset_0_-2px_0_rgba(56,189,248,0.6)]"
+                            : "text-white/70 hover:text-white/95 hover:bg-white/5 border border-transparent hover:shadow-[inset_0_-2px_0_rgba(255,255,255,0.25)]"
+                        }
                       `}
                       aria-current={isActive ? "page" : undefined}
                     >
@@ -190,13 +195,6 @@ export default function VscodeTopBar({
 
       {/* Wave keyframes (scoped global so Tailwind won't purge) */}
       <style jsx global>{`
-        /**
-         * Crowd wave across signature:
-         * - Each character runs a short 0.9s wave.
-         * - Staggered by index so it travels left→right.
-         * - Continuous but gentle; visually reads as one wave ~every few seconds.
-         *   (Adjust DURATION_BASE and STAGGER for cadence.)
-         */
         :root {
           --SIG_WAVE_DURATION: 0.9s; /* wave duration per letter */
           --SIG_WAVE_STAGGER: 0.08s; /* delay step between letters */
