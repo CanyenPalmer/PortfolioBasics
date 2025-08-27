@@ -1,9 +1,9 @@
 // src/content/links.ts
-// Keep your exact filename; encode it so the URL is safe.
-const RESUME_FILE = "/Resume (LaTeX).pdf";
+// Keep the exact filename with spaces/parentheses; we'll encode it for the URL.
+const RAW_RESUME_PATH = "/Resume (LaTeX).pdf";
 
 export const LINKS = {
-  resume: encodeURI(RESUME_FILE), // -> "/Resume%20(LaTeX).pdf"
+  resume: encodeURI(RAW_RESUME_PATH), // -> "/Resume%20(LaTeX).pdf"
   linkedin: "https://www.linkedin.com/in/canyen-palmer-b0b6762a0",
   github: "https://github.com/CanyenPalmer",
 } as const;
