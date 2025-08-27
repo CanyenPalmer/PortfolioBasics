@@ -1,14 +1,94 @@
+// src/utils/jsonHighlight.ts
+
+/**
+ * JSON highlighting utils
+ * - escapeHtml
+ * - highlightJson (batch highlighting for full strings via innerHTML)
+ * - buildExperienceJson (controls printed fields)
+ * - tokenizeJson (for real-time, color-while-typing React rendering)
+ */
+
+export function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (m) => {
+    switch (m) {
+      case "&": return "&amp;";
+      case "<": return "&lt;";
+      case ">": return "&gt;";
+      case '"': return "&quot;";
+      case "'": return "&#39;";
+      default:  return m;
+    }
+  });
+}
+
+/** Batch highlighter (used only if you want to color a prebuilt string) */
+export function highlightJson(json: string): string {
+  let esc = escapeHtml(json);
+
+  // Keys: "key":
+  esc = esc.replace(
+    /(^|[\r\n])(\s*)(".*?")(\s*):/g,
+    (_, br, ws, key, after) =>
+      `${br}${ws}<span class="text-sky-300">${key}</span>${after}:`
+  );
+
+  // String values
+  esc = esc.replace(
+    /(:\s*)(".*?")/g,
+    (_, pre, val) => `${pre}<span class="text-emerald-300">${val}</span>`
+  );
+
+  // Numbers (incl. scientific)
+  esc = esc.replace(
+    /(:\s*)(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g,
+    (_, pre, num) => `${pre}<span class="text-amber-300">${num}</span>`
+  );
+
+  // Booleans & null
+  esc = esc.replace(
+    /(:\s*)(true|false|null)/g,
+    (_, pre, kw) => `${pre}<span class="text-fuchsia-300">${kw}</span>`
+  );
+
+  return esc;
+}
+
+/** Controls which fields from an Experience are printed to JSON */
+export function buildExperienceJson(exp: {
+  title: string;
+  company: string;
+  location?: string;
+  context?: string;
+  dates: string;
+  tech?: string[];
+  skills?: string[];
+  highlights: string[];
+  creations?: { name: string; details: string[] }[];
+}): string {
+  const printable = {
+    title: exp.title,
+    company: exp.company,
+    ...(exp.location ? { location: exp.location } : {}),
+    ...(exp.context ? { context: exp.context } : {}),
+    dates: exp.dates,
+    ...(exp.tech?.length ? { tech: exp.tech } : {}),
+    ...(exp.skills?.length ? { skills: exp.skills } : {}),
+    highlights: exp.highlights,
+    ...(exp.creations?.length ? { creations: exp.creations } : {}),
+  };
+  return JSON.stringify(printable, null, 2);
+}
+
 /* ------------------------------------------------------------------ */
 /* Real-time, color-as-you-type tokenizer for React element rendering */
 /* ------------------------------------------------------------------ */
-
 export type JsonToken = {
-  text: string;        // raw, UNESCAPED JSON text (React will escape safely)
+  text: string;        // raw, UNESCAPED JSON text (React escapes safely)
   className?: string;  // tailwind class for color, if any
 };
 
 export function tokenizeJson(json: string): JsonToken[] {
-  // IMPORTANT: do NOT escape here. We render React text nodes (safe by default).
+  // IMPORTANT: do NOT escape here. We render React text nodes.
   const s = json;
   const tokens: JsonToken[] = [];
 
@@ -88,7 +168,6 @@ export function tokenizeJson(json: string): JsonToken[] {
         if (s[j] === "+" || s[j] === "-") j++;
         while (j < N && /\d/.test(s[j])) j++;
       }
-      // Guard against matching the dash in an en–dash date range – JSON dates here are strings, so numbers are safe.
       push(s.slice(i, j), "text-amber-300");
       i = j;
       continue;
