@@ -5,7 +5,7 @@ import { hero } from "../content/hero.data";
 import CodeEdgesTyped from "./CodeEdgesTyped";
 import NameCodeExplode from "./NameCodeExplode";
 import SummaryRunner from "./SummaryRunner";
-import SkillsBelt from "./SkillsBelt";
+import SkillsBelt from "./SkillsBelt"; // ← ADDED
 
 /** ---------- InlineTypeLine (typed tagline) ---------- */
 import * as React from "react";
@@ -23,37 +23,39 @@ function InlineTypeLine({
   startDelayMs = 150,
   retypeOnReenter = true,
   visibleThreshold = 0.6,
-  ariaLabel = "hero-typed-line",
+  ariaLabel = "Typed line",
 }: {
   text: string;
   prompt?: string;
   className?: string;
-  typingSpeed?: number;   // ms/char
-  startDelayMs?: number;  // ms
+  typingSpeed?: number;
+  startDelayMs?: number;
   retypeOnReenter?: boolean;
-  visibleThreshold?: number; // 0..1
+  visibleThreshold?: number;
   ariaLabel?: string;
 }) {
-  const ref = React.useRef<HTMLDivElement>(null);
-  const [i, setI] = React.useState(0);
-  const [armed, setArmed] = React.useState(false);
-  const [started, setStarted] = React.useState(false);
-  const [done, setDone] = React.useState(false);
-  const timers = React.useRef<number[]>([]);
+  const rootRef = React.useRef<HTMLDivElement>(null);
 
+  const [started, setStarted] = React.useState(false);
+  const [armed, setArmed] = React.useState(false);
+  const [i, setI] = React.useState(0);
+  const [done, setDone] = React.useState(false);
+
+  const timers = React.useRef<number[]>([]);
   const clearTimers = () => {
-    timers.current.forEach((id) => window.clearTimeout(id));
+    timers.current.forEach((t) => window.clearTimeout(t));
     timers.current = [];
   };
 
   React.useEffect(() => {
-    const el = ref.current;
+    const el = rootRef.current;
     if (!el) return;
 
     const io = new IntersectionObserver(
       (entries) => {
         for (const e of entries) {
-          if (e.isIntersecting && e.intersectionRatio >= visibleThreshold) {
+          if (e.intersectionRatio >= visibleThreshold) {
+            clearTimers();
             if (retypeOnReenter) {
               setI(0);
               setDone(false);
@@ -87,26 +89,39 @@ function InlineTypeLine({
       setDone(true);
       return;
     }
-    const id = window.setTimeout(() => setI((n) => Math.min(n + 1, text.length)), typingSpeed) as unknown as number;
+    const id = window.setTimeout(() => setI((n) => n + 1), typingSpeed) as unknown as number;
     timers.current.push(id);
     return () => window.clearTimeout(id);
-  }, [armed, started, done, i, text, typingSpeed]);
+  }, [armed, started, done, i, text.length, typingSpeed]);
 
-  const visible = text.slice(0, i);
+  const shown = text.slice(0, i);
+
   return (
-    <div ref={ref} aria-label={ariaLabel} className={className}>
+    <div ref={rootRef} aria-label={ariaLabel} className={className}>
       <span className="font-mono">
-        {prompt && <span className="text-white/60">{prompt}</span>}
-        <span className="text-white/90">{visible}</span>
-        <span className={`inline-block w-[8px] h-[1.05em] translate-y-[2px] rounded-[2px] ${done ? "bg-white/30" : "bg-white/70 animate-pulse"}`} />
+        {prompt && <span className="text-emerald-400">{prompt}</span>}
+        <span>{done ? text : shown}</span>
+        <span
+          className="inline-block w-[8px] h-[1.1em] align-[-0.15em] bg-white/80 ml-1 animate-[blink_1s_steps(1)_infinite]"
+          aria-hidden
+        />
       </span>
+      <style jsx>{`
+        @keyframes blink { 50% { opacity: 0; } }
+      `}</style>
     </div>
   );
 }
+/** ---------- /InlineTypeLine ---------- */
+
+import HoloHeadshotAuto from "./HoloHeadshotAuto";
 
 export default function Hero() {
   return (
-    <section className="relative w-full max-w-6xl mx-auto px-6 md:px-8">
+    <section
+      id="home"
+      className="relative isolate w-full min-h-screen flex items-center justify-center px-6 md:px-12 pt-20"
+    >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch w-full max-w-6xl">
         {/* LEFT COLUMN — Text */}
         <div className="relative">
@@ -136,18 +151,19 @@ export default function Hero() {
               prompt=""
               text="Turning Data Into Decisions"
               typingSpeed={18}
-              startDelayMs={150}
+              startDelayMs={180}
               retypeOnReenter={true}
               visibleThreshold={0.6}
-              ariaLabel="tagline-typed"
+              ariaLabel="Tagline"
             />
 
-            {/* Tech belt under hero line, above summary.py */}
+            {/* ↓↓↓ ADDED: belt under hero statement, above summary.py ↓↓↓ */}
             <div className="my-4 sm:my-6" />
             <SkillsBelt />
             <div className="my-4 sm:my-6" />
+            {/* ↑↑↑ ADDED ↑↑↑ */}
 
-            {/* summary.py terminal */}
+            {/* summary.py card -> Run -> terminal overlay */}
             <SummaryRunner
               className="mt-3 mb-6"
               proficiency={hero.skills.proficiency}
@@ -157,6 +173,74 @@ export default function Hero() {
               minHeightPxMd={420}
             />
 
+            {/* CTAs */}
+            <div className="mt-8 flex gap-4">
+              {hero.ctas.map((cta, i) => (
+                <a
+                  key={i}
+                  href={cta.href}
+                  className={`px-5 py-3 rounded-xl font-medium transition ${
+                    cta.variant === "primary"
+                      ? "bg-blue-600 hover:bg-blue-700 text-white"
+                      : "border border-white/30 hover:bg-white/10 text-white"
+                  }`}
+                >
+                  {cta.label}
+                </a>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* Typed code edges — LEFT */}
+          <div className="hidden md:block">
+            <CodeEdgesTyped
+              zClass="-z-10"
+              gap={28}
+              strip={24}
+              laneHeightEm={1.35}
+              laneWidthCh={38}
+              speedMs={28}
+              opacityClass="text-white/25"
+              top={[
+                { text: "import pandas as pd" },
+                { text: "df = pd.read_csv('golf_stats.csv')" },
+              ]}
+              bottom={[
+                { text: "from sklearn.model_selection import train_test_split" },
+              ]}
+              left={[
+                { text: "SELECT hole, avg(strokes) FROM rounds GROUP BY hole;" },
+              ]}
+              right={[]}
+            />
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN — Hologram Headshot (auto segmentation) */}
+        <div className="relative">
+          <motion.div
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6 }}
+            className="flex items-center justify-center h-full relative z-10"
+          >
+            <HoloHeadshotAuto
+              src={
+                typeof hero.headshot === "string"
+                  ? hero.headshot
+                  : "/images/headshot.jpg"
+              }
+              className="
+                w-full max-w-full
+                h-[280px] sm:h-[340px] md:h-[clamp(520px,70vh,860px)]
+                md:w-[min(46vw,620px)]
+                aspect-[3/4]
+              "
+            />
+          </motion.div>
+
+          {/* Typed code edges — RIGHT */}
+          <div className="hidden md:block">
             <CodeEdgesTyped
               zClass="-z-10"
               gap={28}
@@ -176,7 +260,7 @@ export default function Hero() {
               ]}
               right={[]}
             />
-          </motion.div>
+          </div>
         </div>
       </div>
     </section>
