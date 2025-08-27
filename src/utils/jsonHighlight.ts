@@ -62,7 +62,7 @@ export function buildExperienceJson(exp: {
   skills?: string[];
   highlights: string[];
   creations?: { name: string; details: string[] }[];
-}:): string {
+}): string {
   const printable = {
     title: exp.title,
     company: exp.company,
