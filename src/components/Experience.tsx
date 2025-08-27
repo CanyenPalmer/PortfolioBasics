@@ -2,13 +2,20 @@
 
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useTypewriter } from "@/hooks/useTypewriter";
 import { buildExperienceJson, tokenizeJson, JsonToken } from "@/utils/jsonHighlight";
 import { RichText } from "@/utils/richText";
 
 /** -----------------------------------------------------------------------
  * Experience (Terminal/Editor theme + Tabs + JSON viewer)
- * ... (unchanged comment block)
+ * - Visual hierarchy (featured role styling, badge)
+ * - Engagement (hover/press states, glowing accents)
+ * - Context line (1-liner for each company/role)
+ * - Highlight most impressive role (featured)
+ * - Interactive timeline rail (desktop), tabs in topbar (mobile)
+ * - Expandable details (creations) with smooth animations
+ * - Subtle animations (panel transitions, caret blink)
+ * - REAL-TIME colored typed JSON (replays on role change)
+ * - Rich-text emphasis for lists (bold/italic/code + auto $/%/numbers)
  * ----------------------------------------------------------------------*/
 
 type Creation = { name: string; details: string[] };
@@ -35,7 +42,8 @@ const EXPERIENCES: ExperienceItem[] = [
     company: "Iconic Care Inc.",
     location: "Indianapolis, Indiana",
     dates: "June 2025 – Aug 2025",
-    context: "Internal Analytics & Custom ML Models for Data Insights.",
+    // (8) Micro-copy tweak
+    context: "Internal analytics & custom ML models for data insights.",
     tech: ["Python", "SQLite", "Excel", "Google Sheets/Slides", "GitHub", "Jupyter Notebooks"],
     skills: ["Analytics", "Custom ML Models", "Revenue Cycle KPIs"],
     highlights: [
@@ -67,7 +75,8 @@ const EXPERIENCES: ExperienceItem[] = [
     company: "Iconic Care Inc.",
     location: "Indianapolis, Indiana",
     dates: "May 2025 – Jun 2025",
-    context: "Billing Ops & Analytics; dashboards, denials, reimbursement.",
+    // (8) Micro-copy tweak
+    context: "Billing operations & analytics: dashboards, denials, reimbursement.",
     tech: ["Python", "Excel", "Google Sheets/Docs", "Brightree"],
     skills: ["Analytics", "Project Management", "System Testing", "Medical Billing", "Databases"],
     highlights: [
@@ -116,7 +125,7 @@ const EXPERIENCES: ExperienceItem[] = [
   },
 ];
 
-/* ---------------- Real-time colored Typed JSON view ------------------- */
+/* ---------------- REAL-TIME colored Typed JSON view ------------------- */
 function TypedColorJsonView({ exp }: { exp: ExperienceItem }) {
   // Precompute tokens for the entire JSON once per exp
   const tokens = React.useMemo<JsonToken[]>(() => {
@@ -124,14 +133,14 @@ function TypedColorJsonView({ exp }: { exp: ExperienceItem }) {
     return tokenizeJson(json);
   }, [exp]);
 
-  // Count of visible characters (across *visible text*, not HTML)
+  // Visible character count across tokens
   const fullLen = React.useMemo(
     () => tokens.reduce((sum, t) => sum + t.text.length, 0),
     [tokens]
   );
 
-  // Drive typing using your existing minimal hook (string not needed; we just need a tick count)
-  const { output } = (function useCharTicker(len: number, speed = 10, startDelay = 60) {
+  // Simple ticker (character by character)
+  const { n } = (function useCharTicker(len: number, speed = 10, startDelay = 60) {
     const [n, setN] = React.useState(0);
     React.useEffect(() => {
       setN(0);
@@ -148,15 +157,14 @@ function TypedColorJsonView({ exp }: { exp: ExperienceItem }) {
       }, startDelay);
       return () => window.clearTimeout(startId);
     }, [len, speed, startDelay]);
-    return { output: n };
+    return { n };
   })(fullLen, 10, 60);
 
-  // Build the partially-typed DOM: iterate tokens and render only up to `output` characters
-  let remaining = output;
+  // Build partial render up to `n`
+  let remaining = n;
   const children: React.ReactNode[] = [];
-  for (let i = 0; i < tokens.length; i++) {
+  for (let i = 0; i < tokens.length && remaining > 0; i++) {
     const t = tokens[i];
-    if (remaining <= 0) break;
     const take = Math.min(remaining, t.text.length);
     const sliceText = t.text.slice(0, take);
     children.push(
@@ -171,7 +179,7 @@ function TypedColorJsonView({ exp }: { exp: ExperienceItem }) {
     remaining -= take;
   }
 
-  const done = output >= fullLen;
+  const done = n >= fullLen;
 
   return (
     <pre className="relative font-mono text-[13px] leading-relaxed text-white/90 whitespace-pre-wrap">
@@ -385,28 +393,28 @@ export default function Experience() {
             {/* REAL-TIME colored typed JSON */}
             <TypedColorJsonView exp={active} />
 
-            {/* Highlights as rich text */}
+            {/* Highlights as rich text — (7) add comfy leading */}
             <details className="mt-4 group">
               <summary className="cursor-pointer text-white/80 font-mono text-sm select-none">
                 <span className="group-open:hidden">▸</span>
                 <span className="hidden group-open:inline">▾</span> view_highlights_as_list
               </summary>
-              <ul className="mt-2 list-disc pl-6 text-white/85">
+              <ul className="mt-2 list-disc pl-6 text-white/85 leading-[1.65]">
                 {active.highlights.map((h, i) => (
-                  <li key={i} className="mb-1 text-[15px] leading-relaxed">
+                  <li key={i} className="mb-1 text-[15px]">
                     <RichText text={h} />
                   </li>
                 ))}
               </ul>
             </details>
 
-            {/* Creations as rich text */}
+            {/* Creations as rich text — (7) add comfy leading */}
             {active.creations && active.creations.length > 0 && (
               <div className="mt-4">
                 <details className="group">
                   <summary className="cursor-pointer text-white/80 font-mono text-sm select-none">
                     <span className="group-open:hidden">▸</span>
-                    <span className="hidden group-open:inline">▾</span> view_creations
+                    <span className="hidden group-open:inline">▾</span> view_creations ({active.creations.length})
                   </summary>
                   <motion.ul
                     initial={{ opacity: 0 }}
@@ -418,9 +426,9 @@ export default function Experience() {
                     {active.creations.map((c) => (
                       <li key={c.name} className="rounded-lg border border-white/10 bg-white/5 p-3">
                         <p className="font-medium text-white/90">{c.name}</p>
-                        <ul className="mt-1 list-disc pl-5 text-white/85">
+                        <ul className="mt-1 list-disc pl-5 text-white/85 leading-[1.65]">
                           {c.details.map((d, j) => (
-                            <li key={j} className="leading-relaxed">
+                            <li key={j}>
                               <RichText text={d} />
                             </li>
                           ))}
