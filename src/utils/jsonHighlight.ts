@@ -1,5 +1,3 @@
-// src/utils/jsonHighlight.ts
-
 /**
  * JSON highlighting utils
  * - escapeHtml
@@ -21,7 +19,7 @@ export function escapeHtml(s: string): string {
   });
 }
 
-/** Batch highlighter (used only if you want to color a prebuilt string) */
+/** Batch highlighter (use only if rendering via dangerouslySetInnerHTML) */
 export function highlightJson(json: string): string {
   let esc = escapeHtml(json);
 
