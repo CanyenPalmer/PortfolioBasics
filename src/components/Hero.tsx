@@ -5,7 +5,7 @@ import { hero } from "../content/hero.data";
 import CodeEdgesTyped from "./CodeEdgesTyped";
 import NameCodeExplode from "./NameCodeExplode";
 import SummaryRunner from "./SummaryRunner";
-import SkillsBelt from "./SkillsBelt"; // ← ADDED
+import SkillsBelt from "./SkillsBelt";
 
 /** ---------- InlineTypeLine (typed tagline) ---------- */
 import * as React from "react";
@@ -157,11 +157,10 @@ export default function Hero() {
               ariaLabel="Tagline"
             />
 
-            {/* ↓↓↓ ADDED: belt under hero statement, above summary.py ↓↓↓ */}
+            {/* Belt under hero statement, above summary.py */}
             <div className="my-4 sm:my-6" />
             <SkillsBelt />
             <div className="my-4 sm:my-6" />
-            {/* ↑↑↑ ADDED ↑↑↑ */}
 
             {/* summary.py card -> Run -> terminal overlay */}
             <SummaryRunner
@@ -173,22 +172,7 @@ export default function Hero() {
               minHeightPxMd={420}
             />
 
-            {/* CTAs */}
-            <div className="mt-8 flex gap-4">
-              {hero.ctas.map((cta, i) => (
-                <a
-                  key={i}
-                  href={cta.href}
-                  className={`px-5 py-3 rounded-xl font-medium transition ${
-                    cta.variant === "primary"
-                      ? "bg-blue-600 hover:bg-blue-700 text-white"
-                      : "border border-white/30 hover:bg-white/10 text-white"
-                  }`}
-                >
-                  {cta.label}
-                </a>
-              ))}
-            </div>
+            {/* (CTAs moved to RIGHT column under headshot) */}
           </motion.div>
 
           {/* Typed code edges — LEFT */}
@@ -222,7 +206,7 @@ export default function Hero() {
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6 }}
-            className="flex items-center justify-center h-full relative z-10"
+            className="flex flex-col items-center md:items-start justify-center h-full relative z-10"
           >
             <HoloHeadshotAuto
               src={
@@ -237,6 +221,23 @@ export default function Hero() {
                 aspect-[3/4]
               "
             />
+
+            {/* CTAs UNDER HEADSHOT */}
+            <div className="mt-6 flex flex-wrap gap-4 justify-center md:justify-start">
+              {hero.ctas.map((cta, i) => (
+                <a
+                  key={i}
+                  href={cta.href}
+                  className={`px-5 py-3 rounded-xl font-medium transition ${
+                    cta.variant === "primary"
+                      ? "bg-blue-600 hover:bg-blue-700 text-white"
+                      : "border border-white/30 hover:bg-white/10 text-white"
+                  }`}
+                >
+                  {cta.label}
+                </a>
+              ))}
+            </div>
           </motion.div>
 
           {/* Typed code edges — RIGHT */}
