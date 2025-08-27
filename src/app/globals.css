@@ -4,3 +4,31 @@
 
 :root { color-scheme: dark; }
 body { background: #0b0b0c; color: white; }
+
+/* ====== Holographic + marquee styles for SkillsBelt ====== */
+@keyframes marquee-x { to { transform: translateX(-50%); } }
+.marquee { width: max-content; animation: marquee-x var(--marquee-duration, 26s) linear infinite; will-change: transform; }
+@media (prefers-reduced-motion: reduce) { .marquee { animation: none; } }
+
+.holo-frame {
+  background:
+    radial-gradient(120% 120% at 10% 0%, rgba(34,211,238,0.25) 0%, transparent 40%),
+    radial-gradient(120% 120% at 90% 100%, rgba(168,85,247,0.25) 0%, transparent 40%),
+    linear-gradient(90deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+}
+.holo-glow {
+  background: conic-gradient(from 0deg at 50% 50%,
+    rgba(34,211,238,0.12), rgba(168,85,247,0.12), rgba(250,204,21,0.10), rgba(34,211,238,0.12));
+  filter: blur(18px); mix-blend-mode: screen; opacity: 0.6;
+}
+.holo-sheen {
+  background: linear-gradient(120deg, rgba(255,255,255,0.0) 30%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0.0) 70%);
+  mix-blend-mode: screen; animation: sheen-move 1.8s ease-in-out infinite;
+}
+@keyframes sheen-move {
+  0% { transform: translateX(-120%); opacity: 0.0; }
+  35% { opacity: 0.35; }
+  50% { transform: translateX(0%); }
+  65% { opacity: 0.35; }
+  100% { transform: translateX(120%); opacity: 0.0; }
+}
