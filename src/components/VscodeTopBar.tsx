@@ -2,17 +2,17 @@
 
 import * as React from "react";
 import { Satisfy } from "next/font/google";
+import { LINKS } from "../content/links"; // note the relative path from /components
 
 const satisfy = Satisfy({ subsets: ["latin"], weight: "400", display: "swap" });
 
-// Fully encode spaces + parentheses so the URL is bulletproof.
-// Result: "/Resume%20%28LaTeX%29.pdf"
-const DEFAULT_RESUME = "/" + encodeURIComponent("Resume (LaTeX).pdf");
-
 type Section = { id: string; label: string };
 
+// We keep these props for compatibility, but we IGNORE any hrefs passed in.
+// That prevents placeholder overrides from elsewhere.
 type Props = {
   sections?: Section[];
+  // legacy/ignored:
   resumeHref?: string;
   linkedinHref?: string;
   githubHref?: string;
@@ -30,12 +30,14 @@ export default function VscodeTopBar({
     { id: "testimonials", label: "Testimonials" },
     { id: "contact", label: "Contact" },
   ],
-  resumeHref = DEFAULT_RESUME,
-  linkedinHref = "https://www.linkedin.com/in/canyen-palmer-b0b6762a0",
-  githubHref = "https://github.com/CanyenPalmer",
   signature = "Canyen Palmer",
 }: Props) {
   const [activeId, setActiveId] = React.useState<string>(sections[0]?.id ?? "home");
+
+  // Final URLs (always from LINKS; ignore any incoming props so nothing can override)
+  const resumeUrl   = LINKS.resume;
+  const linkedinUrl = LINKS.linkedin;
+  const githubUrl   = LINKS.github;
 
   // Observe sections and set active tab on scroll
   React.useEffect(() => {
@@ -114,7 +116,7 @@ export default function VscodeTopBar({
             </div>
           </div>
 
-          {/* CENTER — tabs */}
+          {/* CENTER — tabs (start-left on mobile, center on md+) */}
           <nav
             className="min-w-0 overflow-x-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
             aria-label="Section tabs"
@@ -155,9 +157,9 @@ export default function VscodeTopBar({
 
           {/* RIGHT — actions */}
           <div className="flex items-center gap-2.5 pl-2 justify-end">
-            {/* NOTE: hidden on <sm> by design */}
+            {/* NOTE: hidden on <sm> by design; remove 'hidden sm:' to always show */}
             <a
-              href={resumeHref}
+              href={resumeUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="hidden sm:inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md text-[12.5px] font-medium border border-white/15 text-white/90 hover:bg-white/10 transition"
@@ -168,7 +170,7 @@ export default function VscodeTopBar({
             </a>
 
             <a
-              href={linkedinHref}
+              href={linkedinUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center h-9 w-9 rounded-md border border-white/15 hover:bg-white/10 transition text-white"
@@ -179,7 +181,7 @@ export default function VscodeTopBar({
             </a>
 
             <a
-              href={githubHref}
+              href={githubUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center h-9 w-9 rounded-md border border-white/15 hover:bg-white/10 transition text-white"
