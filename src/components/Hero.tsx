@@ -148,7 +148,7 @@ export default function Hero() {
             <InlineTypeLine
               className="text-[15px] md:text-[17px] text-white/80 mt-1 mb-2"
               prompt=""
-              text="Turning data into decisions through science, code, and storytelling."
+              text="Turning Data Into Decisions"
               typingSpeed={18}
               startDelayMs={180}
               retypeOnReenter={true}
