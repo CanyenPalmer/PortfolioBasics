@@ -7,7 +7,15 @@ body { background: #0b0b0c; color: white; }
 
 /* ====== Holographic + marquee styles for SkillsBelt ====== */
 @keyframes marquee-x { to { transform: translateX(-50%); } }
-.marquee { width: max-content; animation: marquee-x var(--marquee-duration, 26s) linear infinite; will-change: transform; }
+.marquee {
+  width: max-content;
+  animation: marquee-x var(--marquee-duration, 26s) linear infinite;
+  will-change: transform;
+}
+/* nicer UX: pause scroll while interacting */
+.marquee:hover,
+.marquee:focus-within { animation-play-state: paused; }
+
 @media (prefers-reduced-motion: reduce) { .marquee { animation: none; } }
 
 .holo-frame {
@@ -19,12 +27,31 @@ body { background: #0b0b0c; color: white; }
 .holo-glow {
   background: conic-gradient(from 0deg at 50% 50%,
     rgba(34,211,238,0.12), rgba(168,85,247,0.12), rgba(250,204,21,0.10), rgba(34,211,238,0.12));
-  filter: blur(18px); mix-blend-mode: screen; opacity: 0.6;
+  filter: blur(18px);
+  mix-blend-mode: screen;
+  opacity: 0.6;
 }
+
+/* Hover-only sheen: OFF by default */
 .holo-sheen {
-  background: linear-gradient(120deg, rgba(255,255,255,0.0) 30%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0.0) 70%);
-  mix-blend-mode: screen; animation: sheen-move 1.8s ease-in-out infinite;
+  background: linear-gradient(
+    120deg,
+    rgba(255,255,255,0.0) 30%,
+    rgba(255,255,255,0.25) 50%,
+    rgba(255,255,255,0.0) 70%
+  );
+  mix-blend-mode: screen;
+  opacity: 0;
+  animation: none;             /* stop always-on animation */
+  will-change: transform;
 }
+/* Turn sheen ON only when a tile is hovered/focused */
+.belt-tile:hover .holo-sheen,
+.belt-tile:focus-within .holo-sheen {
+  opacity: 1;
+  animation: sheen-move 1.8s ease-in-out both; /* runs once per hover */
+}
+
 @keyframes sheen-move {
   0% { transform: translateX(-120%); opacity: 0.0; }
   35% { opacity: 0.35; }
