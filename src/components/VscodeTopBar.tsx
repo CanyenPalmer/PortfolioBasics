@@ -6,7 +6,7 @@ import { Satisfy } from "next/font/google";
 const satisfy = Satisfy({ subsets: ["latin"], weight: "400", display: "swap" });
 
 /** Use your exact filename; URL-encode it so the link is safe */
-const DEFAULT_RESUME = encodeURI("/Resume (LaTeX).pdf");
+const DEFAULT_RESUME = encodeURI("/Resume (LaTeX).pdf"); // -> "/Resume%20(LaTeX).pdf"
 
 type Section = { id: string; label: string };
 
@@ -154,6 +154,7 @@ export default function VscodeTopBar({
 
           {/* RIGHT — actions */}
           <div className="flex items-center gap-2.5 pl-2 justify-end">
+            {/* NOTE: hidden on <sm> by design */}
             <a
               href={resumeHref}
               target="_blank"
