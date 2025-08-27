@@ -27,25 +27,25 @@ export function highlightJson(json: string): string {
   esc = esc.replace(
     /(^|[\r\n])(\s*)(".*?")(\s*):/g,
     (_, br, ws, key, after) =>
-      `${br}${ws}<span class="text-sky-300">${key}</span>${after}:`
+      `${br}${ws}<span class="text-sky-400">${key}</span>${after}:`
   );
 
   // String values
   esc = esc.replace(
     /(:\s*)(".*?")/g,
-    (_, pre, val) => `${pre}<span class="text-emerald-300">${val}</span>`
+    (_, pre, val) => `${pre}<span class="text-emerald-400">${val}</span>`
   );
 
   // Numbers (incl. scientific)
   esc = esc.replace(
     /(:\s*)(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g,
-    (_, pre, num) => `${pre}<span class="text-amber-300">${num}</span>`
+    (_, pre, num) => `${pre}<span class="text-amber-400">${num}</span>`
   );
 
   // Booleans & null
   esc = esc.replace(
     /(:\s*)(true|false|null)/g,
-    (_, pre, kw) => `${pre}<span class="text-fuchsia-300">${kw}</span>`
+    (_, pre, kw) => `${pre}<span class="text-fuchsia-400">${kw}</span>`
   );
 
   return esc;
@@ -62,7 +62,7 @@ export function buildExperienceJson(exp: {
   skills?: string[];
   highlights: string[];
   creations?: { name: string; details: string[] }[];
-}): string {
+}:): string {
   const printable = {
     title: exp.title,
     company: exp.company,
@@ -147,7 +147,7 @@ export function tokenizeJson(json: string): JsonToken[] {
       while (k < N && /\s/.test(s[k])) k++;
       const isKey = s[k] === ":";
 
-      push(strText, isKey ? "text-sky-300" : "text-emerald-300");
+      push(strText, isKey ? "text-sky-400" : "text-emerald-400");
       i = j;
       continue;
     }
@@ -166,24 +166,24 @@ export function tokenizeJson(json: string): JsonToken[] {
         if (s[j] === "+" || s[j] === "-") j++;
         while (j < N && /\d/.test(s[j])) j++;
       }
-      push(s.slice(i, j), "text-amber-300");
+      push(s.slice(i, j), "text-amber-400");
       i = j;
       continue;
     }
 
     // Booleans / null
     if (s.startsWith("true", i)) {
-      push("true", "text-fuchsia-300");
+      push("true", "text-fuchsia-400");
       i += 4;
       continue;
     }
     if (s.startsWith("false", i)) {
-      push("false", "text-fuchsia-300");
+      push("false", "text-fuchsia-400");
       i += 5;
       continue;
     }
     if (s.startsWith("null", i)) {
-      push("null", "text-fuchsia-300");
+      push("null", "text-fuchsia-400");
       i += 4;
       continue;
     }
