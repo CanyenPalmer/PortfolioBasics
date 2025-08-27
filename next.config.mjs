@@ -6,13 +6,6 @@ const nextConfig = {
   // Remove these once you’re ready to enforce checks.
   typescript: { ignoreBuildErrors: true },
   eslint: { ignoreDuringBuilds: true },
-
-  // 👇 Clean alias: /resume → /Resume (LaTeX).pdf in /public
-  async rewrites() {
-    return [
-      { source: "/resume", destination: "/Resume (LaTeX).pdf" },
-    ];
-  },
 };
 
 export default nextConfig;
