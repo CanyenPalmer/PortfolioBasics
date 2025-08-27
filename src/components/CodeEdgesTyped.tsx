@@ -15,8 +15,10 @@ export default function CodeEdgesTyped({
   zClass = "-z-10",
   laneHeightEm = 1.4,
   laneWidthCh = 40,
-  /** NEW: nudge the bottom track by a CSS length (e.g., "2ch", "8px", ".5rem") */
-  offsetBottom = "0",
+  /** nudge-only props */
+  offsetBottom = "0",         // e.g. "2ch"
+  offsetLeft = "0",           // e.g. "2ch"
+  offsetRight = "0",          // e.g. "2ch"
 }: {
   top?: EdgeLine[];
   right?: EdgeLine[];
@@ -31,6 +33,8 @@ export default function CodeEdgesTyped({
   laneWidthCh?: number;
   /** NEW */
   offsetBottom?: string;
+  offsetLeft?: string;
+  offsetRight?: string;
 }) {
   const base = `pointer-events-none select-none ${opacityClass} text-[10px] md:text-xs font-mono whitespace-pre`;
 
@@ -70,9 +74,7 @@ export default function CodeEdgesTyped({
       {bottom.length > 0 && (
         <div
           className="absolute left-0 right-0 overflow-hidden"
-          /* move the whole bottom rail by offsetBottom (without affecting others) */
           style={{
-            // original position: bottom: -(gap + strip)px
             bottom: `calc(${-(gap + strip)}px + ${offsetBottom})`,
             height: strip,
           }}
@@ -96,7 +98,7 @@ export default function CodeEdgesTyped({
       {left.length > 0 && (
         <div
           className="absolute top-0 bottom-0 overflow-hidden"
-          style={{ left: -gap - strip, width: strip }}
+          style={{ left: -gap - strip, width: strip, transform: `translateY(${offsetLeft})` }}
         >
           <div className="h-full w-full py-2 flex flex-col items-center justify-between">
             {left.map((l, i) => (
@@ -121,7 +123,7 @@ export default function CodeEdgesTyped({
       {right.length > 0 && (
         <div
           className="absolute top-0 bottom-0 overflow-hidden"
-          style={{ right: -gap - strip, width: strip }}
+          style={{ right: -gap - strip, width: strip, transform: `translateY(${offsetRight})` }}
         >
           <div className="h-full w-full py-2 flex flex-col items-center justify-between">
             {right.map((l, i) => (
@@ -142,4 +144,3 @@ export default function CodeEdgesTyped({
     </div>
   );
 }
-
