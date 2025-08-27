@@ -26,26 +26,17 @@ const DEFAULT_LOGOS: Logo[] = [
 export default function SkillsBelt({
   logos = DEFAULT_LOGOS,
   speedSeconds = 26,
-  variant = "compact", // "compact" (default) or "default"
 }: {
   logos?: Logo[];
   speedSeconds?: number;
-  variant?: "compact" | "default";
 }) {
-  // duplicate for seamless loop
-  const items = React.useMemo(() => [...logos, ...logos], [logos]);
+  const items = React.useMemo(() => [...logos, ...logos], [logos]); // seamless loop
 
-  // sizes per variant
-  const SZ = variant === "compact"
-    ? { tile: "h-10 w-24", imgH: 20, gap: "gap-6", pad: "px-4 py-3" }
-    : { tile: "h-12 w-28", imgH: 24, gap: "gap-8", pad: "px-6 py-4" };
-
-  // gentle edge fade so entries/exits feel smooth
   const maskStyle: React.CSSProperties = {
     WebkitMaskImage:
-      "linear-gradient(to right, transparent, black 12%, black 88%, transparent)",
+      "linear-gradient(to right, transparent, black 10%, black 90%, transparent)",
     maskImage:
-      "linear-gradient(to right, transparent, black 12%, black 88%, transparent)",
+      "linear-gradient(to right, transparent, black 10%, black 90%, transparent)",
   };
 
   return (
@@ -54,38 +45,31 @@ export default function SkillsBelt({
         <div className="relative rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 overflow-hidden">
           <div className="relative" style={maskStyle}>
             <ul
-              className={`marquee flex items-center ${SZ.gap} ${SZ.pad}`}
+              className="marquee flex items-center gap-8 px-6 py-4"
               style={
                 {
-                  // @ts-expect-error CSS custom property for animation duration
+                  // @ts-expect-error CSS custom property
                   "--marquee-duration": `${speedSeconds}s`,
                 } as React.CSSProperties
               }
             >
               {items.map((logo, i) => (
-                <li
-                  key={`${logo.src}-${i}`}
-                  className="shrink-0"
-                  title={logo.alt}
-                  aria-label={logo.alt}
-                >
-                  <div
-                    className={`group relative grid place-items-center ${SZ.tile} rounded-xl bg-white/5 border border-white/10`}
-                  >
-                    <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 holo-sheen" />
+                <li key={`${logo.src}-${i}`} className="shrink-0" title={logo.alt} aria-label={logo.alt}>
+                  <div className="belt-tile group relative grid place-items-center h-12 w-28 rounded-xl bg-white/5 border border-white/10">
+                    {/* sheen now controlled purely by CSS (hover-only) */}
+                    <div className="absolute inset-0 rounded-xl holo-sheen transition-opacity duration-300" />
                     <Image
                       src={logo.src}
                       alt={logo.alt}
                       width={96}
-                      height={SZ.imgH}
+                      height={32}
                       className="
-                        h-auto w-auto
+                        h-6 w-auto
                         opacity-90
                         transition duration-300 group-hover:opacity-100
                         grayscale invert brightness-110 contrast-125
-                        max-h-[1.5rem]
                       "
-                      // no priority: allow lazy for perf
+                      priority={i < 8}
                     />
                   </div>
                 </li>
