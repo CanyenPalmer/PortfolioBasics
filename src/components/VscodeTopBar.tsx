@@ -5,6 +5,10 @@ import { Satisfy } from "next/font/google";
 
 const satisfy = Satisfy({ subsets: ["latin"], weight: "400", display: "swap" });
 
+// Fully encode spaces + parentheses so the URL is bulletproof.
+// Result: "/Resume%20%28LaTeX%29.pdf"
+const DEFAULT_RESUME = "/" + encodeURIComponent("Resume (LaTeX).pdf");
+
 type Section = { id: string; label: string };
 
 type Props = {
@@ -26,14 +30,14 @@ export default function VscodeTopBar({
     { id: "testimonials", label: "Testimonials" },
     { id: "contact", label: "Contact" },
   ],
-  // 👇 point at the rewrite alias
-  resumeHref = "/resume",
+  resumeHref = DEFAULT_RESUME,
   linkedinHref = "https://www.linkedin.com/in/canyen-palmer-b0b6762a0",
   githubHref = "https://github.com/CanyenPalmer",
   signature = "Canyen Palmer",
 }: Props) {
   const [activeId, setActiveId] = React.useState<string>(sections[0]?.id ?? "home");
 
+  // Observe sections and set active tab on scroll
   React.useEffect(() => {
     const observers: IntersectionObserver[] = [];
     const headerHeight = 72;
@@ -61,6 +65,7 @@ export default function VscodeTopBar({
     window.scrollTo({ top, behavior: "smooth" });
   };
 
+  // Split signature into per-letter spans for wave
   const sigChars = React.useMemo(() => signature.split(""), [signature]);
 
   return (
@@ -73,14 +78,19 @@ export default function VscodeTopBar({
       role="navigation"
       aria-label="Primary"
     >
+      {/* Full-bleed row with edge padding */}
       <div className="px-4 md:px-6">
+        {/* Grid: LEFT (lights+signature) | CENTER (tabs) | RIGHT (actions) */}
         <div className="h-14 grid grid-cols-[auto_1fr_auto] items-center gap-3">
+          {/* LEFT — traffic lights flush-left + signature */}
           <div className="flex items-center gap-3 min-w-0">
             <div className="inline-flex gap-1.5">
               <span className="h-3 w-3 rounded-full bg-red-500/80" />
               <span className="h-3 w-3 rounded-full bg-yellow-500/80" />
               <span className="h-3 w-3 rounded-full bg-green-500/80" />
             </div>
+
+            {/* Signature in Satisfy font with per-letter crowd wave */}
             <div
               className={`
                 ${satisfy.className}
@@ -92,13 +102,19 @@ export default function VscodeTopBar({
               title={signature}
             >
               {sigChars.map((ch, i) => (
-                <span key={i} className="sig-ch" style={{ ["--i" as any]: i }}>
+                <span
+                  key={i}
+                  className="sig-ch"
+                  style={{ ["--i" as any]: i }}
+                  aria-hidden={ch === " " ? undefined : true}
+                >
                   {ch}
                 </span>
               ))}
             </div>
           </div>
 
+          {/* CENTER — tabs */}
           <nav
             className="min-w-0 overflow-x-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
             aria-label="Section tabs"
@@ -137,7 +153,9 @@ export default function VscodeTopBar({
             </ul>
           </nav>
 
+          {/* RIGHT — actions */}
           <div className="flex items-center gap-2.5 pl-2 justify-end">
+            {/* NOTE: hidden on <sm> by design */}
             <a
               href={resumeHref}
               target="_blank"
@@ -150,7 +168,7 @@ export default function VscodeTopBar({
             </a>
 
             <a
-              href="https://www.linkedin.com/in/canyen-palmer-b0b6762a0"
+              href={linkedinHref}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center h-9 w-9 rounded-md border border-white/15 hover:bg-white/10 transition text-white"
@@ -161,7 +179,7 @@ export default function VscodeTopBar({
             </a>
 
             <a
-              href="https://github.com/CanyenPalmer"
+              href={githubHref}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center h-9 w-9 rounded-md border border-white/15 hover:bg-white/10 transition text-white"
@@ -174,8 +192,10 @@ export default function VscodeTopBar({
         </div>
       </div>
 
+      {/* Subtle bottom accent line */}
       <div className="h-[2px] w-full bg-gradient-to-r from-emerald-400/40 via-blue-400/40 to-purple-400/40" />
 
+      {/* Wave keyframes (scoped global so Tailwind won't purge) */}
       <style jsx global>{`
         :root { --SIG_WAVE_DURATION: 0.9s; --SIG_WAVE_STAGGER: 0.08s; }
         @keyframes signature-wave {
@@ -196,7 +216,7 @@ export default function VscodeTopBar({
   );
 }
 
-/* Icons unchanged */
+/* Icons */
 function LinkedInIcon({ className = "" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
@@ -207,7 +227,11 @@ function LinkedInIcon({ className = "" }: { className?: string }) {
 function GitHubIcon({ className = "" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
-      <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.589 2 12.254c0 4.53 2.865 8.366 6.839 9.723.5.095.682-.222.682-.493 0-.243-.009-.888-.014-1.744-2.782.615-3.37-1.365-3.37-1.365-.455-1.172-1.111-1.485-1.111-1.485-.908-.64.07-.627.07-.627 1.003.073 1.531 1.05 1.531 1.05.892 1.557 2.341 1.108 2.91.847.091-.662.35-1.108.636-1.362-2.221-.257-4.555-1.137-4.555-5.06 0-1.117.389-2.03 1.027-2.747-.103-.259-.445-1.298.097-2.706 0 0 .839-.27 2.75 1.05A9.362 9.362 0 0 1 12 7.802c.85.004 1.705.117 2.504.343 1.91-1.32 2.748-1.05 2.748-1.05.544 1.408.202 2.447.1 2.706.64.717 1.026 1.63 1.026 2.747 0 3.934-2.337 4.8-4.565 5.052.357.315.675.935.675 1.885 0 1.361-.013 2.458-.013 2.794 0 .274.18.593.688.492C19.139 20.616 22 16.782 22 12.254 22 6.589 17.523 2 12 2Z" />
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M12 2C6.477 2 2 6.589 2 12.254c0 4.53 2.865 8.366 6.839 9.723.5.095.682-.222.682-.493 0-.243-.009-.888-.014-1.744-2.782.615-3.37-1.365-3.37-1.365-.455-1.172-1.111-1.485-1.111-1.485-.908-.64.07-.627.07-.627 1.003.073 1.531 1.05 1.531 1.05.892 1.557 2.341 1.108 2.91.847.091-.662.35-1.108.636-1.362-2.221-.257-4.555-1.137-4.555-5.06 0-1.117.389-2.03 1.027-2.747-.103-.259-.445-1.298.097-2.706 0 0 .839-.27 2.75 1.05A9.362 9.362 0 0 1 12 7.802c.85.004 1.705.117 2.504.343 1.91-1.32 2.748-1.05 2.748-1.05.544 1.408.202 2.447.1 2.706.64.717 1.026 1.63 1.026 2.747 0 3.934-2.337 4.8-4.565 5.052.357.315.675.935.675 1.885 0 1.361-.013 2.458-.013 2.794 0 .274.18.593.688.492C19.139 20.616 22 16.782 22 12.254 22 6.589 17.523 2 12 2Z"
+      />
     </svg>
   );
 }
