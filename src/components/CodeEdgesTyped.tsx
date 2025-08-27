@@ -15,6 +15,8 @@ export default function CodeEdgesTyped({
   zClass = "-z-10",
   laneHeightEm = 1.4,
   laneWidthCh = 40,
+  /** NEW: nudge the bottom track by a CSS length (e.g., "2ch", "8px", ".5rem") */
+  offsetBottom = "0",
 }: {
   top?: EdgeLine[];
   right?: EdgeLine[];
@@ -27,6 +29,8 @@ export default function CodeEdgesTyped({
   zClass?: string;
   laneHeightEm?: number;
   laneWidthCh?: number;
+  /** NEW */
+  offsetBottom?: string;
 }) {
   const base = `pointer-events-none select-none ${opacityClass} text-[10px] md:text-xs font-mono whitespace-pre`;
 
@@ -66,7 +70,12 @@ export default function CodeEdgesTyped({
       {bottom.length > 0 && (
         <div
           className="absolute left-0 right-0 overflow-hidden"
-          style={{ bottom: -gap - strip, height: strip }}
+          /* move the whole bottom rail by offsetBottom (without affecting others) */
+          style={{
+            // original position: bottom: -(gap + strip)px
+            bottom: `calc(${-(gap + strip)}px + ${offsetBottom})`,
+            height: strip,
+          }}
         >
           <div className="h-full w-full px-2 flex items-center justify-start gap-8">
             {bottom.map((l, i) => (
@@ -133,3 +142,4 @@ export default function CodeEdgesTyped({
     </div>
   );
 }
+
