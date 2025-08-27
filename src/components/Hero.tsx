@@ -196,6 +196,7 @@ export default function Hero() {
                 { text: "SELECT hole, avg(strokes) FROM rounds GROUP BY hole;" },
               ]}
               right={[]}
+              offsetBottom="2ch"  /* ← NEW: push bottom rail down ~2 character widths */
             />
           </div>
         </div>
@@ -260,6 +261,7 @@ export default function Hero() {
                 { text: "model.fit(X_tr, y_tr)" },
               ]}
               right={[]}
+              offsetBottom="2ch"  /* ← NEW */
             />
           </div>
         </div>
