@@ -218,4 +218,3 @@ function HoloCard({
     </motion.div>
   );
 }
-
