@@ -6,9 +6,13 @@ export default function Page() {
       {/* @ts-expect-error Server Component boundary if using app router */}
       <HeroSection />
 
-      {/* EXPERIENCE (new section with id="experience") */}
+      {/* EXPERIENCE (unchanged) */}
       {/* @ts-expect-error Server Component boundary if using app router */}
       <ExperienceSection />
+
+      {/* SERVICES & AVAILABILITY (new) */}
+      {/* @ts-expect-error Server Component boundary if using app router */}
+      <ServicesGlobeSection />
     </>
   );
 }
@@ -24,5 +28,10 @@ const HeroSection = dynamic(() => import("@/components/Hero"), {
 
 /** Experience is a client component; render as-is */
 const ExperienceSection = dynamic(() => import("@/components/Experience"), {
+  ssr: true,
+});
+
+/** NEW: Services globe section (Canvas2D, no new deps) */
+const ServicesGlobeSection = dynamic(() => import("@/components/ServicesGlobe"), {
   ssr: true,
 });
