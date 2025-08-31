@@ -33,5 +33,5 @@ const ExperienceSection = dynamic(() => import("@/components/Experience"), {
 
 /** NEW: Services globe section (Canvas2D, no new deps) */
 const ServicesGlobeSection = dynamic(() => import("@/components/ServicesGlobe"), {
-  ssr: true,
+  ssr: false, // ✅ client-side only to avoid hydration mismatches
 });
