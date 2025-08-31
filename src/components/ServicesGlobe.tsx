@@ -29,7 +29,8 @@ export default function ServicesGlobe() {
     let raf = 0;
     let t = 0;
     const DPR = Math.min(window.devicePixelRatio || 1, 1.5);
-    let w = 540, h = 540; // logical size; we’ll scale with DPR
+    let w = 540, h = 540;
+
     const resize = () => {
       const bb = cvs.getBoundingClientRect();
       w = Math.floor(bb.width);
@@ -42,7 +43,6 @@ export default function ServicesGlobe() {
     const ro = new ResizeObserver(resize);
     ro.observe(cvs);
 
-    // Bayer 4×4 matrix (0..1)
     const bayer4 = (x: number, y: number) => {
       const M = [
         0,  8,  2, 10,
@@ -63,7 +63,7 @@ export default function ServicesGlobe() {
       const cy = h / 2;
       const r = Math.min(w, h) * 0.42;
 
-      // Background “projection glow”
+      // Projection glow pad
       const g = ctx.createRadialGradient(cx, cy + r * 0.7, r * 0.2, cx, cy + r * 0.7, r * 1.2);
       g.addColorStop(0, "rgba(0,229,255,0.20)");
       g.addColorStop(1, "rgba(0,0,0,0)");
@@ -72,23 +72,16 @@ export default function ServicesGlobe() {
       ctx.ellipse(cx, cy + r * 0.72, r * 0.85, r * 0.28, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Dithered sphere render to an offscreen buffer
       const iw = Math.max(220, Math.floor(r * 2));
       const ih = iw;
       const img = ctx.createImageData(iw, ih);
       const data = img.data;
 
-      // Spin by rotating light direction over time
       const spin = reduce ? 0 : t * 0.25;
-      const light = [
-        Math.cos(spin) * 0.7,
-        0.4,
-        Math.sin(spin) * 0.7,
-      ];
+      const light = [Math.cos(spin) * 0.7, 0.4, Math.sin(spin) * 0.7];
 
-      // loop pixels inside the disc and do simple lambert + Bayer threshold
-      const neon = [0, 229 / 255, 1]; // cyan
-      const mag = [1, 59 / 255, 212 / 255]; // magenta (edge/fresnel)
+      const neon = [0, 229 / 255, 1];
+      const mag = [1, 59 / 255, 212 / 255];
       const radius = iw / 2;
 
       for (let y = 0; y < ih; y++) {
@@ -99,28 +92,22 @@ export default function ServicesGlobe() {
           const idx = (y * iw + x) * 4;
 
           if (rr <= radius * radius) {
-            // project to sphere z
             const nx = dx / radius;
             const ny = dy / radius;
             const nz = Math.sqrt(Math.max(0, 1 - nx * nx - ny * ny));
 
-            // lambert with bias to keep readable
             const lam = Math.max(0, nx * light[0] + ny * light[1] + nz * light[2]);
             const lum = 0.25 + 0.75 * lam;
 
-            // ordered dither in screen space
             const threshold = bayer4(x, y);
             const on = lum >= threshold ? 1 : 0;
 
-            // fresnel edge glow
             const fres = Math.pow(1 - nz, 2);
 
-            // mix neon and magenta on the edge
             const rC = neon[0] * on + mag[0] * fres * 0.6;
             const gC = neon[1] * on + mag[1] * fres * 0.6;
             const bC = neon[2] * on + mag[2] * fres * 0.6;
 
-            // subtle scanline shimmer
             const sl = 0.9 + 0.1 * Math.sin((y + t * 30) * Math.PI);
 
             data[idx + 0] = Math.min(255, Math.floor(rC * 255 * sl));
@@ -133,7 +120,6 @@ export default function ServicesGlobe() {
         }
       }
 
-      // blit centered
       ctx.putImageData(img, Math.floor(cx - radius), Math.floor(cy - radius));
     }
 
@@ -175,7 +161,6 @@ export default function ServicesGlobe() {
           <canvas ref={canvasRef} className="absolute inset-0 w-full h-full rounded-full overflow-hidden" />
         </motion.div>
 
-        {/* ROLES */}
         <div className="mt-10">
           <div className="text-cyan-200/90 text-sm tracking-[0.2em] mb-3">ROLES</div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -185,7 +170,6 @@ export default function ServicesGlobe() {
           </div>
         </div>
 
-        {/* LOCATIONS */}
         <div className="mt-8">
           <div className="text-cyan-200/90 text-sm tracking-[0.2em] mb-3">LOCATIONS</div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -199,11 +183,19 @@ export default function ServicesGlobe() {
   );
 }
 
-function HoloCard({ label, blurb, variant = "primary" }: { label: string; blurb?: string; variant?: "primary" | "alt" }) {
+function HoloCard({
+  label,
+  blurb,
+  variant = "primary",
+}: {
+  label: string;
+  blurb?: string;
+  variant?: "primary" | "alt";
+}) {
   const neonClass =
     variant === "primary"
       ? "shadow-[0_0_0_1px_rgba(0,229,255,.8),0_0_12px_rgba(0,229,255,.6),inset_0_0_24px_rgba(0,229,255,.25)]"
-      : "shadow-[0_0_0_1px_rgba(255,59,212,.8),0_0_12px_rgba(255,59,212,.5),inset_0_0_24px_rgba(255,59,212,.22)]";
+      : "shadow-[0_0_0_1px_rgba(255,59,212,.82),0_0_12px_rgba(255,59,212,.5),inset_0_0_24px_rgba(255,59,212,.22)]";
 
   return (
     <motion.div whileHover={{ scale: 1.02 }} transition={{ type: "spring", stiffness: 320, damping: 22 }}>
@@ -211,7 +203,6 @@ function HoloCard({ label, blurb, variant = "primary" }: { label: string; blurb?
         <div className="p-5">
           <div className="text-cyan-100 font-medium">{label}</div>
           {blurb && <p className="mt-1 text-cyan-200/70 text-sm">{blurb}</p>}
-          {/* scanline overlay */}
           <div className="pointer-events-none absolute inset-0 opacity-20 [background:repeating-linear-gradient(to_bottom,rgba(255,255,255,.08)_0_1px,transparent_1px_3px)]" />
         </div>
       </div>
