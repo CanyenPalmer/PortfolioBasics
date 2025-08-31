@@ -34,7 +34,7 @@ export default function ServicesGlobe() {
           MY SERVICES & AVAILABILITY
         </motion.h2>
 
-        {/* Hologram Globe */}
+        {/* Hologram Globe (SVG + CSS spin, no canvas) */}
         <div className="holo-beam relative mx-auto mt-10 w-full max-w-[560px] sm:max-w-[520px] aspect-square px-2">
           <GlobeSVG className="holo-scan holo-spin-slow absolute inset-0" />
         </div>
@@ -96,7 +96,7 @@ function GlobeSVG({ className = "" }: { className?: string }) {
         {/* Inner magenta accent */}
         <circle r="196" fill="none" stroke="var(--neon-magenta)" strokeWidth="1" opacity="0.5" />
 
-        {/* Dithered fill */}
+        {/* Dithered fill with shading */}
         <mask id="maskShade">
           <circle r="196" fill="url(#shade)" />
         </mask>
