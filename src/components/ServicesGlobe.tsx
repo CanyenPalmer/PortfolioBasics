@@ -1,9 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { useReducedMotion, motion } from "framer-motion";
+import { motion } from "framer-motion";
 
-/** ---------- Data ---------- */
 type Card = { id: string; label: string; blurb?: string };
 
 const ROLES: Card[] = [
@@ -17,9 +16,7 @@ const LOCATIONS: Card[] = [
   { id: "loc-global-remote", label: "Globally: Remote" },
 ];
 
-/** ---------- Component ---------- */
 export default function ServicesGlobe() {
-  const reduce = useReducedMotion();
   const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
 
   React.useEffect(() => {
@@ -28,17 +25,12 @@ export default function ServicesGlobe() {
     const ctx = cvs.getContext("2d", { willReadFrequently: true });
     if (!ctx) return;
 
-    // HARD CAPS to prevent melt-downs
-    const DPR = 1; // force DPR 1 for stability
+    // Hard caps so we never melt the tab
+    const DPR = 1; // force 1x to keep pixel work tiny
     let w = 0, h = 0;
 
     const bayer4 = (x: number, y: number) => {
-      const M = [
-        0, 8, 2, 10,
-        12, 4, 14, 6,
-        3, 11, 1, 9,
-        15, 7, 13, 5
-      ];
+      const M = [0,8,2,10, 12,4,14,6, 3,11,1,9, 15,7,13,5];
       const ix = ((x % 4) + 4) % 4;
       const iy = ((y % 4) + 4) % 4;
       return M[iy * 4 + ix] / 16;
@@ -46,21 +38,18 @@ export default function ServicesGlobe() {
 
     const renderOnce = () => {
       const bb = cvs.getBoundingClientRect();
-      w = Math.floor(bb.width);
-      h = Math.floor(bb.height);
-
-      // Logical CSS pixels only
-      cvs.width = Math.max(1, w * DPR);
-      cvs.height = Math.max(1, h * DPR);
+      w = Math.max(1, Math.floor(bb.width));
+      h = Math.max(1, Math.floor(bb.height));
+      cvs.width = w * DPR;
+      cvs.height = h * DPR;
       ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-
       ctx.clearRect(0, 0, w, h);
 
       const cx = w / 2;
       const cy = h / 2;
       const r = Math.min(w, h) * 0.42;
 
-      // Projection pad (cheap)
+      // Soft projection glow under globe (cheap)
       const g = ctx.createRadialGradient(cx, cy + r * 0.7, r * 0.2, cx, cy + r * 0.7, r * 1.2);
       g.addColorStop(0, "rgba(0,229,255,0.20)");
       g.addColorStop(1, "rgba(0,0,0,0)");
@@ -69,17 +58,15 @@ export default function ServicesGlobe() {
       ctx.ellipse(cx, cy + r * 0.72, r * 0.85, r * 0.28, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // INTERNAL BUFFER: small and clamped to stay cheap
-      const iw = Math.min(220, Math.max(140, Math.floor(r * 1.2))); // cap at 220px
+      // Internal buffer: small & clamped (static render)
+      const iw = Math.min(220, Math.max(140, Math.floor(r * 1.2)));
       const ih = iw;
       const img = ctx.createImageData(iw, ih);
       const data = img.data;
 
-      // Static light (no animation in safe mode)
-      const light = [0.6, 0.4, 0.6];
-
-      const neon = [0, 229 / 255, 1];
-      const mag = [1, 59 / 255, 212 / 255];
+      const light = [0.6, 0.4, 0.6];          // static light (no animation)
+      const neon = [0, 229 / 255, 1];         // cyan
+      const mag = [1, 59 / 255, 212 / 255];   // magenta edge
       const radius = iw / 2;
 
       for (let y = 0; y < ih; y++) {
@@ -93,22 +80,21 @@ export default function ServicesGlobe() {
             const nx = dx / radius;
             const ny = dy / radius;
             const nz = Math.sqrt(Math.max(0, 1 - nx * nx - ny * ny));
-
             const lam = Math.max(0, nx * light[0] + ny * light[1] + nz * light[2]);
             const lum = 0.25 + 0.75 * lam;
 
             const threshold = bayer4(x, y);
             const on = lum >= threshold ? 1 : 0;
 
-            const fres = Math.pow(1 - nz, 2);
+            const fres = Math.pow(1 - nz, 2); // edge glow
 
             const rC = neon[0] * on + mag[0] * fres * 0.6;
             const gC = neon[1] * on + mag[1] * fres * 0.6;
             const bC = neon[2] * on + mag[2] * fres * 0.6;
 
-            data[idx + 0] = Math.min(255, Math.floor(rC * 255));
-            data[idx + 1] = Math.min(255, Math.floor(gC * 255));
-            data[idx + 2] = Math.min(255, Math.floor(bC * 255));
+            data[idx + 0] = Math.floor(rC * 255);
+            data[idx + 1] = Math.floor(gC * 255);
+            data[idx + 2] = Math.floor(bC * 255);
             data[idx + 3] = 255;
           } else {
             data[idx + 3] = 0;
@@ -116,28 +102,15 @@ export default function ServicesGlobe() {
         }
       }
 
-      // Blit centered
       ctx.putImageData(img, Math.floor(cx - radius), Math.floor(cy - radius));
-
-      // Subtle scanlines overlay (cheap)
-      ctx.globalAlpha = 0.18;
-      for (let yy = 0; yy < h; yy += 4) {
-        ctx.fillStyle = "rgba(255,255,255,0.05)";
-        ctx.fillRect(0, yy, w, 1);
-      }
-      ctx.globalAlpha = 1;
+      // (Scanlines overlay handled via CSS, not drawn here)
     };
 
-    // Render once now and on resize
     renderOnce();
-    const ro = new ResizeObserver(() => renderOnce());
+    const ro = new ResizeObserver(renderOnce);
     ro.observe(cvs);
-
-    // Cleanup
-    return () => {
-      ro.disconnect();
-    };
-  }, [reduce]); // value, not hook
+    return () => ro.disconnect();
+  }, []);
 
   return (
     <section
@@ -156,18 +129,14 @@ export default function ServicesGlobe() {
           MY SERVICES & AVAILABILITY
         </motion.h2>
 
-        <motion.div
-          initial={{ opacity: 0, scale: 0.96 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true, amount: 0.4 }}
-          transition={{ duration: 0.7, delay: 0.1 }}
-          className="relative mx-auto mt-10 w-full max-w-[560px] sm:max-w-[520px] aspect-square px-2"
-        >
+        {/* Rotates via CSS only (cheap). Respect reduced-motion via CSS media rule below. */}
+        <div className="relative mx-auto mt-10 w-full max-w-[560px] sm:max-w-[520px] aspect-square px-2 holo-spin-slow">
           <canvas
             ref={canvasRef}
             className="absolute inset-0 w-full h-full rounded-full overflow-hidden pointer-events-none"
           />
-        </motion.div>
+          <div className="pointer-events-none absolute inset-0 opacity-20 [background:repeating-linear-gradient(to_bottom,rgba(255,255,255,.08)_0_1px,transparent_1px_3px)]" />
+        </div>
 
         {/* ROLES */}
         <div className="mt-10">
@@ -193,7 +162,6 @@ export default function ServicesGlobe() {
   );
 }
 
-/** ---------- UI card ---------- */
 function HoloCard({
   label,
   blurb,
