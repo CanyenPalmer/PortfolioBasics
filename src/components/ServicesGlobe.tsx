@@ -136,10 +136,14 @@ export default function ServicesGlobe() {
       cancelAnimationFrame(raf);
       ro.disconnect();
     };
-  }, [useReducedMotion]);
+  }, [reduce]); // ✅ depend on the value, not the hook function
 
   return (
-    <section id="services" className="relative py-20 bg-[#0b1016]">
+    <section
+      id="services"
+      className="relative py-20 bg-[#0b1016] overflow-hidden"
+      style={{ contain: "content", isolation: "isolate" }}
+    >
       <div className="mx-auto w-full max-w-5xl px-4">
         <motion.h2
           initial={{ opacity: 0, y: 10 }}
@@ -158,9 +162,13 @@ export default function ServicesGlobe() {
           transition={{ duration: 0.7, delay: 0.1 }}
           className="relative mx-auto mt-10 w-full max-w-[560px] aspect-square"
         >
-          <canvas ref={canvasRef} className="absolute inset-0 w-full h-full rounded-full overflow-hidden" />
+          <canvas
+            ref={canvasRef}
+            className="absolute inset-0 w-full h-full rounded-full overflow-hidden pointer-events-none"
+          />
         </motion.div>
 
+        {/* ROLES */}
         <div className="mt-10">
           <div className="text-cyan-200/90 text-sm tracking-[0.2em] mb-3">ROLES</div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -170,6 +178,7 @@ export default function ServicesGlobe() {
           </div>
         </div>
 
+        {/* LOCATIONS */}
         <div className="mt-8">
           <div className="text-cyan-200/90 text-sm tracking-[0.2em] mb-3">LOCATIONS</div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -209,3 +218,4 @@ function HoloCard({
     </motion.div>
   );
 }
+
