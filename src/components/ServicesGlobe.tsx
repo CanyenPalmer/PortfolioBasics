@@ -34,9 +34,8 @@ export default function ServicesGlobe() {
           MY SERVICES & AVAILABILITY
         </motion.h2>
 
-        {/* Globe — pure SVG, CSS spin (respects reduced motion) */}
-        <div className="relative mx-auto mt-10 w-full max-w-[560px] sm:max-w-[520px] aspect-square px-2">
-          <div className="pointer-events-none absolute inset-0 -z-10 holo-beam" />
+        {/* Hologram Globe */}
+        <div className="holo-beam relative mx-auto mt-10 w-full max-w-[560px] sm:max-w-[520px] aspect-square px-2">
           <GlobeSVG className="holo-scan holo-spin-slow absolute inset-0" />
         </div>
 
@@ -65,28 +64,23 @@ export default function ServicesGlobe() {
 }
 
 function GlobeSVG({ className = "" }: { className?: string }) {
-  // SVG with:
-  // - radial gradient for sphere shading
-  // - dither pattern fill (checkerboard)
-  // - neon stroke + glow
-  // - scanlines via your .holo-scan helper
   return (
     <svg className={className} viewBox="0 0 512 512" aria-hidden="true" role="img">
       <defs>
-        {/* Dither pattern (4x4 checker) */}
+        {/* Dither pattern */}
         <pattern id="dither" width="4" height="4" patternUnits="userSpaceOnUse">
           <rect width="4" height="4" fill="black" opacity="0" />
-          <rect x="0" y="0" width="2" height="2" fill="#00e5ff" opacity="0.9" />
-          <rect x="2" y="2" width="2" height="2" fill="#00e5ff" opacity="0.9" />
+          <rect x="0" y="0" width="2" height="2" fill="var(--neon-cyan)" opacity="0.9" />
+          <rect x="2" y="2" width="2" height="2" fill="var(--neon-cyan)" opacity="0.9" />
         </pattern>
 
-        {/* Sphere shading mask (brighter center, darker edge) */}
+        {/* Sphere shading */}
         <radialGradient id="shade" cx="50%" cy="40%" r="60%">
           <stop offset="0%" stopColor="white" stopOpacity="1" />
           <stop offset="100%" stopColor="black" stopOpacity="0.15" />
         </radialGradient>
 
-        {/* Neon cyan-magenta glow filter */}
+        {/* Neon glow filter */}
         <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
           <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur1" />
           <feMerge>
@@ -96,20 +90,19 @@ function GlobeSVG({ className = "" }: { className?: string }) {
         </filter>
       </defs>
 
-      {/* Base sphere with cyan stroke */}
       <g transform="translate(256,256)">
         {/* Outer neon ring */}
-        <circle r="200" fill="none" stroke="#00e5ff" strokeWidth="2" filter="url(#glow)" opacity="0.9" />
-        {/* Inner ring magenta accent */}
-        <circle r="196" fill="none" stroke="#ff3bd4" strokeWidth="1" opacity="0.5" />
+        <circle r="200" fill="none" stroke="var(--neon-cyan)" strokeWidth="2" filter="url(#glow)" opacity="0.9" />
+        {/* Inner magenta accent */}
+        <circle r="196" fill="none" stroke="var(--neon-magenta)" strokeWidth="1" opacity="0.5" />
 
-        {/* Dithered fill: pattern masked by shading */}
+        {/* Dithered fill */}
         <mask id="maskShade">
           <circle r="196" fill="url(#shade)" />
         </mask>
         <circle r="196" fill="url(#dither)" mask="url(#maskShade)" />
 
-        {/* Subtle longitude/latitude lines for hologram vibe */}
+        {/* Latitude lines */}
         {[-120,-90,-60,-30,0,30,60,90,120].map((lat) => (
           <ellipse
             key={`lat-${lat}`}
@@ -117,11 +110,12 @@ function GlobeSVG({ className = "" }: { className?: string }) {
             ry={196}
             transform={`rotate(90) rotate(${lat})`}
             fill="none"
-            stroke="#00e5ff"
+            stroke="var(--neon-cyan)"
             strokeOpacity="0.12"
             strokeWidth="1"
           />
         ))}
+        {/* Longitude lines */}
         {[...Array(12)].map((_, i) => {
           const ang = (i * 180) / 12;
           return (
@@ -131,7 +125,7 @@ function GlobeSVG({ className = "" }: { className?: string }) {
               ry={196 * 0.2}
               transform={`rotate(${ang})`}
               fill="none"
-              stroke="#00e5ff"
+              stroke="var(--neon-cyan)"
               strokeOpacity="0.09"
               strokeWidth="1"
             />
@@ -155,7 +149,7 @@ function HoloCard({
   return (
     <motion.div whileHover={{ scale: 1.02 }} transition={{ type: "spring", stiffness: 320, damping: 22 }}>
       <div className={`relative overflow-hidden rounded-xl bg-transparent ${neonClass}`}>
-        <div className="p-5">
+        <div className="p-5 relative">
           <div className="text-cyan-100 font-medium">{label}</div>
           {blurb && <p className="mt-1 text-cyan-200/70 text-sm">{blurb}</p>}
           <div className="holo-scan pointer-events-none absolute inset-0" />
