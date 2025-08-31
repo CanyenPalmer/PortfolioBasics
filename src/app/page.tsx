@@ -1,25 +1,28 @@
 export default function Page() {
   return (
     <>
-      {/* HERO */}
-      {/* @ts-expect-error */}
+      {/* HERO (unchanged) */}
+      {/* If your hero is client-side already, keep it that way */}
+      {/* @ts-expect-error Server Component boundary if using app router */}
       <HeroSection />
 
-      {/* EXPERIENCE */}
-      {/* @ts-expect-error */}
+      {/* EXPERIENCE (new section with id="experience") */}
+      {/* @ts-expect-error Server Component boundary if using app router */}
       <ExperienceSection />
-
-      {/* SERVICES (after Experience) */}
-      {/* @ts-expect-error */}
-      <ServicesGlobeSection />
     </>
   );
 }
 
+/* -------- Local component wrappers to avoid import path issues -------- */
+
 import dynamic from "next/dynamic";
 
-const HeroSection = dynamic(() => import("@/components/Hero"), { ssr: true });
-const ExperienceSection = dynamic(() => import("@/components/Experience"), { ssr: true });
+/** Wrap Hero as a dynamic client component (no SSR change in behavior) */
+const HeroSection = dynamic(() => import("@/components/Hero"), {
+  ssr: true,
+});
 
-// SVG version is safe either way; ssr:false avoids any flicker on hydration
-const ServicesGlobeSection = dynamic(() => import("@/components/ServicesGlobe"), { ssr: false });
+/** Experience is a client component; render as-is */
+const ExperienceSection = dynamic(() => import("@/components/Experience"), {
+  ssr: true,
+});
