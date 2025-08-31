@@ -1,36 +1,25 @@
 export default function Page() {
   return (
     <>
-      {/* HERO (unchanged) */}
-      {/* @ts-expect-error Server Component boundary if using app router */}
+      {/* HERO */}
+      {/* @ts-expect-error */}
       <HeroSection />
 
-      {/* EXPERIENCE (unchanged) */}
-      {/* @ts-expect-error Server Component boundary if using app router */}
+      {/* EXPERIENCE */}
+      {/* @ts-expect-error */}
       <ExperienceSection />
 
-      {/* SERVICES & AVAILABILITY (new) */}
-      {/* @ts-expect-error Server Component boundary if using app router */}
+      {/* SERVICES (after Experience) */}
+      {/* @ts-expect-error */}
       <ServicesGlobeSection />
     </>
   );
 }
 
-/* -------- Local component wrappers to avoid import path issues -------- */
-
 import dynamic from "next/dynamic";
 
-/** Wrap Hero as a dynamic client component (no SSR change in behavior) */
-const HeroSection = dynamic(() => import("@/components/Hero"), {
-  ssr: true,
-});
+const HeroSection = dynamic(() => import("@/components/Hero"), { ssr: true });
+const ExperienceSection = dynamic(() => import("@/components/Experience"), { ssr: true });
 
-/** Experience is a client component; render as-is */
-const ExperienceSection = dynamic(() => import("@/components/Experience"), {
-  ssr: true,
-});
-
-/** NEW: Services globe section (Canvas2D, no new deps) — client-only to avoid hydration issues */
-const ServicesGlobeSection = dynamic(() => import("@/components/ServicesGlobe"), {
-  ssr: false,
-});
+// SVG version is safe either way; ssr:false avoids any flicker on hydration
+const ServicesGlobeSection = dynamic(() => import("@/components/ServicesGlobe"), { ssr: false });
