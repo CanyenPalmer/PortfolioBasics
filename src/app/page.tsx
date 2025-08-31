@@ -2,7 +2,6 @@ export default function Page() {
   return (
     <>
       {/* HERO (unchanged) */}
-      {/* If your hero is client-side already, keep it that way */}
       {/* @ts-expect-error Server Component boundary if using app router */}
       <HeroSection />
 
@@ -31,7 +30,7 @@ const ExperienceSection = dynamic(() => import("@/components/Experience"), {
   ssr: true,
 });
 
-/** NEW: Services globe section (Canvas2D, no new deps) */
+/** NEW: Services globe section (Canvas2D, no new deps) — client-only to avoid hydration issues */
 const ServicesGlobeSection = dynamic(() => import("@/components/ServicesGlobe"), {
-  ssr: false, // ✅ client-side only to avoid hydration mismatches
+  ssr: false,
 });
