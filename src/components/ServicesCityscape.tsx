@@ -3,17 +3,18 @@
 import React from "react";
 
 /**
- * Services Cityscape — Image Backplate (refined)
- * Fixes:
- * - Smooth sweep (no glitchy line); removed old fog pattern causing banding
- * - Image fallback if /public/cityscape.jpg missing (no broken link top-left)
- * - Billboards are flush on buildings (no stem), with tight glow
+ * Services Cityscape — Image Backplate (static, no waves)
+ * - No animated fog/sweep/rain (removes any “glitchy” look)
+ * - Uses your actual city image as the background (so buildings are visible)
+ * - Graceful fallback if the image is missing (static gradient instead of a broken icon)
+ * - Billboards are flush-mounted and stationary via % anchors
  *
- * HOW TO:
- * 1) Put your licensed image at public/cityscape.jpg (or webp/mp4 if you prefer a video).
- * 2) Tweak ANCHORS (left%, top%) to sit each billboard exactly in a glow area.
+ * IMPORTANT: put your image at: /public/cityscape.jpg  (or change IMG_PATH below)
  */
 
+const IMG_PATH = "/cityscape.jpg";
+
+/* ------------------------- tiny inline icons (no deps) ------------------------- */
 const Icon = {
   Copy: (p: React.SVGProps<SVGSVGElement>) => (
     <svg viewBox="0 0 24 24" width="1em" height="1em" {...p}>
@@ -169,7 +170,7 @@ const SERVICES: Service[] = [
   },
 ];
 
-/* ------------------------ percentage anchors on backplate ------------------------ */
+/* ------------------------ % anchors on the image (stationary) ------------------------ */
 const ANCHORS: Record<
   "data-apps" | "automation-ops" | "machine-learning" | "analytics-eng" | "dashboards" | "viz-storytelling",
   { left: number; top: number }
@@ -202,7 +203,7 @@ function stringifyService(s: Service) {
 export default function ServicesCityscape() {
   const [openId, setOpenId] = React.useState<string | null>(null);
   const [scrollY, setScrollY] = React.useState<number>(0);
-  const [imgSrc, setImgSrc] = React.useState<string>("/cityscape.jpg"); // update if you use .webp or .mp4
+  const [imgSrc, setImgSrc] = React.useState<string>(IMG_PATH); // if missing, we show a gradient fallback
 
   const current = openId ? SERVICES.find((s) => s.id === openId)! : null;
 
@@ -249,9 +250,9 @@ export default function ServicesCityscape() {
         </header>
 
         <div className="relative overflow-hidden rounded-2xl bg-[#070c12] border border-cyan-400/10">
-          {/* Backplate container with stable aspect so anchors behave responsively */}
+          {/* Fixed aspect so % anchors don't drift */}
           <div className="relative w-full h-[48vw] min-h-[360px] max-h-[700px]">
-            {/* IMAGE backplate with graceful fallback (prevents broken image icon) */}
+            {/* IMAGE backplate; if it fails, we show a static gradient (no broken icon) */}
             <img
               src={imgSrc}
               alt=""
@@ -259,19 +260,25 @@ export default function ServicesCityscape() {
               draggable={false}
               onError={() => setImgSrc("")}
             />
-            {/* Fallback gradient if image missing */}
-            {imgSrc === "" && <div aria-hidden className="absolute inset-0 bg-[radial-gradient(1200px_700px_at_50%_20%,rgba(255,60,172,.06),transparent_55%),radial-gradient(1000px_600px_at_60%_15%,rgba(172,108,255,.05),transparent_50%),linear-gradient(180deg,#0a0f18_0%,#0a0f1a_25%,#0b111b_60%,#0b1016_100%)]" />}
+            {imgSrc === "" && (
+              <div
+                aria-hidden
+                className="absolute inset-0"
+                style={{
+                  background:
+                    "radial-gradient(1200px 700px at 50% 20%, rgba(255,60,172,.06), transparent 55%)," +
+                    "radial-gradient(1000px 600px at 60% 15%, rgba(172,108,255,.05), transparent 50%)," +
+                    "linear-gradient(180deg, #0a0f18 0%, #0a0f1a 25%, #0b111b 60%, #0b1016 100%)",
+                }}
+              />
+            )}
 
-            {/* Atmospherics (smooth only; no banding) */}
+            {/* Subtle static vignette only (no animated overlays) */}
             <div className="absolute inset-0 pointer-events-none">
-              <div className="svc-haze" />
-              <div className="svc-sweep" />
-              <div className="svc-rain" />
-              <div className="svc-ground-reflect" />
               <div className="svc-vignette" />
             </div>
 
-            {/* Flush-mounted billboards in glow areas */}
+            {/* Flush, stationary billboards */}
             {Object.entries(ANCHORS).map(([id, pos]) => {
               const svc = SERVICES.find((s) => s.id === id)!;
               return (
@@ -326,7 +333,6 @@ export default function ServicesCityscape() {
                 <h3 className="text-lg md:text-xl font-semibold tracking-wide">{current.title}</h3>
               </div>
 
-              {/* Tech pills */}
               {current.tech?.length ? (
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {current.tech.map((t) => (
@@ -335,10 +341,8 @@ export default function ServicesCityscape() {
                 </div>
               ) : null}
 
-              {/* Blurb */}
               <p className="mt-3 text-sm md:text-base text-cyan-100/85">{current.blurb}</p>
 
-              {/* Context bullets */}
               {!!current.bullets?.length && (
                 <ul className="mt-4 space-y-1.5">
                   {current.bullets.map((b, i) => (
@@ -365,58 +369,14 @@ export default function ServicesCityscape() {
         </div>
       )}
 
-      {/* Scoped styles */}
+      {/* Scoped styles (no animations) */}
       <style jsx>{`
-        .svc-city { --cyn: 0,229,255; --mag: 255,60,172; --vio: 172,108,255; }
+        .svc-city { --cyn: 0,229,255; --mag: 255,60,172; }
 
-        /* Smooth neon haze and one clean sweep (no banding) */
-        .svc-haze {
-          position: absolute; inset: 0;
-          background:
-            radial-gradient(60% 40% at 50% 70%, rgba(var(--cyn), .10), transparent 70%),
-            radial-gradient(40% 30% at 30% 75%, rgba(var(--mag), .06), transparent 70%),
-            radial-gradient(45% 35% at 70% 72%, rgba(var(--vio), .07), transparent 70%);
-          mix-blend-mode: screen;
-          animation: haze-drift 24s linear infinite;
-        }
-        /* Single linear sweep from left to right */
-        .svc-sweep::before {
-          content: "";
-          position: absolute; top: 0; bottom: 0; left: -40%;
-          width: 40%;
-          background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,.04) 50%, transparent 100%);
-          mix-blend-mode: screen;
-          animation: sweep 6s linear infinite;
-        }
+        /* Soft vignette to keep text legible over bright photos */
+        .svc-vignette { box-shadow: inset 0 0 120px rgba(0,0,0,.55); position:absolute; inset:0; }
 
-        /* Rain (kept subtle; smooth fall) */
-        .svc-rain::before {
-          content: "";
-          position: absolute; inset: -120px -120px;
-          background-image:
-            linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,0) 60%),
-            linear-gradient(180deg, rgba(153,255,255,.10), rgba(153,255,255,0) 60%);
-          background-size: 2px 90px, 1px 70px;
-          background-repeat: repeat;
-          background-position: 0 0, 40px 0;
-          transform: rotate(12deg);
-          opacity: .18;
-          animation: rain-fall 1.1s linear infinite;
-          filter: drop-shadow(0 0 4px rgba(var(--cyn), .12));
-        }
-
-        /* Wet street reflection */
-        .svc-ground-reflect {
-          position: absolute; inset: 0;
-          background:
-            linear-gradient(180deg, transparent 0%, rgba(0,0,0,0) 60%, rgba(0,0,0,.35) 100%),
-            radial-gradient(60% 30% at 50% 96%, rgba(var(--cyn), .08), transparent 70%),
-            radial-gradient(50% 25% at 65% 98%, rgba(var(--mag), .07), transparent 70%);
-          mix-blend-mode: screen;
-        }
-        .svc-vignette { position:absolute; inset:0; box-shadow: inset 0 0 120px rgba(0,0,0,.55); }
-
-        /* Flush billboard styling (no pole; tighter glow) */
+        /* Flush billboard glow; no stems/poles */
         .billboard::before {
           content: "";
           position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
@@ -431,14 +391,6 @@ export default function ServicesCityscape() {
             inset 0 0 22px rgba(var(--cyn), .22),
             0 0 18px rgba(var(--cyn), .15);
           backdrop-filter: saturate(1.2);
-        }
-
-        @keyframes haze-drift { from { transform: translate3d(0,0,0); } to { transform: translate3d(-80px,0,0); } }
-        @keyframes sweep { from { transform: translateX(0); } to { transform: translateX(280%); } }
-        @keyframes rain-fall { from { background-position-y: 0, 0; } to { background-position-y: 220px, 170px; } }
-
-        @media (prefers-reduced-motion: reduce) {
-          .svc-haze, .svc-sweep::before, .svc-rain::before { animation: none !important; }
         }
       `}</style>
     </section>
