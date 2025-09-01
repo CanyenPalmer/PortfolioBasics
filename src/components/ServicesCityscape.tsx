@@ -3,12 +3,12 @@
 import React from "react";
 
 /**
- * Services Cityscape (lightweight)
- * - Static SVG skyline + simple billboards
- * - Click billboard -> full-view panel with: Title, Tech Pills, Context bullets, CTAs
- * - Top-right actions: Copy details (Cmd/Ctrl+C) and Close (Esc or backdrop)
- * - Locks body scroll when open and restores exact scroll position on close
- * - No external icon deps (inline SVGs below)
+ * Services Cityscape — Enhanced Cyberpunk Skyline
+ * - Multi-layer SVG skyline (far/mid/front) with varied buildings
+ * - Neon outlines, window flicker, haze + fog layers (CSS only)
+ * - Custom billboards anchored to foreground buildings
+ * - Same overlay panel behavior (Copy, Close, scroll restore)
+ * - No external deps (inline icons)
  */
 
 /* ------------------------- tiny inline icons (no deps) ------------------------- */
@@ -62,8 +62,8 @@ export type Service = {
   id: string;
   title: string;
   blurb: string;
-  tech?: string[];      // neon pill row
-  bullets?: string[];   // context: how applied
+  tech?: string[];
+  bullets?: string[];
   ctas?: { label: string; href: string }[];
   icon?: React.ReactNode;
 };
@@ -85,7 +85,7 @@ const SERVICES: Service[] = [
       { label: "MyCaddy (demo)", href: "/projects/mycaddy" },
       { label: "Portfolio (TS/Next)", href: "/projects/portfolio" },
     ],
-    icon: <Cpu className="h-4 w-4" aria-hidden />,
+    icon: <Cpu />,
   },
   {
     id: "automation-ops",
@@ -101,7 +101,7 @@ const SERVICES: Service[] = [
       { label: "Ops utilities", href: "/projects/ops" },
       { label: "CGM Tools", href: "/projects/cgm" },
     ],
-    icon: <Wrench className="h-4 w-4" aria-hidden />,
+    icon: <Wrench />,
   },
 
   // — Group 2: Machine Learning & Analytics —
@@ -119,7 +119,7 @@ const SERVICES: Service[] = [
       { label: "Salifort case study", href: "/projects/salifort" },
       { label: "ML notebooks", href: "/projects/ml" },
     ],
-    icon: <Brain className="h-4 w-4" aria-hidden />,
+    icon: <Brain />,
   },
   {
     id: "analytics-eng",
@@ -135,7 +135,7 @@ const SERVICES: Service[] = [
       { label: "Warehouse examples", href: "/projects/warehouse" },
       { label: "Analytics repo", href: "/projects/analytics" },
     ],
-    icon: <LineChart className="h-4 w-4" aria-hidden />,
+    icon: <LineChart />,
   },
 
   // — Group 3: Dashboards & Visualization/Storytelling —
@@ -153,7 +153,7 @@ const SERVICES: Service[] = [
       { label: "Dashboard gallery", href: "/projects/dashboards" },
       { label: "MyCaddy metrics", href: "/projects/mycaddy#metrics" },
     ],
-    icon: <PanelsTopLeft className="h-4 w-4" aria-hidden />,
+    icon: <PanelsTopLeft />,
   },
   {
     id: "viz-storytelling",
@@ -169,11 +169,11 @@ const SERVICES: Service[] = [
       { label: "Presentation deck", href: "/projects/presentations" },
       { label: "Portfolio write-ups", href: "/projects/portfolio#writeups" },
     ],
-    icon: <Rocket className="h-4 w-4" aria-hidden />,
+    icon: <Rocket />,
   },
 ];
 
-/* ------------------------------- utils/components ------------------------------ */
+/* ------------------------------- utils -------------------------------- */
 function Pill({ children }: { children: React.ReactNode }) {
   return (
     <span className="rounded-md border border-cyan-400/30 bg-cyan-400/10 px-2 py-1 text-[11px] leading-none text-cyan-100">
@@ -189,6 +189,7 @@ function stringifyService(s: Service) {
   return `${s.title}\n\n${s.blurb}\n${techLine ? `\n${techLine}` : ""}\n\n${bullets}\n\n${ctas}`.trim();
 }
 
+/* ------------------------------- component ---------------------------- */
 export default function ServicesCityscape() {
   const [openId, setOpenId] = React.useState<string | null>(null);
   const [scrollY, setScrollY] = React.useState<number>(0);
@@ -197,7 +198,6 @@ export default function ServicesCityscape() {
 
   const open = React.useCallback((id: string) => {
     setScrollY(window.scrollY);
-    // lock scroll
     document.documentElement.style.scrollBehavior = "auto";
     document.body.style.top = `-${window.scrollY}px`;
     document.body.style.position = "fixed";
@@ -208,7 +208,6 @@ export default function ServicesCityscape() {
   const close = React.useCallback(() => {
     const y = scrollY;
     setOpenId(null);
-    // unlock + restore
     document.body.style.position = "";
     document.body.style.top = "";
     document.body.style.width = "";
@@ -259,56 +258,94 @@ export default function ServicesCityscape() {
 
         {/* City skyline wrapper */}
         <div className="relative overflow-hidden rounded-2xl bg-[#080c12] border border-cyan-400/10">
-          {/* far background stars */}
-          <div className="absolute inset-0 pointer-events-none opacity-70">
+          {/* atmospheric layers */}
+          <div className="absolute inset-0 pointer-events-none">
             <div className="absolute inset-0 svc-stars" />
+            <div className="svc-haze" />
+            <div className="svc-fog" />
+            <div className="svc-windows" />
           </div>
 
-          {/* Mid skyline silhouette */}
-          <div className="relative h-[340px] md:h-[420px]">
-            <svg viewBox="0 0 1200 400" className="absolute bottom-0 w-full h-full" aria-hidden>
-              {/* gradient sky */}
+          {/* Multi-layer skyline */}
+          <div className="relative h-[360px] md:h-[460px]">
+            <svg viewBox="0 0 1200 460" className="absolute bottom-0 w-full h-full" aria-hidden>
               <defs>
                 <linearGradient id="sky" x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0%" stopColor="#07131c" />
+                  <stop offset="0%" stopColor="#0a0f1b" />
+                  <stop offset="40%" stopColor="#0a0f1b" />
                   <stop offset="100%" stopColor="#0b1016" />
                 </linearGradient>
+                <linearGradient id="frontFill" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0%" stopColor="#101826" />
+                  <stop offset="100%" stopColor="#0e1623" />
+                </linearGradient>
+                <linearGradient id="midFill" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0%" stopColor="#0d1420" />
+                  <stop offset="100%" stopColor="#0b121c" />
+                </linearGradient>
+                <linearGradient id="farFill" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0%" stopColor="#09101a" />
+                  <stop offset="100%" stopColor="#091017" />
+                </linearGradient>
               </defs>
-              <rect x="0" y="0" width="1200" height="400" fill="url(#sky)" />
-              {/* buildings */}
-              <g fill="#0f1621">
-                <rect x="40" y="220" width="90" height="180" />
-                <rect x="170" y="180" width="80" height="220" />
-                <rect x="280" y="140" width="110" height="260" />
-                <rect x="430" y="200" width="85" height="200" />
-                <rect x="540" y="120" width="95" height="280" />
-                <rect x="670" y="160" width="75" height="240" />
-                <rect x="770" y="190" width="110" height="210" />
-                <rect x="920" y="150" width="85" height="250" />
-                <rect x="1030" y="210" width="70" height="190" />
+
+              {/* sky backdrop */}
+              <rect x="0" y="0" width="1200" height="460" fill="url(#sky)" />
+
+              {/* FAR LAYER (tall, faint) */}
+              <g className="far" fill="url(#farFill)" opacity="0.55" stroke="rgba(172,108,255,.28)" strokeWidth="1.5">
+                <rect x="20"  y="120" width="70"  height="340" rx="2" />
+                <rect x="120" y="80"  width="90"  height="380" rx="2" />
+                <rect x="240" y="100" width="80"  height="360" rx="2" />
+                <rect x="340" y="60"  width="110" height="400" rx="2" />
+                <rect x="490" y="90"  width="85"  height="370" rx="2" />
+                <rect x="600" y="70"  width="95"  height="390" rx="2" />
+                <rect x="720" y="100" width="80"  height="360" rx="2" />
+                <rect x="820" y="80"  width="100" height="380" rx="2" />
+                <rect x="950" y="110" width="75"  height="350" rx="2" />
+                <rect x="1040" y="95" width="90" height="365" rx="2" />
               </g>
-              {/* neon outlines */}
-              <g stroke="rgba(0,229,255,.35)" strokeWidth="2" fill="none">
-                <rect x="40" y="220" width="90" height="180" />
-                <rect x="170" y="180" width="80" height="220" />
-                <rect x="280" y="140" width="110" height="260" />
-                <rect x="430" y="200" width="85" height="200" />
-                <rect x="540" y="120" width="95" height="280" />
-                <rect x="670" y="160" width="75" height="240" />
-                <rect x="770" y="190" width="110" height="210" />
-                <rect x="920" y="150" width="85" height="250" />
-                <rect x="1030" y="210" width="70" height="190" />
+
+              {/* MID LAYER (medium density) */}
+              <g className="mid" fill="url(#midFill)" opacity="0.75" stroke="rgba(255,60,172,.35)" strokeWidth="1.6">
+                <rect x="60"  y="200" width="95"  height="260" rx="2" />
+                <rect x="180" y="170" width="100" height="290" rx="2" />
+                <rect x="300" y="190" width="90"  height="270" rx="2" />
+                <rect x="420" y="160" width="120" height="300" rx="2" />
+                <rect x="560" y="190" width="95"  height="270" rx="2" />
+                <rect x="680" y="170" width="100" height="290" rx="2" />
+                <rect x="810" y="200" width="95"  height="260" rx="2" />
+                <rect x="930" y="180" width="105" height="280" rx="2" />
+                <rect x="1060" y="210" width="85" height="250" rx="2" />
+              </g>
+
+              {/* FRONT LAYER (foreground, where billboards attach) */}
+              <g className="front" fill="url(#frontFill)" stroke="rgba(0,229,255,.45)" strokeWidth="2">
+                {/* varied silhouettes */}
+                <rect x="40"  y="240" width="110" height="220" rx="2" />
+                <path d="M190 220 h100 v240 h-100 z" />
+                <path d="M320 210 h115 v250 h-115 z" />
+                <path d="M460 250 h95  v210 h-95  z" />
+                <path d="M580 190 h100 v270 h-100 z" />
+                <path d="M710 230 h85  v230 h-85  z" />
+                <path d="M810 250 h120 v210 h-120 z" />
+                <path d="M960 210 h100 v250 h-100 z" />
+                <path d="M1080 260 h80 v200 h-80 z" />
+
+                {/* antenna details */}
+                <line x1="635" y1="190" x2="635" y2="170" stroke="rgba(0,229,255,.45)" strokeWidth="2"/>
+                <circle cx="635" cy="168" r="3" fill="rgba(255,60,172,.7)" />
               </g>
             </svg>
 
-            {/* Billboards: align with buildings */}
+            {/* Billboards anchored to foreground buildings (match x/y to front layer tops) */}
             <div className="absolute inset-0">
-              <Billboard x={85}  y={210} label="Data Apps"     icon={<Cpu />}           onClick={() => open("data-apps")} />
-              <Billboard x={190} y={170} label="Automation"    icon={<Wrench />}        onClick={() => open("automation-ops")} />
-              <Billboard x={320} y={130} label="ML"            icon={<Brain />}         onClick={() => open("machine-learning")} />
-              <Billboard x={455} y={190} label="Analytics"     icon={<LineChart />}     onClick={() => open("analytics-eng")} />
-              <Billboard x={560} y={110} label="Dashboards"    icon={<PanelsTopLeft />} onClick={() => open("dashboards")} />
-              <Billboard x={790} y={180} label="Storytelling"  icon={<Rocket />}        onClick={() => open("viz-storytelling")} />
+              <Billboard x={95}   y={235} label="Data Apps"    icon={<Cpu />}           onClick={() => open("data-apps")} />
+              <Billboard x={240}  y={215} label="Automation"   icon={<Wrench />}        onClick={() => open("automation-ops")} />
+              <Billboard x={377}  y={205} label="ML"           icon={<Brain />}         onClick={() => open("machine-learning")} />
+              <Billboard x={508}  y={245} label="Analytics"    icon={<LineChart />}     onClick={() => open("analytics-eng")} />
+              <Billboard x={628}  y={185} label="Dashboards"   icon={<PanelsTopLeft />} onClick={() => open("dashboards")} />
+              <Billboard x={868}  y={245} label="Storytelling" icon={<Rocket />}        onClick={() => open("viz-storytelling")} />
             </div>
           </div>
         </div>
@@ -318,12 +355,17 @@ export default function ServicesCityscape() {
       {current && (
         <div role="dialog" aria-modal="true" aria-label={`${current.title} details`} className="fixed inset-0 z-[999] flex items-center justify-center p-4 md:p-6">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={close} />
-
           <div className="relative w-full max-w-2xl rounded-2xl border border-cyan-400/20 bg-[#0b1016]/90 shadow-2xl">
             {/* Top-right actions */}
             <div className="absolute right-2 top-2 flex items-center gap-2">
               <button
-                onClick={doCopy}
+                onClick={() => {
+                  if (!current) return;
+                  const text = stringifyService(current);
+                  if (navigator.clipboard?.writeText) {
+                    navigator.clipboard.writeText(text).catch(() => {});
+                  }
+                }}
                 className="group inline-flex items-center gap-1.5 rounded-md border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1.5 text-xs text-cyan-100 hover:bg-cyan-400/20 focus:outline-none focus:ring-2 focus:ring-cyan-400/40"
                 aria-label="Copy details" title="Copy details (Cmd/Ctrl+C)"
               >
@@ -386,13 +428,98 @@ export default function ServicesCityscape() {
 
       {/* Local styles (scoped) */}
       <style jsx>{`
-        .svc-city { --cyan: 0,229,255; }
+        .svc-city {
+          --cyn: 0,229,255;      /* cyan neon */
+          --mag: 255,60,172;     /* magenta neon */
+          --vio: 172,108,255;    /* violet neon */
+        }
+
+        /* Sky gradients + vignette via .svc-stars */
         .svc-stars {
           background:
-            radial-gradient(circle at 20% 30%, rgba(var(--cyan), .08), transparent 30%),
-            radial-gradient(circle at 80% 20%, rgba(var(--cyan), .06), transparent 25%),
-            radial-gradient(circle at 60% 70%, rgba(var(--cyan), .07), transparent 30%);
-          filter: blur(0.5px);
+            radial-gradient(1200px 700px at 50% 20%, rgba(var(--mag), .06), transparent 55%),
+            radial-gradient(1000px 600px at 60% 15%, rgba(var(--vio), .05), transparent 50%),
+            linear-gradient(180deg, #0a0f18 0%, #0a0f1a 20%, #0b111b 55%, #0b1016 100%);
+        }
+        .svc-city::before {
+          content: "";
+          position: absolute; inset: 0; pointer-events: none;
+          background: radial-gradient(70% 55% at 50% 45%, transparent 60%, rgba(0,0,0,.35) 100%);
+          z-index: 0;
+        }
+
+        /* Neon haze + fog */
+        .svc-haze, .svc-fog, .svc-windows {
+          position: absolute; inset: 0; pointer-events: none; z-index: 0;
+        }
+        .svc-haze {
+          background:
+            radial-gradient(60% 40% at 50% 70%, rgba(var(--cyn), .10), transparent 70%),
+            radial-gradient(40% 30% at 30% 75%, rgba(var(--mag), .06), transparent 70%),
+            radial-gradient(45% 35% at 70% 72%, rgba(var(--vio), .07), transparent 70%);
+          mix-blend-mode: screen;
+          animation: haze-drift 24s linear infinite;
+        }
+        .svc-fog {
+          background: repeating-linear-gradient(180deg, rgba(255,255,255,.018) 0 2px, transparent 2px 6px);
+          opacity: .35;
+          mask-image: linear-gradient(to bottom, transparent 0%, black 30%, black 85%, transparent 100%);
+          animation: fog-slide 36s linear infinite;
+        }
+        @keyframes haze-drift { from { transform: translate3d(0,0,0); } to { transform: translate3d(-80px,0,0); } }
+        @keyframes fog-slide  { from { transform: translate3d(0,0,0); } to { transform: translate3d(0,-60px,0); } }
+        @media (prefers-reduced-motion: reduce) { .svc-haze, .svc-fog { animation: none; } }
+
+        /* Add neon glow to SVG strokes */
+        svg .far[stroke], svg .mid[stroke], svg .front[stroke] {
+          filter:
+            drop-shadow(0 0 10px rgba(var(--cyn), .25))
+            drop-shadow(0 0 24px rgba(var(--cyn), .12));
+        }
+
+        /* Simulated windows flicker */
+        .svc-windows {
+          opacity: .14;
+          background:
+            radial-gradient(2px 3px at 15% 78%, rgba(255,240,180,.9), transparent 60%),
+            radial-gradient(2px 3px at 22% 82%, rgba(255,189,120,.9), transparent 60%),
+            radial-gradient(2px 3px at 38% 76%, rgba(255,240,180,.85), transparent 60%),
+            radial-gradient(2px 3px at 61% 81%, rgba(255,189,120,.85), transparent 60%),
+            radial-gradient(2px 3px at 74% 79%, rgba(255,240,180,.8), transparent 60%),
+            radial-gradient(2px 3px at 86% 77%, rgba(255,189,120,.85), transparent 60%);
+          animation: windows-flicker 4s ease-in-out infinite alternate;
+        }
+        @keyframes windows-flicker {
+          0% { opacity: .10; filter: hue-rotate(0deg); }
+          45% { opacity: .18; }
+          50% { opacity: .08; }
+          100% { opacity: .16; filter: hue-rotate(10deg); }
+        }
+        @media (prefers-reduced-motion: reduce) { .svc-windows { animation: none; } }
+
+        /* Billboard glow beam */
+        .billboard { position: absolute; }
+        .billboard::before {
+          content: ""; position: absolute; left: 50%; top: -18px; transform: translateX(-50%);
+          width: 200px; height: 120px;
+          background:
+            radial-gradient(closest-side, rgba(var(--cyn), .20), transparent 70%),
+            radial-gradient(closest-side, rgba(var(--mag), .08), transparent 80%);
+          filter: blur(8px); z-index: -1; pointer-events: none;
+        }
+        .billboard > div {
+          box-shadow:
+            inset 0 0 20px rgba(var(--cyn), .18),
+            0 0 20px rgba(var(--cyn), .18);
+          backdrop-filter: saturate(1.2);
+        }
+
+        /* Dialog polish */
+        [role="dialog"] .rounded-2xl {
+          box-shadow:
+            0 10px 30px rgba(0,0,0,.6),
+            0 0 0 1px rgba(var(--cyn), .15) inset,
+            0 0 40px rgba(var(--cyn), .12);
         }
       `}</style>
     </section>
@@ -406,7 +533,7 @@ function Billboard({
   return (
     <button
       onClick={onClick}
-      className="group absolute -translate-x-1/2 -translate-y-1/2 select-none"
+      className="billboard group absolute -translate-x-1/2 -translate-y-1/2 select-none"
       style={{ left: x, top: y }}
       aria-label={`${label} details`}
     >
