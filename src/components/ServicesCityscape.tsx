@@ -3,19 +3,23 @@
 import React from "react";
 
 /**
- * Services Cityscape — Photo Backplate w/ Face-Mounted Billboards
+ * Photo Backplate + Polygon Billboards (with on-page editor)
+ * - Uses /public/cityscape.jpg as the backplate.
+ * - Each billboard is an SVG <polygon> (any shape), fully opaque cover.
+ * - Per-board tint + blend to match scene color.
+ * - Edit mode: hold **E** to toggle; drag points; press **Cmd/Ctrl+C** to copy JSON to clipboard.
+ * - Clicking a board opens the detail panel (Copy/Close preserved).
  *
- * - Uses your photo at /public/cityscape.jpg
- * - Each billboard is a "face" with { left%, top%, width%, height%, rotate, skewX, skewY }
- *   so you can match the building’s perspective.
- * - Base panel is opaque (covers the original sign), with neon border + glow.
- * - Clicking opens your existing detail panel (Copy/Close preserved).
- * - No animations, no extra deps.
+ * Steps:
+ * 1) Put your chosen image at /public/cityscape.jpg (or change IMG_PATH).
+ * 2) Go to the page, press **E** to enter Edit Mode. Drag the 4 points of each board
+ *    so they exactly trace the real sign. Press Cmd/Ctrl+C to copy updated JSON.
+ * 3) Paste the JSON back into BILLBOARDS array (points are [% x, % y] in the viewBox).
  */
 
 const IMG_PATH = "/cityscape.jpg";
 
-/* ---------------- tiny inline icons (no external packages) ---------------- */
+/* ---------------- icons (inline, no deps) ---------------- */
 const Icon = {
   Copy: (p: React.SVGProps<SVGSVGElement>) => (
     <svg viewBox="0 0 24 24" width="1em" height="1em" {...p}>
@@ -61,7 +65,7 @@ const Icon = {
 };
 const { Copy, X, PanelsTopLeft, Cpu, LineChart, Wrench, Rocket, Brain } = Icon;
 
-/* ----------------------------------- data ----------------------------------- */
+/* --------------------- services content (same as before) --------------------- */
 export type Service = {
   id: string;
   title: string;
@@ -171,37 +175,81 @@ const SERVICES: Service[] = [
   },
 ];
 
-/* ---------------- billboard faces (replace signs in the photo) ----------------
-   Tweak these per your exact photo. Units are percentages of the container.
-   rotate in degrees; skewX/ skewY in degrees (to match perspective).
------------------------------------------------------------------------------ */
-type Face = {
+/* ------------------- billboard polygons (edit these) -------------------
+ * points: array of [x%, y%] in a 100x100 normalized viewBox
+ * tint: "cyan" | "magenta" | "amber" | "white" | hex
+ * blend: "screen" | "overlay" | "normal"
+ * opacity: number 0..1
+ */
+type Pt = [number, number];
+type Board = {
   id: Service["id"];
-  left: number;    // % from left
-  top: number;     // % from top
-  width: number;   // % of container width
-  height: number;  // % of container height
-  rotate?: number; // deg
-  skewX?: number;  // deg
-  skewY?: number;  // deg
+  points: Pt[];   // polygon in % of width/height (0-100)
+  tint?: string;  // e.g., "cyan", "#36e7ff"
+  blend?: "screen" | "overlay" | "normal";
+  opacity?: number;
+  labelScale?: number; // text scale relative to board
 };
 
-const FACES: Face[] = [
-  // Left street, big vertical sign
-  { id: "data-apps",        left: 14.0, top: 44.5, width: 10.0, height: 18.0, rotate: -2, skewX: -4, skewY: 0 },
-  // Mid-left smaller board
-  { id: "automation-ops",   left: 26.0, top: 40.5, width: 9.0,  height: 12.0, rotate: -3, skewX: -6, skewY: 0 },
-  // Central distant sign
-  { id: "machine-learning", left: 48.8, top: 36.5, width: 11.5, height: 13.0, rotate: 0,  skewX: -2, skewY: 0 },
-  // Slightly right of center low roof
-  { id: "analytics-eng",    left: 55.5, top: 52.0, width: 12.5, height: 10.0, rotate: -1, skewX: -3, skewY: 0 },
-  // Right mid tower face
-  { id: "dashboards",       left: 72.0, top: 41.0, width: 11.5, height: 14.0, rotate: 1,  skewX: 5,  skewY: 0 },
-  // Far-right stacked shops
-  { id: "viz-storytelling", left: 86.0, top: 46.0, width: 11.5, height: 12.0, rotate: 2,  skewX: 6,  skewY: 0 },
+const BILLBOARDS: Board[] = [
+  {
+    id: "data-apps",
+    points: [
+      [9.5, 47.5], [14.5, 47.0], [14.5, 63.5], [9.3, 64.0], // rough; tweak in editor
+    ],
+    tint: "cyan",
+    blend: "screen",
+    opacity: 0.95,
+    labelScale: 0.9,
+  },
+  {
+    id: "automation-ops",
+    points: [
+      [22.5, 42.0], [27.8, 41.0], [27.2, 53.4], [22.2, 54.6],
+    ],
+    tint: "cyan",
+    blend: "screen",
+    opacity: 0.95,
+  },
+  {
+    id: "machine-learning",
+    points: [
+      [47.8, 37.5], [54.5, 37.2], [54.0, 48.0], [47.5, 48.4],
+    ],
+    tint: "cyan",
+    blend: "screen",
+    opacity: 0.95,
+  },
+  {
+    id: "analytics-eng",
+    points: [
+      [54.2, 52.2], [66.0, 52.0], [65.6, 60.5], [54.0, 60.8],
+    ],
+    tint: "cyan",
+    blend: "screen",
+    opacity: 0.95,
+  },
+  {
+    id: "dashboards",
+    points: [
+      [70.6, 41.6], [76.8, 40.8], [76.2, 53.4], [70.2, 54.0],
+    ],
+    tint: "cyan",
+    blend: "screen",
+    opacity: 0.95,
+  },
+  {
+    id: "viz-storytelling",
+    points: [
+      [84.8, 45.2], [90.6, 44.8], [90.2, 56.0], [84.4, 56.6],
+    ],
+    tint: "cyan",
+    blend: "screen",
+    opacity: 0.95,
+  },
 ];
 
-/* -------------------------------- utilities ---------------------------------- */
+/* ------------------------------- helpers -------------------------------- */
 function Pill({ children }: { children: React.ReactNode }) {
   return (
     <span className="rounded-md border border-cyan-400/30 bg-cyan-400/10 px-2 py-1 text-[11px] leading-none text-cyan-100">
@@ -209,7 +257,6 @@ function Pill({ children }: { children: React.ReactNode }) {
     </span>
   );
 }
-
 function stringifyService(s: Service) {
   const techLine = s.tech && s.tech.length ? `Tech: ${s.tech.join(", ")}` : "";
   const bullets = s.bullets?.map((b) => `- ${b}`).join("\n") ?? "";
@@ -217,11 +264,26 @@ function stringifyService(s: Service) {
   return `${s.title}\n\n${s.blurb}\n${techLine ? `\n${techLine}` : ""}\n\n${bullets}\n\n${ctas}`.trim();
 }
 
-/* -------------------------------- component ---------------------------------- */
+function tintToColor(t?: string) {
+  switch ((t || "").toLowerCase()) {
+    case "cyan": return "rgba(0,229,255,1)";
+    case "magenta": return "rgba(255,60,172,1)";
+    case "amber": return "rgba(255,190,110,1)";
+    case "white": return "rgba(255,255,255,1)";
+    default: return t || "rgba(0,229,255,1)";
+  }
+}
+
+/* ------------------------------- component ------------------------------- */
 export default function ServicesCityscape() {
   const [openId, setOpenId] = React.useState<string | null>(null);
   const [scrollY, setScrollY] = React.useState<number>(0);
   const [imgSrc, setImgSrc] = React.useState<string>(IMG_PATH);
+
+  // editor state
+  const [editing, setEditing] = React.useState<boolean>(false);
+  const [boards, setBoards] = React.useState<Board[]>(BILLBOARDS);
+  const [drag, setDrag] = React.useState<{ bIndex: number; pIndex: number } | null>(null);
 
   const current = openId ? SERVICES.find((s) => s.id === openId)! : null;
 
@@ -233,7 +295,6 @@ export default function ServicesCityscape() {
     document.body.style.width = "100%";
     setOpenId(id);
   }, []);
-
   const close = React.useCallback(() => {
     const y = scrollY;
     setOpenId(null);
@@ -244,18 +305,37 @@ export default function ServicesCityscape() {
     document.documentElement.style.scrollBehavior = "";
   }, [scrollY]);
 
+  // keyboard: E toggles editor, Cmd/Ctrl+C copies updated JSON
   React.useEffect(() => {
-    if (!openId) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close();
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c") {
-        const s = SERVICES.find((x) => x.id === openId);
-        if (s) navigator.clipboard?.writeText(stringifyService(s)).catch(() => {});
+      if (e.key === "Escape") {
+        if (openId) { close(); return; }
+        setEditing(false);
+      }
+      if (e.key.toLowerCase() === "e") setEditing((v) => !v);
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c" && editing) {
+        const json = JSON.stringify(boards, null, 2);
+        navigator.clipboard?.writeText(json).catch(() => {});
       }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [openId, close]);
+  }, [editing, boards, close, openId]);
+
+  // drag handlers for points (in % coords relative to SVG 100x100 viewbox)
+  const onSvgMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (!drag) return;
+    const svg = e.currentTarget;
+    const rect = svg.getBoundingClientRect();
+    const xPct = ((e.clientX - rect.left) / rect.width) * 100;
+    const yPct = ((e.clientY - rect.top) / rect.height) * 100;
+    setBoards((prev) => {
+      const next = prev.map((b) => ({ ...b, points: b.points.map((p) => [...p] as Pt) }));
+      next[drag.bIndex].points[drag.pIndex] = [Math.max(0, Math.min(100, xPct)), Math.max(0, Math.min(100, yPct))];
+      return next;
+    });
+  };
+  const onSvgMouseUp = () => setDrag(null);
 
   return (
     <section className="svc-city relative py-20">
@@ -263,14 +343,13 @@ export default function ServicesCityscape() {
         <header className="mb-8">
           <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-cyan-100">My Services</h2>
           <p className="mt-2 max-w-2xl text-sm md:text-base text-cyan-100/70">
-            Tap a billboard to open the details panel. Copy or close from the top-right.
+            Click a billboard for details. Press <kbd>E</kbd> to {editing ? "exit" : "enter"} align mode.
           </p>
         </header>
 
+        {/* Backplate box */}
         <div className="relative overflow-hidden rounded-2xl bg-[#070c12] border border-cyan-400/10">
-          {/* Aspect box so percentage faces scale consistently */}
           <div className="relative w-full h-[48vw] min-h-[360px] max-h-[720px]">
-            {/* Photo backplate with graceful fallback */}
             <img
               src={imgSrc}
               alt=""
@@ -282,43 +361,92 @@ export default function ServicesCityscape() {
               <div aria-hidden className="absolute inset-0 bg-gradient-to-b from-[#0a0f18] via-[#0a0f1a] to-[#0b1016]" />
             )}
 
-            {/* Subtle vignette only */}
-            <div className="absolute inset-0 pointer-events-none svc-vignette" />
+            {/* Overlay: SVG editor + polygons */}
+            <svg
+              viewBox="0 0 100 100"
+              className="absolute inset-0 w-full h-full"
+              onMouseMove={onSvgMouseMove}
+              onMouseUp={onSvgMouseUp}
+            >
+              {/* subtle vignette to help readability */}
+              <defs>
+                <radialGradient id="vignette" cx="50%" cy="50%" r="75%">
+                  <stop offset="60%" stopColor="rgba(0,0,0,0)" />
+                  <stop offset="100%" stopColor="rgba(0,0,0,0.55)" />
+                </radialGradient>
+              </defs>
+              <rect x="0" y="0" width="100" height="100" fill="url(#vignette)" />
 
-            {/* Face-mounted billboards that cover/replace the original signs */}
-            {FACES.map((f) => {
-              const svc = SERVICES.find((s) => s.id === f.id)!;
-              const transform = `
-                translate(-50%, -50%)
-                rotate(${f.rotate ?? 0}deg)
-                skewX(${f.skewX ?? 0}deg)
-                skewY(${f.skewY ?? 0}deg)
-              `;
-              return (
-                <button
-                  key={f.id}
-                  onClick={() => open(f.id)}
-                  className="face group absolute select-none"
-                  style={{
-                    left: `${f.left}%`,
-                    top: `${f.top}%`,
-                    width: `${f.width}%`,
-                    height: `${f.height}%`,
-                    transform,
-                    transformOrigin: "50% 50%",
-                  }}
-                  aria-label={`${svc.title} details`}
-                >
-                  {/* Opaque base covers the original sign; glow + border give the neon feel */}
-                  <div className="face-inner">
-                    <div className="flex items-center justify-center gap-1.5 text-[11px] font-medium tracking-wide text-cyan-100">
-                      {svc.icon}
-                      <span>{svc.title}</span>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
+              {boards.map((b, bi) => {
+                const svc = SERVICES.find((s) => s.id === b.id)!;
+                const pts = b.points.map(([x, y]) => `${x},${y}`).join(" ");
+                const tint = tintToColor(b.tint);
+                const fill = tint; // opaque base so old sign is fully hidden
+                const blend = b.blend || "normal";
+                const opacity = b.opacity ?? 0.95;
+
+                return (
+                  <g key={b.id} style={{ mixBlendMode: blend as any, cursor: editing ? "move" : "pointer" }}>
+                    {/* billboard face */}
+                    <polygon
+                      points={pts}
+                      fill={fill}
+                      opacity={opacity}
+                      stroke="rgba(0,229,255,0.45)"
+                      strokeWidth={0.25}
+                      filter="url(#)"
+                      onClick={() => !editing && open(b.id)}
+                    />
+                    {/* inner glass panel (adds neon feel without being transparent to the old sign) */}
+                    <polygon
+                      points={pts}
+                      fill="rgba(6,12,18,0.85)"
+                      stroke="rgba(0,229,255,0.45)"
+                      strokeWidth={0.15}
+                      style={{ filter: "drop-shadow(0 0 2px rgba(0,229,255,.5)) drop-shadow(0 0 6px rgba(0,229,255,.25))" }}
+                      onClick={() => !editing && open(b.id)}
+                    />
+                    {/* label: positioned at polygon centroid */}
+                    <text
+                      x={centroid(b.points)[0]}
+                      y={centroid(b.points)[1]}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fontSize={`${(b.labelScale ?? 1) * 2.6}px`}
+                      fill="rgba(200,250,255,0.95)"
+                      style={{ pointerEvents: "none", fontWeight: 600, letterSpacing: ".6px" }}
+                    >
+                      {svc.title}
+                    </text>
+
+                    {/* editor handles */}
+                    {editing &&
+                      b.points.map(([x, y], pi) => (
+                        <g key={pi}>
+                          {/* segment lines */}
+                          <line
+                            x1={x} y1={y}
+                            x2={b.points[(pi + 1) % b.points.length][0]}
+                            y2={b.points[(pi + 1) % b.points.length][1]}
+                            stroke="rgba(255,255,255,.45)"
+                            strokeWidth={0.15}
+                          />
+                          {/* draggable node */}
+                          <circle
+                            cx={x}
+                            cy={y}
+                            r={0.8}
+                            fill="rgba(0,229,255,1)"
+                            stroke="rgba(0,0,0,.6)"
+                            strokeWidth={0.2}
+                            onMouseDown={() => setDrag({ bIndex: bi, pIndex: pi })}
+                          />
+                        </g>
+                      ))}
+                  </g>
+                );
+              })}
+            </svg>
           </div>
         </div>
       </div>
@@ -326,30 +454,28 @@ export default function ServicesCityscape() {
       {/* Overlay Panel */}
       {current && (
         <div role="dialog" aria-modal="true" aria-label={`${current.title} details`} className="fixed inset-0 z-[999] flex items-center justify-center p-4 md:p-6">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={close} />
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setOpenId(null)} />
           <div className="relative w-full max-w-2xl rounded-2xl border border-cyan-400/20 bg-[#0b1016]/90 shadow-2xl">
-            {/* Top-right actions */}
             <div className="absolute right-2 top-2 flex items-center gap-2">
               <button
                 onClick={() => navigator.clipboard?.writeText(stringifyService(current)).catch(() => {})}
                 className="group inline-flex items-center gap-1.5 rounded-md border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1.5 text-xs text-cyan-100 hover:bg-cyan-400/20 focus:outline-none focus:ring-2 focus:ring-cyan-400/40"
                 aria-label="Copy details" title="Copy details (Cmd/Ctrl+C)"
               >
-                <Copy className="h-3.5 w-3.5" /> Copy
+                <Icon.Copy className="h-3.5 w-3.5" /> Copy
               </button>
               <button
-                onClick={close}
+                onClick={() => setOpenId(null)}
                 className="inline-flex items-center rounded-md border border-cyan-400/20 bg-cyan-400/10 p-1.5 text-cyan-100 hover:bg-cyan-400/20 focus:outline-none focus:ring-2 focus:ring-cyan-400/40"
                 aria-label="Close" title="Close (Esc)"
               >
-                <X className="h-4 w-4" />
+                <Icon.X className="h-4 w-4" />
               </button>
             </div>
 
-            {/* Content */}
             <div className="p-5 md:p-6">
               <div className="mb-2 flex items-center gap-2 text-cyan-100">
-                <PanelsTopLeft className="h-4 w-4 opacity-70" />
+                <Icon.PanelsTopLeft className="h-4 w-4 opacity-70" />
                 <h3 className="text-lg md:text-xl font-semibold tracking-wide">{current.title}</h3>
               </div>
 
@@ -389,36 +515,31 @@ export default function ServicesCityscape() {
         </div>
       )}
 
-      {/* Scoped styles */}
       <style jsx>{`
-        .svc-city { --cyn: 0,229,255; --mag: 255,60,172; }
-
-        .svc-vignette { position:absolute; inset:0; box-shadow: inset 0 0 120px rgba(0,0,0,.55); }
-
-        /* Face-mounted panel covers the old sign */
-        .face { position:absolute; }
-        .face-inner {
-          width: 100%; height: 100%;
-          display: flex; align-items: center; justify-content: center;
-          border-radius: 6px;
-          background: rgba(6,12,18, .92);                    /* opaque base: hides original sign */
-          border: 1px solid rgba(var(--cyn), .35);
-          box-shadow:
-            inset 0 0 26px rgba(var(--cyn), .24),
-            0 0 22px rgba(var(--cyn), .16),
-            0 0 40px rgba(var(--cyn), .10);
-          backdrop-filter: saturate(1.1);
-          transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
-        }
-        .face:hover .face-inner {
-          background: rgba(6,12,18, .86);
-          border-color: rgba(var(--cyn), .55);
-          box-shadow:
-            inset 0 0 30px rgba(var(--cyn), .30),
-            0 0 28px rgba(var(--cyn), .22),
-            0 0 56px rgba(var(--cyn), .16);
-        }
+        .svc-city { --cyn: 0,229,255; }
+        kbd { background: rgba(255,255,255,.1); padding: 2px 6px; border-radius: 4px; font-size: 12px; }
       `}</style>
     </section>
   );
+}
+
+/* centroid for label placement */
+function centroid(points: Pt[]): Pt {
+  // polygon centroid (simple average fallback if area is tiny)
+  let x = 0, y = 0, a = 0;
+  for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+    const [xi, yi] = points[i];
+    const [xj, yj] = points[j];
+    const f = xi * yj - xj * yi;
+    a += f;
+    x += (xi + xj) * f;
+    y += (yi + yj) * f;
+  }
+  if (Math.abs(a) < 1e-6) {
+    const sx = points.reduce((s, p) => s + p[0], 0);
+    const sy = points.reduce((s, p) => s + p[1], 0);
+    return [sx / points.length, sy / points.length];
+  }
+  a *= 0.5;
+  return [x / (6 * a), y / (6 * a)];
 }
