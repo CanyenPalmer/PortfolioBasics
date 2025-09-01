@@ -3,16 +3,15 @@
 import React from "react";
 
 /**
- * Services Cityscape — Image Backplate (exact-match vibe)
- * - Uses your actual background image (or video) as the city (identical look)
- * - Neon haze, rain, wet-street reflections layered on top
- * - 6 billboards anchored by % coordinates so they stay aligned responsively
- * - Same overlay panel (Copy / Close / scroll-restore), zero external deps
+ * Services Cityscape — Image Backplate (refined)
+ * Fixes:
+ * - Smooth sweep (no glitchy line); removed old fog pattern causing banding
+ * - Image fallback if /public/cityscape.jpg missing (no broken link top-left)
+ * - Billboards are flush on buildings (no stem), with tight glow
  *
  * HOW TO:
- * 1) Place your licensed image at: public/cityscape.jpg  (recommended: 1920x1080 or larger, webp/jpg)
- *    OR, place a short loop at public/cityscape.mp4 (muted, looped) for moving rain reflections.
- * 2) Adjust ANCHORS below (left%, top%) until each billboard sits on its building.
+ * 1) Put your licensed image at public/cityscape.jpg (or webp/mp4 if you prefer a video).
+ * 2) Tweak ANCHORS (left%, top%) to sit each billboard exactly in a glow area.
  */
 
 const Icon = {
@@ -60,7 +59,7 @@ const Icon = {
 };
 const { Copy, X, PanelsTopLeft, Cpu, LineChart, Wrench, Rocket, Brain } = Icon;
 
-/* ----------------------------- Services (unchanged) ---------------------------- */
+/* ----------------------------------- data ----------------------------------- */
 export type Service = {
   id: string;
   title: string;
@@ -75,8 +74,7 @@ const SERVICES: Service[] = [
   {
     id: "data-apps",
     title: "Data Apps",
-    blurb:
-      "Internal tools & micro-APIs that save hours: lightweight web apps, file pipelines, and quick integrations.",
+    blurb: "Internal tools & micro-APIs that save hours: lightweight web apps, file pipelines, and quick integrations.",
     tech: ["Python", "Flask/FastAPI", "TypeScript/React", "Tailwind", "Excel/OpenPyXL"],
     bullets: [
       "Built lightweight web apps and micro-APIs around analytics workloads (e.g., MyCaddy).",
@@ -92,8 +90,7 @@ const SERVICES: Service[] = [
   {
     id: "automation-ops",
     title: "Automation & Ops",
-    blurb:
-      "Scheduled jobs and self-healing checks so reporting runs itself—retries, alerts, and data quality gates.",
+    blurb: "Scheduled jobs and self-healing checks so reporting runs itself—retries, alerts, and data quality gates.",
     tech: ["Python", "Excel/OpenPyXL", "Google Sheets", "Scheduling/CRON", "GitHub Actions"],
     bullets: [
       "Scheduled pipelines with CRON-like cadence and alerting for failures.",
@@ -172,21 +169,17 @@ const SERVICES: Service[] = [
   },
 ];
 
-/* --------------------------- % anchors on the image --------------------------- */
-/** Tune these to your image. Values are percentages of the container.
- * Example: { left: 33.2, top: 28.1 } means 33.2% from left, 28.1% from top.
- * Pro-tip: open dev tools and tweak live to lock them to specific building faces.
- */
+/* ------------------------ percentage anchors on backplate ------------------------ */
 const ANCHORS: Record<
   "data-apps" | "automation-ops" | "machine-learning" | "analytics-eng" | "dashboards" | "viz-storytelling",
   { left: number; top: number }
 > = {
-  "data-apps":        { left:  9.0, top: 52.5 }, // left street big sign
-  "automation-ops":   { left: 18.8, top: 43.5 }, // mid-left tower sign
-  "machine-learning": { left: 33.5, top: 35.0 }, // left-middle tall tower
-  "analytics-eng":    { left: 49.0, top: 38.5 }, // center low roof
-  "dashboards":       { left: 64.5, top: 33.0 }, // right mid tower
-  "viz-storytelling": { left: 82.0, top: 44.0 }, // far-right building
+  "data-apps":        { left:  9.0, top: 52.5 },
+  "automation-ops":   { left: 18.8, top: 43.5 },
+  "machine-learning": { left: 33.5, top: 35.0 },
+  "analytics-eng":    { left: 49.0, top: 38.5 },
+  "dashboards":       { left: 64.5, top: 33.0 },
+  "viz-storytelling": { left: 82.0, top: 44.0 },
 };
 
 /* -------------------------------- utilities ---------------------------------- */
@@ -209,6 +202,7 @@ function stringifyService(s: Service) {
 export default function ServicesCityscape() {
   const [openId, setOpenId] = React.useState<string | null>(null);
   const [scrollY, setScrollY] = React.useState<number>(0);
+  const [imgSrc, setImgSrc] = React.useState<string>("/cityscape.jpg"); // update if you use .webp or .mp4
 
   const current = openId ? SERVICES.find((s) => s.id === openId)! : null;
 
@@ -255,31 +249,29 @@ export default function ServicesCityscape() {
         </header>
 
         <div className="relative overflow-hidden rounded-2xl bg-[#070c12] border border-cyan-400/10">
-          {/* Backplate: choose one (image or video). Keep aspect for anchors to behave well */}
-          <div className="relative w-full h-[48vw] min-h-[320px] max-h-[680px]">
-            {/* IMAGE backplate */}
+          {/* Backplate container with stable aspect so anchors behave responsively */}
+          <div className="relative w-full h-[48vw] min-h-[360px] max-h-[700px]">
+            {/* IMAGE backplate with graceful fallback (prevents broken image icon) */}
             <img
-              src="/cityscape.jpg" /* Replace with your licensed image */
+              src={imgSrc}
               alt=""
               className="absolute inset-0 h-full w-full object-cover"
               draggable={false}
+              onError={() => setImgSrc("")}
             />
-            {/* If you prefer a video loop, uncomment:
-            <video className="absolute inset-0 h-full w-full object-cover" autoPlay loop muted playsInline>
-              <source src="/cityscape.mp4" type="video/mp4" />
-            </video>
-            */}
+            {/* Fallback gradient if image missing */}
+            {imgSrc === "" && <div aria-hidden className="absolute inset-0 bg-[radial-gradient(1200px_700px_at_50%_20%,rgba(255,60,172,.06),transparent_55%),radial-gradient(1000px_600px_at_60%_15%,rgba(172,108,255,.05),transparent_50%),linear-gradient(180deg,#0a0f18_0%,#0a0f1a_25%,#0b111b_60%,#0b1016_100%)]" />}
 
-            {/* Atmospherics */}
+            {/* Atmospherics (smooth only; no banding) */}
             <div className="absolute inset-0 pointer-events-none">
               <div className="svc-haze" />
-              <div className="svc-fog" />
+              <div className="svc-sweep" />
               <div className="svc-rain" />
               <div className="svc-ground-reflect" />
               <div className="svc-vignette" />
             </div>
 
-            {/* Anchored billboards (percentage-based) */}
+            {/* Flush-mounted billboards in glow areas */}
             {Object.entries(ANCHORS).map(([id, pos]) => {
               const svc = SERVICES.find((s) => s.id === id)!;
               return (
@@ -290,14 +282,13 @@ export default function ServicesCityscape() {
                   style={{ left: `${pos.left}%`, top: `${pos.top}%` }}
                   aria-label={`${svc.title} details`}
                 >
-                  <div className="rounded-md border border-cyan-400/30 bg-cyan-400/10 px-2.5 py-1.5 text-[11px] font-medium tracking-wide text-cyan-100 shadow-[0_0_20px_rgba(0,229,255,.15)_inset]
+                  <div className="rounded-md border border-cyan-400/30 bg-cyan-400/10 px-2.5 py-1.5 text-[11px] font-medium tracking-wide text-cyan-100 shadow-[0_0_22px_rgba(0,229,255,.18)_inset,0_0_22px_rgba(0,229,255,.12)]
                     group-hover:bg-cyan-400/20 group-hover:border-cyan-400/50">
                     <div className="flex items-center gap-1.5">
                       {svc.icon}
-                      <span>{svc.title.replace("&", "and").split(" ")[0]}</span>
+                      <span>{svc.title}</span>
                     </div>
                   </div>
-                  <div className="mx-auto h-6 w-px bg-cyan-400/30" />
                 </button>
               );
             })}
@@ -317,21 +308,21 @@ export default function ServicesCityscape() {
                 className="group inline-flex items-center gap-1.5 rounded-md border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1.5 text-xs text-cyan-100 hover:bg-cyan-400/20 focus:outline-none focus:ring-2 focus:ring-cyan-400/40"
                 aria-label="Copy details" title="Copy details (Cmd/Ctrl+C)"
               >
-                <Icon.Copy className="h-3.5 w-3.5" /> Copy
+                <Copy className="h-3.5 w-3.5" /> Copy
               </button>
               <button
                 onClick={close}
                 className="inline-flex items-center rounded-md border border-cyan-400/20 bg-cyan-400/10 p-1.5 text-cyan-100 hover:bg-cyan-400/20 focus:outline-none focus:ring-2 focus:ring-cyan-400/40"
                 aria-label="Close" title="Close (Esc)"
               >
-                <Icon.X className="h-4 w-4" />
+                <X className="h-4 w-4" />
               </button>
             </div>
 
             {/* Content */}
             <div className="p-5 md:p-6">
               <div className="mb-2 flex items-center gap-2 text-cyan-100">
-                <Icon.PanelsTopLeft className="h-4 w-4 opacity-70" />
+                <PanelsTopLeft className="h-4 w-4 opacity-70" />
                 <h3 className="text-lg md:text-xl font-semibold tracking-wide">{current.title}</h3>
               </div>
 
@@ -378,24 +369,9 @@ export default function ServicesCityscape() {
       <style jsx>{`
         .svc-city { --cyn: 0,229,255; --mag: 255,60,172; --vio: 172,108,255; }
 
-        /* Neon beam behind each billboard */
-        .billboard::before {
-          content: ""; position: absolute; left: 50%; top: -18px; transform: translateX(-50%);
-          width: 220px; height: 130px;
-          background:
-            radial-gradient(closest-side, rgba(var(--cyn), .22), transparent 70%),
-            radial-gradient(closest-side, rgba(var(--mag), .10), transparent 80%);
-          filter: blur(10px); z-index: -1; pointer-events: none;
-        }
-        .billboard > div {
-          box-shadow:
-            inset 0 0 22px rgba(var(--cyn), .20),
-            0 0 18px rgba(var(--cyn), .18);
-          backdrop-filter: saturate(1.2);
-        }
-
-        /* Atmospherics layered on the image */
+        /* Smooth neon haze and one clean sweep (no banding) */
         .svc-haze {
+          position: absolute; inset: 0;
           background:
             radial-gradient(60% 40% at 50% 70%, rgba(var(--cyn), .10), transparent 70%),
             radial-gradient(40% 30% at 30% 75%, rgba(var(--mag), .06), transparent 70%),
@@ -403,40 +379,66 @@ export default function ServicesCityscape() {
           mix-blend-mode: screen;
           animation: haze-drift 24s linear infinite;
         }
-        .svc-fog {
-          background: repeating-linear-gradient(180deg, rgba(255,255,255,.018) 0 2px, transparent 2px 6px);
-          opacity: .35;
-          mask-image: linear-gradient(to bottom, transparent 0%, black 30%, black 85%, transparent 100%);
-          animation: fog-slide 36s linear infinite;
+        /* Single linear sweep from left to right */
+        .svc-sweep::before {
+          content: "";
+          position: absolute; top: 0; bottom: 0; left: -40%;
+          width: 40%;
+          background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,.04) 50%, transparent 100%);
+          mix-blend-mode: screen;
+          animation: sweep 6s linear infinite;
         }
+
+        /* Rain (kept subtle; smooth fall) */
         .svc-rain::before {
           content: "";
-          position: absolute; inset: -100px -100px;
+          position: absolute; inset: -120px -120px;
           background-image:
-            linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,0) 60%),
-            linear-gradient(180deg, rgba(153,255,255,.12), rgba(153,255,255,0) 60%);
-          background-size: 2px 80px, 1px 60px;
+            linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,0) 60%),
+            linear-gradient(180deg, rgba(153,255,255,.10), rgba(153,255,255,0) 60%);
+          background-size: 2px 90px, 1px 70px;
           background-repeat: repeat;
           background-position: 0 0, 40px 0;
           transform: rotate(12deg);
-          opacity: .22;
-          animation: rain-fall 0.9s linear infinite;
-          filter: drop-shadow(0 0 4px rgba(var(--cyn), .15));
+          opacity: .18;
+          animation: rain-fall 1.1s linear infinite;
+          filter: drop-shadow(0 0 4px rgba(var(--cyn), .12));
         }
+
+        /* Wet street reflection */
         .svc-ground-reflect {
+          position: absolute; inset: 0;
           background:
             linear-gradient(180deg, transparent 0%, rgba(0,0,0,0) 60%, rgba(0,0,0,.35) 100%),
             radial-gradient(60% 30% at 50% 96%, rgba(var(--cyn), .08), transparent 70%),
             radial-gradient(50% 25% at 65% 98%, rgba(var(--mag), .07), transparent 70%);
           mix-blend-mode: screen;
         }
-        .svc-vignette { box-shadow: inset 0 0 120px rgba(0,0,0,.55); }
+        .svc-vignette { position:absolute; inset:0; box-shadow: inset 0 0 120px rgba(0,0,0,.55); }
+
+        /* Flush billboard styling (no pole; tighter glow) */
+        .billboard::before {
+          content: "";
+          position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+          width: 220px; height: 120px;
+          background:
+            radial-gradient(closest-side, rgba(var(--cyn), .22), transparent 70%),
+            radial-gradient(closest-side, rgba(var(--mag), .10), transparent 80%);
+          filter: blur(12px); z-index: -1; pointer-events: none;
+        }
+        .billboard > div {
+          box-shadow:
+            inset 0 0 22px rgba(var(--cyn), .22),
+            0 0 18px rgba(var(--cyn), .15);
+          backdrop-filter: saturate(1.2);
+        }
 
         @keyframes haze-drift { from { transform: translate3d(0,0,0); } to { transform: translate3d(-80px,0,0); } }
-        @keyframes fog-slide  { from { transform: translate3d(0,0,0); } to { transform: translate3d(0,-60px,0); } }
-        @keyframes rain-fall  { from { background-position-y: 0, 0; } to { background-position-y: 200px, 160px; } }
+        @keyframes sweep { from { transform: translateX(0); } to { transform: translateX(280%); } }
+        @keyframes rain-fall { from { background-position-y: 0, 0; } to { background-position-y: 220px, 170px; } }
+
         @media (prefers-reduced-motion: reduce) {
-          .svc-haze, .svc-fog, .svc-rain { animation: none !important; }
+          .svc-haze, .svc-sweep::before, .svc-rain::before { animation: none !important; }
         }
       `}</style>
     </section>
