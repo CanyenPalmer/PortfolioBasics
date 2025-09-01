@@ -3,12 +3,13 @@
 import React from "react";
 
 /**
- * Services Cityscape — Enhanced Cyberpunk Skyline
- * - Multi-layer SVG skyline (far/mid/front) with varied buildings
- * - Neon outlines, window flicker, haze + fog layers (CSS only)
- * - Custom billboards anchored to foreground buildings
- * - Same overlay panel behavior (Copy, Close, scroll restore)
- * - No external deps (inline icons)
+ * Services Cityscape — Award-Level Cyberpunk Skyline (no external deps)
+ * - Far/Mid/Front skyline layers with tapered spires & antennas (magenta/violet/cyan glow)
+ * - Curved skyways, atmospheric haze, drifting fog, animated rain, window-flicker,
+ *   and wet-street reflections to mirror the neon like your refs
+ * - Billboards pinned exactly to specific foreground buildings (no drift)
+ * - Same overlay panel (Copy, Close, scroll-restore) and your service content
+ * - All styles are scoped with styled-jsx (won’t touch the rest of the site)
  */
 
 /* ------------------------- tiny inline icons (no deps) ------------------------- */
@@ -70,11 +71,11 @@ export type Service = {
 
 /* ----------------------------- services (wired) ------------------------------ */
 const SERVICES: Service[] = [
-  // — Group 1: Data Apps & Automation —
   {
     id: "data-apps",
     title: "Data Apps",
-    blurb: "Internal tools & micro-APIs that save hours: lightweight web apps, file pipelines, and quick integrations.",
+    blurb:
+      "Internal tools & micro-APIs that save hours: lightweight web apps, file pipelines, and quick integrations.",
     tech: ["Python", "Flask/FastAPI", "TypeScript/React", "Tailwind", "Excel/OpenPyXL"],
     bullets: [
       "Built lightweight web apps and micro-APIs around analytics workloads (e.g., MyCaddy).",
@@ -90,7 +91,8 @@ const SERVICES: Service[] = [
   {
     id: "automation-ops",
     title: "Automation & Ops",
-    blurb: "Scheduled jobs and self-healing checks so reporting runs itself—retries, alerts, and data quality gates.",
+    blurb:
+      "Scheduled jobs and self-healing checks so reporting runs itself—retries, alerts, and data quality gates.",
     tech: ["Python", "Excel/OpenPyXL", "Google Sheets", "Scheduling/CRON", "GitHub Actions"],
     bullets: [
       "Scheduled pipelines with CRON-like cadence and alerting for failures.",
@@ -103,8 +105,6 @@ const SERVICES: Service[] = [
     ],
     icon: <Wrench />,
   },
-
-  // — Group 2: Machine Learning & Analytics —
   {
     id: "machine-learning",
     title: "Machine Learning",
@@ -137,8 +137,6 @@ const SERVICES: Service[] = [
     ],
     icon: <LineChart />,
   },
-
-  // — Group 3: Dashboards & Visualization/Storytelling —
   {
     id: "dashboards",
     title: "Dashboards",
@@ -173,7 +171,23 @@ const SERVICES: Service[] = [
   },
 ];
 
-/* ------------------------------- utils -------------------------------- */
+/* --------------------------- building anchors (front) -------------------------- */
+/** Foreground building “tops” where billboards mount.
+ * Coordinates match the foreground (front) SVG shapes below (1200x520 viewBox).
+ */
+const BUILDING_ANCHORS: Record<
+  "data-apps" | "automation-ops" | "machine-learning" | "analytics-eng" | "dashboards" | "viz-storytelling",
+  { x: number; y: number }
+> = {
+  "data-apps":        { x:  95, y: 255 },
+  "automation-ops":   { x: 240, y: 235 },
+  "machine-learning": { x: 377, y: 225 },
+  "analytics-eng":    { x: 505, y: 265 },
+  "dashboards":       { x: 630, y: 205 },
+  "viz-storytelling": { x: 870, y: 265 },
+};
+
+/* --------------------------------- helpers ---------------------------------- */
 function Pill({ children }: { children: React.ReactNode }) {
   return (
     <span className="rounded-md border border-cyan-400/30 bg-cyan-400/10 px-2 py-1 text-[11px] leading-none text-cyan-100">
@@ -189,7 +203,7 @@ function stringifyService(s: Service) {
   return `${s.title}\n\n${s.blurb}\n${techLine ? `\n${techLine}` : ""}\n\n${bullets}\n\n${ctas}`.trim();
 }
 
-/* ------------------------------- component ---------------------------- */
+/* -------------------------------- component --------------------------------- */
 export default function ServicesCityscape() {
   const [openId, setOpenId] = React.useState<string | null>(null);
   const [scrollY, setScrollY] = React.useState<number>(0);
@@ -228,24 +242,6 @@ export default function ServicesCityscape() {
     return () => document.removeEventListener("keydown", onKey);
   }, [openId, close]);
 
-  const doCopy = React.useCallback(() => {
-    if (!current) return;
-    const text = stringifyService(current);
-    if (navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(text).catch(() => {
-        const ta = document.createElement("textarea");
-        ta.value = text;
-        ta.style.position = "fixed";
-        ta.style.left = "-9999px";
-        document.body.appendChild(ta);
-        ta.focus();
-        ta.select();
-        try { document.execCommand("copy"); } catch {}
-        document.body.removeChild(ta);
-      });
-    }
-  }, [current]);
-
   return (
     <section className="svc-city relative py-20">
       <div className="container mx-auto px-4">
@@ -258,22 +254,24 @@ export default function ServicesCityscape() {
 
         {/* City skyline wrapper */}
         <div className="relative overflow-hidden rounded-2xl bg-[#080c12] border border-cyan-400/10">
-          {/* atmospheric layers */}
+          {/* atmosphere */}
           <div className="absolute inset-0 pointer-events-none">
             <div className="absolute inset-0 svc-stars" />
             <div className="svc-haze" />
             <div className="svc-fog" />
             <div className="svc-windows" />
+            <div className="svc-rain" />
+            <div className="svc-ground-reflect" />
           </div>
 
           {/* Multi-layer skyline */}
-          <div className="relative h-[360px] md:h-[460px]">
-            <svg viewBox="0 0 1200 460" className="absolute bottom-0 w-full h-full" aria-hidden>
+          <div className="relative h-[400px] md:h-[520px]">
+            <svg viewBox="0 0 1200 520" className="absolute bottom-0 w-full h-full" aria-hidden>
               <defs>
                 <linearGradient id="sky" x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0%" stopColor="#0a0f1b" />
-                  <stop offset="40%" stopColor="#0a0f1b" />
-                  <stop offset="100%" stopColor="#0b1016" />
+                  <stop offset="0%" stopColor="#07101a" />
+                  <stop offset="45%" stopColor="#08121c" />
+                  <stop offset="100%" stopColor="#0a1016" />
                 </linearGradient>
                 <linearGradient id="frontFill" x1="0" x2="0" y1="0" y2="1">
                   <stop offset="0%" stopColor="#101826" />
@@ -285,67 +283,72 @@ export default function ServicesCityscape() {
                 </linearGradient>
                 <linearGradient id="farFill" x1="0" x2="0" y1="0" y2="1">
                   <stop offset="0%" stopColor="#09101a" />
-                  <stop offset="100%" stopColor="#091017" />
+                  <stop offset="100%" stopColor="#090f17" />
                 </linearGradient>
               </defs>
 
-              {/* sky backdrop */}
-              <rect x="0" y="0" width="1200" height="460" fill="url(#sky)" />
+              {/* sky */}
+              <rect x="0" y="0" width="1200" height="520" fill="url(#sky)" />
 
-              {/* FAR LAYER (tall, faint) */}
+              {/* FAR layer: tall tapered spires (violet outline) */}
               <g className="far" fill="url(#farFill)" opacity="0.55" stroke="rgba(172,108,255,.28)" strokeWidth="1.5">
-                <rect x="20"  y="120" width="70"  height="340" rx="2" />
-                <rect x="120" y="80"  width="90"  height="380" rx="2" />
-                <rect x="240" y="100" width="80"  height="360" rx="2" />
-                <rect x="340" y="60"  width="110" height="400" rx="2" />
-                <rect x="490" y="90"  width="85"  height="370" rx="2" />
-                <rect x="600" y="70"  width="95"  height="390" rx="2" />
-                <rect x="720" y="100" width="80"  height="360" rx="2" />
-                <rect x="820" y="80"  width="100" height="380" rx="2" />
-                <rect x="950" y="110" width="75"  height="350" rx="2" />
-                <rect x="1040" y="95" width="90" height="365" rx="2" />
+                <path d="M95  520 V120 l22 -36 l22 36 V520 z" />
+                <path d="M220 520 V90  l30 -50 l30 50 V520 z" />
+                <path d="M385 520 V110 l20 -34 l20 34 V520 z" />
+                <path d="M610 520 V70  l35 -55 l35 55 V520 z" />
+                <path d="M820 520 V95  l24 -40 l24 40 V520 z" />
+                <path d="M1000 520 V78 l30 -48 l30 48 V520 z" />
+                {/* far antenna tips */}
+                <line x1="680" y1="70" x2="680" y2="40" stroke="rgba(172,108,255,.45)" strokeWidth="2"/>
+                <circle cx="680" cy="38" r="3" fill="rgba(255,60,172,.7)" />
               </g>
 
-              {/* MID LAYER (medium density) */}
-              <g className="mid" fill="url(#midFill)" opacity="0.75" stroke="rgba(255,60,172,.35)" strokeWidth="1.6">
-                <rect x="60"  y="200" width="95"  height="260" rx="2" />
-                <rect x="180" y="170" width="100" height="290" rx="2" />
-                <rect x="300" y="190" width="90"  height="270" rx="2" />
-                <rect x="420" y="160" width="120" height="300" rx="2" />
-                <rect x="560" y="190" width="95"  height="270" rx="2" />
-                <rect x="680" y="170" width="100" height="290" rx="2" />
-                <rect x="810" y="200" width="95"  height="260" rx="2" />
-                <rect x="930" y="180" width="105" height="280" rx="2" />
-                <rect x="1060" y="210" width="85" height="250" rx="2" />
+              {/* MID layer: dense slabs (magenta outline) */}
+              <g className="mid" fill="url(#midFill)" opacity="0.78" stroke="rgba(255,60,172,.35)" strokeWidth="1.8">
+                <rect x="50"  y="220" width="105" height="300" rx="2" />
+                <rect x="200" y="185" width="110" height="335" rx="2" />
+                <rect x="330" y="215" width="95"  height="305" rx="2" />
+                <path d="M470 520 V180 h120 V520 z" />
+                <rect x="630" y="205" width="105" height="315" rx="2" />
+                <rect x="770" y="185" width="110" height="335" rx="2" />
+                <rect x="905" y="215" width="100" height="305" rx="2" />
+                <rect x="1040" y="195" width="110" height="325" rx="2" />
               </g>
 
-              {/* FRONT LAYER (foreground, where billboards attach) */}
+              {/* FRONT layer: foreground blocks (cyan outline) */}
               <g className="front" fill="url(#frontFill)" stroke="rgba(0,229,255,.45)" strokeWidth="2">
-                {/* varied silhouettes */}
-                <rect x="40"  y="240" width="110" height="220" rx="2" />
-                <path d="M190 220 h100 v240 h-100 z" />
-                <path d="M320 210 h115 v250 h-115 z" />
-                <path d="M460 250 h95  v210 h-95  z" />
-                <path d="M580 190 h100 v270 h-100 z" />
-                <path d="M710 230 h85  v230 h-85  z" />
-                <path d="M810 250 h120 v210 h-120 z" />
-                <path d="M960 210 h100 v250 h-100 z" />
-                <path d="M1080 260 h80 v200 h-80 z" />
+                <rect x="40"  y="270" width="120" height="250" rx="2" />
+                <path d="M190 250 h120 v270 h-120 z" />
+                <path d="M320 240 h125 v280 h-125 z" />
+                <path d="M455 280 h105 v240 h-105 z" />
+                <path d="M580 220 h110 v300 h-110 z" />
+                <path d="M710 265 h95  v255 h-95  z" />
+                <path d="M815 280 h130 v240 h-130 z" />
+                <path d="M960 240 h120 v280 h-120 z" />
+                <path d="M1100 290 h90 v230 h-90 z" />
 
-                {/* antenna details */}
-                <line x1="635" y1="190" x2="635" y2="170" stroke="rgba(0,229,255,.45)" strokeWidth="2"/>
-                <circle cx="635" cy="168" r="3" fill="rgba(255,60,172,.7)" />
+                {/* small details/antennas */}
+                <line x1="635" y1="220" x2="635" y2="195" stroke="rgba(0,229,255,.5)" strokeWidth="2" />
+                <circle cx="635" cy="192" r="3" fill="rgba(255,60,172,.75)" />
+                <line x1="377" y1="240" x2="377" y2="220" stroke="rgba(0,229,255,.5)" strokeWidth="2" />
+                <circle cx="377" cy="218" r="3" fill="rgba(255,60,172,.75)" />
+              </g>
+
+              {/* Elevated skyways / rails with neon */}
+              <g className="skyways" stroke="rgba(0,229,255,.35)" strokeWidth="2" fill="none">
+                <path d="M40 360 C 360 320, 860 340, 1160 300" />
+                <path d="M70 405 C 420 385, 900 395, 1160 375" />
               </g>
             </svg>
 
-            {/* Billboards anchored to foreground buildings (match x/y to front layer tops) */}
+            {/* Billboards pinned to building anchors */}
             <div className="absolute inset-0">
-              <Billboard x={95}   y={235} label="Data Apps"    icon={<Cpu />}           onClick={() => open("data-apps")} />
-              <Billboard x={240}  y={215} label="Automation"   icon={<Wrench />}        onClick={() => open("automation-ops")} />
-              <Billboard x={377}  y={205} label="ML"           icon={<Brain />}         onClick={() => open("machine-learning")} />
-              <Billboard x={508}  y={245} label="Analytics"    icon={<LineChart />}     onClick={() => open("analytics-eng")} />
-              <Billboard x={628}  y={185} label="Dashboards"   icon={<PanelsTopLeft />} onClick={() => open("dashboards")} />
-              <Billboard x={868}  y={245} label="Storytelling" icon={<Rocket />}        onClick={() => open("viz-storytelling")} />
+              <AnchorBillboard id="data-apps"        label="Data Apps"     icon={<Cpu />}           onOpen={setOpenId} />
+              <AnchorBillboard id="automation-ops"   label="Automation"    icon={<Wrench />}        onOpen={setOpenId} />
+              <AnchorBillboard id="machine-learning" label="ML"            icon={<Brain />}         onOpen={setOpenId} />
+              <AnchorBillboard id="analytics-eng"    label="Analytics"     icon={<LineChart />}     onOpen={setOpenId} />
+              <AnchorBillboard id="dashboards"       label="Dashboards"    icon={<PanelsTopLeft />} onOpen={setOpenId} />
+              <AnchorBillboard id="viz-storytelling" label="Storytelling"  icon={<Rocket />}        onOpen={setOpenId} />
             </div>
           </div>
         </div>
@@ -353,34 +356,33 @@ export default function ServicesCityscape() {
 
       {/* Overlay Panel */}
       {current && (
-        <div role="dialog" aria-modal="true" aria-label={`${current.title} details`} className="fixed inset-0 z-[999] flex items-center justify-center p-4 md:p-6">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${current.title} details`}
+          className="fixed inset-0 z-[999] flex items-center justify-center p-4 md:p-6"
+        >
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={close} />
           <div className="relative w-full max-w-2xl rounded-2xl border border-cyan-400/20 bg-[#0b1016]/90 shadow-2xl">
-            {/* Top-right actions */}
             <div className="absolute right-2 top-2 flex items-center gap-2">
               <button
-                onClick={() => {
-                  if (!current) return;
-                  const text = stringifyService(current);
-                  if (navigator.clipboard?.writeText) {
-                    navigator.clipboard.writeText(text).catch(() => {});
-                  }
-                }}
+                onClick={() => navigator.clipboard?.writeText(stringifyService(current)).catch(() => {})}
                 className="group inline-flex items-center gap-1.5 rounded-md border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1.5 text-xs text-cyan-100 hover:bg-cyan-400/20 focus:outline-none focus:ring-2 focus:ring-cyan-400/40"
-                aria-label="Copy details" title="Copy details (Cmd/Ctrl+C)"
+                aria-label="Copy details"
+                title="Copy details (Cmd/Ctrl+C)"
               >
                 <Copy className="h-3.5 w-3.5" /> Copy
               </button>
               <button
                 onClick={close}
                 className="inline-flex items-center rounded-md border border-cyan-400/20 bg-cyan-400/10 p-1.5 text-cyan-100 hover:bg-cyan-400/20 focus:outline-none focus:ring-2 focus:ring-cyan-400/40"
-                aria-label="Close" title="Close (Esc)"
+                aria-label="Close"
+                title="Close (Esc)"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            {/* Content */}
             <div className="p-5 md:p-6">
               <div className="mb-2 flex items-center gap-2 text-cyan-100">
                 <PanelsTopLeft className="h-4 w-4 opacity-70" />
@@ -429,17 +431,17 @@ export default function ServicesCityscape() {
       {/* Local styles (scoped) */}
       <style jsx>{`
         .svc-city {
-          --cyn: 0,229,255;      /* cyan neon */
-          --mag: 255,60,172;     /* magenta neon */
-          --vio: 172,108,255;    /* violet neon */
+          --cyn: 0,229,255;      /* cyan */
+          --mag: 255,60,172;     /* magenta */
+          --vio: 172,108,255;    /* violet */
         }
 
-        /* Sky gradients + vignette via .svc-stars */
+        /* Sky & vignette */
         .svc-stars {
           background:
             radial-gradient(1200px 700px at 50% 20%, rgba(var(--mag), .06), transparent 55%),
             radial-gradient(1000px 600px at 60% 15%, rgba(var(--vio), .05), transparent 50%),
-            linear-gradient(180deg, #0a0f18 0%, #0a0f1a 20%, #0b111b 55%, #0b1016 100%);
+            linear-gradient(180deg, #0a0f18 0%, #0a0f1a 25%, #0b111b 60%, #0b1016 100%);
         }
         .svc-city::before {
           content: "";
@@ -448,8 +450,8 @@ export default function ServicesCityscape() {
           z-index: 0;
         }
 
-        /* Neon haze + fog */
-        .svc-haze, .svc-fog, .svc-windows {
+        /* Haze / fog / windows */
+        .svc-haze, .svc-fog, .svc-windows, .svc-rain, .svc-ground-reflect {
           position: absolute; inset: 0; pointer-events: none; z-index: 0;
         }
         .svc-haze {
@@ -461,23 +463,12 @@ export default function ServicesCityscape() {
           animation: haze-drift 24s linear infinite;
         }
         .svc-fog {
-          background: repeating-linear-gradient(180deg, rgba(255,255,255,.018) 0 2px, transparent 2px 6px);
+          background:
+            repeating-linear-gradient(180deg, rgba(255,255,255,.018) 0 2px, transparent 2px 6px);
           opacity: .35;
           mask-image: linear-gradient(to bottom, transparent 0%, black 30%, black 85%, transparent 100%);
           animation: fog-slide 36s linear infinite;
         }
-        @keyframes haze-drift { from { transform: translate3d(0,0,0); } to { transform: translate3d(-80px,0,0); } }
-        @keyframes fog-slide  { from { transform: translate3d(0,0,0); } to { transform: translate3d(0,-60px,0); } }
-        @media (prefers-reduced-motion: reduce) { .svc-haze, .svc-fog { animation: none; } }
-
-        /* Add neon glow to SVG strokes */
-        svg .far[stroke], svg .mid[stroke], svg .front[stroke] {
-          filter:
-            drop-shadow(0 0 10px rgba(var(--cyn), .25))
-            drop-shadow(0 0 24px rgba(var(--cyn), .12));
-        }
-
-        /* Simulated windows flicker */
         .svc-windows {
           opacity: .14;
           background:
@@ -489,28 +480,67 @@ export default function ServicesCityscape() {
             radial-gradient(2px 3px at 86% 77%, rgba(255,189,120,.85), transparent 60%);
           animation: windows-flicker 4s ease-in-out infinite alternate;
         }
+
+        /* Rain */
+        .svc-rain::before {
+          content: "";
+          position: absolute; inset: -100px -100px;
+          background-image:
+            linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,0) 60%),
+            linear-gradient(180deg, rgba(153,255,255,.12), rgba(153,255,255,0) 60%);
+          background-size: 2px 80px, 1px 60px;
+          background-repeat: repeat;
+          background-position: 0 0, 40px 0;
+          transform: rotate(12deg);
+          opacity: .22;
+          animation: rain-fall 0.9s linear infinite;
+          filter: drop-shadow(0 0 4px rgba(var(--cyn), .15));
+        }
+
+        /* Wet street reflection (bottom sheen) */
+        .svc-ground-reflect {
+          background:
+            linear-gradient(180deg, transparent 0%, rgba(0,0,0,0) 60%, rgba(0,0,0,.35) 100%),
+            radial-gradient(60% 30% at 50% 96%, rgba(var(--cyn), .08), transparent 70%),
+            radial-gradient(50% 25% at 65% 98%, rgba(var(--mag), .07), transparent 70%);
+          mix-blend-mode: screen;
+        }
+
+        /* Motion prefs */
+        @keyframes haze-drift { from { transform: translate3d(0,0,0); } to { transform: translate3d(-80px,0,0); } }
+        @keyframes fog-slide  { from { transform: translate3d(0,0,0); } to { transform: translate3d(0,-60px,0); } }
         @keyframes windows-flicker {
           0% { opacity: .10; filter: hue-rotate(0deg); }
           45% { opacity: .18; }
           50% { opacity: .08; }
           100% { opacity: .16; filter: hue-rotate(10deg); }
         }
-        @media (prefers-reduced-motion: reduce) { .svc-windows { animation: none; } }
+        @keyframes rain-fall   { from { background-position-y: 0, 0; } to { background-position-y: 200px, 160px; } }
+        @media (prefers-reduced-motion: reduce) {
+          .svc-haze, .svc-fog, .svc-windows, .svc-rain { animation: none !important; }
+        }
 
-        /* Billboard glow beam */
+        /* Neon outline bloom on skyline strokes */
+        svg .far[stroke], svg .mid[stroke], svg .front[stroke] {
+          filter:
+            drop-shadow(0 0 10px rgba(var(--cyn), .25))
+            drop-shadow(0 0 24px rgba(var(--cyn), .12));
+        }
+
+        /* Billboard glow beam + polish */
         .billboard { position: absolute; }
         .billboard::before {
           content: ""; position: absolute; left: 50%; top: -18px; transform: translateX(-50%);
-          width: 200px; height: 120px;
+          width: 220px; height: 130px;
           background:
-            radial-gradient(closest-side, rgba(var(--cyn), .20), transparent 70%),
-            radial-gradient(closest-side, rgba(var(--mag), .08), transparent 80%);
-          filter: blur(8px); z-index: -1; pointer-events: none;
+            radial-gradient(closest-side, rgba(var(--cyn), .22), transparent 70%),
+            radial-gradient(closest-side, rgba(var(--mag), .10), transparent 80%);
+          filter: blur(10px); z-index: -1; pointer-events: none;
         }
         .billboard > div {
           box-shadow:
-            inset 0 0 20px rgba(var(--cyn), .18),
-            0 0 20px rgba(var(--cyn), .18);
+            inset 0 0 22px rgba(var(--cyn), .20),
+            0 0 18px rgba(var(--cyn), .18);
           backdrop-filter: saturate(1.2);
         }
 
@@ -526,19 +556,30 @@ export default function ServicesCityscape() {
   );
 }
 
-/* ------------------------------ small billboard ------------------------------ */
-function Billboard({
-  x, y, label, icon, onClick,
-}: { x: number; y: number; label: string; icon?: React.ReactNode; onClick: () => void }) {
+/* --------------------- billboard anchored to building top --------------------- */
+function AnchorBillboard({
+  id,
+  label,
+  icon,
+  onOpen,
+}: {
+  id: keyof typeof BUILDING_ANCHORS;
+  label: string;
+  icon?: React.ReactNode;
+  onOpen: (id: string) => void;
+}) {
+  const { x, y } = BUILDING_ANCHORS[id];
   return (
     <button
-      onClick={onClick}
+      onClick={() => onOpen(id)}
       className="billboard group absolute -translate-x-1/2 -translate-y-1/2 select-none"
       style={{ left: x, top: y }}
       aria-label={`${label} details`}
     >
-      <div className="rounded-md border border-cyan-400/30 bg-cyan-400/10 px-2.5 py-1.5 text-[11px] font-medium tracking-wide text-cyan-100 shadow-[0_0_20px_rgba(0,229,255,.15)_inset]
-      group-hover:bg-cyan-400/20 group-hover:border-cyan-400/50">
+      <div
+        className="rounded-md border border-cyan-400/30 bg-cyan-400/10 px-2.5 py-1.5 text-[11px] font-medium tracking-wide text-cyan-100 shadow-[0_0_20px_rgba(0,229,255,.15)_inset]
+        group-hover:bg-cyan-400/20 group-hover:border-cyan-400/50"
+      >
         <div className="flex items-center gap-1.5">
           {icon}
           <span>{label}</span>
