@@ -3,13 +3,13 @@
 import React from "react";
 
 /**
- * Cyber City — Six Variant Billboards + Lively Window Glow
- * - Billboards: 6 variants (blade, cantilever, gantry, cabinet, marquee, trapezoid)
- * - Titles always fit inside signs (auto-size + 1–2 lines)
- * - Mixed mounting heights; taller buildings
- * - NEW: Windows subtly glow/fade independently (deterministic per window)
- * - Overlay details panel with Copy / Close (top-right)
- * - No external libraries
+ * Cyber City — Rectangular Billboards, Organic Windows, Roof Details
+ * - All billboards are rectangular cabinets with neon glow (cyan/magenta/amber).
+ * - Titles auto-fit inside (1–2 lines); always contained.
+ * - Buildings taller; varied roof hardware (antennas, vents, tanks, ducts).
+ * - Windows glow/fade independently with seeded randomness (SSR-safe).
+ * - Overlay details panel with Copy / Close (top-right).
+ * - Pure React/SVG. No external deps.
  */
 
 /* ============================== Data =============================== */
@@ -137,7 +137,6 @@ function stringifyService(s: Service) {
 }
 
 type Tone = "cyan" | "magenta" | "amber";
-type SignVariant = "blade" | "cantilever" | "gantry" | "cabinet" | "marquee" | "trapezoid";
 
 function toneColors(tone: Tone) {
   switch (tone) {
@@ -147,7 +146,7 @@ function toneColors(tone: Tone) {
   }
 }
 
-/** auto-fit text */
+/** auto-fit text into a rectangle (1–2 lines) */
 function layoutLabel(title: string, bw: number, bh: number, padX = 16, padY = 14) {
   const boxW = bw - padX * 2;
   const boxH = bh - padY * 2;
@@ -160,7 +159,7 @@ function layoutLabel(title: string, bw: number, bh: number, padX = 16, padY = 14
     return Math.max(12, est);
   };
 
-  // try one line first
+  // try one line
   let fs1 = fitFont(title, boxW, 28);
   const h1 = fs1 * idealLineHeight;
   const estW1 = title.length * (pxPerCharAt16 * (fs1 / 16));
@@ -168,7 +167,7 @@ function layoutLabel(title: string, bw: number, bh: number, padX = 16, padY = 14
     return { fontSize: fs1, lines: [title], lineHeight: fs1 * idealLineHeight, padX, padY };
   }
 
-  // split into two lines (pref split on " & " or closest space to center)
+  // split into two lines (prefer split on " & " or closest space to center)
   const splitIndex =
     title.indexOf(" & ") > -1
       ? title.indexOf(" & ") + 3
@@ -203,66 +202,65 @@ type Building = {
   w: number;
   h: number;     // height
   tone: Tone;
-  variant: SignVariant;
-  lift: number;  // varied sign elevation above roof
+  lift: number;  // sign elevation above roof
 };
 
 const BUILDINGS: Building[] = [
-  { id: "data-apps",        x:  90, baseY: 540, w: 160, h: 340, tone: "cyan",    variant: "blade",     lift: 12 },
-  { id: "automation-ops",   x: 280, baseY: 540, w: 175, h: 370, tone: "magenta", variant: "cantilever",lift: 36 },
-  { id: "machine-learning", x: 485, baseY: 540, w: 195, h: 390, tone: "amber",   variant: "gantry",    lift: 26 },
-  { id: "analytics-eng",    x: 710, baseY: 540, w: 210, h: 360, tone: "cyan",    variant: "cabinet",   lift: 10 },
-  { id: "dashboards",       x: 945, baseY: 540, w: 180, h: 380, tone: "magenta", variant: "marquee",   lift: 42 },
-  { id: "viz-storytelling", x:1145, baseY: 540, w: 170, h: 350, tone: "amber",   variant: "trapezoid", lift: 24 },
+  { id: "data-apps",        x:  80, baseY: 540, w: 160, h: 380, tone: "cyan",    lift: 12 },
+  { id: "automation-ops",   x: 280, baseY: 540, w: 175, h: 410, tone: "magenta", lift: 28 },
+  { id: "machine-learning", x: 500, baseY: 540, w: 200, h: 430, tone: "amber",   lift: 20 },
+  { id: "analytics-eng",    x: 740, baseY: 540, w: 210, h: 405, tone: "cyan",    lift: 10 },
+  { id: "dashboards",       x: 980, baseY: 540, w: 185, h: 420, tone: "magenta", lift: 30 },
+  { id: "viz-storytelling", x:1195, baseY: 540, w: 170, h: 395, tone: "amber",   lift: 18 },
 ];
 
 /** billboard size from building width (clamped) */
 function billboardSizeFor(w: number) {
-  const bw = Math.max(120, Math.min(Math.round(w * 0.9), 200));
-  const bh = Math.max(70, Math.min(Math.round(bw * 0.55), 112));
+  const bw = Math.max(130, Math.min(Math.round(w * 0.92), 220));
+  const bh = Math.max(72, Math.min(Math.round(bw * 0.52), 120));
   return { bw, bh };
 }
 
-/* ============================== Tiny SVG helpers ============================== */
+/* ============================== Random Helpers ============================== */
 
-/** deterministic pseudo-random (0..1) from a numeric seed — avoids SSR mismatch */
+/** deterministic 0..1 from numeric seed (SSR-safe) */
 function seeded(seed: number) {
   const s = Math.sin(seed) * 10000;
   return s - Math.floor(s);
 }
 
-/**
- * Windows grid with subtle, independent glow animations.
- * We avoid runtime randomness — each window gets a deterministic duration/delay from its seed.
- */
+/* ============================== SVG helpers ============================== */
+
+/** windows grid with organic glow/flicker, seeded per window (no visible pattern) */
 function gridWindows(
   x: number, y: number, w: number, h: number, cols: number, rows: number,
-  litEvery = 6, litColor = "#9cf3ff"
+  hueA = "#9cf3ff", hueB = "#ffcba4"
 ): JSX.Element[] {
   const pad = 8;
   const gw = (w - pad * 2) / cols;
   const gh = (h - pad * 2) / rows;
-  const sw = gw * 0.6;
-  const sh = gh * 0.5;
   const out: JSX.Element[] = [];
   let i = 0;
 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++, i++) {
-      const cx = x + pad + c * gw + (gw - sw) / 2;
-      const cy = y + pad + r * gh + (gh - sh) / 2;
-      // seed based on coords + index, so it's stable between SSR/CSR
       const seed = (x + y + r * 131 + c * 73 + i * 17) * 0.12345;
       const rnd1 = seeded(seed);
-      const rnd2 = seeded(seed + 42.4242);
+      const rnd2 = seeded(seed + 11.11);
+      const rnd3 = seeded(seed + 22.22);
 
-      // durations 2.6–6.2s; delays 0–4s; staggered variety
-      const duration = (2.6 + rnd1 * 3.6).toFixed(2);
+      const sw = gw * (0.55 + rnd1 * 0.15);
+      const sh = gh * (0.45 + rnd2 * 0.18);
+      const cx = x + pad + c * gw + (gw - sw) / 2;
+      const cy = y + pad + r * gh + (gh - sh) / 2;
+
+      // durations 2.2–6.4s; delays 0–4s; choose one of two hues
+      const duration = (2.2 + rnd1 * 4.2).toFixed(2);
       const delay = (rnd2 * 4).toFixed(2);
+      const litColor = rnd3 > 0.5 ? hueA : hueB;
 
-      // some windows are "lit" more strongly (still animate)
-      const lit = i % litEvery === 0;
-      const baseFill = lit ? litColor : "rgba(255,255,255,.08)";
+      // "burnout" chance
+      const burned = rnd3 > 0.92;
 
       out.push(
         <rect
@@ -273,13 +271,13 @@ function gridWindows(
           height={sh}
           rx={1.5}
           ry={1.5}
-          fill={baseFill}
-          // start a bit dimmer; animation will bring it up then back down
-          opacity={lit ? 0.85 : 0.15}
+          fill={litColor}
+          opacity={burned ? 0.12 : 0.18 + rnd2 * 0.25}
           className="window-glow"
           style={{
-            // independent tempo per window
-            animation: `windowGlow ${duration}s ease-in-out ${delay}s infinite alternate`,
+            animation: burned
+              ? undefined
+              : `windowGlow ${duration}s cubic-bezier(.4,0,.2,1) ${delay}s infinite alternate`,
           } as React.CSSProperties}
         />
       );
@@ -295,150 +293,124 @@ function slats(x: number, y: number, w: number, h: number, n: number, color = "r
   ));
 }
 
-/* =========================== Billboard Variants =========================== */
+/** random-ish roof furniture (deterministic per building index) */
+function roofDetails(bx: number, top: number, bw: number, idx: number) {
+  const elements: JSX.Element[] = [];
+  const s1 = seeded(idx * 7.7);
+  const s2 = seeded(idx * 13.3);
+  const s3 = seeded(idx * 19.9);
 
-function toneFor(t: Tone) {
-  return toneColors(t);
+  // HVAC unit
+  if (s1 > 0.2) {
+    const w = 28 + Math.round(s1 * 20);
+    const h = 12 + Math.round(s2 * 8);
+    const x = bx + 10 + Math.round(s2 * (bw - 60));
+    const y = top - h - 6;
+    elements.push(
+      <g key={`hvac-${idx}`}>
+        <rect x={x} y={y} width={w} height={h} fill="#0f1a28" stroke="rgba(255,255,255,.08)" />
+        {slats(x + 4, y + 3, w - 8, h - 6, 5, "rgba(255,255,255,.10)")}
+      </g>
+    );
+  }
+  // water tank
+  if (s2 > 0.55) {
+    const r = 9 + Math.round(s3 * 6);
+    const x = bx + bw - (30 + r);
+    const y = top - (r * 2 + 6);
+    elements.push(
+      <g key={`tank-${idx}`}>
+        <rect x={x - 2} y={y + r * 2} width={4} height={10} fill="#0d1624" />
+        <circle cx={x} cy={y + r} r={r} fill="#0f1b2a" stroke="rgba(255,255,255,.08)" />
+        <rect x={x - r} y={y + r * 1.8} width={r * 2} height={4} fill="#0b1320" />
+      </g>
+    );
+  }
+  // antenna + beacon
+  if (s3 > 0.35) {
+    const ax = bx + bw * (0.3 + s1 * 0.4);
+    const h = 18 + Math.round(s2 * 16);
+    elements.push(
+      <g key={`ant-${idx}`}>
+        <rect x={ax} y={top - h - 2} width={2} height={h + 2} fill="#101a29" />
+        <circle cx={ax + 1} cy={top - h - 4} r={3} fill="#9cf3ff" opacity={0.75} />
+      </g>
+    );
+  }
+  // cable run
+  if (s1 + s2 > 0.9) {
+    const x1 = bx + 8, x2 = bx + bw - 8;
+    const y = top - 4;
+    elements.push(
+      <path
+        key={`cable-${idx}`}
+        d={`M${x1} ${y} C ${x1 + 30} ${y + 8}, ${x2 - 30} ${y - 6}, ${x2} ${y + 4}`}
+        stroke="rgba(180,220,255,.25)"
+        strokeWidth={1}
+        fill="none"
+      />
+    );
+  }
+
+  return elements;
 }
 
-type SignVariant = "blade" | "cantilever" | "gantry" | "cabinet" | "marquee" | "trapezoid";
+/* =========================== Rectangular Billboard =========================== */
 
-function BillboardHeader({
-  w, h, title, tone, variant,
-}: { w: number; h: number; title: string; tone: Tone; variant: SignVariant }) {
-  const { neon, stroke } = toneFor(tone);
+function RectBillboard({
+  w, h, title, tone,
+}: { w: number; h: number; title: string; tone: Tone }) {
+  const { neon, stroke } = toneColors(tone);
   const layout = layoutLabel(title, w, h, 16, 14);
 
-  const Label = () => (
-    <g style={{ pointerEvents: "none" }}>
-      {layout.lines.map((ln, i) => (
-        <text
-          key={i}
-          x={w / 2}
-          y={h / 2 + (i - (layout.lines.length - 1) / 2) * layout.lineHeight}
-          textAnchor="middle"
-          dominantBaseline="central"
-          fontSize={layout.fontSize}
-          fill="#d9faff"
-          style={{ fontWeight: 700, letterSpacing: "1px" }}
-        >
-          {ln}
-        </text>
-      ))}
+  return (
+    <g>
+      {/* precise glow plate (same rect) */}
+      <rect
+        x={-10}
+        y={-10}
+        width={w + 20}
+        height={h + 20}
+        rx={8}
+        ry={8}
+        fill={neon}
+        opacity={0.16}
+        filter={`url(#glow-${tone})`}
+      />
+      {/* cabinet */}
+      <rect
+        x={0}
+        y={0}
+        width={w}
+        height={h}
+        rx={6}
+        ry={6}
+        fill="url(#glass)"
+        stroke={stroke}
+        strokeWidth={3}
+        style={{ filter: `drop-shadow(0 0 12px ${neon}) drop-shadow(0 0 24px ${neon})` }}
+      />
+      {/* subtle rim */}
+      <rect x={w - 6} y={4} width={4} height={h - 8} fill={stroke} opacity={0.35} />
+      {/* label */}
+      <g style={{ pointerEvents: "none" }}>
+        {layout.lines.map((ln, i) => (
+          <text
+            key={i}
+            x={w / 2}
+            y={h / 2 + (i - (layout.lines.length - 1) / 2) * layout.lineHeight}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fontSize={layout.fontSize}
+            fill="#d9faff"
+            style={{ fontWeight: 700, letterSpacing: "1px" }}
+          >
+            {ln}
+          </text>
+        ))}
+      </g>
     </g>
   );
-
-  switch (variant) {
-    case "blade": {
-      const rx = 6;
-      return (
-        <g>
-          {/* simple hanger */}
-          <rect x={w / 2 - 2} y={-20} width={4} height={20} fill={stroke} opacity={0.6} />
-          {/* glow plate */}
-          <rect x={-8} y={-8} width={w + 16} height={h + 16} rx={rx + 6} ry={rx + 6} fill={neon} opacity={0.18}
-                filter={`url(#glow-${tone})`} />
-          {/* cabinet */}
-          <rect x={0} y={0} width={w} height={h} rx={rx} ry={rx} fill="url(#glass)" stroke={stroke} strokeWidth={3}
-                style={{ filter: `drop-shadow(0 0 12px ${neon}) drop-shadow(0 0 28px ${neon})` }} />
-          {/* side accent */}
-          <rect x={w - 6} y={6} width={4} height={h - 12} fill={stroke} opacity={0.35} />
-          <Label />
-        </g>
-      );
-    }
-    case "cantilever": {
-      const rx = 8;
-      return (
-        <g>
-          {/* arm + cables */}
-          <line x1={-28} y1={h * 0.35} x2={0} y2={h * 0.35} stroke={stroke} strokeWidth={3} />
-          <line x1={-28} y1={h * 0.35} x2={-44} y2={-18} stroke={stroke} strokeWidth={2} />
-          <line x1={-10} y1={h * 0.35} x2={-28} y2={h + 6} stroke={stroke} strokeWidth={1.6} opacity={0.8} />
-          {/* glow plate */}
-          <rect x={-10} y={-10} width={w + 20} height={h + 20} rx={rx + 6} ry={rx + 6} fill={neon} opacity={0.17}
-                filter={`url(#glow-${tone})`} />
-          {/* plate */}
-          <rect x={0} y={0} width={w} height={h} rx={rx} ry={rx} fill="url(#glass)" stroke={stroke} strokeWidth={2}
-                style={{ filter: `drop-shadow(0 0 10px ${neon})` }} />
-          <Label />
-        </g>
-      );
-    }
-    case "gantry": {
-      return (
-        <g>
-          {/* posts */}
-          <rect x={w * 0.2 - 2} y={h} width={4} height={22} fill={stroke} />
-          <rect x={w * 0.8 - 2} y={h} width={4} height={22} fill={stroke} />
-          {/* glow */}
-          <rect x={-10} y={-10} width={w + 20} height={h + 20} fill={neon} opacity={0.18}
-                filter={`url(#glow-${tone})`} />
-          {/* frame */}
-          <rect x={0} y={0} width={w} height={h} fill="url(#glass)" stroke={stroke} strokeWidth={2}
-                style={{ filter: `drop-shadow(0 0 10px ${neon})` }} />
-          <Label />
-        </g>
-      );
-    }
-    case "cabinet": {
-      const rx = 6;
-      return (
-        <g>
-          <rect x={-8} y={-8} width={w + 16} height={h + 16} rx={rx + 6} ry={rx + 6} fill={neon} opacity={0.16}
-                filter={`url(#glow-${tone})`} />
-          <rect x={0} y={0} width={w} height={h} rx={rx} ry={rx} fill="url(#glass)" stroke={stroke} strokeWidth={3}
-                style={{ filter: `drop-shadow(0 0 12px ${neon}) drop-shadow(0 0 24px ${neon})` }} />
-          {/* extruded rim */}
-          <rect x={w - 6} y={4} width={6} height={h - 8} fill={stroke} opacity={0.35} />
-          <Label />
-        </g>
-      );
-    }
-    case "marquee": {
-      const rx = 12;
-      const bulbs = Array.from({ length: 18 }).map((_, i) => {
-        const pad = 8;
-        const span = w - pad * 2;
-        const cx = pad + (i / 17) * span;
-        return <circle key={i} cx={cx} cy={pad} r={3} fill={stroke} opacity={0.8} />;
-      });
-      const bulbsBottom = Array.from({ length: 18 }).map((_, i) => {
-        const pad = 8;
-        const span = w - pad * 2;
-        const cx = pad + (i / 17) * span;
-        return <circle key={`b${i}`} cx={cx} cy={h - pad} r={3} fill={stroke} opacity={0.8} />;
-      });
-      return (
-        <g>
-          <rect x={-12} y={-12} width={w + 24} height={h + 24} rx={rx + 8} ry={rx + 8} fill={neon} opacity={0.16}
-                filter={`url(#glow-${tone})`} />
-          <rect x={0} y={0} width={w} height={h} rx={rx} ry={rx} fill="url(#glass)" stroke={stroke} strokeWidth={3}
-                style={{ filter: `drop-shadow(0 0 12px ${neon}) drop-shadow(0 0 28px ${neon})` }} />
-          {bulbs}
-          {bulbsBottom}
-          <Label />
-        </g>
-      );
-    }
-    case "trapezoid": {
-      const topInset = 16;
-      return (
-        <g>
-          <rect x={-10} y={-10} width={w + 20} height={h + 20} fill={neon} opacity={0.16}
-                filter={`url(#glow-${tone})`} />
-          <polygon
-            points={`0,${h} ${w},${h} ${w - topInset},0 ${topInset},0`}
-            fill="url(#glass)"
-            stroke={stroke}
-            strokeWidth={2}
-            style={{ filter: `drop-shadow(0 0 10px ${neon})` }}
-          />
-          <Label />
-        </g>
-      );
-    }
-  }
 }
 
 /* ============================== Component ============================== */
@@ -484,13 +456,10 @@ export default function ServicesCityscape() {
       <div className="container mx-auto px-4">
         <header className="mb-8">
           <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-cyan-100">My Services</h2>
-          <p className="mt-2 max-w-2xl text-sm md:text-base text-cyan-100/70">
-            Tap a billboard to open the details panel. Copy or close from the top-right.
-          </p>
         </header>
 
         <div className="relative overflow-hidden rounded-2xl border border-cyan-400/10 bg-[#070c12]">
-          <svg viewBox="0 0 1320 580" className="block w-full h-auto">
+          <svg viewBox="0 0 1360 600" className="block w-full h-auto">
             {/* --------- defs --------- */}
             <defs>
               <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
@@ -527,20 +496,20 @@ export default function ServicesCityscape() {
             </defs>
 
             {/* --------- sky + stars --------- */}
-            <rect x="0" y="0" width="1320" height="580" fill="url(#sky)" />
-            {Array.from({ length: 90 }).map((_, i) => {
-              const x = (i * 149) % 1320;
-              const y = ((i * 97) % 190) + 18;
+            <rect x="0" y="0" width="1360" height="600" fill="url(#sky)" />
+            {Array.from({ length: 100 }).map((_, i) => {
+              const x = (i * 139) % 1360;
+              const y = ((i * 97) % 200) + 18;
               const r = (i % 3) + 1;
               return <circle key={i} cx={x} cy={y} r={r} fill="url(#star)" opacity={0.18} />;
             })}
 
             {/* --------- far silhouette --------- */}
             <g fill="#0e1724" opacity="0.85">
-              <path d="M0,340 h120 v-115 h60 v-45 h120 v160 h110 v-100 h90 v135 h140 v-175 h80 v185 h150 v-145 h90 v205 h160 v-115 h130 V580 H0 Z" />
+              <path d="M0,345 h120 v-110 h60 v-45 h120 v160 h110 v-100 h90 v135 h140 v-175 h80 v185 h150 v-145 h90 v205 h160 v-115 h130 V600 H0 Z" />
             </g>
 
-            {/* --------- mid/near buildings from BUILDINGS --------- */}
+            {/* --------- mid/near buildings --------- */}
             <g filter="url(#grain)">
               {BUILDINGS.map((b, idx) => {
                 const top = b.baseY - b.h;
@@ -549,7 +518,7 @@ export default function ServicesCityscape() {
                     {/* main tower */}
                     <rect x={b.x} y={top} width={b.w} height={b.h} fill="#0f1623" stroke="rgba(255,255,255,.06)" />
                     {/* overhang band */}
-                    <rect x={b.x - 6} y={top + Math.round(b.h * 0.34)} width={b.w + 12} height={10} fill="#0a111b" />
+                    <rect x={b.x - 6} y={top + Math.round(b.h * 0.32)} width={b.w + 12} height={10} fill="#0a111b" />
                     {/* vents (slats) */}
                     {slats(b.x + 12, top + 22, b.w - 24, 26, 6)}
                     {/* windows grid (lower half) with animated glow */}
@@ -560,32 +529,22 @@ export default function ServicesCityscape() {
                       Math.round(b.h * 0.44),
                       6 + (idx % 3),
                       8 + ((idx + 1) % 3),
-                      6,
-                      idx % 2 ? "#ffcba4" : "#9cf3ff"
+                      "#9cf3ff",
+                      "#ffcba4"
                     )}
-                    {/* tiny spire / beacon variety */}
-                    {idx % 2 === 0 ? (
-                      <>
-                        <rect x={b.x + b.w * 0.46} y={top - 24} width={6} height={24} fill="#101a29" />
-                        <circle cx={b.x + b.w * 0.49} cy={top - 26} r={3} fill="#9cf3ff" opacity={0.7} />
-                      </>
-                    ) : (
-                      <>
-                        <path d={`M${b.x + b.w*0.35} ${top - 16} l12 -22 l12 22 z`} fill="#121c2b" />
-                        <rect x={b.x + b.w*0.40} y={top - 38} width={8} height={22} fill="#101a29" />
-                      </>
-                    )}
+                    {/* roof furniture */}
+                    {roofDetails(b.x, top, b.w, idx)}
                   </g>
                 );
               })}
             </g>
 
             {/* --------- ground + fog --------- */}
-            <rect x="0" y="530" width="1320" height="50" fill="#09101a" />
-            <rect x="0" y="500" width="1320" height="40" fill="url(#fog)" />
-            <rect x="0" y="520" width="1320" height="35" fill="url(#fog)" opacity={0.6} />
+            <rect x="0" y="540" width="1360" height="60" fill="#09101a" />
+            <rect x="0" y="505" width="1360" height="40" fill="url(#fog)" />
+            <rect x="0" y="528" width="1360" height="35" fill="url(#fog)" opacity={0.6} />
 
-            {/* --------- header billboards (variants) --------- */}
+            {/* --------- rectangular header billboards --------- */}
             {BUILDINGS.map((b) => {
               const svc = SERVICES.find((s) => s.id === b.id)!;
               const { bw, bh } = billboardSizeFor(b.w);
@@ -594,7 +553,7 @@ export default function ServicesCityscape() {
               const y = Math.round(roof - (bh + b.lift));
               return (
                 <g key={`${b.id}-hdr`} transform={`translate(${x} ${y})`} style={{ cursor: "pointer" }} onClick={() => open(b.id)}>
-                  <BillboardHeader w={bw} h={bh} title={svc.title} tone={b.tone} variant={b.variant} />
+                  <RectBillboard w={bw} h={bh} title={svc.title} tone={b.tone} />
                 </g>
               );
             })}
@@ -614,7 +573,9 @@ export default function ServicesCityscape() {
                 aria-label="Copy details"
                 title="Copy details (Cmd/Ctrl+C)"
               >
-                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor"><path d="M16 1H4a2 2 0 0 0-2 2v12h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z"/></svg>
+                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor">
+                  <path d="M16 1H4a2 2 0 0 0-2 2v12h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z"/>
+                </svg>
                 Copy
               </button>
               <button
@@ -623,13 +584,17 @@ export default function ServicesCityscape() {
                 aria-label="Close"
                 title="Close (Esc)"
               >
-                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7 2.9 18.3 9.2 12 2.9 5.7 4.3 4.3l6.3 6.3 6.3-6.3z"/></svg>
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
+                  <path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7 2.9 18.3 9.2 12 2.9 5.7 4.3 4.3l6.3 6.3 6.3-6.3z"/>
+                </svg>
               </button>
             </div>
 
             <div className="p-5 md:p-6">
               <div className="mb-2 flex items-center gap-2 text-cyan-100">
-                <svg viewBox="0 0 24 24" className="h-4 w-4 opacity-70" fill="currentColor"><path d="M3 3h10v8H3V3zm0 10h8v8H3v-8zm10-5h8v13h-8V8z"/></svg>
+                <svg viewBox="0 0 24 24" className="h-4 w-4 opacity-70" fill="currentColor">
+                  <path d="M3 3h10v8H3V3zm0 10h8v8H3v-8zm10-5h8v13h-8V8z"/>
+                </svg>
                 <h3 className="text-lg md:text-xl font-semibold tracking-wide">{current.title}</h3>
               </div>
 
@@ -677,7 +642,6 @@ export default function ServicesCityscape() {
           60%  { opacity: 0.55; }
           100% { opacity: 0.90; }
         }
-        /* optional: a tiny variance when user prefers-reduced-motion OFF */
         @media (prefers-reduced-motion: reduce) {
           .window-glow { animation: none !important; }
         }
