@@ -3,18 +3,19 @@
 import React from "react";
 
 /**
- * Services Cityscape — Image Backplate (static, no waves)
- * - No animated fog/sweep/rain (removes any “glitchy” look)
- * - Uses your actual city image as the background (so buildings are visible)
- * - Graceful fallback if the image is missing (static gradient instead of a broken icon)
- * - Billboards are flush-mounted and stationary via % anchors
+ * Services Cityscape — Photo Backplate w/ Face-Mounted Billboards
  *
- * IMPORTANT: put your image at: /public/cityscape.jpg  (or change IMG_PATH below)
+ * - Uses your photo at /public/cityscape.jpg
+ * - Each billboard is a "face" with { left%, top%, width%, height%, rotate, skewX, skewY }
+ *   so you can match the building’s perspective.
+ * - Base panel is opaque (covers the original sign), with neon border + glow.
+ * - Clicking opens your existing detail panel (Copy/Close preserved).
+ * - No animations, no extra deps.
  */
 
 const IMG_PATH = "/cityscape.jpg";
 
-/* ------------------------- tiny inline icons (no deps) ------------------------- */
+/* ---------------- tiny inline icons (no external packages) ---------------- */
 const Icon = {
   Copy: (p: React.SVGProps<SVGSVGElement>) => (
     <svg viewBox="0 0 24 24" width="1em" height="1em" {...p}>
@@ -170,18 +171,35 @@ const SERVICES: Service[] = [
   },
 ];
 
-/* ------------------------ % anchors on the image (stationary) ------------------------ */
-const ANCHORS: Record<
-  "data-apps" | "automation-ops" | "machine-learning" | "analytics-eng" | "dashboards" | "viz-storytelling",
-  { left: number; top: number }
-> = {
-  "data-apps":        { left:  9.0, top: 52.5 },
-  "automation-ops":   { left: 18.8, top: 43.5 },
-  "machine-learning": { left: 33.5, top: 35.0 },
-  "analytics-eng":    { left: 49.0, top: 38.5 },
-  "dashboards":       { left: 64.5, top: 33.0 },
-  "viz-storytelling": { left: 82.0, top: 44.0 },
+/* ---------------- billboard faces (replace signs in the photo) ----------------
+   Tweak these per your exact photo. Units are percentages of the container.
+   rotate in degrees; skewX/ skewY in degrees (to match perspective).
+----------------------------------------------------------------------------- */
+type Face = {
+  id: Service["id"];
+  left: number;    // % from left
+  top: number;     // % from top
+  width: number;   // % of container width
+  height: number;  // % of container height
+  rotate?: number; // deg
+  skewX?: number;  // deg
+  skewY?: number;  // deg
 };
+
+const FACES: Face[] = [
+  // Left street, big vertical sign
+  { id: "data-apps",        left: 14.0, top: 44.5, width: 10.0, height: 18.0, rotate: -2, skewX: -4, skewY: 0 },
+  // Mid-left smaller board
+  { id: "automation-ops",   left: 26.0, top: 40.5, width: 9.0,  height: 12.0, rotate: -3, skewX: -6, skewY: 0 },
+  // Central distant sign
+  { id: "machine-learning", left: 48.8, top: 36.5, width: 11.5, height: 13.0, rotate: 0,  skewX: -2, skewY: 0 },
+  // Slightly right of center low roof
+  { id: "analytics-eng",    left: 55.5, top: 52.0, width: 12.5, height: 10.0, rotate: -1, skewX: -3, skewY: 0 },
+  // Right mid tower face
+  { id: "dashboards",       left: 72.0, top: 41.0, width: 11.5, height: 14.0, rotate: 1,  skewX: 5,  skewY: 0 },
+  // Far-right stacked shops
+  { id: "viz-storytelling", left: 86.0, top: 46.0, width: 11.5, height: 12.0, rotate: 2,  skewX: 6,  skewY: 0 },
+];
 
 /* -------------------------------- utilities ---------------------------------- */
 function Pill({ children }: { children: React.ReactNode }) {
@@ -203,7 +221,7 @@ function stringifyService(s: Service) {
 export default function ServicesCityscape() {
   const [openId, setOpenId] = React.useState<string | null>(null);
   const [scrollY, setScrollY] = React.useState<number>(0);
-  const [imgSrc, setImgSrc] = React.useState<string>(IMG_PATH); // if missing, we show a gradient fallback
+  const [imgSrc, setImgSrc] = React.useState<string>(IMG_PATH);
 
   const current = openId ? SERVICES.find((s) => s.id === openId)! : null;
 
@@ -250,9 +268,9 @@ export default function ServicesCityscape() {
         </header>
 
         <div className="relative overflow-hidden rounded-2xl bg-[#070c12] border border-cyan-400/10">
-          {/* Fixed aspect so % anchors don't drift */}
-          <div className="relative w-full h-[48vw] min-h-[360px] max-h-[700px]">
-            {/* IMAGE backplate; if it fails, we show a static gradient (no broken icon) */}
+          {/* Aspect box so percentage faces scale consistently */}
+          <div className="relative w-full h-[48vw] min-h-[360px] max-h-[720px]">
+            {/* Photo backplate with graceful fallback */}
             <img
               src={imgSrc}
               alt=""
@@ -261,37 +279,39 @@ export default function ServicesCityscape() {
               onError={() => setImgSrc("")}
             />
             {imgSrc === "" && (
-              <div
-                aria-hidden
-                className="absolute inset-0"
-                style={{
-                  background:
-                    "radial-gradient(1200px 700px at 50% 20%, rgba(255,60,172,.06), transparent 55%)," +
-                    "radial-gradient(1000px 600px at 60% 15%, rgba(172,108,255,.05), transparent 50%)," +
-                    "linear-gradient(180deg, #0a0f18 0%, #0a0f1a 25%, #0b111b 60%, #0b1016 100%)",
-                }}
-              />
+              <div aria-hidden className="absolute inset-0 bg-gradient-to-b from-[#0a0f18] via-[#0a0f1a] to-[#0b1016]" />
             )}
 
-            {/* Subtle static vignette only (no animated overlays) */}
-            <div className="absolute inset-0 pointer-events-none">
-              <div className="svc-vignette" />
-            </div>
+            {/* Subtle vignette only */}
+            <div className="absolute inset-0 pointer-events-none svc-vignette" />
 
-            {/* Flush, stationary billboards */}
-            {Object.entries(ANCHORS).map(([id, pos]) => {
-              const svc = SERVICES.find((s) => s.id === id)!;
+            {/* Face-mounted billboards that cover/replace the original signs */}
+            {FACES.map((f) => {
+              const svc = SERVICES.find((s) => s.id === f.id)!;
+              const transform = `
+                translate(-50%, -50%)
+                rotate(${f.rotate ?? 0}deg)
+                skewX(${f.skewX ?? 0}deg)
+                skewY(${f.skewY ?? 0}deg)
+              `;
               return (
                 <button
-                  key={id}
-                  onClick={() => open(id)}
-                  className="billboard group absolute -translate-x-1/2 -translate-y-1/2 select-none"
-                  style={{ left: `${pos.left}%`, top: `${pos.top}%` }}
+                  key={f.id}
+                  onClick={() => open(f.id)}
+                  className="face group absolute select-none"
+                  style={{
+                    left: `${f.left}%`,
+                    top: `${f.top}%`,
+                    width: `${f.width}%`,
+                    height: `${f.height}%`,
+                    transform,
+                    transformOrigin: "50% 50%",
+                  }}
                   aria-label={`${svc.title} details`}
                 >
-                  <div className="rounded-md border border-cyan-400/30 bg-cyan-400/10 px-2.5 py-1.5 text-[11px] font-medium tracking-wide text-cyan-100 shadow-[0_0_22px_rgba(0,229,255,.18)_inset,0_0_22px_rgba(0,229,255,.12)]
-                    group-hover:bg-cyan-400/20 group-hover:border-cyan-400/50">
-                    <div className="flex items-center gap-1.5">
+                  {/* Opaque base covers the original sign; glow + border give the neon feel */}
+                  <div className="face-inner">
+                    <div className="flex items-center justify-center gap-1.5 text-[11px] font-medium tracking-wide text-cyan-100">
                       {svc.icon}
                       <span>{svc.title}</span>
                     </div>
@@ -369,28 +389,34 @@ export default function ServicesCityscape() {
         </div>
       )}
 
-      {/* Scoped styles (no animations) */}
+      {/* Scoped styles */}
       <style jsx>{`
         .svc-city { --cyn: 0,229,255; --mag: 255,60,172; }
 
-        /* Soft vignette to keep text legible over bright photos */
-        .svc-vignette { box-shadow: inset 0 0 120px rgba(0,0,0,.55); position:absolute; inset:0; }
+        .svc-vignette { position:absolute; inset:0; box-shadow: inset 0 0 120px rgba(0,0,0,.55); }
 
-        /* Flush billboard glow; no stems/poles */
-        .billboard::before {
-          content: "";
-          position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-          width: 220px; height: 120px;
-          background:
-            radial-gradient(closest-side, rgba(var(--cyn), .22), transparent 70%),
-            radial-gradient(closest-side, rgba(var(--mag), .10), transparent 80%);
-          filter: blur(12px); z-index: -1; pointer-events: none;
-        }
-        .billboard > div {
+        /* Face-mounted panel covers the old sign */
+        .face { position:absolute; }
+        .face-inner {
+          width: 100%; height: 100%;
+          display: flex; align-items: center; justify-content: center;
+          border-radius: 6px;
+          background: rgba(6,12,18, .92);                    /* opaque base: hides original sign */
+          border: 1px solid rgba(var(--cyn), .35);
           box-shadow:
-            inset 0 0 22px rgba(var(--cyn), .22),
-            0 0 18px rgba(var(--cyn), .15);
-          backdrop-filter: saturate(1.2);
+            inset 0 0 26px rgba(var(--cyn), .24),
+            0 0 22px rgba(var(--cyn), .16),
+            0 0 40px rgba(var(--cyn), .10);
+          backdrop-filter: saturate(1.1);
+          transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
+        }
+        .face:hover .face-inner {
+          background: rgba(6,12,18, .86);
+          border-color: rgba(var(--cyn), .55);
+          box-shadow:
+            inset 0 0 30px rgba(var(--cyn), .30),
+            0 0 28px rgba(var(--cyn), .22),
+            0 0 56px rgba(var(--cyn), .16);
         }
       `}</style>
     </section>
