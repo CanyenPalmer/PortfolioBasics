@@ -6,9 +6,13 @@ export default function Page() {
       {/* @ts-expect-error Server Component boundary if using app router */}
       <HeroSection />
 
-      {/* EXPERIENCE (new section with id="experience") */}
+      {/* EXPERIENCE (existing) */}
       {/* @ts-expect-error Server Component boundary if using app router */}
       <ExperienceSection />
+
+      {/* MY SERVICES (cityscape) */}
+      {/* @ts-expect-error Server Component boundary if using app router */}
+      <ServicesCityscape />
     </>
   );
 }
@@ -26,3 +30,9 @@ const HeroSection = dynamic(() => import("@/components/Hero"), {
 const ExperienceSection = dynamic(() => import("@/components/Experience"), {
   ssr: true,
 });
+
+/** Services Cityscape (client component) */
+const ServicesCityscape = dynamic(
+  () => import("@/components/ServicesCityscape"),
+  { ssr: true }
+);
