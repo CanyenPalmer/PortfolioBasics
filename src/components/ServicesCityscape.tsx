@@ -3,12 +3,16 @@
 import React from "react";
 
 /**
- * Cyber City (SVG) — Detailed Skyline + Built-In Billboards
- * - Spires, antennae, ducts/vents, overhangs, catwalks, hanging frames, cross-street cables
- * - Billboards are part of buildings (perfect alignment, no photos)
- * - Overlay panel preserves Copy / Close behavior
+ * Cyber City (SVG) — Taller Buildings + Header Billboards + Auto-Fit Labels
+ * - Buildings are taller and varied
+ * - Billboards sit ON TOP of each building as headers (centered, with brackets)
+ * - Billboard labels auto-fit (font size + soft wrap to 1–2 lines)
+ * - Neon tones alternate (cyan → magenta → amber → cyan → …)
+ * - Preserves detail panel with Copy/Close top-right
  * - Zero external deps
  */
+
+/* --------------------------------- Data --------------------------------- */
 
 type CTA = { label: string; href: string };
 export type Service = {
@@ -23,7 +27,7 @@ export type Service = {
 const SERVICES: Service[] = [
   {
     id: "data-apps",
-    title: "Data Apps",
+    title: "Data Apps & Automation",
     blurb:
       "Internal tools & micro-APIs that save hours: lightweight web apps, file pipelines, and quick integrations.",
     tech: ["Python", "Flask/FastAPI", "TypeScript/React", "Tailwind", "Excel/OpenPyXL"],
@@ -39,7 +43,7 @@ const SERVICES: Service[] = [
   },
   {
     id: "automation-ops",
-    title: "Automation & Ops",
+    title: "Ops & Scheduling",
     blurb:
       "Scheduled jobs and self-healing checks so reporting runs itself—retries, alerts, and data quality gates.",
     tech: ["Python", "Excel/OpenPyXL", "Google Sheets", "Scheduling/CRON", "GitHub Actions"],
@@ -70,7 +74,7 @@ const SERVICES: Service[] = [
   },
   {
     id: "analytics-eng",
-    title: "Analytics",
+    title: "Analytics Engineering",
     blurb:
       "Reliable SQL layers and semantic models so dashboards are fast, consistent, and trustworthy.",
     tech: ["SQL", "Reproducible transforms", "Tests & docs (dbt-style)", "Warehouse tuning"],
@@ -86,7 +90,7 @@ const SERVICES: Service[] = [
   },
   {
     id: "dashboards",
-    title: "Dashboards",
+    title: "Dashboards & Visualization",
     blurb: "Decision-ready dashboards that load fast and track what matters—no vanity charts.",
     tech: ["Tableau", "Power BI", "KPI design", "Performance & caching"],
     bullets: [
@@ -116,6 +120,8 @@ const SERVICES: Service[] = [
   },
 ];
 
+/* ---------------------------- Visual Helpers ---------------------------- */
+
 function Pill({ children }: { children: React.ReactNode }) {
   return (
     <span className="rounded-md border border-cyan-400/30 bg-cyan-400/10 px-2 py-1 text-[11px] leading-none text-cyan-100">
@@ -130,74 +136,103 @@ function stringifyService(s: Service) {
   return `${s.title}\n\n${s.blurb}\n${techLine ? `\n${techLine}` : ""}\n\n${bullets}\n\n${ctas}`.trim();
 }
 
-/** Billboard slots (in viewBox coords) */
-type BillboardSlot = {
-  id: Service["id"];
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  angle?: number;
-  tone: "cyan" | "magenta" | "amber";
-};
-const SLOTS: BillboardSlot[] = [
-  { id: "data-apps",        x: 110,  y: 185, w: 90,  h: 140, angle: -2, tone: "cyan" },
-  { id: "automation-ops",   x: 255,  y: 165, w: 110, h: 90,  angle: -3, tone: "cyan" },
-  { id: "machine-learning", x: 425,  y: 135, w: 132, h: 96,  angle:  0, tone: "cyan" },
-  { id: "analytics-eng",    x: 585,  y: 218, w: 150, h: 95,  angle: -1, tone: "amber" },
-  { id: "dashboards",       x: 787,  y: 165, w: 130, h: 118, angle:  2, tone: "magenta" },
-  { id: "viz-storytelling", x: 985,  y: 200, w: 142, h: 102, angle:  1, tone: "magenta" },
-];
-
-/* ----------------------------- SVG helpers ----------------------------- */
-function toneColors(tone: "cyan" | "magenta" | "amber") {
+/** Neon palette */
+type Tone = "cyan" | "magenta" | "amber";
+function toneColors(tone: Tone) {
   switch (tone) {
     case "cyan": return { neon: "rgba(0,229,255,1)", stroke: "rgba(0,229,255,.55)" };
     case "magenta": return { neon: "rgba(255,60,172,1)", stroke: "rgba(255,60,172,.50)" };
     case "amber": return { neon: "rgba(255,190,110,1)", stroke: "rgba(255,190,110,.55)" };
   }
 }
-function gridWindows(
-  x: number, y: number, w: number, h: number, cols: number, rows: number,
-  litEvery = 6, litColor = "#9cf3ff"
-): JSX.Element[] {
-  const pad = 8;
-  const gw = (w - pad * 2) / cols;
-  const gh = (h - pad * 2) / rows;
-  const sw = gw * 0.6;
-  const sh = gh * 0.5;
-  const out: JSX.Element[] = [];
-  let i = 0;
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++, i++) {
-      out.push(
-        <rect
-          key={`${x}-${y}-${i}`}
-          x={x + pad + c * gw + (gw - sw) / 2}
-          y={y + pad + r * gh + (gh - sh) / 2}
-          width={sw}
-          height={sh}
-          rx={1.5}
-          ry={1.5}
-          fill={i % litEvery === 0 ? litColor : "rgba(255,255,255,.05)"}
-          opacity={0.9}
-        />
-      );
-    }
-  }
-  return out;
-}
-function slats(x: number, y: number, w: number, h: number, n: number, color = "rgba(255,255,255,.08)") {
-  const gap = h / n;
-  return Array.from({ length: n }).map((_, i) => (
-    <rect key={i} x={x} y={y + i * gap} width={w} height={gap * 0.35} fill={color} />
-  ));
-}
-function screws(points: Array<[number, number]>, color: string) {
-  return points.map(([sx, sy], i) => <circle key={i} cx={sx} cy={sy} r={2} fill={color} opacity={0.6} />);
+
+/* ------------------------------- Layout -------------------------------- */
+
+/** Building spec: we compute billboard header position from the building */
+type Building = {
+  id: Service["id"];
+  x: number;
+  baseY: number;  // ground baseline (we keep ground at y=500)
+  w: number;
+  h: number;      // height (taller skyline = larger h / lower top)
+  tone: Tone;     // billboard tone alternates across buildings
+};
+
+const BUILDINGS: Building[] = [
+  { id: "data-apps",        x:  80, baseY: 500, w: 150, h: 300, tone: "cyan"    }, // taller
+  { id: "automation-ops",   x: 260, baseY: 500, w: 170, h: 340, tone: "magenta" }, // taller
+  { id: "machine-learning", x: 460, baseY: 500, w: 190, h: 360, tone: "amber"   }, // tallest so far
+  { id: "analytics-eng",    x: 680, baseY: 500, w: 200, h: 330, tone: "cyan"    },
+  { id: "dashboards",       x: 900, baseY: 500, w: 170, h: 350, tone: "magenta" },
+  { id: "viz-storytelling", x:1090, baseY: 500, w: 160, h: 320, tone: "amber"   },
+];
+
+/** Billboard (header) size as a function of building width */
+function billboardSizeFor(w: number) {
+  const pad = 14;
+  const bw = Math.max(110, Math.min(w - pad * 2, 180)); // clamp width
+  const bh = Math.max(70, Math.min(Math.round(bw * 0.55), 110)); // proportional height
+  return { bw, bh };
 }
 
-/* ----------------------------- Component ------------------------------ */
+/** Text fit: compute font size & lines (1–2) to fit inside bw x bh */
+function layoutLabel(title: string, bw: number, bh: number) {
+  const maxLines = 2;
+  const padX = 14;
+  const padY = 12;
+  const boxW = bw - padX * 2;
+  const boxH = bh - padY * 2;
+
+  // try 1 line, then 2 lines; measure by char count heuristic
+  const idealCharWidth = 8;  // px per char at 16px font approx
+  const idealLineHeight = 1.15;
+
+  // helper to compute font size that fits W given string length
+  const fitFont = (text: string, targetW: number, maxPx = 26) => {
+    const est = Math.min(maxPx, Math.floor((targetW / Math.max(6, text.length)) * (16 / idealCharWidth) * 16));
+    return Math.max(12, est);
+  };
+
+  // try single line
+  let fs1 = fitFont(title, boxW, 26);
+  let h1 = fs1 * idealLineHeight;
+  if (h1 <= boxH && title.length * (idealCharWidth * (fs1 / 16)) <= boxW) {
+    return { fontSize: fs1, lines: [title], lineHeight: fs1 * idealLineHeight };
+  }
+
+  // split to two lines (prefer splitting on " & " or space near middle)
+  const splitIndex =
+    title.indexOf(" & ") > -1
+      ? title.indexOf(" & ") + 3
+      : (() => {
+          const mid = Math.floor(title.length / 2);
+          // find nearest space around the middle
+          let left = title.lastIndexOf(" ", mid);
+          let right = title.indexOf(" ", mid);
+          if (left === -1) left = mid;
+          if (right === -1) right = mid;
+          return Math.abs(mid - left) <= Math.abs(right - mid) ? left : right;
+        })();
+
+  const line1 = title.slice(0, splitIndex).trim();
+  const line2 = title.slice(splitIndex).trim();
+  const fs2 = Math.min(
+    fitFont(line1, boxW, 24),
+    fitFont(line2, boxW, 24)
+  );
+  const lh2 = fs2 * idealLineHeight;
+  const totalH = lh2 * maxLines;
+  if (totalH <= boxH) {
+    return { fontSize: fs2, lines: [line1, line2], lineHeight: lh2 };
+  }
+
+  // fallback: smaller single line
+  const fsTiny = Math.max(12, Math.floor((boxH / idealLineHeight)));
+  return { fontSize: fsTiny, lines: [title], lineHeight: fsTiny * idealLineHeight };
+}
+
+/* -------------------------------- Component ----------------------------- */
+
 export default function ServicesCityscape() {
   const [openId, setOpenId] = React.useState<string | null>(null);
   const [scrollY, setScrollY] = React.useState(0);
@@ -245,7 +280,7 @@ export default function ServicesCityscape() {
         </header>
 
         <div className="relative overflow-hidden rounded-2xl border border-cyan-400/10 bg-[#070c12]">
-          <svg viewBox="0 0 1200 520" className="block w-full h-auto">
+          <svg viewBox="0 0 1280 560" className="block w-full h-auto">
             {/* --------- defs --------- */}
             <defs>
               <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
@@ -275,7 +310,6 @@ export default function ServicesCityscape() {
                   <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
                 </filter>
               ))}
-              {/* fog bands */}
               <linearGradient id="fog" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="rgba(255,255,255,.0)" />
                 <stop offset="100%" stopColor="rgba(180,220,255,.06)" />
@@ -283,182 +317,137 @@ export default function ServicesCityscape() {
             </defs>
 
             {/* --------- sky + stars --------- */}
-            <rect x="0" y="0" width="1200" height="520" fill="url(#sky)" />
-            {Array.from({ length: 70 }).map((_, i) => {
-              const x = (i * 173) % 1200;
-              const y = ((i * 97) % 180) + 20;
+            <rect x="0" y="0" width="1280" height="560" fill="url(#sky)" />
+            {Array.from({ length: 80 }).map((_, i) => {
+              const x = (i * 157) % 1280;
+              const y = ((i * 103) % 190) + 16;
               const r = (i % 3) + 1;
               return <circle key={i} cx={x} cy={y} r={r} fill="url(#star)" opacity={0.18} />;
             })}
 
-            {/* --------- far skyline silhouettes (depth) --------- */}
-            <g fill="#0e1724" opacity="0.8">
-              <path d="M0,300 h120 v-90 h60 v-40 h110 v130 h100 v-80 h90 v110 h120 v-140 h80 v150 h140 v-120 h80 v170 h120 v-90 h120 V520 H0 Z" />
+            {/* --------- far silhouette for depth --------- */}
+            <g fill="#0e1724" opacity="0.85">
+              <path d="M0,330 h120 v-110 h60 v-45 h120 v155 h110 v-95 h90 v130 h140 v-170 h80 v180 h150 v-140 h90 v200 h160 v-110 h130 V560 H0 Z" />
             </g>
 
-            {/* --------- mid skyline w/ spires, antennae --------- */}
-            <g fill="#0f1623">
-              {/* block shapes */}
-              <rect x="20" y="300" width="90" height="200" />
-              <rect x="130" y="260" width="80" height="240" />
-              <rect x="240" y="220" width="120" height="280" />
-              <rect x="380" y="240" width="110" height="260" />
-              <rect x="510" y="210" width="140" height="290" />
-              <rect x="670" y="235" width="120" height="265" />
-              <rect x="810" y="260" width="110" height="240" />
-              <rect x="940" y="230" width="120" height="270" />
-              <rect x="1080" y="290" width="90" height="210" />
-              {/* spires */}
-              <path d="M290 220 l15 -28 l15 28 z" fill="#121c2b" />
-              <rect x="300" y="180" width="10" height="40" fill="#101a29" />
-              <rect x="558" y="170" width="8" height="45" fill="#101a29" />
-              <circle cx="562" cy="168" r="3" fill="#9cf3ff" opacity="0.7" />
-              <rect x="716" y="210" width="6" height="30" fill="#101a29" />
-              <rect x="980" y="210" width="8" height="36" fill="#101a29" />
-            </g>
-
-            {/* --------- midground detailed buildings (vents, overhangs, catwalks) --------- */}
+            {/* --------- Mid-to-near buildings (from BUILDINGS) --------- */}
             <g filter="url(#grain)">
-              {/* Building A (left) */}
-              <g>
-                <rect x="80" y="250" width="130" height="230" fill="#0d1420" stroke="rgba(0,229,255,.18)" />
-                {/* overhang */}
-                <rect x="75" y="300" width="140" height="10" fill="#0a111b" />
-                {/* vents */}
-                {slats(90, 315, 60, 24, 5)}
-                {gridWindows(92, 350, 100, 120, 6, 8, 5, "#6be7ff")}
-                {/* rooftop duct */}
-                <rect x="95" y="240" width="40" height="8" fill="#0a111b" />
-                <rect x="135" y="238" width="20" height="10" fill="#0a111b" />
-              </g>
-
-              {/* Building B (mid-left) */}
-              <g>
-                <rect x="230" y="220" width="150" height="260" fill="#0e1624" stroke="rgba(172,108,255,.15)"/>
-                {/* overhang + catwalk */}
-                <rect x="220" y="270" width="170" height="10" fill="#0a111b" />
-                <rect x="225" y="280" width="160" height="6" fill="rgba(255,255,255,.06)" />
-                {Array.from({length:8}).map((_,i)=>(
-                  <rect key={i} x={230+i*20} y={286} width="2" height="18" fill="rgba(255,255,255,.08)" />
-                ))}
-                {gridWindows(240, 300, 130, 170, 7, 9, 7, "#f7b2ff")}
-                {/* rooftop units */}
-                <rect x="250" y="210" width="30" height="8" fill="#0a111b" />
-                <rect x="285" y="208" width="18" height="10" fill="#0a111b" />
-              </g>
-
-              {/* Building C (center) */}
-              <g>
-                <rect x="410" y="200" width="170" height="280" fill="#0e1521" stroke="rgba(0,229,255,.15)"/>
-                {/* vertical signage frame (non-click) */}
-                <rect x="420" y="210" width="16" height="120" fill="rgba(255,255,255,.04)" />
-                <rect x="552" y="210" width="16" height="120" fill="rgba(255,255,255,.04)" />
-                {/* vents block */}
-                <rect x="470" y="230" width="60" height="26" fill="#0a111b" />
-                {slats(472, 233, 56, 20, 6)}
-                {gridWindows(420, 360, 150, 110, 9, 7, 6, "#9cf3ff")}
-              </g>
-
-              {/* Building D (center-right) */}
-              <g>
-                <rect x="600" y="260" width="190" height="220" fill="#0d1420" stroke="rgba(255,190,110,.14)"/>
-                {/* overhang + ducts */}
-                <rect x="592" y="310" width="206" height="10" fill="#0a111b" />
-                <rect x="610" y="320" width="60" height="16" fill="#0a111b" />
-                {slats(612, 322, 56, 12, 5)}
-                {gridWindows(610, 350, 170, 110, 8, 7, 6, "#ffcba4")}
-                {/* roof boxes */}
-                <rect x="620" y="250" width="26" height="10" fill="#0a111b" />
-                <rect x="700" y="248" width="20" height="12" fill="#0a111b" />
-              </g>
-
-              {/* Building E (right) */}
-              <g>
-                <rect x="820" y="230" width="150" height="250" fill="#0e1624" stroke="rgba(255,60,172,.16)"/>
-                {/* hanging signage frame (non-click, decorative) */}
-                <rect x="880" y="220" width="6" height="40" fill="rgba(255,255,255,.08)"/>
-                <rect x="846" y="260" width="74" height="8" fill="rgba(255,255,255,.08)"/>
-                {gridWindows(830, 300, 130, 160, 7, 9, 6, "#ff9fdf")}
-              </g>
-
-              {/* Building F (far-right) */}
-              <g>
-                <rect x="990" y="260" width="140" height="220" fill="#0d1420" stroke="rgba(255,60,172,.16)"/>
-                <rect x="980" y="315" width="160" height="8" fill="#0a111b" />
-                {gridWindows(1000, 330, 110, 130, 6, 8, 5, "#ffc6e9")}
-                {/* rooftop fan */}
-                <circle cx="1040" cy="255" r="10" fill="#0a111b" />
-                {Array.from({length:5}).map((_,i)=>(
-                  <rect key={i} x={1039} y={246+i*4} width="2" height="18" fill="rgba(255,255,255,.08)"/>
-                ))}
-              </g>
+              {BUILDINGS.map((b, idx) => {
+                const top = b.baseY - b.h;
+                // shapes & small rooftop details for variety
+                return (
+                  <g key={b.id}>
+                    {/* main block */}
+                    <rect x={b.x} y={top} width={b.w} height={b.h} fill="#0f1623" stroke="rgba(255,255,255,.06)" />
+                    {/* subtle overhang */}
+                    <rect x={b.x - 6} y={top + Math.round(b.h * 0.33)} width={b.w + 12} height="10" fill="#0a111b" />
+                    {/* vents */}
+                    {slats(b.x + 12, top + 22, b.w - 24, 26, 6)}
+                    {/* windows grid (lower half) */}
+                    {gridWindows(b.x + 10, top + Math.round(b.h * 0.5), b.w - 20, Math.round(b.h * 0.45), 6 + (idx % 3), 8 + ((idx + 1) % 3), 6, idx % 2 ? "#ffcba4" : "#9cf3ff")}
+                    {/* spire/antenna variants */}
+                    {idx % 2 === 0 ? (
+                      <>
+                        <rect x={b.x + b.w * 0.45} y={top - 24} width="6" height="24" fill="#101a29" />
+                        <circle cx={b.x + b.w * 0.48} cy={top - 26} r="3" fill="#9cf3ff" opacity="0.7" />
+                      </>
+                    ) : (
+                      <>
+                        <path d={`M${b.x + b.w*0.35} ${top - 16} l12 -22 l12 22 z`} fill="#121c2b" />
+                        <rect x={b.x + b.w*0.40} y={top - 38} width="8" height="22" fill="#101a29" />
+                      </>
+                    )}
+                  </g>
+                );
+              })}
             </g>
 
-            {/* --------- cross-street cables --------- */}
-            <g stroke="rgba(180,210,255,.14)" strokeWidth="2">
-              <path d="M60,200 C300,260 520,150 760,210 980,265 1120,220 1180,230" fill="none" />
-              <path d="M40,240 C260,300 520,190 780,245 980,290 1120,260 1195,270" fill="none" />
-              {/* small hanging beacons */}
-              {[200, 420, 680, 910].map((x,i)=>(
-                <g key={i}>
-                  <line x1={x} y1={215} x2={x} y2={235} stroke="rgba(180,210,255,.18)" strokeWidth="2"/>
-                  <circle cx={x} cy={240} r="3" fill="#9ff6ff" opacity="0.65"/>
-                </g>
-              ))}
-            </g>
+            {/* --------- Ground + fog --------- */}
+            <rect x="0" y="510" width="1280" height="50" fill="#09101a" />
+            <rect x="0" y="480" width="1280" height="40" fill="url(#fog)" />
+            <rect x="0" y="500" width="1280" height="35" fill="url(#fog)" opacity="0.6" />
 
-            {/* --------- ground/fog --------- */}
-            <rect x="0" y="470" width="1200" height="50" fill="#09101a" />
-            <rect x="0" y="440" width="1200" height="40" fill="url(#fog)" />
-            <rect x="0" y="460" width="1200" height="35" fill="url(#fog)" opacity="0.6" />
+            {/* --------- Header Billboards (computed per building) --------- */}
+            {BUILDINGS.map((b, idx) => {
+              const svc = SERVICES.find((s) => s.id === b.id)!;
+              const { bw, bh } = billboardSizeFor(b.w);
+              const top = b.baseY - b.h;
+              const x = Math.round(b.x + (b.w - bw) / 2);
+              const y = Math.round(top - (bh + 18)); // sits above roof
+              const { neon, stroke } = toneColors(b.tone);
 
-            {/* --------- BILLBOARDS (interactive) --------- */}
-            {SLOTS.map((slot) => {
-              const svc = SERVICES.find((s) => s.id === slot.id)!;
-              const { neon, stroke } = toneColors(slot.tone);
+              // label layout
+              const layout = layoutLabel(svc.title, bw, bh);
+
               return (
                 <g
-                  key={slot.id}
-                  transform={`translate(${slot.x} ${slot.y}) rotate(${slot.angle ?? 0})`}
+                  key={`${b.id}-sign`}
+                  transform={`translate(${x} ${y})`}
                   style={{ cursor: "pointer" }}
-                  onClick={() => open(slot.id)}
+                  onClick={() => open(b.id)}
                 >
-                  {/* hanger tabs */}
-                  <rect x={-4} y={-10} width={8} height={10} fill="rgba(255,255,255,.05)" />
-                  <rect x={slot.w-4} y={-10} width={8} height={10} fill="rgba(255,255,255,.05)" />
-                  {/* cables to frame */}
-                  <path d={`M0,-8 L0,0 M${slot.w},-8 L${slot.w},0`} stroke="rgba(255,255,255,.12)" strokeWidth="2" />
+                  {/* support brackets */}
+                  <rect x={10} y={bh} width="6" height="18" fill="rgba(255,255,255,.10)" />
+                  <rect x={bw-16} y={bh} width="6" height="18" fill="rgba(255,255,255,.10)" />
+                  <rect x={-8} y={bh+14} width={bw+16} height="6" fill="rgba(255,255,255,.06)" />
 
                   {/* glow plate */}
                   <rect
-                    x="-8" y="-8" width={slot.w + 16} height={slot.h + 16}
-                    rx="12" ry="12"
+                    x={-10} y={-10} width={bw + 20} height={bh + 20}
+                    rx="14" ry="14"
                     fill={neon} opacity="0.18"
-                    filter={`url(#glow-${slot.tone})`}
+                    filter={`url(#glow-${b.tone})`}
                   />
                   {/* frame */}
                   <rect
-                    x="0" y="0" width={slot.w} height={slot.h}
-                    rx="10" ry="10"
+                    x={0} y={0} width={bw} height={bh}
+                    rx="12" ry="12"
                     fill="url(#glass)"
                     stroke={stroke}
                     strokeWidth="2"
                     style={{ filter: `drop-shadow(0 0 12px ${neon}) drop-shadow(0 0 28px ${neon})` }}
                   />
+
                   {/* screws */}
-                  {screws(
-                    [[10,10],[slot.w-10,10],[10,slot.h-10],[slot.w-10,slot.h-10]],
-                    stroke
-                  )}
-                  {/* label */}
-                  <text
-                    x={slot.w/2} y={slot.h/2}
-                    textAnchor="middle" dominantBaseline="middle"
-                    fontSize="18" fill="#d9faff" opacity="0.92"
-                    style={{ letterSpacing: ".5px", fontWeight: 700, pointerEvents: "none" }}
-                  >
-                    {svc.title}
-                  </text>
+                  {([[10,10],[bw-10,10],[10,bh-10],[bw-10,bh-10]] as const).map(([sx,sy],i)=>(
+                    <circle key={i} cx={sx} cy={sy} r="2" fill={stroke} opacity="0.6" />
+                  ))}
+
+                  {/* label (auto-fit) */}
+                  <g style={{ pointerEvents: "none" }}>
+                    {layout.lines.length === 1 ? (
+                      <text
+                        x={bw/2} y={bh/2 + layout.fontSize*0.35}
+                        textAnchor="middle" dominantBaseline="middle"
+                        fontSize={layout.fontSize}
+                        fill="#ddfbff" opacity="0.95"
+                        style={{ fontWeight: 800, letterSpacing: ".3px" }}
+                      >
+                        {layout.lines[0]}
+                      </text>
+                    ) : (
+                      <>
+                        <text
+                          x={bw/2} y={bh/2 - layout.lineHeight*0.15}
+                          textAnchor="middle" dominantBaseline="central"
+                          fontSize={layout.fontSize}
+                          fill="#ddfbff" opacity="0.95"
+                          style={{ fontWeight: 800, letterSpacing: ".3px" }}
+                        >
+                          {layout.lines[0]}
+                        </text>
+                        <text
+                          x={bw/2} y={bh/2 + layout.lineHeight*0.9 - layout.fontSize*0.1}
+                          textAnchor="middle" dominantBaseline="central"
+                          fontSize={layout.fontSize}
+                          fill="#ddfbff" opacity="0.95"
+                          style={{ fontWeight: 800, letterSpacing: ".3px" }}
+                        >
+                          {layout.lines[1]}
+                        </text>
+                      </>
+                    )}
+                  </g>
                 </g>
               );
             })}
@@ -466,12 +455,11 @@ export default function ServicesCityscape() {
         </div>
       </div>
 
-      {/* Overlay Panel */}
+      {/* ---------- Overlay Panel ---------- */}
       {current && (
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-[999] flex items-center justify-center p-4 md:p-6">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={close} />
           <div className="relative w-full max-w-2xl rounded-2xl border border-cyan-400/20 bg-[#0b1016]/90 shadow-2xl">
-            {/* actions */}
             <div className="absolute right-2 top-2 flex items-center gap-2">
               <button
                 onClick={() => current && navigator.clipboard?.writeText(stringifyService(current)).catch(() => {})}
@@ -492,7 +480,6 @@ export default function ServicesCityscape() {
               </button>
             </div>
 
-            {/* content */}
             <div className="p-5 md:p-6">
               <div className="mb-2 flex items-center gap-2 text-cyan-100">
                 <svg viewBox="0 0 24 24" className="h-4 w-4 opacity-70" fill="currentColor"><path d="M3 3h10v8H3V3zm0 10h8v8H3v-8zm10-5h8v13h-8V8z"/></svg>
@@ -536,4 +523,44 @@ export default function ServicesCityscape() {
       )}
     </section>
   );
+}
+
+/* --------------------------- SVG tiny helpers --------------------------- */
+
+function gridWindows(
+  x: number, y: number, w: number, h: number, cols: number, rows: number,
+  litEvery = 6, litColor = "#9cf3ff"
+): JSX.Element[] {
+  const pad = 8;
+  const gw = (w - pad * 2) / cols;
+  const gh = (h - pad * 2) / rows;
+  const sw = gw * 0.6;
+  const sh = gh * 0.5;
+  const out: JSX.Element[] = [];
+  let i = 0;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++, i++) {
+      out.push(
+        <rect
+          key={`${x}-${y}-${i}`}
+          x={x + pad + c * gw + (gw - sw) / 2}
+          y={y + pad + r * gh + (gh - sh) / 2}
+          width={sw}
+          height={sh}
+          rx={1.5}
+          ry={1.5}
+          fill={i % litEvery === 0 ? litColor : "rgba(255,255,255,.05)"}
+          opacity={0.9}
+        />
+      );
+    }
+  }
+  return out;
+}
+
+function slats(x: number, y: number, w: number, h: number, n: number, color = "rgba(255,255,255,.08)") {
+  const gap = h / n;
+  return Array.from({ length: n }).map((_, i) => (
+    <rect key={i} x={x} y={y + i * gap} width={w} height={gap * 0.35} fill={color} />
+  ));
 }
