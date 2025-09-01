@@ -3,11 +3,11 @@
 import React from "react";
 
 /**
- * Cyber City — Six Variant Billboards (Auto-Fit Titles, Mixed Mounts)
- * - Billboards sit ON TOP as building headers (proper hardware per variant)
- * - Titles always fit inside (padding + 1–2 line smart wrap + auto font size)
- * - Six variants: blade, cantilever, gantry, cabinet, marquee, trapezoid
- * - Neon tones alternate (cyan / magenta / amber), mixed mount heights
+ * Cyber City — Six Variant Billboards + Lively Window Glow
+ * - Billboards: 6 variants (blade, cantilever, gantry, cabinet, marquee, trapezoid)
+ * - Titles always fit inside signs (auto-size + 1–2 lines)
+ * - Mixed mounting heights; taller buildings
+ * - NEW: Windows subtly glow/fade independently (deterministic per window)
  * - Overlay details panel with Copy / Close (top-right)
  * - No external libraries
  */
@@ -149,12 +149,11 @@ function toneColors(tone: Tone) {
 
 /** auto-fit text */
 function layoutLabel(title: string, bw: number, bh: number, padX = 16, padY = 14) {
-  const maxLines = 2;
   const boxW = bw - padX * 2;
   const boxH = bh - padY * 2;
   const idealLineHeight = 1.15;
-
   const pxPerCharAt16 = 8;
+
   const fitFont = (txt: string, targetW: number, maxPx = 28) => {
     const len = Math.max(6, txt.length);
     const est = Math.min(maxPx, Math.floor((targetW / (len * (pxPerCharAt16 / 16))) * 0.98));
@@ -163,13 +162,13 @@ function layoutLabel(title: string, bw: number, bh: number, padX = 16, padY = 14
 
   // try one line first
   let fs1 = fitFont(title, boxW, 28);
-  let h1 = fs1 * idealLineHeight;
+  const h1 = fs1 * idealLineHeight;
   const estW1 = title.length * (pxPerCharAt16 * (fs1 / 16));
   if (h1 <= boxH && estW1 <= boxW) {
     return { fontSize: fs1, lines: [title], lineHeight: fs1 * idealLineHeight, padX, padY };
   }
 
-  // split into two lines
+  // split into two lines (pref split on " & " or closest space to center)
   const splitIndex =
     title.indexOf(" & ") > -1
       ? title.indexOf(" & ") + 3
@@ -226,6 +225,16 @@ function billboardSizeFor(w: number) {
 
 /* ============================== Tiny SVG helpers ============================== */
 
+/** deterministic pseudo-random (0..1) from a numeric seed — avoids SSR mismatch */
+function seeded(seed: number) {
+  const s = Math.sin(seed) * 10000;
+  return s - Math.floor(s);
+}
+
+/**
+ * Windows grid with subtle, independent glow animations.
+ * We avoid runtime randomness — each window gets a deterministic duration/delay from its seed.
+ */
 function gridWindows(
   x: number, y: number, w: number, h: number, cols: number, rows: number,
   litEvery = 6, litColor = "#9cf3ff"
@@ -237,19 +246,41 @@ function gridWindows(
   const sh = gh * 0.5;
   const out: JSX.Element[] = [];
   let i = 0;
+
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++, i++) {
+      const cx = x + pad + c * gw + (gw - sw) / 2;
+      const cy = y + pad + r * gh + (gh - sh) / 2;
+      // seed based on coords + index, so it's stable between SSR/CSR
+      const seed = (x + y + r * 131 + c * 73 + i * 17) * 0.12345;
+      const rnd1 = seeded(seed);
+      const rnd2 = seeded(seed + 42.4242);
+
+      // durations 2.6–6.2s; delays 0–4s; staggered variety
+      const duration = (2.6 + rnd1 * 3.6).toFixed(2);
+      const delay = (rnd2 * 4).toFixed(2);
+
+      // some windows are "lit" more strongly (still animate)
+      const lit = i % litEvery === 0;
+      const baseFill = lit ? litColor : "rgba(255,255,255,.08)";
+
       out.push(
         <rect
           key={`${x}-${y}-${i}`}
-          x={x + pad + c * gw + (gw - sw) / 2}
-          y={y + pad + r * gh + (gh - sh) / 2}
+          x={cx}
+          y={cy}
           width={sw}
           height={sh}
           rx={1.5}
           ry={1.5}
-          fill={i % litEvery === 0 ? litColor : "rgba(255,255,255,.05)"}
-          opacity={0.9}
+          fill={baseFill}
+          // start a bit dimmer; animation will bring it up then back down
+          opacity={lit ? 0.85 : 0.15}
+          className="window-glow"
+          style={{
+            // independent tempo per window
+            animation: `windowGlow ${duration}s ease-in-out ${delay}s infinite alternate`,
+          } as React.CSSProperties}
         />
       );
     }
@@ -266,10 +297,16 @@ function slats(x: number, y: number, w: number, h: number, n: number, color = "r
 
 /* =========================== Billboard Variants =========================== */
 
+function toneFor(t: Tone) {
+  return toneColors(t);
+}
+
+type SignVariant = "blade" | "cantilever" | "gantry" | "cabinet" | "marquee" | "trapezoid";
+
 function BillboardHeader({
   w, h, title, tone, variant,
 }: { w: number; h: number; title: string; tone: Tone; variant: SignVariant }) {
-  const { neon, stroke } = toneColors(tone);
+  const { neon, stroke } = toneFor(tone);
   const layout = layoutLabel(title, w, h, 16, 14);
 
   const Label = () => (
@@ -293,7 +330,6 @@ function BillboardHeader({
 
   switch (variant) {
     case "blade": {
-      // vertical side-mounted blade; we render a horizontal cabinet but narrow, to keep text readable
       const rx = 6;
       return (
         <g>
@@ -361,7 +397,6 @@ function BillboardHeader({
     }
     case "marquee": {
       const rx = 12;
-      // bulbs along the inside edge
       const bulbs = Array.from({ length: 18 }).map((_, i) => {
         const pad = 8;
         const span = w - pad * 2;
@@ -517,7 +552,7 @@ export default function ServicesCityscape() {
                     <rect x={b.x - 6} y={top + Math.round(b.h * 0.34)} width={b.w + 12} height={10} fill="#0a111b" />
                     {/* vents (slats) */}
                     {slats(b.x + 12, top + 22, b.w - 24, 26, 6)}
-                    {/* windows grid (lower half) */}
+                    {/* windows grid (lower half) with animated glow */}
                     {gridWindows(
                       b.x + 10,
                       top + Math.round(b.h * 0.52),
@@ -633,6 +668,20 @@ export default function ServicesCityscape() {
           </div>
         </div>
       )}
+
+      {/* Global keyframes for SVG window glow */}
+      <style jsx global>{`
+        @keyframes windowGlow {
+          0%   { opacity: 0.10; }
+          45%  { opacity: 0.30; }
+          60%  { opacity: 0.55; }
+          100% { opacity: 0.90; }
+        }
+        /* optional: a tiny variance when user prefers-reduced-motion OFF */
+        @media (prefers-reduced-motion: reduce) {
+          .window-glow { animation: none !important; }
+        }
+      `}</style>
     </section>
   );
 }
