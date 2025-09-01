@@ -1,12 +1,11 @@
 export default function Page() {
   return (
     <>
-      {/* HERO (unchanged) */}
-      {/* If your hero is client-side already, keep it that way */}
+      {/* HERO */}
       {/* @ts-expect-error Server Component boundary if using app router */}
       <HeroSection />
 
-      {/* EXPERIENCE (existing) */}
+      {/* EXPERIENCE */}
       {/* @ts-expect-error Server Component boundary if using app router */}
       <ExperienceSection />
 
@@ -18,10 +17,9 @@ export default function Page() {
 }
 
 /* -------- Local component wrappers to avoid import path issues -------- */
-
 import dynamic from "next/dynamic";
 
-/** Wrap Hero as a dynamic client component (no SSR change in behavior) */
+/** Wrap Hero as a dynamic client component */
 const HeroSection = dynamic(() => import("@/components/Hero"), {
   ssr: true,
 });
@@ -32,7 +30,6 @@ const ExperienceSection = dynamic(() => import("@/components/Experience"), {
 });
 
 /** Services Cityscape (client component) */
-const ServicesCityscape = dynamic(
-  () => import("@/components/ServicesCityscape"),
-  { ssr: true }
-);
+const ServicesCityscape = dynamic(() => import("@/components/ServicesCityscape"), {
+  ssr: true,
+});
