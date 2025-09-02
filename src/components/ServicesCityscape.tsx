@@ -612,7 +612,11 @@ export default function ServicesCityscape() {
   }, [openId]);
 
   return (
-    <section className="relative py-20">
+    <section
+      id="services"
+      className="relative py-20 scroll-mt-24 min-h-[70vh]"
+      aria-label="My Services"
+    >
       <div className="container mx-auto px-4">
         {/* Centered heading + typing subline (looping) */}
         <header className="mb-8 text-center">
