@@ -4,7 +4,7 @@ import React from "react";
 
 /**
  * Cyber City — Framed Skyline, Parallax Background, Detailed Foreground
- * - Centered heading + typewriter subline.
+ * - Centered heading + looping typewriter subline (with blinking caret).
  * - ViewBox: 1360x600. All geometry clamped to frame.
  * - Rectangular billboards with neon glow (cyan/magenta/amber), auto-fit titles.
  * - Two parallax background skylines with subtle window lights.
@@ -484,58 +484,90 @@ function RectBillboard({
   );
 }
 
-/* ============================ Typing Subheading ============================ */
+/* ============================ Typing Subheading (Looping) ============================ */
 
 function TypingLine({
   text,
-  speed = 40,
-  startDelay = 300,
+  speed = 40,        // ms per typed character
+  eraseSpeed = 28,   // ms per erased character
+  startDelay = 300,  // ms before first typing starts
+  pauseAfterType = 1100,
+  pauseAfterErase = 600,
   caret = true,
+  loop = true,
 }: {
   text: string;
-  speed?: number;        // ms per character
-  startDelay?: number;   // ms before typing starts
+  speed?: number;
+  eraseSpeed?: number;
+  startDelay?: number;
+  pauseAfterType?: number;
+  pauseAfterErase?: number;
   caret?: boolean;
+  loop?: boolean;
 }) {
   const [shown, setShown] = React.useState("");
-  const [done, setDone] = React.useState(false);
+  const [phase, setPhase] = React.useState<"idle"|"typing"|"hold"|"erasing"|"hold2">("idle");
 
   React.useEffect(() => {
-    let mounted = true;
-    let t1: any, t2: any;
+    let t: any;
+    let step: any;
 
-    t1 = setTimeout(() => {
+    const startTyping = () => {
+      setPhase("typing");
       let i = 0;
-      t2 = setInterval(() => {
-        if (!mounted) return;
+      step = setInterval(() => {
         i++;
         setShown(text.slice(0, i));
         if (i >= text.length) {
-          clearInterval(t2);
-          setDone(true);
+          clearInterval(step);
+          setPhase("hold");
+          t = setTimeout(() => {
+            if (loop) startErasing(); else setPhase("idle");
+          }, pauseAfterType);
         }
       }, speed);
-    }, startDelay);
+    };
+
+    const startErasing = () => {
+      setPhase("erasing");
+      let i = text.length;
+      step = setInterval(() => {
+        i--;
+        setShown(text.slice(0, Math.max(0, i)));
+        if (i <= 0) {
+          clearInterval(step);
+          setPhase("hold2");
+          t = setTimeout(() => {
+            if (loop) startTyping(); else setPhase("idle");
+          }, pauseAfterErase);
+        }
+      }, eraseSpeed);
+    };
+
+    // initial delay
+    t = setTimeout(startTyping, startDelay);
 
     return () => {
-      mounted = false;
-      clearTimeout(t1);
-      clearInterval(t2);
+      clearTimeout(t);
+      clearInterval(step);
     };
-  }, [text, speed, startDelay]);
+  }, [text, speed, eraseSpeed, startDelay, pauseAfterType, pauseAfterErase, loop]);
 
   return (
     <div className="mt-3 text-center text-sm md:text-base text-cyan-100/80">
       <span>{shown}</span>
       {caret && (
-        <span className={`ml-1 inline-block h-[1em] w-[.6ch] translate-y-[2px] align-middle bg-cyan-300/70 ${done ? "opacity-0" : "animate-blink"}`} />
+        <span
+          aria-hidden
+          className="ml-1 inline-block h-[1.05em] align-[-0.06em] w-[.65ch] bg-cyan-300/80 animate-blink"
+        />
       )}
       <style jsx>{`
         @keyframes blink {
           0%, 49% { opacity: 1; }
           50%, 100% { opacity: 0; }
         }
-        .animate-blink { animation: blink 1s step-end infinite; }
+        .animate-blink { animation: blink 1s steps(1, end) infinite; }
       `}</style>
     </div>
   );
@@ -582,7 +614,7 @@ export default function ServicesCityscape() {
   return (
     <section className="relative py-20">
       <div className="container mx-auto px-4">
-        {/* Centered heading + typewriter line */}
+        {/* Centered heading + typing subline (looping) */}
         <header className="mb-8 text-center">
           <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-cyan-100">My Services</h2>
           <TypingLine text="Click a billboard to view a service!" />
@@ -645,7 +677,6 @@ export default function ServicesCityscape() {
             {/* --------- mid/near foreground towers --------- */}
             <g filter="url(#grain)">
               {BUILDINGS.map((b, idx) => {
-                // clamp inside frame: roof and billboard must remain visible
                 const roofY = Math.max(40, b.baseY - b.h);
                 const bh = b.baseY - roofY;
 
@@ -687,9 +718,7 @@ export default function ServicesCityscape() {
               const svc = SERVICES.find((s) => s.id === b.id)!;
               const { bw, bh } = billboardSizeFor(b.w);
               const roof = Math.max(40, b.baseY - b.h);
-              // target Y above roof
               let yTarget = roof - (bh + b.lift);
-              // clamp top margin so sign stays in view
               if (yTarget < 16) yTarget = 16;
               const xTarget = Math.round(Math.max(6, Math.min(1360 - bw - 6, b.x + (b.w - bw) / 2)));
 
