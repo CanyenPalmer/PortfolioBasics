@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Satisfy } from "next/font/google";
+import { useRouter, usePathname } from "next/navigation";
 import { LINKS } from "../content/links"; // note the relative path from /components
 
 const satisfy = Satisfy({ subsets: ["latin"], weight: "400", display: "swap" });
@@ -17,6 +18,8 @@ type Props = {
   linkedinHref?: string;
   githubHref?: string;
   signature?: string;
+  /** If your home lives somewhere else, change this (e.g., "/portfolio") */
+  homePath?: string;
 };
 
 export default function VscodeTopBar({
@@ -31,7 +34,10 @@ export default function VscodeTopBar({
     { id: "contact", label: "Contact" },
   ],
   signature = "Canyen Palmer",
+  homePath = "/",
 }: Props) {
+  const router = useRouter();
+  const pathname = usePathname();
   const [activeId, setActiveId] = React.useState<string>(sections[0]?.id ?? "home");
 
   // Final URLs (always from LINKS; ignore any incoming props so nothing can override)
@@ -39,10 +45,18 @@ export default function VscodeTopBar({
   const linkedinUrl = LINKS.linkedin;
   const githubUrl   = LINKS.github;
 
+  const HEADER_OFFSET = 72; // keep in sync with your header height
+
+  const smoothScrollToId = React.useCallback((id: string) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const top = window.scrollY + el.getBoundingClientRect().top - HEADER_OFFSET - 8;
+    window.scrollTo({ top, behavior: "smooth" });
+  }, []);
+
   // Observe sections and set active tab on scroll
   React.useEffect(() => {
     const observers: IntersectionObserver[] = [];
-    const headerHeight = 72;
     sections.forEach((s) => {
       const el = document.getElementById(s.id);
       if (!el) return;
@@ -50,7 +64,7 @@ export default function VscodeTopBar({
         (entries) => {
           for (const e of entries) if (e.isIntersecting) setActiveId(s.id);
         },
-        { rootMargin: `-${headerHeight}px 0px -66% 0px`, threshold: 0.1 }
+        { rootMargin: `-${HEADER_OFFSET}px 0px -66% 0px`, threshold: 0.1 }
       );
       io.observe(el);
       observers.push(io);
@@ -58,14 +72,34 @@ export default function VscodeTopBar({
     return () => observers.forEach((o) => o.disconnect());
   }, [sections]);
 
+  // Handle clicks: if on home, smooth scroll; otherwise route to /#id (then hash handler below will scroll)
   const onTabClick = (e: React.MouseEvent, id: string) => {
     e.preventDefault();
-    const el = document.getElementById(id);
-    if (!el) return;
-    const headerOffset = 72;
-    const top = window.scrollY + el.getBoundingClientRect().top - headerOffset - 8;
-    window.scrollTo({ top, behavior: "smooth" });
+    const targetHash = `#${id}`;
+    if (pathname === homePath) {
+      // Update hash for accessibility/URL while preventing default jump
+      history.replaceState(null, "", targetHash);
+      smoothScrollToId(id);
+    } else {
+      router.push(`${homePath}${targetHash}`);
+    }
   };
+
+  // On mount (and when hash changes), perform an offset-aware scroll
+  React.useEffect(() => {
+    const handleHashScroll = () => {
+      const raw = window.location.hash.replace("#", "");
+      if (!raw) return;
+      // Delay a tick to ensure the section is in the DOM after route transitions
+      requestAnimationFrame(() => smoothScrollToId(raw));
+    };
+    // Initial load
+    handleHashScroll();
+    // Future hash changes (e.g., navigating from another page)
+    window.addEventListener("hashchange", handleHashScroll);
+    return () => window.removeEventListener("hashchange", handleHashScroll);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Split signature into per-letter spans for wave
   const sigChars = React.useMemo(() => signature.split(""), [signature]);
