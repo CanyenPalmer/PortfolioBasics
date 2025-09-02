@@ -4,6 +4,7 @@ import React from "react";
 
 /**
  * Cyber City — Framed Skyline, Parallax Background, Detailed Foreground
+ * - Centered heading + typewriter subline.
  * - ViewBox: 1360x600. All geometry clamped to frame.
  * - Rectangular billboards with neon glow (cyan/magenta/amber), auto-fit titles.
  * - Two parallax background skylines with subtle window lights.
@@ -483,6 +484,63 @@ function RectBillboard({
   );
 }
 
+/* ============================ Typing Subheading ============================ */
+
+function TypingLine({
+  text,
+  speed = 40,
+  startDelay = 300,
+  caret = true,
+}: {
+  text: string;
+  speed?: number;        // ms per character
+  startDelay?: number;   // ms before typing starts
+  caret?: boolean;
+}) {
+  const [shown, setShown] = React.useState("");
+  const [done, setDone] = React.useState(false);
+
+  React.useEffect(() => {
+    let mounted = true;
+    let t1: any, t2: any;
+
+    t1 = setTimeout(() => {
+      let i = 0;
+      t2 = setInterval(() => {
+        if (!mounted) return;
+        i++;
+        setShown(text.slice(0, i));
+        if (i >= text.length) {
+          clearInterval(t2);
+          setDone(true);
+        }
+      }, speed);
+    }, startDelay);
+
+    return () => {
+      mounted = false;
+      clearTimeout(t1);
+      clearInterval(t2);
+    };
+  }, [text, speed, startDelay]);
+
+  return (
+    <div className="mt-3 text-center text-sm md:text-base text-cyan-100/80">
+      <span>{shown}</span>
+      {caret && (
+        <span className={`ml-1 inline-block h-[1em] w-[.6ch] translate-y-[2px] align-middle bg-cyan-300/70 ${done ? "opacity-0" : "animate-blink"}`} />
+      )}
+      <style jsx>{`
+        @keyframes blink {
+          0%, 49% { opacity: 1; }
+          50%, 100% { opacity: 0; }
+        }
+        .animate-blink { animation: blink 1s step-end infinite; }
+      `}</style>
+    </div>
+  );
+}
+
 /* ============================== Component ============================== */
 
 export default function ServicesCityscape() {
@@ -524,11 +582,10 @@ export default function ServicesCityscape() {
   return (
     <section className="relative py-20">
       <div className="container mx-auto px-4">
-        <header className="mb-8">
+        {/* Centered heading + typewriter line */}
+        <header className="mb-8 text-center">
           <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-cyan-100">My Services</h2>
-          <p className="mt-2 max-w-2xl text-sm md:text-base text-cyan-100/70">
-            Tap a billboard to open the details panel. Copy or close from the top-right.
-          </p>
+          <TypingLine text="Click a billboard to view a service!" />
         </header>
 
         <div className="relative overflow-hidden rounded-2xl border border-cyan-400/10 bg-[#070c12]">
