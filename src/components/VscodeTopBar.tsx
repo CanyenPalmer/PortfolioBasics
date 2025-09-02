@@ -1,184 +1,256 @@
 "use client";
 
-import React from "react";
+import * as React from "react";
+import { Satisfy } from "next/font/google";
+import { useRouter, usePathname } from "next/navigation";
+import { LINKS } from "../content/links"; // note the relative path from /components
 
-/**
- * Cyber City — Framed Skyline, Parallax Background, Detailed Foreground
- * - Centered heading + looping typewriter subline (with blinking caret).
- * - ViewBox: 1360x600. All geometry clamped to frame.
- * - Rectangular billboards with neon glow (cyan/magenta/amber), auto-fit titles.
- * - Two parallax background skylines with subtle window lights.
- * - Foreground towers: ribs, fins, ducts, ladders, tanks, antennas, cables.
- * - Organic window glow (seeded, SSR-safe).
- * - Overlay details panel with Copy / Close.
- * - Pure React/SVG. No external deps.
- */
+const satisfy = Satisfy({ subsets: ["latin"], weight: "400", display: "swap" });
 
-/* ============================== Data =============================== */
+type Section = { id: string; label: string };
 
-type CTA = { label: string; href: string };
-export type Service = {
-  id: string;
-  title: string;
-  blurb: string;
-  tech?: string[];
-  bullets?: string[];
-  ctas?: CTA[];
+type Props = {
+  sections?: Section[];
+  // legacy/ignored:
+  resumeHref?: string;
+  linkedinHref?: string;
+  githubHref?: string;
+  signature?: string;
+  /** If your home lives somewhere else, change this (e.g., "/portfolio") */
+  homePath?: string;
 };
 
-const SERVICES: Service[] = [
-  {
-    id: "data-apps",
-    title: "Data Apps & Automation",
-    blurb:
-      "Internal tools & micro-APIs that save hours: lightweight web apps, file pipelines, and quick integrations.",
-    tech: ["Python", "Flask/FastAPI", "TypeScript/React", "Tailwind", "Excel/OpenPyXL"],
-    bullets: [
-      "Lightweight web apps and micro-APIs around analytics workloads (e.g., MyCaddy).",
-      "Excel/PDF flows automated with parsing and write-back for ops efficiency.",
-      "Modern TS/React UI foundations showcased in the portfolio build.",
-    ],
-    ctas: [
-      { label: "MyCaddy (demo)", href: "/projects/mycaddy" },
-      { label: "Portfolio (TS/Next)", href: "/projects/portfolio" },
-    ],
-  },
-  {
-    id: "automation-ops",
-    title: "Ops & Scheduling",
-    blurb:
-      "Scheduled jobs and self-healing checks so reporting runs itself—retries, alerts, and data quality gates.",
-    tech: ["Python", "Excel/OpenPyXL", "Google Sheets", "Scheduling/CRON", "GitHub Actions"],
-    bullets: [
-      "CRON-like pipelines with alerting and retries.",
-      "Data quality checks, logs, and SLA monitors for trustworthy reporting.",
-      "Google Sheets/Excel automation for operational teams.",
-    ],
-    ctas: [
-      { label: "Ops utilities", href: "/projects/ops" },
-      { label: "CGM Tools", href: "/projects/cgm" },
-    ],
-  },
-  {
-    id: "machine-learning",
-    title: "Machine Learning",
-    blurb: "From EDA to production-ready models with clear metrics and clean handoff docs.",
-    tech: ["pandas", "numpy", "scikit-learn", "XGBoost", "Evaluation"],
-    bullets: [
-      "End-to-end EDA → modeling → evaluation in reproducible notebooks.",
-      "scikit-learn/XGBoost with proper CV and interpretable metrics.",
-      "Handoff-ready model cards and results summaries.",
-    ],
-    ctas: [
-      { label: "Salifort case study", href: "/projects/salifort" },
-      { label: "ML notebooks", href: "/projects/ml" },
-    ],
-  },
-  {
-    id: "analytics-eng",
-    title: "Analytics Engineering",
-    blurb:
-      "Reliable SQL layers and semantic models so dashboards are fast, consistent, and trustworthy.",
-    tech: ["SQL", "Reproducible transforms", "Tests & docs (dbt-style)", "Warehouse tuning"],
-    bullets: [
-      "Clean SQL layers and semantic models that standardize metrics.",
-      "Warehouse tuning and testable, documented transforms.",
-      "Reproducible query patterns and naming conventions.",
-    ],
-    ctas: [
-      { label: "Warehouse examples", href: "/projects/warehouse" },
-      { label: "Analytics repo", href: "/projects/analytics" },
-    ],
-  },
-  {
-    id: "dashboards",
-    title: "Dashboards & Visualization",
-    blurb: "Decision-ready dashboards that load fast and track what matters—no vanity charts.",
-    tech: ["Tableau", "Power BI", "KPI design", "Performance & caching"],
-    bullets: [
-      "Tableau/Power BI dashboards designed around KPIs and decisions.",
-      "Performance and caching practices for fast loads.",
-      "Metrics governance to avoid vanity charts.",
-    ],
-    ctas: [
-      { label: "Dashboard gallery", href: "/projects/dashboards" },
-      { label: "MyCaddy metrics", href: "/projects/mycaddy#metrics" },
-    ],
-  },
-  {
-    id: "viz-storytelling",
-    title: "Visualization & Storytelling",
-    blurb: "Executive-ready visuals and narratives that move decisions—not just pretty plots.",
-    tech: ["Matplotlib", "seaborn", "ggplot2 (R)", "Narrative arcs"],
-    bullets: [
-      "Matplotlib/seaborn/ggplot2 visuals tailored to stakeholder narratives.",
-      "Clear “What/So What/Now What” framing for execs.",
-      "Polished decks and write-ups for handoffs.",
-    ],
-    ctas: [
-      { label: "Presentation deck", href: "/projects/presentations" },
-      { label: "Portfolio write-ups", href: "/projects/portfolio#writeups" },
-    ],
-  },
-];
+export default function VscodeTopBar({
+  sections = [
+    { id: "home", label: "Home" },
+    { id: "experience", label: "Experience" },
+    { id: "services", label: "My Services" },
+    { id: "projects", label: "Projects" },
+    { id: "education", label: "Education" },
+    { id: "about", label: "About Me" },
+    { id: "testimonials", label: "Testimonials" },
+    { id: "contact", label: "Contact" },
+  ],
+  signature = "Canyen Palmer",
+  homePath = "/",
+}: Props) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [activeId, setActiveId] = React.useState<string>(sections[0]?.id ?? "home");
 
-/* ... all your helper functions unchanged ... */
+  const resumeUrl   = LINKS.resume;
+  const linkedinUrl = LINKS.linkedin;
+  const githubUrl   = LINKS.github;
 
-/* ============================== Component ============================== */
+  const HEADER_OFFSET = 72;
 
-export default function ServicesCityscape() {
-  const [openId, setOpenId] = React.useState<string | null>(null);
-  const [scrollY, setScrollY] = React.useState(0);
-  const current = openId ? SERVICES.find((s) => s.id === openId)! : null;
+  const smoothScrollToId = React.useCallback((id: string) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const top = window.scrollY + el.getBoundingClientRect().top - HEADER_OFFSET - 8;
+    window.scrollTo({ top, behavior: "smooth" });
+  }, []);
 
-  const open = (id: string) => {
-    setScrollY(window.scrollY);
-    document.documentElement.style.scrollBehavior = "auto";
-    document.body.style.top = `-${window.scrollY}px`;
-    document.body.style.position = "fixed";
-    document.body.style.width = "100%";
-    setOpenId(id);
-  };
-  const close = () => {
-    const y = scrollY;
-    setOpenId(null);
-    document.body.style.position = "";
-    document.body.style.top = "";
-    document.body.style.width = "";
-    window.scrollTo(0, y);
-    document.documentElement.style.scrollBehavior = "";
-  };
-
+  // Observe sections and set active tab on scroll
   React.useEffect(() => {
-    if (!openId) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close();
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c") {
-        const s = SERVICES.find((x) => x.id === openId);
-        if (s) navigator.clipboard?.writeText(stringifyService(s)).catch(() => {});
-      }
+    const observers: IntersectionObserver[] = [];
+    sections.forEach((s) => {
+      const el = document.getElementById(s.id);
+      if (!el) return;
+      const io = new IntersectionObserver(
+        (entries) => {
+          for (const e of entries) if (e.isIntersecting) setActiveId(s.id);
+        },
+        { rootMargin: `-${HEADER_OFFSET}px 0px -66% 0px`, threshold: 0.1 }
+      );
+      io.observe(el);
+      observers.push(io);
+    });
+    return () => observers.forEach((o) => o.disconnect());
+  }, [sections]);
+
+  // ✅ updated: setActiveId immediately on click
+  const onTabClick = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    setActiveId(id); // instant highlight
+    const targetHash = `#${id}`;
+    if (pathname === homePath) {
+      history.replaceState(null, "", targetHash);
+      smoothScrollToId(id);
+    } else {
+      router.push(`${homePath}${targetHash}`);
+    }
+  };
+
+  // Handle hash on load and route changes
+  React.useEffect(() => {
+    const handleHashScroll = () => {
+      const raw = window.location.hash.replace("#", "");
+      if (!raw) return;
+      requestAnimationFrame(() => smoothScrollToId(raw));
     };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [openId]);
+    handleHashScroll();
+    window.addEventListener("hashchange", handleHashScroll);
+    return () => window.removeEventListener("hashchange", handleHashScroll);
+  }, [smoothScrollToId]);
+
+  const sigChars = React.useMemo(() => signature.split(""), [signature]);
 
   return (
-    <section
-      id="services"                                   // ✅ Anchor for tab
-      className="relative py-20 scroll-mt-24 min-h-[70vh]" // ✅ Offset + height
-      aria-label="My Services"
+    <header
+      className="
+        sticky top-0 z-50 w-full
+        border-b border-white/10
+        backdrop-blur-md bg-[rgba(12,16,22,0.6)]
+      "
+      role="navigation"
+      aria-label="Primary"
     >
-      <div className="container mx-auto px-4">
-        {/* Centered heading + typing subline (looping) */}
-        <header className="mb-8 text-center">
-          <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-cyan-100">My Services</h2>
-          <TypingLine text="Click a billboard to view a service!" />
-        </header>
+      <div className="px-4 md:px-6">
+        <div className="h-14 grid grid-cols-[auto_1fr_auto] items-center gap-3">
+          {/* LEFT — traffic lights + signature */}
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="inline-flex gap-1.5">
+              <span className="h-3 w-3 rounded-full bg-red-500/80" />
+              <span className="h-3 w-3 rounded-full bg-yellow-500/80" />
+              <span className="h-3 w-3 rounded-full bg-green-500/80" />
+            </div>
+            <div
+              className={`
+                ${satisfy.className}
+                select-none text-white/90 font-semibold
+                tracking-[0.02em] [text-shadow:0_1px_0_rgba(0,0,0,0.4)]
+                truncate flex
+              `}
+              aria-label="Signature"
+              title={signature}
+            >
+              {sigChars.map((ch, i) => (
+                <span
+                  key={i}
+                  className="sig-ch"
+                  style={{ ["--i" as any]: i }}
+                  aria-hidden={ch === " " ? undefined : true}
+                >
+                  {ch}
+                </span>
+              ))}
+            </div>
+          </div>
 
-        {/* ...rest of your SVG cityscape & overlay code unchanged... */}
+          {/* CENTER — tabs */}
+          <nav
+            className="min-w-0 overflow-x-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
+            aria-label="Section tabs"
+          >
+            <ul className="flex items-center gap-3 justify-start md:justify-center">
+              {sections.map((s) => {
+                const isActive = s.id === activeId;
+                return (
+                  <li key={s.id} className="shrink-0">
+                    <a
+                      href={`#${s.id}`}
+                      onClick={(e) => onTabClick(e, s.id)}
+                      className={`
+                        group inline-flex items-center
+                        px-4 py-2 rounded-md
+                        font-mono text-[13px]
+                        transition
+                        ${
+                          isActive
+                            ? "bg-white/10 text-white border border-white/10 shadow-[inset_0_-2px_0_rgba(56,189,248,0.6)]"
+                            : "text-white/70 hover:text-white/95 hover:bg-white/5 border border-transparent hover:shadow-[inset_0_-2px_0_rgba(255,255,255,0.25)]"
+                        }
+                      `}
+                      aria-current={isActive ? "page" : undefined}
+                    >
+                      <span
+                        className={`mr-2 inline-block h-1 w-1 rounded-full ${
+                          isActive ? "bg-emerald-400" : "bg-white/30 group-hover:bg-white/50"
+                        }`}
+                      />
+                      {s.label}
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+
+          {/* RIGHT — resume + socials */}
+          <div className="flex items-center gap-2.5 pl-2 justify-end">
+            <a
+              href={resumeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden sm:inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md text-[12.5px] font-medium border border-white/15 text-white/90 hover:bg-white/10 transition"
+              aria-label="Open resume in new tab"
+              title="Resume"
+            >
+              <span className="font-mono">Resume</span>
+            </a>
+            <a
+              href={linkedinUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center h-9 w-9 rounded-md border border-white/15 hover:bg-white/10 transition text-white"
+              aria-label="LinkedIn"
+              title="LinkedIn"
+            >
+              <LinkedInIcon className="h-4.5 w-4.5" />
+            </a>
+            <a
+              href={githubUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center h-9 w-9 rounded-md border border-white/15 hover:bg-white/10 transition text-white"
+              aria-label="GitHub"
+              title="GitHub"
+            >
+              <GitHubIcon className="h-5 w-5" />
+            </a>
+          </div>
+        </div>
       </div>
 
-      {/* ...overlay panel + global styles unchanged... */}
-    </section>
+      <div className="h-[2px] w-full bg-gradient-to-r from-emerald-400/40 via-blue-400/40 to-purple-400/40" />
+
+      <style jsx global>{`
+        :root { --SIG_WAVE_DURATION: 0.9s; --SIG_WAVE_STAGGER: 0.08s; }
+        @keyframes signature-wave {
+          0% { transform: translateY(0) rotate(0) scale(1); opacity: 1; }
+          25% { transform: translateY(-2px) rotate(-1deg) scale(1.02); opacity: 0.95; }
+          50% { transform: translateY(0) rotate(0) scale(1); opacity: 1; }
+          100% { transform: translateY(0) rotate(0) scale(1); opacity: 1; }
+        }
+        .sig-ch {
+          display: inline-block; transform-origin: center bottom;
+          animation: signature-wave var(--SIG_WAVE_DURATION) ease-in-out infinite;
+          animation-delay: calc(var(--i, 0) * var(--SIG_WAVE_STAGGER));
+          will-change: transform, opacity;
+        }
+        @media (prefers-reduced-motion: reduce) { .sig-ch { animation: none; } }
+      `}</style>
+    </header>
+  );
+}
+
+/* Icons */
+function LinkedInIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
+      <path d="M20.451 20.451h-3.555v-5.569c0-1.328-.025-3.036-1.85-3.036-1.852 0-2.135 1.445-2.135 2.939v5.666H9.355V9h3.414v1.561h.049c.476-.9 1.637-1.85 3.37-1.85 3.603 0 4.268 2.371 4.268 5.455v6.285zM5.337 7.433a2.064 2.064 0 1 1 0-4.128 2.064 2.064 0 0 1 0 4.128zM6.999 20.451H3.675V9h3.324v11.451z" />
+    </svg>
+  );
+}
+function GitHubIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M12 2C6.477 2 2 6.589 2 12.254c0 4.53 2.865 8.366 6.839 9.723.5.095.682-.222.682-.493 0-.243-.009-.888-.014-1.744-2.782.615-3.37-1.365-3.37-1.365-.455-1.172-1.111-1.485-1.111-1.485-.908-.64.07-.627.07-.627 1.003.073 1.531 1.05 1.531 1.05.892 1.557 2.341 1.108 2.91.847.091-.662.35-1.108.636-1.362-2.221-.257-4.555-1.137-4.555-5.06 0-1.117.389-2.03 1.027-2.747-.103-.259-.445-1.298.097-2.706 0 0 .839-.27 2.75 1.05A9.362 9.362 0 0 1 12 7.802c.85.004 1.705.117 2.504.343 1.91-1.32 2.748-1.05 2.748-1.05.544 1.408.202 2.447.1 2.706.64.717 1.026 1.63 1.026 2.747 0 3.934-2.337 4.8-4.565 5.052.357.315.675.935.675 1.885 0 1.361-.013 2.458-.013 2.794 0 .274.18.593.688.492C19.139 20.616 22 16.782 22 12.254 22 6.589 17.523 2 12 2Z"
+      />
+    </svg>
   );
 }
