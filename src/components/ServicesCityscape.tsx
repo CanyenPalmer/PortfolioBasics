@@ -3,12 +3,13 @@
 import React from "react";
 
 /**
- * Cyber City — Rectangular Billboards, Organic Windows, Roof Details
- * - All billboards are rectangular cabinets with neon glow (cyan/magenta/amber).
- * - Titles auto-fit inside (1–2 lines); always contained.
- * - Buildings taller; varied roof hardware (antennas, vents, tanks, ducts).
- * - Windows glow/fade independently with seeded randomness (SSR-safe).
- * - Overlay details panel with Copy / Close (top-right).
+ * Cyber City — Framed Skyline, Parallax Background, Detailed Foreground
+ * - ViewBox: 1360x600. All geometry clamped to frame.
+ * - Rectangular billboards with neon glow (cyan/magenta/amber), auto-fit titles.
+ * - Two parallax background skylines with subtle window lights.
+ * - Foreground towers: ribs, fins, ducts, ladders, tanks, antennas, cables.
+ * - Organic window glow (seeded, SSR-safe).
+ * - Overlay details panel with Copy / Close.
  * - Pure React/SVG. No external deps.
  */
 
@@ -137,7 +138,6 @@ function stringifyService(s: Service) {
 }
 
 type Tone = "cyan" | "magenta" | "amber";
-
 function toneColors(tone: Tone) {
   switch (tone) {
     case "cyan": return { neon: "rgba(0,229,255,1)", stroke: "rgba(0,229,255,.55)" };
@@ -146,7 +146,7 @@ function toneColors(tone: Tone) {
   }
 }
 
-/** auto-fit text into a rectangle (1–2 lines) */
+/** auto-fit text into billboard (1–2 lines) */
 function layoutLabel(title: string, bw: number, bh: number, padX = 16, padY = 14) {
   const boxW = bw - padX * 2;
   const boxH = bh - padY * 2;
@@ -193,7 +193,7 @@ function layoutLabel(title: string, bw: number, bh: number, padX = 16, padY = 14
   return { fontSize: fsTiny, lines: [title], lineHeight: fsTiny * idealLineHeight, padX, padY };
 }
 
-/* =============================== Skyline Layout =============================== */
+/* =============================== Layout =============================== */
 
 type Building = {
   id: Service["id"];
@@ -206,24 +206,24 @@ type Building = {
 };
 
 const BUILDINGS: Building[] = [
-  { id: "data-apps",        x:  80, baseY: 540, w: 160, h: 380, tone: "cyan",    lift: 12 },
-  { id: "automation-ops",   x: 280, baseY: 540, w: 175, h: 410, tone: "magenta", lift: 28 },
-  { id: "machine-learning", x: 500, baseY: 540, w: 200, h: 430, tone: "amber",   lift: 20 },
-  { id: "analytics-eng",    x: 740, baseY: 540, w: 210, h: 405, tone: "cyan",    lift: 10 },
-  { id: "dashboards",       x: 980, baseY: 540, w: 185, h: 420, tone: "magenta", lift: 30 },
-  { id: "viz-storytelling", x:1195, baseY: 540, w: 170, h: 395, tone: "amber",   lift: 18 },
+  { id: "data-apps",        x:  78, baseY: 560, w: 160, h: 390, tone: "cyan",    lift: 12 },
+  { id: "automation-ops",   x: 280, baseY: 560, w: 175, h: 430, tone: "magenta", lift: 26 },
+  { id: "machine-learning", x: 510, baseY: 560, w: 200, h: 450, tone: "amber",   lift: 18 },
+  { id: "analytics-eng",    x: 750, baseY: 560, w: 210, h: 425, tone: "cyan",    lift: 10 },
+  { id: "dashboards",       x: 990, baseY: 560, w: 185, h: 440, tone: "magenta", lift: 24 },
+  { id: "viz-storytelling", x:1205, baseY: 560, w: 170, h: 410, tone: "amber",   lift: 16 },
 ];
 
 /** billboard size from building width (clamped) */
 function billboardSizeFor(w: number) {
   const bw = Math.max(130, Math.min(Math.round(w * 0.92), 220));
-  const bh = Math.max(72, Math.min(Math.round(bw * 0.52), 120));
+  const bh = Math.max(72, Math.min(Math.round(bw * 0.52), 118));
   return { bw, bh };
 }
 
-/* ============================== Random Helpers ============================== */
+/* ============================== Random ============================== */
 
-/** deterministic 0..1 from numeric seed (SSR-safe) */
+/** deterministic 0..1 (SSR-safe) */
 function seeded(seed: number) {
   const s = Math.sin(seed) * 10000;
   return s - Math.floor(s);
@@ -231,7 +231,49 @@ function seeded(seed: number) {
 
 /* ============================== SVG helpers ============================== */
 
-/** windows grid with organic glow/flicker, seeded per window (no visible pattern) */
+/** background skyline blocks with soft lit windows */
+function backgroundBlocks({
+  yTop,
+  color = "#0c1522",
+  width = 1360,
+  bandH = 140,
+  density = 0.5,
+  seedBase = 1,
+}: {
+  yTop: number; color?: string; width?: number; bandH?: number; density?: number; seedBase?: number;
+}) {
+  const buildings: JSX.Element[] = [];
+  let x = -20;
+  let idx = 0;
+  while (x < width + 40) {
+    const s = seeded(seedBase + idx * 7.3);
+    const w = 80 + Math.round(s * 160);
+    const h = 60 + Math.round(seeded(seedBase + idx * 11.1) * bandH);
+    const y = yTop - h;
+    const bx = Math.max(-20, Math.min(1360, x));
+    const bw = Math.min(w, 1360 - bx);
+    buildings.push(
+      <g key={`bg-${seedBase}-${idx}`} opacity={0.9}>
+        <rect x={bx} y={y} width={bw} height={h} fill={color} />
+        {/* soft windows */}
+        {Array.from({ length: Math.round((bw * h) / 1800 * density) }).map((_, i) => {
+          const sw = 6, sh = 5;
+          const cx = bx + 8 + (i * 31) % Math.max(1, bw - 16);
+          const cy = y + 8 + ((i * 53) % Math.max(1, h - 16));
+          const on = seeded(seedBase + idx * 100 + i * 13.7) > 0.4;
+          return on ? (
+            <rect key={`w-${i}`} x={cx} y={cy} width={sw} height={sh} fill="#9adfff" opacity={0.16} />
+          ) : null;
+        })}
+      </g>
+    );
+    x += w + 18 + Math.round(seeded(seedBase + idx * 5.5) * 30);
+    idx++;
+  }
+  return buildings;
+}
+
+/** organic glowing windows on foreground towers */
 function gridWindows(
   x: number, y: number, w: number, h: number, cols: number, rows: number,
   hueA = "#9cf3ff", hueB = "#ffcba4"
@@ -249,18 +291,15 @@ function gridWindows(
       const rnd2 = seeded(seed + 11.11);
       const rnd3 = seeded(seed + 22.22);
 
-      const sw = gw * (0.55 + rnd1 * 0.15);
-      const sh = gh * (0.45 + rnd2 * 0.18);
+      const sw = gw * (0.52 + rnd1 * 0.18);
+      const sh = gh * (0.42 + rnd2 * 0.20);
       const cx = x + pad + c * gw + (gw - sw) / 2;
       const cy = y + pad + r * gh + (gh - sh) / 2;
 
-      // durations 2.2–6.4s; delays 0–4s; choose one of two hues
       const duration = (2.2 + rnd1 * 4.2).toFixed(2);
       const delay = (rnd2 * 4).toFixed(2);
       const litColor = rnd3 > 0.5 ? hueA : hueB;
-
-      // "burnout" chance
-      const burned = rnd3 > 0.92;
+      const burned = rnd3 > 0.93;
 
       out.push(
         <rect
@@ -291,6 +330,37 @@ function slats(x: number, y: number, w: number, h: number, n: number, color = "r
   return Array.from({ length: n }).map((_, i) => (
     <rect key={i} x={x} y={y + i * gap} width={w} height={gap * 0.35} fill={color} />
   ));
+}
+
+/** façade ribs and corner fins for foreground towers */
+function facadeDetails(bx: number, top: number, bw: number, bh: number, idx: number) {
+  const els: JSX.Element[] = [];
+  const ribs = 3 + (idx % 3);
+  const gap = bw / (ribs + 1);
+  for (let i = 1; i <= ribs; i++) {
+    const x = bx + i * gap;
+    els.push(<rect key={`rib-${i}`} x={x} y={top + 12} width={2} height={bh - 24} fill="rgba(255,255,255,.05)" />);
+  }
+  // corner fins
+  els.push(<rect key="finL" x={bx - 3} y={top + 8} width={3} height={bh - 16} fill="rgba(255,255,255,.05)" />);
+  els.push(<rect key="finR" x={bx + bw} y={top + 8} width={3} height={bh - 16} fill="rgba(255,255,255,.05)" />);
+
+  // duct run
+  if (seeded(idx * 9.1) > 0.42) {
+    const dy = top + 60 + Math.round(seeded(idx * 3.3) * (bh * 0.4));
+    els.push(<rect key="duct" x={bx + 6} y={dy} width={bw - 12} height={6} fill="#0b1320" />);
+  }
+
+  // service ladder
+  if (seeded(idx * 5.7) > 0.6) {
+    const lx = bx + bw - 10;
+    els.push(<rect key="ladder" x={lx} y={top + 20} width={2} height={bh - 40} fill="rgba(255,255,255,.10)" />);
+    for (let k = 0; k < Math.floor((bh - 40) / 16); k++) {
+      els.push(<rect key={`rung-${k}`} x={lx - 8} y={top + 28 + k * 16} width={10} height={1.2} fill="rgba(255,255,255,.10)" />);
+    }
+  }
+
+  return els;
 }
 
 /** random-ish roof furniture (deterministic per building index) */
@@ -456,6 +526,9 @@ export default function ServicesCityscape() {
       <div className="container mx-auto px-4">
         <header className="mb-8">
           <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-cyan-100">My Services</h2>
+          <p className="mt-2 max-w-2xl text-sm md:text-base text-cyan-100/70">
+            Tap a billboard to open the details panel. Copy or close from the top-right.
+          </p>
         </header>
 
         <div className="relative overflow-hidden rounded-2xl border border-cyan-400/10 bg-[#070c12]">
@@ -497,62 +570,74 @@ export default function ServicesCityscape() {
 
             {/* --------- sky + stars --------- */}
             <rect x="0" y="0" width="1360" height="600" fill="url(#sky)" />
-            {Array.from({ length: 100 }).map((_, i) => {
-              const x = (i * 139) % 1360;
+            {Array.from({ length: 110 }).map((_, i) => {
+              const x = (i * 131) % 1360;
               const y = ((i * 97) % 200) + 18;
               const r = (i % 3) + 1;
               return <circle key={i} cx={x} cy={y} r={r} fill="url(#star)" opacity={0.18} />;
             })}
 
-            {/* --------- far silhouette --------- */}
-            <g fill="#0e1724" opacity="0.85">
-              <path d="M0,345 h120 v-110 h60 v-45 h120 v160 h110 v-100 h90 v135 h140 v-175 h80 v185 h150 v-145 h90 v205 h160 v-115 h130 V600 H0 Z" />
+            {/* --------- far silhouettes (two layers, lighter + closer) --------- */}
+            <g opacity={0.75}>
+              {backgroundBlocks({ yTop: 360, color: "#0c1522", bandH: 120, density: 0.45, seedBase: 10 })}
+            </g>
+            <g opacity={0.9}>
+              {backgroundBlocks({ yTop: 410, color: "#0e1928", bandH: 150, density: 0.55, seedBase: 50 })}
             </g>
 
-            {/* --------- mid/near buildings --------- */}
+            {/* --------- mid/near foreground towers --------- */}
             <g filter="url(#grain)">
               {BUILDINGS.map((b, idx) => {
-                const top = b.baseY - b.h;
+                // clamp inside frame: roof and billboard must remain visible
+                const roofY = Math.max(40, b.baseY - b.h);
+                const bh = b.baseY - roofY;
+
                 return (
                   <g key={b.id}>
                     {/* main tower */}
-                    <rect x={b.x} y={top} width={b.w} height={b.h} fill="#0f1623" stroke="rgba(255,255,255,.06)" />
+                    <rect x={b.x} y={roofY} width={b.w} height={bh} fill="#0f1623" stroke="rgba(255,255,255,.06)" />
+                    {/* façade detail */}
+                    {facadeDetails(b.x, roofY, b.w, bh, idx)}
                     {/* overhang band */}
-                    <rect x={b.x - 6} y={top + Math.round(b.h * 0.32)} width={b.w + 12} height={10} fill="#0a111b" />
+                    <rect x={b.x - 6} y={roofY + Math.round(bh * 0.30)} width={b.w + 12} height={10} fill="#0a111b" />
                     {/* vents (slats) */}
-                    {slats(b.x + 12, top + 22, b.w - 24, 26, 6)}
+                    {slats(b.x + 12, roofY + 22, b.w - 24, 26, 6)}
                     {/* windows grid (lower half) with animated glow */}
                     {gridWindows(
                       b.x + 10,
-                      top + Math.round(b.h * 0.52),
+                      roofY + Math.round(bh * 0.52),
                       b.w - 20,
-                      Math.round(b.h * 0.44),
+                      Math.round(bh * 0.44),
                       6 + (idx % 3),
                       8 + ((idx + 1) % 3),
                       "#9cf3ff",
                       "#ffcba4"
                     )}
                     {/* roof furniture */}
-                    {roofDetails(b.x, top, b.w, idx)}
+                    {roofDetails(b.x, roofY, b.w, idx)}
                   </g>
                 );
               })}
             </g>
 
             {/* --------- ground + fog --------- */}
-            <rect x="0" y="540" width="1360" height="60" fill="#09101a" />
-            <rect x="0" y="505" width="1360" height="40" fill="url(#fog)" />
-            <rect x="0" y="528" width="1360" height="35" fill="url(#fog)" opacity={0.6} />
+            <rect x="0" y="545" width="1360" height="55" fill="#09101a" />
+            <rect x="0" y="510" width="1360" height="40" fill="url(#fog)" />
+            <rect x="0" y="533" width="1360" height="34" fill="url(#fog)" opacity={0.6} />
 
-            {/* --------- rectangular header billboards --------- */}
+            {/* --------- rectangular billboards (clamped to frame) --------- */}
             {BUILDINGS.map((b) => {
               const svc = SERVICES.find((s) => s.id === b.id)!;
               const { bw, bh } = billboardSizeFor(b.w);
-              const roof = b.baseY - b.h;
-              const x = Math.round(b.x + (b.w - bw) / 2);
-              const y = Math.round(roof - (bh + b.lift));
+              const roof = Math.max(40, b.baseY - b.h);
+              // target Y above roof
+              let yTarget = roof - (bh + b.lift);
+              // clamp top margin so sign stays in view
+              if (yTarget < 16) yTarget = 16;
+              const xTarget = Math.round(Math.max(6, Math.min(1360 - bw - 6, b.x + (b.w - bw) / 2)));
+
               return (
-                <g key={`${b.id}-hdr`} transform={`translate(${x} ${y})`} style={{ cursor: "pointer" }} onClick={() => open(b.id)}>
+                <g key={`${b.id}-hdr`} transform={`translate(${xTarget} ${Math.round(yTarget)})`} style={{ cursor: "pointer" }} onClick={() => open(b.id)}>
                   <RectBillboard w={bw} h={bh} title={svc.title} tone={b.tone} />
                 </g>
               );
@@ -639,8 +724,8 @@ export default function ServicesCityscape() {
         @keyframes windowGlow {
           0%   { opacity: 0.10; }
           45%  { opacity: 0.30; }
-          60%  { opacity: 0.55; }
-          100% { opacity: 0.90; }
+          60%  { opacity: 0.62; }
+          100% { opacity: 0.92; }
         }
         @media (prefers-reduced-motion: reduce) {
           .window-glow { animation: none !important; }
