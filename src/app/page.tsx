@@ -6,22 +6,19 @@ import Hero from "@/components/Hero";
 import Experience from "@/components/Experience";
 import ServicesCityscape from "@/components/ServicesCityscape";
 import ProjectsHUD from "@/components/ProjectsHUD";
-import VSCodeBar from "@/components/VscodeTopBar";
 
 /**
  * NOTE:
- * - We are NOT introducing any new hooks.
- * - If you already have logic elsewhere that sets `activeSection`,
- *   keep using it the same way and pass it into <VSCodeBar />.
- * - If you don’t have active highlighting, this still works perfectly;
- *   the bar buttons will scroll to sections, and nothing breaks.
+ * - The VSCodeBar is already rendered globally in layout.tsx.
+ * - No need to import or render it here, otherwise you'll see duplicates.
+ * - Scroll highlighting + navigation still work because the bar is global.
  */
 
 export default function HomePage() {
-  // If your app already manages this from somewhere else, feel free to remove.
+  // If your app already manages activeSection elsewhere, keep using that.
+  // Keeping this here won't hurt but can be removed if unused.
   const [activeSection] = useState<string | null>(null);
 
-  // Use your existing onJump if you have one; this is a safe fallback.
   const onJump = useCallback((id: string) => {
     const el = document.getElementById(id);
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -29,10 +26,7 @@ export default function HomePage() {
 
   return (
     <main className="min-h-screen bg-slate-950 text-teal-50">
-      {/* VSCode-style top bar */}
-      <VSCodeBar activeSection={activeSection} onJump={onJump} />
-
-      {/* Home */}
+      {/* Hero */}
       <section id="home" aria-label="Home">
         <Hero />
       </section>
@@ -47,10 +41,10 @@ export default function HomePage() {
         <ServicesCityscape />
       </section>
 
-      {/* Projects (the component itself includes id="projects") */}
+      {/* Projects */}
       <ProjectsHUD />
 
-      {/* ...any additional sections below */}
+      {/* ...other sections if you add them later */}
     </main>
   );
 }
