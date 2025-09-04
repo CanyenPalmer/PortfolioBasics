@@ -284,7 +284,9 @@ export default function ProjectsHUD() {
             <motion.div
               role="dialog"
               aria-modal="true"
-              className="hud-scan pointer-events-auto absolute left-1/2 top-1/2 w-[min(92vw,980px)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-cyan-400/60 bg-slate-950/80 shadow-[0_0_60px_rgba(0,255,255,0.35)]"
+              className="hud-scan pointer-events-auto absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 
+                         w-[min(92vw,980px)] max-w-full mx-auto
+                         overflow-hidden rounded-2xl border border-cyan-400/60 bg-slate-950/80 shadow-[0_0_60px_rgba(0,255,255,0.35)]"
               initial={{ scale: 0.96, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.98, opacity: 0 }}
