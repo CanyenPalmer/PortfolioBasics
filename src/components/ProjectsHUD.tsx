@@ -151,7 +151,7 @@ const PROJECTS: Project[] = [
         "Error handling & formatted output",
       ],
       visuals: ["Notebook snippets & outputs"],
-    ],
+    }, // <-- fixed: end the object with `},` not `],`
     links: { github: "https://github.com/CanyenPalmer/Python-101" },
   },
   {
@@ -171,7 +171,7 @@ const PROJECTS: Project[] = [
       ],
       results: ["On-course decision support beyond flat charts"],
       visuals: ["Web Form → Result", "Core Physics Snippet"],
-    ],
+    },
     links: { github: "https://github.com/CanyenPalmer/MyCaddy" },
   },
 ];
