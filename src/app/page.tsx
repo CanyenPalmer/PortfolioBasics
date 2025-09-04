@@ -1,35 +1,47 @@
-export default function Page() {
+import Hero from "@/components/Hero";
+import ServicesCityscape from "@/components/ServicesCityscape";
+import Experience from "@/components/Experience";
+import ProjectsHUD from "@/components/ProjectsHUD";
+import VSCodeBar from "@/components/VSCodeBar";
+import { useState, useCallback } from "react";
+import { useSectionObserver } from "@/hooks/useSectionObserver";
+
+export default function HomePage() {
+  const [active, setActive] = useState<string | null>("home");
+
+  // Observe the sections you want to toggle in the bar:
+  useSectionObserver({
+    sectionIds: ["home", "services", "experience", "projects"],
+    onChange: setActive,
+  });
+
+  const onJump = useCallback((id: string) => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
   return (
-    <>
-      {/* HERO */}
-      {/* @ts-expect-error Server Component boundary if using app router */}
-      <HeroSection />
+    <main className="min-h-screen bg-slate-950 text-teal-50">
+      {/* VSCode-like nav */}
+      <VSCodeBar activeSection={active} onJump={onJump} />
 
-      {/* EXPERIENCE */}
-      {/* @ts-expect-error Server Component boundary if using app router */}
-      <ExperienceSection />
+      {/* Sections */}
+      <section id="home">
+        <Hero />
+      </section>
 
-      {/* MY SERVICES (cityscape) */}
-      {/* @ts-expect-error Server Component boundary if using app router */}
-      <ServicesCityscape />
-    </>
+      <section id="services">
+        <ServicesCityscape />
+      </section>
+
+      <section id="experience">
+        <Experience />
+      </section>
+
+      {/* NEW: Projects section */}
+      <ProjectsHUD />
+
+      {/* (…rest of your site) */}
+    </main>
   );
 }
-
-/* -------- Local component wrappers to avoid import path issues -------- */
-import dynamic from "next/dynamic";
-
-/** Wrap Hero as a dynamic client component */
-const HeroSection = dynamic(() => import("@/components/Hero"), {
-  ssr: true,
-});
-
-/** Experience is a client component; render as-is */
-const ExperienceSection = dynamic(() => import("@/components/Experience"), {
-  ssr: true,
-});
-
-/** Services Cityscape (client component) */
-const ServicesCityscape = dynamic(() => import("@/components/ServicesCityscape"), {
-  ssr: true,
-});
