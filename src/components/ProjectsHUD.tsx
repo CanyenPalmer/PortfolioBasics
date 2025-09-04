@@ -118,7 +118,7 @@ const PROJECTS: Project[] = [
   {
     id: "portfolio",
     title: "PortfolioBasics (This Site)",
-    techStack: ["Next.js", "TypeScript", "Tailwind", "Framer Motion"],
+    techStack: ["Next.js", "TypeScript"], // updated per request
     packages: ["React", "TailwindCSS", "Framer Motion"],
     brief: [
       "100% from-scratch; no template",
@@ -157,7 +157,7 @@ const PROJECTS: Project[] = [
   {
     id: "mycaddy",
     title: "MyCaddy — Physics Shot Calculator",
-    techStack: ["Python", "Flask"],
+    techStack: ["Python"], // updated per request
     packages: ["Flask", "gunicorn", "Jinja2", "numpy"],
     brief: [
       "Physics-based adjusted carry distance",
