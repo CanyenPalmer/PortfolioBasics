@@ -118,7 +118,7 @@ const PROJECTS: Project[] = [
   {
     id: "portfolio",
     title: "PortfolioBasics (This Site)",
-    techStack: ["Next.js", "TypeScript"], // fixed wording
+    techStack: ["Next.js", "TypeScript"], // per request
     packages: ["React", "TailwindCSS", "Framer Motion"],
     brief: [
       "100% from-scratch; no template",
@@ -151,13 +151,13 @@ const PROJECTS: Project[] = [
         "Error handling & formatted output",
       ],
       visuals: ["Notebook snippets & outputs"],
-    },
+    ],
     links: { github: "https://github.com/CanyenPalmer/Python-101" },
   },
   {
     id: "mycaddy",
     title: "MyCaddy — Physics Shot Calculator",
-    techStack: ["Python"], // fixed wording
+    techStack: ["Python"], // per request
     packages: ["Flask", "gunicorn", "Jinja2", "numpy"],
     brief: [
       "Physics-based adjusted carry distance",
@@ -171,7 +171,7 @@ const PROJECTS: Project[] = [
       ],
       results: ["On-course decision support beyond flat charts"],
       visuals: ["Web Form → Result", "Core Physics Snippet"],
-    },
+    ],
     links: { github: "https://github.com/CanyenPalmer/MyCaddy" },
   },
 ];
@@ -210,6 +210,13 @@ function Card({
       viewport={{ once: true, margin: "-10% 0px -10% 0px" }}
       transition={{ duration: 0.45, delay: 0.05 * i, ease: "easeOut" }}
     >
+      <div className="pointer-events-none absolute inset-0 [mask-image:linear-gradient(to_bottom,black,transparent_95%)]">
+        <div className="absolute left-0 top-0 h-1 w-10 bg-cyan-400/70 blur-[1px]" />
+        <div className="absolute right-0 top-0 h-1 w-10 bg-fuchsia-400/70 blur-[1px]" />
+        <div className="absolute bottom-0 left-0 h-1 w-10 bg-cyan-400/50 blur-[1px]" />
+        <div className="absolute bottom-0 right-0 h-1 w-10 bg-fuchsia-400/50 blur-[1px]" />
+      </div>
+
       <h3 className="text-lg md:text-xl font-semibold tracking-wide text-cyan-200">
         {p.title}
       </h3>
@@ -256,6 +263,9 @@ export default function ProjectsHUD() {
         </p>
       </div>
 
+      {/* HUD grid background */}
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_0%,rgba(0,255,255,0.08),transparent_40%),linear-gradient(to_right,rgba(0,255,255,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,255,255,0.06)_1px,transparent_1px)] bg-[size:auto,80px_1px,1px_80px]" />
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {grid.map((p, i) => (
           <Card key={p.id} p={p} i={i} onOpen={onOpen} />
@@ -265,7 +275,7 @@ export default function ProjectsHUD() {
       <AnimatePresence>
         {open && (
           <motion.div
-            className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm"
+            className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -274,8 +284,7 @@ export default function ProjectsHUD() {
             <motion.div
               role="dialog"
               aria-modal="true"
-              className="hud-scan fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 
-                         w-[min(92vw,980px)] max-w-full
+              className="hud-scan pointer-events-auto w-[min(92vw,980px)] max-w-full
                          overflow-hidden rounded-2xl border border-cyan-400/60 bg-slate-950/80 shadow-[0_0_60px_rgba(0,255,255,0.35)]"
               initial={{ scale: 0.96, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
