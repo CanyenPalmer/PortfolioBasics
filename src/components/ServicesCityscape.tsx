@@ -7,7 +7,8 @@ import React from "react";
  * + Billboard titles: desynced short typewriter every ~6s.
  * + Each billboard: deterministic random first start + small per-cycle drift.
  * + Neon glow syncs with typing phase (dim while typing/erasing, bright when full).
- * + Blinking caret while typing/erasing.
+ * + Caret hugs right edge of the last visible character while typing/erasing.
+ * + Helper subline waits 8s before erasing.
  */
 
 /* ============================== Data =============================== */
@@ -327,7 +328,7 @@ function useTypingCycle(
       clearTimers();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cycleMs, startJitterMs, typeMsPerChar, eraseMsPerChar, holdBeforeEraseMs, seed, driftMs]);
+  }, [cycleMs, startJitterMs, typeMsPerChar, eraseMsPerChar, holdBeforeEraseMs, seed, driftMs, fullText]);
 
   const caretVisible = caretWhileTyping && (phase === "typing" || phase === "erasing");
   const glowStrength = shown.length === fullText.length && phase === "idle" ? 1 : 0.35; // bright when full, dim while animating
@@ -355,6 +356,27 @@ function RectBillboard({
 
   // Layout always uses the CURRENT visible text
   const layout = layoutLabel(shown, w, h, 16, 14);
+
+  // Measure the actual width of the LAST visible line so the caret can sit at its right edge.
+  const lastLineRef = React.useRef<SVGTextElement | null>(null);
+  const [caretPos, setCaretPos] = React.useState<{ x: number; y: number } | null>(null);
+
+  React.useLayoutEffect(() => {
+    const el = lastLineRef.current;
+    if (!el) return;
+    try {
+      const bb = el.getBBox(); // width/height of the rendered text
+      const xAttr = el.getAttribute("x") || "0";
+      const yAttr = el.getAttribute("y") || "0";
+      const xCenter = parseFloat(xAttr);
+      const y = parseFloat(yAttr);
+      // textAnchor="middle" => right edge is center + width/2
+      const xRight = xCenter + bb.width / 2;
+      setCaretPos({ x: xRight + 3, y }); // +3px breathing room
+    } catch {
+      // getBBox can fail if element not in DOM yet; ignore.
+    }
+  }, [shown, layout.fontSize, layout.lines.join("|"), w, h]);
 
   const glowOpacity = 0.08 + 0.16 * glowStrength; // 0.08..0.24
   const drop = `drop-shadow(0 0 ${8 + glowStrength * 10}px ${neon}) drop-shadow(0 0 ${18 + glowStrength * 18}px ${neon})`;
@@ -389,7 +411,7 @@ function RectBillboard({
       {/* subtle rim */}
       <rect x={w - 6} y={4} width={4} height={h - 8} fill={stroke} opacity={0.35} />
 
-      {/* label (with blinking caret while animating) */}
+      {/* label (with caret that tracks true right edge) */}
       <g style={{ pointerEvents: "none" }}>
         {layout.lines.map((ln, i) => {
           const isLastLine = i === layout.lines.length - 1;
@@ -398,6 +420,7 @@ function RectBillboard({
           return (
             <g key={i}>
               <text
+                ref={isLastLine ? lastLineRef : undefined}
                 x={w / 2}
                 y={y}
                 textAnchor="middle"
@@ -409,11 +432,11 @@ function RectBillboard({
                 {ln}
               </text>
 
-              {/* Caret: small vertical rect just to the right of the last line */}
-              {caretVisible && isLastLine && (
+              {/* Caret: placed at measured right edge of the last line */}
+              {caretVisible && isLastLine && caretPos && (
                 <rect
-                  x={(w / 2) + (layout.fontSize * (ln.length ? 0.03 : 0)) + 4}
-                  y={y - layout.fontSize * 0.6}
+                  x={caretPos.x}
+                  y={caretPos.y - layout.fontSize * 0.6}
                   width={Math.max(2, Math.round(layout.fontSize * 0.09))}
                   height={layout.fontSize * 1.2}
                   fill="#c9f6ff"
@@ -441,7 +464,7 @@ function TypingLine({
   speed = 40,
   eraseSpeed = 28,
   startDelay = 300,
-  pauseAfterType = 1100,
+  pauseAfterType = 8000,   // <-- wait 8s before erasing so users can read it
   pauseAfterErase = 600,
   caret = true,
   loop = true,
