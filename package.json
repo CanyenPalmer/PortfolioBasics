@@ -12,9 +12,9 @@
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "framer-motion": "11.0.0",
-
     "@tensorflow/tfjs": "^4.13.0",
-    "@tensorflow-models/body-pix": "^2.2.0"
+    "@tensorflow-models/body-pix": "^2.2.0",
+    "lucide-react": "^0.462.0"            // ← added this line
   },
   "devDependencies": {
     "tailwindcss": "^3.4.4",
