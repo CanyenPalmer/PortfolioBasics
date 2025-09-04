@@ -6,7 +6,7 @@ import Hero from "@/components/Hero";
 import Experience from "@/components/Experience";
 import ServicesCityscape from "@/components/ServicesCityscape";
 import ProjectsHUD from "@/components/ProjectsHUD";
-import VSCodeBar from "@/components/VSCodeBar";
+import VSCodeBar from "@/components/VscodeTopBar";
 
 /**
  * NOTE:
