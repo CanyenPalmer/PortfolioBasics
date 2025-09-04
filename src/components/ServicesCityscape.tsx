@@ -4,10 +4,10 @@ import React from "react";
 
 /**
  * Cyber City — Framed Skyline, Parallax Background, Detailed Foreground
- * + Billboard titles now do a periodic (6s) short typewriter: erase → retype.
- * + Each billboard has a randomized first start time (deterministic per board).
+ * + Billboard titles: desynced short typewriter every ~6s.
+ * + Each billboard: deterministic random first start + small per-cycle drift.
  * + Neon glow syncs with typing phase (dim while typing/erasing, bright when full).
- * + Blinking caret appears at the end while typing.
+ * + Blinking caret while typing/erasing.
  */
 
 /* ============================== Data =============================== */
@@ -233,23 +233,25 @@ type TypingPhase = "idle" | "erasing" | "typing";
 function useTypingCycle(
   fullText: string,
   opts?: {
-    cycleMs?: number;       // how often to trigger a short animation
-    startJitterMs?: number; // first cycle jitter 0..n
+    cycleMs?: number;       // base cycle period
+    startJitterMs?: number; // first cycle jitter 0..n (unique per board)
     typeMsPerChar?: number;
     eraseMsPerChar?: number;
-    holdBeforeEraseMs?: number; // rest time fully typed before erase
+    holdBeforeEraseMs?: number;
     caretWhileTyping?: boolean;
-    seed?: number; // to make jitter deterministic per board
+    seed?: number;          // deterministic per board
+    driftMs?: number;       // small per-cycle drift magnitude to avoid re-sync
   }
 ) {
   const {
     cycleMs = 6000,
-    startJitterMs = 5000,
-    typeMsPerChar = 32,
-    eraseMsPerChar = 24,
-    holdBeforeEraseMs = 250,
+    startJitterMs = 5200,
+    typeMsPerChar = 26,
+    eraseMsPerChar = 20,
+    holdBeforeEraseMs = 150,
     caretWhileTyping = true,
     seed = 1,
+    driftMs = 360,          // +/- up to ~360ms per cycle
   } = opts || {};
 
   const [shown, setShown] = React.useState(fullText);
@@ -259,17 +261,35 @@ function useTypingCycle(
   const fullRef = React.useRef(fullText);
   fullRef.current = fullText;
 
+  const cycleN = React.useRef(0);
+  const timers = React.useRef<number[]>([]);
+
+  const clearTimers = () => {
+    timers.current.forEach((t) => clearTimeout(t));
+    timers.current = [];
+  };
+
   React.useEffect(() => {
-    let timers: any[] = [];
-    const jitter = Math.floor(seeded(seed) * startJitterMs);
+    const jitter0 = Math.floor(seeded(seed) * startJitterMs);
+
+    const scheduleNext = (delay: number) => {
+      const id = window.setTimeout(() => {
+        runCycle();
+        // compute a small deterministic drift around cycleMs to avoid re-sync
+        const n = cycleN.current + 1;
+        const drift = Math.floor((seeded(seed + n * 97.31) - 0.5) * 2 * driftMs); // [-driftMs, +driftMs]
+        scheduleNext(Math.max(1000, cycleMs + drift)); // keep at least 1s
+        cycleN.current = n;
+      }, delay);
+      timers.current.push(id);
+    };
 
     const runCycle = () => {
       if (busyRef.current) return;
       busyRef.current = true;
 
-      // small hold before erasing (feels less abrupt)
-      setPhase("idle");
-      timers.push(setTimeout(() => {
+      // brief pre-erase idle (feels natural)
+      const t1 = window.setTimeout(() => {
         // ERASE
         setPhase("erasing");
         let i = shown.length || fullRef.current.length;
@@ -277,7 +297,7 @@ function useTypingCycle(
           i = Math.max(0, i - 1);
           setShown(fullRef.current.slice(0, i));
           if (i > 0) {
-            timers.push(setTimeout(eraseTick, eraseMsPerChar));
+            timers.current.push(window.setTimeout(eraseTick, eraseMsPerChar));
           } else {
             // TYPE
             setPhase("typing");
@@ -286,30 +306,28 @@ function useTypingCycle(
               j++;
               setShown(fullRef.current.slice(0, j));
               if (j < fullRef.current.length) {
-                timers.push(setTimeout(typeTick, typeMsPerChar));
+                timers.current.push(window.setTimeout(typeTick, typeMsPerChar));
               } else {
-                setPhase("idle"); // fully typed, rest till next cycle
+                setPhase("idle");
                 busyRef.current = false;
               }
             };
-            timers.push(setTimeout(typeTick, typeMsPerChar));
+            timers.current.push(window.setTimeout(typeTick, typeMsPerChar));
           }
         };
-        timers.push(setTimeout(eraseTick, holdBeforeEraseMs));
-      }, 120));
+        timers.current.push(window.setTimeout(eraseTick, holdBeforeEraseMs));
+      }, 120);
+      timers.current.push(t1);
     };
 
-    // first cycle with jitter
-    timers.push(setTimeout(runCycle, jitter));
+    // start after a unique jitter, then chain timeouts forever with drift
+    scheduleNext(jitter0);
 
-    // subsequent cycles every cycleMs
-    const interval = setInterval(runCycle, cycleMs);
     return () => {
-      clearInterval(interval);
-      timers.forEach((t) => clearTimeout(t));
+      clearTimers();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cycleMs, startJitterMs, typeMsPerChar, eraseMsPerChar, holdBeforeEraseMs, seed]);
+  }, [cycleMs, startJitterMs, typeMsPerChar, eraseMsPerChar, holdBeforeEraseMs, seed, driftMs]);
 
   const caretVisible = caretWhileTyping && (phase === "typing" || phase === "erasing");
   const glowStrength = shown.length === fullText.length && phase === "idle" ? 1 : 0.35; // bright when full, dim while animating
@@ -323,7 +341,7 @@ function RectBillboard({
 }: { w: number; h: number; title: string; tone: Tone; seed: number }) {
   const { neon, stroke } = toneColors(tone);
 
-  // Typewriter state for this billboard title
+  // Typewriter state for this billboard title (with jitter + drift)
   const { shown, caretVisible, glowStrength } = useTypingCycle(title, {
     cycleMs: 6000,
     startJitterMs: 5200,
@@ -332,6 +350,7 @@ function RectBillboard({
     holdBeforeEraseMs: 150,
     caretWhileTyping: true,
     seed,
+    driftMs: 420, // ~±0.42s extra per cycle
   });
 
   // Layout always uses the CURRENT visible text
@@ -390,7 +409,7 @@ function RectBillboard({
                 {ln}
               </text>
 
-              {/* Caret: draw a small vertical rect just to the right of the last line */}
+              {/* Caret: small vertical rect just to the right of the last line */}
               {caretVisible && isLastLine && (
                 <rect
                   x={(w / 2) + (layout.fontSize * (ln.length ? 0.03 : 0)) + 4}
@@ -852,8 +871,8 @@ export default function ServicesCityscape() {
                   style={{ cursor: "pointer" }}
                   onClick={() => open(b.id)}
                 >
-                  {/* seed ensures deterministic first-jitter per board */}
-                  <RectBillboard w={bw} h={bh} title={svc.title} tone={b.tone} seed={b.x + idx * 101} />
+                  {/* per-board deterministic seed to stagger cycles */}
+                  <RectBillboard w={bw} h={bh} title={svc.title} tone={b.tone} seed={b.x * 13.37 + idx * 101.7} />
                 </g>
               );
             })}
