@@ -4,14 +4,10 @@ import React from "react";
 
 /**
  * Cyber City — Framed Skyline, Parallax Background, Detailed Foreground
- * - Centered heading + looping typewriter subline (with blinking caret).
- * - ViewBox: 1360x600. All geometry clamped to frame.
- * - Rectangular billboards with neon glow (cyan/magenta/amber), auto-fit titles.
- * - Two parallax background skylines with subtle window lights.
- * - Foreground towers: ribs, fins, ducts, ladders, tanks, antennas, cables.
- * - Organic window glow (seeded, SSR-safe).
- * - Overlay details panel with Copy / Close.
- * - Pure React/SVG. No external deps.
+ * + Billboard titles now do a periodic (6s) short typewriter: erase → retype.
+ * + Each billboard has a randomized first start time (deterministic per board).
+ * + Neon glow syncs with typing phase (dim while typing/erasing, bright when full).
+ * + Blinking caret appears at the end while typing.
  */
 
 /* ============================== Data =============================== */
@@ -147,7 +143,7 @@ function toneColors(tone: Tone) {
   }
 }
 
-/** auto-fit text into billboard (1–2 lines) */
+/** auto-fit text into billboard (1–2 lines) based on current visible title */
 function layoutLabel(title: string, bw: number, bh: number, padX = 16, padY = 14) {
   const boxW = bw - padX * 2;
   const boxH = bh - padY * 2;
@@ -228,6 +224,276 @@ function billboardSizeFor(w: number) {
 function seeded(seed: number) {
   const s = Math.sin(seed) * 10000;
   return s - Math.floor(s);
+}
+
+/* ============================== Typing Hook ============================== */
+
+type TypingPhase = "idle" | "erasing" | "typing";
+
+function useTypingCycle(
+  fullText: string,
+  opts?: {
+    cycleMs?: number;       // how often to trigger a short animation
+    startJitterMs?: number; // first cycle jitter 0..n
+    typeMsPerChar?: number;
+    eraseMsPerChar?: number;
+    holdBeforeEraseMs?: number; // rest time fully typed before erase
+    caretWhileTyping?: boolean;
+    seed?: number; // to make jitter deterministic per board
+  }
+) {
+  const {
+    cycleMs = 6000,
+    startJitterMs = 5000,
+    typeMsPerChar = 32,
+    eraseMsPerChar = 24,
+    holdBeforeEraseMs = 250,
+    caretWhileTyping = true,
+    seed = 1,
+  } = opts || {};
+
+  const [shown, setShown] = React.useState(fullText);
+  const [phase, setPhase] = React.useState<TypingPhase>("idle");
+
+  const busyRef = React.useRef(false);
+  const fullRef = React.useRef(fullText);
+  fullRef.current = fullText;
+
+  React.useEffect(() => {
+    let timers: any[] = [];
+    const jitter = Math.floor(seeded(seed) * startJitterMs);
+
+    const runCycle = () => {
+      if (busyRef.current) return;
+      busyRef.current = true;
+
+      // small hold before erasing (feels less abrupt)
+      setPhase("idle");
+      timers.push(setTimeout(() => {
+        // ERASE
+        setPhase("erasing");
+        let i = shown.length || fullRef.current.length;
+        const eraseTick = () => {
+          i = Math.max(0, i - 1);
+          setShown(fullRef.current.slice(0, i));
+          if (i > 0) {
+            timers.push(setTimeout(eraseTick, eraseMsPerChar));
+          } else {
+            // TYPE
+            setPhase("typing");
+            let j = 0;
+            const typeTick = () => {
+              j++;
+              setShown(fullRef.current.slice(0, j));
+              if (j < fullRef.current.length) {
+                timers.push(setTimeout(typeTick, typeMsPerChar));
+              } else {
+                setPhase("idle"); // fully typed, rest till next cycle
+                busyRef.current = false;
+              }
+            };
+            timers.push(setTimeout(typeTick, typeMsPerChar));
+          }
+        };
+        timers.push(setTimeout(eraseTick, holdBeforeEraseMs));
+      }, 120));
+    };
+
+    // first cycle with jitter
+    timers.push(setTimeout(runCycle, jitter));
+
+    // subsequent cycles every cycleMs
+    const interval = setInterval(runCycle, cycleMs);
+    return () => {
+      clearInterval(interval);
+      timers.forEach((t) => clearTimeout(t));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cycleMs, startJitterMs, typeMsPerChar, eraseMsPerChar, holdBeforeEraseMs, seed]);
+
+  const caretVisible = caretWhileTyping && (phase === "typing" || phase === "erasing");
+  const glowStrength = shown.length === fullText.length && phase === "idle" ? 1 : 0.35; // bright when full, dim while animating
+  return { shown, caretVisible, glowStrength };
+}
+
+/* =========================== Rectangular Billboard =========================== */
+
+function RectBillboard({
+  w, h, title, tone, seed,
+}: { w: number; h: number; title: string; tone: Tone; seed: number }) {
+  const { neon, stroke } = toneColors(tone);
+
+  // Typewriter state for this billboard title
+  const { shown, caretVisible, glowStrength } = useTypingCycle(title, {
+    cycleMs: 6000,
+    startJitterMs: 5200,
+    typeMsPerChar: 26,
+    eraseMsPerChar: 20,
+    holdBeforeEraseMs: 150,
+    caretWhileTyping: true,
+    seed,
+  });
+
+  // Layout always uses the CURRENT visible text
+  const layout = layoutLabel(shown, w, h, 16, 14);
+
+  const glowOpacity = 0.08 + 0.16 * glowStrength; // 0.08..0.24
+  const drop = `drop-shadow(0 0 ${8 + glowStrength * 10}px ${neon}) drop-shadow(0 0 ${18 + glowStrength * 18}px ${neon})`;
+
+  return (
+    <g>
+      {/* precise glow plate (same rect) — strength follows typing phase */}
+      <rect
+        x={-10}
+        y={-10}
+        width={w + 20}
+        height={h + 20}
+        rx={8}
+        ry={8}
+        fill={neon}
+        opacity={glowOpacity}
+        filter={`url(#glow-${tone})`}
+      />
+      {/* cabinet */}
+      <rect
+        x={0}
+        y={0}
+        width={w}
+        height={h}
+        rx={6}
+        ry={6}
+        fill="url(#glass)"
+        stroke={stroke}
+        strokeWidth={3}
+        style={{ filter: drop }}
+      />
+      {/* subtle rim */}
+      <rect x={w - 6} y={4} width={4} height={h - 8} fill={stroke} opacity={0.35} />
+
+      {/* label (with blinking caret while animating) */}
+      <g style={{ pointerEvents: "none" }}>
+        {layout.lines.map((ln, i) => {
+          const isLastLine = i === layout.lines.length - 1;
+          const y = h / 2 + (i - (layout.lines.length - 1) / 2) * layout.lineHeight;
+
+          return (
+            <g key={i}>
+              <text
+                x={w / 2}
+                y={y}
+                textAnchor="middle"
+                dominantBaseline="central"
+                fontSize={layout.fontSize}
+                fill="#d9faff"
+                style={{ fontWeight: 700, letterSpacing: "1px" }}
+              >
+                {ln}
+              </text>
+
+              {/* Caret: draw a small vertical rect just to the right of the last line */}
+              {caretVisible && isLastLine && (
+                <rect
+                  x={(w / 2) + (layout.fontSize * (ln.length ? 0.03 : 0)) + 4}
+                  y={y - layout.fontSize * 0.6}
+                  width={Math.max(2, Math.round(layout.fontSize * 0.09))}
+                  height={layout.fontSize * 1.2}
+                  fill="#c9f6ff"
+                  className="billboard-caret"
+                />
+              )}
+            </g>
+          );
+        })}
+      </g>
+
+      {/* local caret blink style (scoped) */}
+      <style jsx>{`
+        @keyframes bb-blink { 0%, 49% { opacity: 1 } 50%, 100% { opacity: 0 } }
+        .billboard-caret { animation: bb-blink 1s steps(1, end) infinite; }
+      `}</style>
+    </g>
+  );
+}
+
+/* ============================ Typing Subheading (Looping) ============================ */
+
+function TypingLine({
+  text,
+  speed = 40,
+  eraseSpeed = 28,
+  startDelay = 300,
+  pauseAfterType = 1100,
+  pauseAfterErase = 600,
+  caret = true,
+  loop = true,
+}: {
+  text: string;
+  speed?: number;
+  eraseSpeed?: number;
+  startDelay?: number;
+  pauseAfterType?: number;
+  pauseAfterErase?: number;
+  caret?: boolean;
+  loop?: boolean;
+}) {
+  const [shown, setShown] = React.useState("");
+  React.useEffect(() => {
+    let t: any;
+    let step: any;
+
+    const startTyping = () => {
+      let i = 0;
+      step = setInterval(() => {
+        i++;
+        setShown(text.slice(0, i));
+        if (i >= text.length) {
+          clearInterval(step);
+          t = setTimeout(() => {
+            if (loop) startErasing();
+          }, pauseAfterType);
+        }
+      }, speed);
+    };
+
+    const startErasing = () => {
+      let i = text.length;
+      step = setInterval(() => {
+        i--;
+        setShown(text.slice(0, Math.max(0, i)));
+        if (i <= 0) {
+          clearInterval(step);
+          t = setTimeout(() => {
+            if (loop) startTyping();
+          }, pauseAfterErase);
+        }
+      }, eraseSpeed);
+    };
+
+    t = setTimeout(startTyping, startDelay);
+    return () => {
+      clearTimeout(t);
+      clearInterval(step);
+    };
+  }, [text, speed, eraseSpeed, startDelay, pauseAfterType, pauseAfterErase, loop]);
+
+  return (
+    <div className="mt-3 text-center text-sm md:text-base text-cyan-100/80">
+      <span>{shown}</span>
+      {caret && (
+        <span
+          aria-hidden
+          className="ml-1 inline-block h-[1.05em] align-[-0.06em] w-[.65ch] bg-cyan-300/80 animate-blink"
+        />
+      )}
+      <style jsx>{`
+        @keyframes blink {
+          0%, 49% { opacity: 1; }
+          50%, 100% { opacity: 0; }
+        }
+        .animate-blink { animation: blink 1s steps(1, end) infinite; }
+      `}</style>
+    </div>
+  );
 }
 
 /* ============================== SVG helpers ============================== */
@@ -426,153 +692,6 @@ function roofDetails(bx: number, top: number, bw: number, idx: number) {
   return elements;
 }
 
-/* =========================== Rectangular Billboard =========================== */
-
-function RectBillboard({
-  w, h, title, tone,
-}: { w: number; h: number; title: string; tone: Tone }) {
-  const { neon, stroke } = toneColors(tone);
-  const layout = layoutLabel(title, w, h, 16, 14);
-
-  return (
-    <g>
-      {/* precise glow plate (same rect) */}
-      <rect
-        x={-10}
-        y={-10}
-        width={w + 20}
-        height={h + 20}
-        rx={8}
-        ry={8}
-        fill={neon}
-        opacity={0.16}
-        filter={`url(#glow-${tone})`}
-      />
-      {/* cabinet */}
-      <rect
-        x={0}
-        y={0}
-        width={w}
-        height={h}
-        rx={6}
-        ry={6}
-        fill="url(#glass)"
-        stroke={stroke}
-        strokeWidth={3}
-        style={{ filter: `drop-shadow(0 0 12px ${neon}) drop-shadow(0 0 24px ${neon})` }}
-      />
-      {/* subtle rim */}
-      <rect x={w - 6} y={4} width={4} height={h - 8} fill={stroke} opacity={0.35} />
-      {/* label */}
-      <g style={{ pointerEvents: "none" }}>
-        {layout.lines.map((ln, i) => (
-          <text
-            key={i}
-            x={w / 2}
-            y={h / 2 + (i - (layout.lines.length - 1) / 2) * layout.lineHeight}
-            textAnchor="middle"
-            dominantBaseline="central"
-            fontSize={layout.fontSize}
-            fill="#d9faff"
-            style={{ fontWeight: 700, letterSpacing: "1px" }}
-          >
-            {ln}
-          </text>
-        ))}
-      </g>
-    </g>
-  );
-}
-
-/* ============================ Typing Subheading (Looping) ============================ */
-
-function TypingLine({
-  text,
-  speed = 40,        // ms per typed character
-  eraseSpeed = 28,   // ms per erased character
-  startDelay = 300,  // ms before first typing starts
-  pauseAfterType = 1100,
-  pauseAfterErase = 600,
-  caret = true,
-  loop = true,
-}: {
-  text: string;
-  speed?: number;
-  eraseSpeed?: number;
-  startDelay?: number;
-  pauseAfterType?: number;
-  pauseAfterErase?: number;
-  caret?: boolean;
-  loop?: boolean;
-}) {
-  const [shown, setShown] = React.useState("");
-  const [phase, setPhase] = React.useState<"idle"|"typing"|"hold"|"erasing"|"hold2">("idle");
-
-  React.useEffect(() => {
-    let t: any;
-    let step: any;
-
-    const startTyping = () => {
-      setPhase("typing");
-      let i = 0;
-      step = setInterval(() => {
-        i++;
-        setShown(text.slice(0, i));
-        if (i >= text.length) {
-          clearInterval(step);
-          setPhase("hold");
-          t = setTimeout(() => {
-            if (loop) startErasing(); else setPhase("idle");
-          }, pauseAfterType);
-        }
-      }, speed);
-    };
-
-    const startErasing = () => {
-      setPhase("erasing");
-      let i = text.length;
-      step = setInterval(() => {
-        i--;
-        setShown(text.slice(0, Math.max(0, i)));
-        if (i <= 0) {
-          clearInterval(step);
-          setPhase("hold2");
-          t = setTimeout(() => {
-            if (loop) startTyping(); else setPhase("idle");
-          }, pauseAfterErase);
-        }
-      }, eraseSpeed);
-    };
-
-    // initial delay
-    t = setTimeout(startTyping, startDelay);
-
-    return () => {
-      clearTimeout(t);
-      clearInterval(step);
-    };
-  }, [text, speed, eraseSpeed, startDelay, pauseAfterType, pauseAfterErase, loop]);
-
-  return (
-    <div className="mt-3 text-center text-sm md:text-base text-cyan-100/80">
-      <span>{shown}</span>
-      {caret && (
-        <span
-          aria-hidden
-          className="ml-1 inline-block h-[1.05em] align-[-0.06em] w-[.65ch] bg-cyan-300/80 animate-blink"
-        />
-      )}
-      <style jsx>{`
-        @keyframes blink {
-          0%, 49% { opacity: 1; }
-          50%, 100% { opacity: 0; }
-        }
-        .animate-blink { animation: blink 1s steps(1, end) infinite; }
-      `}</style>
-    </div>
-  );
-}
-
 /* ============================== Component ============================== */
 
 export default function ServicesCityscape() {
@@ -718,7 +837,7 @@ export default function ServicesCityscape() {
             <rect x="0" y="533" width="1360" height="34" fill="url(#fog)" opacity={0.6} />
 
             {/* --------- rectangular billboards (clamped to frame) --------- */}
-            {BUILDINGS.map((b) => {
+            {BUILDINGS.map((b, idx) => {
               const svc = SERVICES.find((s) => s.id === b.id)!;
               const { bw, bh } = billboardSizeFor(b.w);
               const roof = Math.max(40, b.baseY - b.h);
@@ -727,8 +846,14 @@ export default function ServicesCityscape() {
               const xTarget = Math.round(Math.max(6, Math.min(1360 - bw - 6, b.x + (b.w - bw) / 2)));
 
               return (
-                <g key={`${b.id}-hdr`} transform={`translate(${xTarget} ${Math.round(yTarget)})`} style={{ cursor: "pointer" }} onClick={() => open(b.id)}>
-                  <RectBillboard w={bw} h={bh} title={svc.title} tone={b.tone} />
+                <g
+                  key={`${b.id}-hdr`}
+                  transform={`translate(${xTarget} ${Math.round(yTarget)})`}
+                  style={{ cursor: "pointer" }}
+                  onClick={() => open(b.id)}
+                >
+                  {/* seed ensures deterministic first-jitter per board */}
+                  <RectBillboard w={bw} h={bh} title={svc.title} tone={b.tone} seed={b.x + idx * 101} />
                 </g>
               );
             })}
