@@ -50,7 +50,8 @@ const EDUCATION: Edu[] = [
   {
     id: "ballstate",
     years: "2020 – 2024",
-    label: "Ball State University | B.G.S. – Mathematics, A.A. – Computer Science",
+    label:
+      "Ball State University | B.G.S. – Mathematics, A.A. – Computer Science",
     placement: "below",
     credentials: [
       "B.G.S. – Mathematics",
@@ -61,35 +62,6 @@ const EDUCATION: Edu[] = [
       "Dean’s List Summer 2023",
       "Launched Palmer Projects — Freelance Data Services",
     ],
-    courses: {
-      math: [
-        "MATH 113: Precalculus Algebra",
-        "MATH 114: Precalculus Trigonometry",
-        "MATH 125: Mathematics Applications",
-        "MATH 165: Calculus I",
-        "MATH 166: Calculus II",
-        "MATH 215: Discrete Systems",
-        "MATH 267: Calculus III",
-        "MATH 320: Probability",
-        "MATH 321: Mathematical Statistics",
-      ],
-      cs: [
-        "CS 120: Computer Science I | Programming Fundamentals",
-        "CS 121: Computer Science II | Data Structures & OOP",
-        "CS 224: Design & Analysis of Algorithms",
-        "CS 230: Computer Organization & Architecture",
-      ],
-      finance: ["FIN 101: Personal Finance", "FIN 110: Personal Finance"],
-      other: [
-        "IMM 140: CyberSecurity (Franklin College)",
-        "LA 103: Quantitative Reasoning (Franklin College)",
-        "PHYC 100: Conceptual Physics",
-        "BA 205: Foundations of Business Analytics",
-        "ISOM 125: Intro to Business Computer Applications",
-        "GCM 184: Graphics | Computer Applications",
-        "CT 100: Future Technology Innovations",
-      ],
-    },
   },
   {
     id: "google-ada",
@@ -103,18 +75,6 @@ const EDUCATION: Edu[] = [
       "Tableau data visualization",
       "Capstone: Logistic Regression & Tree-Based ML (see Projects)",
     ],
-    courses: {
-      foundations: ["Foundations of Data Science", "Get Started with Python"],
-      analytics: [
-        "Go Beyond the Numbers: Translate Data into Insights",
-        "The Power of Statistics",
-      ],
-      ml: [
-        "Regression Analysis: Simplify Complex Data Relationships",
-        "The Nuts and Bolts of Machine Learning",
-      ],
-      capstone: ["Google Advanced Data Analytics Capstone"],
-    },
   },
   {
     id: "pitt-mds",
@@ -130,39 +90,20 @@ const EDUCATION: Edu[] = [
       "Jupyter Notebooks",
       "Anaconda",
     ],
-    courses: {
-      programming: ["CMPINF 2100: Data-Centric Computing"],
-      foundations: [
-        "CMPINF 2105: Mathematical & Statistical Foundations for Data Science",
-        "CMPINF 2140: Responsible Data Science",
-      ],
-      core: [
-        "CMPINF 2110: Managing, Querying, and Preserving Data",
-        "CMPINF 2120: Applied Predictive Modeling",
-        "CMPINF 2130: The Art of Data Visualization",
-      ],
-      electives: [
-        "CMPINF 2211: Foundations of Cloud Computing for Data Science Professionals",
-        "CMPINF 2221: Applied Bayesian Data Analysis",
-        "CMPINF 2223: LLMs and Their Applications",
-      ],
-      capstone: ["CMPINF 2910: Case Studies in Data Science"],
-    },
   },
 ];
 
 export default function EducationHUD() {
   const items = useMemo(() => EDUCATION, []);
   const [open, setOpen] = useState<Edu | null>(null);
-  const [coursesOpen, setCoursesOpen] = useState(false);
 
   useEffect(() => {
     const had = document.body.style.overflow;
-    if (open || coursesOpen) document.body.style.overflow = "hidden";
+    if (open) document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = had;
     };
-  }, [open, coursesOpen]);
+  }, [open]);
 
   return (
     <section
@@ -178,72 +119,71 @@ export default function EducationHUD() {
         </p>
       </div>
 
-      {/* Timeline block with shortened width */}
-      <div className="relative w-full h-56 md:h-64">
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92%] md:w-[86%]">
-          {/* spine runs through node centers */}
-          <div className="h-[2px] rounded-full bg-gradient-to-r from-cyan-400/60 via-cyan-400/30 to-fuchsia-400/60" />
+      {/* Timeline container */}
+      <div className="relative w-full h-56 md:h-64 flex items-center">
+        {/* 2015 label */}
+        <span className="text-cyan-300/80 text-xs md:text-sm mr-2">2015</span>
 
-          {/* year labels hugging first/last nodes */}
-          <div className="mt-3 flex items-center justify-between text-cyan-300/80 text-xs md:text-sm">
-            <span>2015</span>
-            <span>Present</span>
-          </div>
+        {/* Spine with nodes */}
+        <div className="relative flex-1 h-[2px] bg-gradient-to-r from-cyan-400/60 via-cyan-400/30 to-fuchsia-400/60">
+          {/* Nodes evenly spaced */}
+          <div className="absolute inset-0 flex justify-between items-center">
+            {items.map((edu) => (
+              <div
+                key={edu.id}
+                className="relative flex items-center justify-center"
+              >
+                {/* Node */}
+                <button
+                  onClick={() => setOpen(edu)}
+                  className="group relative h-4 w-4 rounded-full bg-cyan-400 shadow-[0_0_20px_rgba(0,255,255,.6)]"
+                  aria-haspopup="dialog"
+                  aria-label={`${edu.label} — ${edu.years}`}
+                >
+                  <span className="pointer-events-none absolute -inset-1 rounded-full bg-cyan-400/70 blur-sm opacity-70 group-hover:opacity-100 transition-opacity" />
+                </button>
 
-          {/* nodes centered on the spine, evenly spaced within shortened width */}
-          <div className="absolute inset-x-0 top-1/2 -translate-y-1/2">
-            <div className="flex justify-between items-center">
-              {items.map((edu) => (
-                <div key={edu.id} className="relative flex items-center justify-center">
-                  {/* node */}
-                  <button
-                    onClick={() => setOpen(edu)}
-                    className="group relative h-4 w-4 rounded-full bg-cyan-400 shadow-[0_0_20px_rgba(0,255,255,.6)]"
-                    aria-haspopup="dialog"
-                    aria-label={`${edu.label} — ${edu.years}`}
-                  >
-                    <span className="pointer-events-none absolute -inset-1 rounded-full bg-cyan-400/70 blur-sm opacity-70 group-hover:opacity-100 transition-opacity" />
-                  </button>
+                {/* Connector */}
+                {edu.placement === "above" ? (
+                  <div className="absolute left-1/2 -translate-x-1/2 top-[-92px] md:top-[-112px] h-[80px] md:h-[96px] w-[2px] bg-cyan-400/40" />
+                ) : (
+                  <div className="absolute left-1/2 -translate-x-1/2 bottom-[-92px] md:bottom-[-112px] h-[80px] md:h-[96px] w-[2px] bg-cyan-400/40" />
+                )}
 
-                  {/* connector that does not touch the spine */}
-                  {edu.placement === "above" ? (
-                    <div className="absolute left-1/2 -translate-x-1/2 top-[-92px] md:top-[-112px] h-[80px] md:h-[96px] w-[2px] bg-cyan-400/40" />
-                  ) : (
-                    <div className="absolute left-1/2 -translate-x-1/2 bottom-[-92px] md:bottom-[-112px] h-[80px] md:h-[96px] w-[2px] bg-cyan-400/40" />
-                  )}
-
-                  {/* label card */}
-                  {edu.placement === "above" ? (
-                    <div className="absolute left-1/2 -translate-x-1/2 top-[-128px] md:top-[-156px] w-[min(48ch,46vw)]">
-                      <div className="rounded-xl border border-cyan-400/40 bg-slate-900/60 p-3 text-center shadow-[0_0_24px_rgba(0,255,255,0.18)]">
-                        <div className="text-xs md:text-sm text-cyan-200 font-semibold">
-                          {edu.label}
-                        </div>
-                        <div className="mt-1 text-[11px] md:text-xs text-cyan-300/80">
-                          {edu.years}
-                        </div>
+                {/* Label card */}
+                {edu.placement === "above" ? (
+                  <div className="absolute left-1/2 -translate-x-1/2 top-[-128px] md:top-[-156px] w-[min(48ch,46vw)]">
+                    <div className="rounded-xl border border-cyan-400/40 bg-slate-900/60 p-3 text-center shadow-[0_0_24px_rgba(0,255,255,0.18)]">
+                      <div className="text-xs md:text-sm text-cyan-200 font-semibold">
+                        {edu.label}
+                      </div>
+                      <div className="mt-1 text-[11px] md:text-xs text-cyan-300/80">
+                        {edu.years}
                       </div>
                     </div>
-                  ) : (
-                    <div className="absolute left-1/2 -translate-x-1/2 bottom-[-128px] md:bottom-[-156px] w-[min(48ch,46vw)]">
-                      <div className="rounded-xl border border-cyan-400/40 bg-slate-900/60 p-3 text-center shadow-[0_0_24px_rgba(0,255,255,0.18)]">
-                        <div className="text-xs md:text-sm text-cyan-200 font-semibold">
-                          {edu.label}
-                        </div>
-                        <div className="mt-1 text-[11px] md:text-xs text-cyan-300/80">
-                          {edu.years}
-                        </div>
+                  </div>
+                ) : (
+                  <div className="absolute left-1/2 -translate-x-1/2 bottom-[-128px] md:bottom-[-156px] w-[min(48ch,46vw)]">
+                    <div className="rounded-xl border border-cyan-400/40 bg-slate-900/60 p-3 text-center shadow-[0_0_24px_rgba(0,255,255,0.18)]">
+                      <div className="text-xs md:text-sm text-cyan-200 font-semibold">
+                        {edu.label}
+                      </div>
+                      <div className="mt-1 text-[11px] md:text-xs text-cyan-300/80">
+                        {edu.years}
                       </div>
                     </div>
-                  )}
-                </div>
-              ))}
-            </div>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
+
+        {/* Present label */}
+        <span className="text-cyan-300/80 text-xs md:text-sm ml-2">Present</span>
       </div>
 
-      {/* Extra bottom breathing room */}
+      {/* Extra breathing room */}
       <div className="mt-24 md:mt-32" />
 
       <AnimatePresence>
@@ -286,58 +226,6 @@ export default function EducationHUD() {
                     <InfoSection title="Highlights" items={open.highlights} />
                   )}
                 </div>
-
-                {open.courses && (
-                  <div className="mt-6">
-                    <button
-                      onClick={() => setCoursesOpen(true)}
-                      className="inline-flex items-center gap-2 rounded-md border border-cyan-400/50 bg-cyan-400/10 px-3 py-2 text-cyan-200 hover:bg-cyan-400/20"
-                      aria-haspopup="dialog"
-                    >
-                      Courses
-                    </button>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {open && open.courses && coursesOpen && (
-          <motion.div
-            className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setCoursesOpen(false)}
-          >
-            <motion.div
-              role="dialog"
-              aria-modal="true"
-              className="hud-scan pointer-events-auto w-[min(92vw,900px)] max-w-full overflow-hidden rounded-2xl border border-cyan-400/60 bg-slate-950/85 shadow-[0_0_60px_rgba(0,255,255,0.35)]"
-              initial={{ scale: 0.96, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.98, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 140, damping: 18 }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="relative flex items-center justify-between border-b border-cyan-400/40 bg-slate-900/60 px-5 py-3">
-                <h3 className="text-cyan-200 font-semibold tracking-wide">
-                  Courses — {open.label}
-                </h3>
-                <button
-                  onClick={() => setCoursesOpen(false)}
-                  className="rounded-md border border-cyan-400/40 bg-cyan-400/10 px-2 py-1 text-cyan-200 hover:bg-cyan-400/20"
-                  aria-label="Close"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              <div className="max-h-[72vh] overflow-y-auto px-5 py-4 grid gap-5 md:grid-cols-2">
-                {renderCourseBuckets(open.courses)}
               </div>
             </motion.div>
           </motion.div>
@@ -361,39 +249,4 @@ function InfoSection({ title, items }: { title: string; items: string[] }) {
       </ul>
     </div>
   );
-}
-
-function renderCourseBuckets(b?: CourseBuckets) {
-  if (!b) return null;
-  const sections: Array<[string, string[] | undefined]> = [
-    ["Programming", b.programming ?? []],
-    ["Foundations", b.foundations ?? []],
-    ["Computing Core", b.core ?? []],
-    ["Mathematics", b.math ?? []],
-    ["Computer Science", b.cs ?? []],
-    ["Finance", b.finance ?? []],
-    ["Analytics & Insights", b.analytics ?? []],
-    ["Modeling & ML", b.ml ?? []],
-    ["Electives", b.electives ?? []],
-    ["Other / Supporting", b.other ?? []],
-    ["Capstone", b.capstone ?? []],
-  ];
-  return sections
-    .filter(([, arr]) => arr && arr.length)
-    .map(([label, arr]) => (
-      <div
-        key={label}
-        className="rounded-xl border border-cyan-400/40 bg-slate-900/40 p-4"
-      >
-        <div className="mb-2 text-cyan-300 font-semibold">{label}</div>
-        <ul className="space-y-1.5 text-sm leading-snug text-teal-100/90">
-          {arr!.map((t, i) => (
-            <li key={i} className="flex gap-2">
-              <span className="mt-[7px] h-[6px] w-[6px] rounded-full bg-cyan-400/70" />
-              <span>{t}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    ));
 }
