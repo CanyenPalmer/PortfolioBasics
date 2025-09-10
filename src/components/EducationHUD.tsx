@@ -179,18 +179,19 @@ export default function EducationHUD() {
 
       {/* Timeline */}
       <div className="relative w-full h-64 md:h-72 overflow-visible">
-        {/* bookends pulled just inside edges to avoid clipping */}
+        {/* Bookend labels */}
         <span className="absolute left-2 top-1/2 -translate-y-1/2 text-cyan-300/80 text-xs md:text-sm whitespace-nowrap">
           2015
         </span>
-        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-cyan-300/80 text-xs md:text-sm whitespace-nowrap">
+        <span className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 z-10 text-cyan-300/80 text-xs md:text-sm whitespace-nowrap pointer-events-none">
           Present
         </span>
 
-        {/* spine spans almost full width, respecting bookends */}
-        <div className="absolute inset-y-1/2 -translate-y-1/2 left-12 right-12">
+        {/* Spine */}
+        <div className="absolute inset-y-1/2 -translate-y-1/2 left-12 right-16">
           <div className="h-[2px] rounded-full bg-gradient-to-r from-cyan-400/60 via-cyan-400/30 to-fuchsia-400/60" />
 
+          {/* Nodes */}
           <div className="absolute inset-0 flex justify-between items-center">
             {items.map((edu) => (
               <div key={edu.id} className="relative flex items-center justify-center">
@@ -240,6 +241,7 @@ export default function EducationHUD() {
 
       <div className="mt-24 md:mt-32" />
 
+      {/* Modal */}
       <AnimatePresence>
         {open && (
           <motion.div
@@ -298,6 +300,7 @@ export default function EducationHUD() {
         )}
       </AnimatePresence>
 
+      {/* Courses Modal */}
       <AnimatePresence>
         {open && open.courses && coursesOpen && (
           <motion.div
