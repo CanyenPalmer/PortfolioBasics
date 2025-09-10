@@ -32,7 +32,8 @@ const EDUCATION: Edu[] = [
   {
     id: "gchs",
     years: "2015 – 2019",
-    label: "Greenfield-Central High School | Academic & Technical Honors Diplomas",
+    label:
+      "Greenfield-Central High School | Academic & Technical Honors Diplomas",
     placement: "above",
     credentials: [
       "Academic Honors Diploma",
@@ -150,12 +151,6 @@ const EDUCATION: Edu[] = [
   },
 ];
 
-function HoloBg() {
-  return (
-    <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_0%,rgba(0,255,255,0.08),transparent_40%),linear-gradient(to_right,rgba(0,255,255,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,255,255,0.06)_1px,transparent_1px)] bg-[size:auto,80px_1px,1px_80px]" />
-  );
-}
-
 export default function EducationHUD() {
   const items = useMemo(() => EDUCATION, []);
   const [open, setOpen] = useState<Edu | null>(null);
@@ -183,66 +178,68 @@ export default function EducationHUD() {
         </p>
       </div>
 
-      <HoloBg />
-
-      {/* Spine container with nodes centered on the line */}
+      {/* Timeline block with shortened width */}
       <div className="relative w-full h-56 md:h-64">
-        {/* Spine exactly through node centers */}
-        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[2px] rounded-full bg-gradient-to-r from-cyan-400/60 via-cyan-400/30 to-fuchsia-400/60" />
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92%] md:w-[86%]">
+          {/* spine runs through node centers */}
+          <div className="h-[2px] rounded-full bg-gradient-to-r from-cyan-400/60 via-cyan-400/30 to-fuchsia-400/60" />
 
-        {/* End labels pinned to the extreme ends */}
-        <div className="absolute inset-x-0 top-[calc(50%+36px)] flex justify-between text-cyan-300/80 text-xs md:text-sm">
-          <span>2015</span>
-          <span>Present</span>
-        </div>
+          {/* year labels hugging first/last nodes */}
+          <div className="mt-3 flex items-center justify-between text-cyan-300/80 text-xs md:text-sm">
+            <span>2015</span>
+            <span>Present</span>
+          </div>
 
-        {/* Evenly spaced nodes along the spine */}
-        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between items-center">
-          {items.map((edu) => (
-            <div key={edu.id} className="relative flex items-center justify-center">
-              {/* Node */}
-              <button
-                onClick={() => setOpen(edu)}
-                className="group relative h-4 w-4 rounded-full bg-cyan-400 shadow-[0_0_20px_rgba(0,255,255,.6)]"
-                aria-haspopup="dialog"
-                aria-label={`${edu.label} — ${edu.years}`}
-              >
-                <span className="pointer-events-none absolute -inset-1 rounded-full bg-cyan-400/70 blur-sm opacity-70 group-hover:opacity-100 transition-opacity" />
-              </button>
+          {/* nodes centered on the spine, evenly spaced within shortened width */}
+          <div className="absolute inset-x-0 top-1/2 -translate-y-1/2">
+            <div className="flex justify-between items-center">
+              {items.map((edu) => (
+                <div key={edu.id} className="relative flex items-center justify-center">
+                  {/* node */}
+                  <button
+                    onClick={() => setOpen(edu)}
+                    className="group relative h-4 w-4 rounded-full bg-cyan-400 shadow-[0_0_20px_rgba(0,255,255,.6)]"
+                    aria-haspopup="dialog"
+                    aria-label={`${edu.label} — ${edu.years}`}
+                  >
+                    <span className="pointer-events-none absolute -inset-1 rounded-full bg-cyan-400/70 blur-sm opacity-70 group-hover:opacity-100 transition-opacity" />
+                  </button>
 
-              {/* Connector that DOES NOT touch the spine (starts just off the node) */}
-              {edu.placement === "above" ? (
-                <div className="absolute left-1/2 -translate-x-1/2 top-[-92px] md:top-[-112px] h-[80px] md:h-[96px] w-[2px] bg-cyan-400/40" />
-              ) : (
-                <div className="absolute left-1/2 -translate-x-1/2 bottom-[-92px] md:bottom-[-112px] h-[80px] md:h-[96px] w-[2px] bg-cyan-400/40" />
-              )}
+                  {/* connector that does not touch the spine */}
+                  {edu.placement === "above" ? (
+                    <div className="absolute left-1/2 -translate-x-1/2 top-[-92px] md:top-[-112px] h-[80px] md:h-[96px] w-[2px] bg-cyan-400/40" />
+                  ) : (
+                    <div className="absolute left-1/2 -translate-x-1/2 bottom-[-92px] md:bottom-[-112px] h-[80px] md:h-[96px] w-[2px] bg-cyan-400/40" />
+                  )}
 
-              {/* Label card */}
-              {edu.placement === "above" ? (
-                <div className="absolute left-1/2 -translate-x-1/2 top-[-128px] md:top-[-156px] w-[min(48ch,46vw)]">
-                  <div className="rounded-xl border border-cyan-400/40 bg-slate-900/60 p-3 text-center shadow-[0_0_24px_rgba(0,255,255,0.18)]">
-                    <div className="text-xs md:text-sm text-cyan-200 font-semibold">
-                      {edu.label}
+                  {/* label card */}
+                  {edu.placement === "above" ? (
+                    <div className="absolute left-1/2 -translate-x-1/2 top-[-128px] md:top-[-156px] w-[min(48ch,46vw)]">
+                      <div className="rounded-xl border border-cyan-400/40 bg-slate-900/60 p-3 text-center shadow-[0_0_24px_rgba(0,255,255,0.18)]">
+                        <div className="text-xs md:text-sm text-cyan-200 font-semibold">
+                          {edu.label}
+                        </div>
+                        <div className="mt-1 text-[11px] md:text-xs text-cyan-300/80">
+                          {edu.years}
+                        </div>
+                      </div>
                     </div>
-                    <div className="mt-1 text-[11px] md:text-xs text-cyan-300/80">
-                      {edu.years}
+                  ) : (
+                    <div className="absolute left-1/2 -translate-x-1/2 bottom-[-128px] md:bottom-[-156px] w-[min(48ch,46vw)]">
+                      <div className="rounded-xl border border-cyan-400/40 bg-slate-900/60 p-3 text-center shadow-[0_0_24px_rgba(0,255,255,0.18)]">
+                        <div className="text-xs md:text-sm text-cyan-200 font-semibold">
+                          {edu.label}
+                        </div>
+                        <div className="mt-1 text-[11px] md:text-xs text-cyan-300/80">
+                          {edu.years}
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
-              ) : (
-                <div className="absolute left-1/2 -translate-x-1/2 bottom-[-128px] md:bottom-[-156px] w-[min(48ch,46vw)]">
-                  <div className="rounded-xl border border-cyan-400/40 bg-slate-900/60 p-3 text-center shadow-[0_0_24px_rgba(0,255,255,0.18)]">
-                    <div className="text-xs md:text-sm text-cyan-200 font-semibold">
-                      {edu.label}
-                    </div>
-                    <div className="mt-1 text-[11px] md:text-xs text-cyan-300/80">
-                      {edu.years}
-                    </div>
-                  </div>
-                </div>
-              )}
+              ))}
             </div>
-          ))}
+          </div>
         </div>
       </div>
 
@@ -400,4 +397,3 @@ function renderCourseBuckets(b?: CourseBuckets) {
       </div>
     ));
 }
-
