@@ -1,33 +1,16 @@
 "use client";
 
-import { useCallback, useState } from "react";
-
 import Hero from "@/components/Hero";
 import Experience from "@/components/Experience";
 import ServicesCityscape from "@/components/ServicesCityscape";
 import ProjectsHUD from "@/components/ProjectsHUD";
+import EducationHUD from "@/components/EducationHUD";
 
-/**
- * NOTE:
- * - The VSCodeBar is already rendered globally in layout.tsx.
- * - No need to import or render it here, otherwise you'll see duplicates.
- * - Scroll highlighting + navigation still work because the bar is global.
- */
-
-export default function HomePage() {
-  // If your app already manages activeSection elsewhere, keep using that.
-  // Keeping this here won't hurt but can be removed if unused.
-  const [activeSection] = useState<string | null>(null);
-
-  const onJump = useCallback((id: string) => {
-    const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, []);
-
+export default function Page() {
   return (
-    <main className="min-h-screen bg-slate-950 text-teal-50">
-      {/* Hero */}
-      <section id="home" aria-label="Home">
+    <main className="relative">
+      {/* Hero Section */}
+      <section id="hero" aria-label="Hero">
         <Hero />
       </section>
 
@@ -42,9 +25,14 @@ export default function HomePage() {
       </section>
 
       {/* Projects */}
-      <ProjectsHUD />
+      <section id="projects" aria-label="Projects">
+        <ProjectsHUD />
+      </section>
 
-      {/* ...other sections if you add them later */}
+      {/* Education */}
+      <section id="education" aria-label="Education">
+        <EducationHUD />
+      </section>
     </main>
   );
 }
