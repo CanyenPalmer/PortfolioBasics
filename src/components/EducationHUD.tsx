@@ -170,12 +170,15 @@ export default function EducationHUD() {
   }, [open, coursesOpen]);
 
   return (
-    <section id="education" className="relative mx-auto max-w-7xl px-4 py-28 md:py-36">
-      <div className="mb-10 md:mb-14">
+    <section
+      id="education"
+      className="relative mx-auto max-w-7xl px-4 py-32 md:py-40 scroll-mt-24"
+    >
+      <div className="mb-14 md:mb-20">
         <h2 className="text-center text-3xl md:text-4xl font-semibold tracking-[0.2em] text-cyan-300">
           EDUCATION
         </h2>
-        <p className="mt-3 text-center text-cyan-200/70">
+        <p className="mt-4 text-center text-cyan-200/70">
           Click a node to open the full academic dossier.
         </p>
       </div>
@@ -184,51 +187,54 @@ export default function EducationHUD() {
 
       <div className="relative">
         <div className="h-1 w-full rounded-full bg-gradient-to-r from-cyan-400/60 via-cyan-400/30 to-fuchsia-400/60" />
-        <div className="mt-2 flex justify-between text-cyan-300/80 text-xs md:text-sm">
-          <span>2015</span>
-          <span>Present</span>
-        </div>
 
-        {/* Evenly spaced nodes */}
-        <div className="relative mt-10">
-          <div className="flex justify-between items-start w-full">
-            {items.map((edu) => (
-              <div key={edu.id} className="relative flex flex-col items-center w-1/5">
-                <div
-                  className={`absolute left-1/2 -translate-x-1/2 ${
-                    edu.placement === "above" ? "bottom-full" : "top-full"
-                  } h-16 md:h-20 w-[2px] bg-cyan-400/40`}
-                />
-                <button
-                  onClick={() => setOpen(edu)}
-                  className="group relative mx-auto block h-4 w-4 rounded-full bg-cyan-400 shadow-[0_0_20px_rgba(0,255,255,.6)]"
-                  aria-haspopup="dialog"
-                  aria-label={`${edu.label} — ${edu.years}`}
-                >
-                  <span className="pointer-events-none absolute -inset-1 rounded-full bg-cyan-400/70 blur-sm opacity-70 group-hover:opacity-100 transition-opacity" />
-                </button>
+        {/* Evenly spaced nodes across the full width */}
+        <div className="mt-10 md:mt-16 w-full flex justify-between items-start">
+          {items.map((edu) => (
+            <div key={edu.id} className="relative flex flex-col items-center">
+              <div
+                className={`absolute left-1/2 -translate-x-1/2 ${
+                  edu.placement === "above" ? "bottom-full" : "top-full"
+                } h-20 md:h-24 w-[2px] bg-cyan-400/40`}
+              />
+              <button
+                onClick={() => setOpen(edu)}
+                className="group relative mx-auto block h-4 w-4 rounded-full bg-cyan-400 shadow-[0_0_20px_rgba(0,255,255,.6)]"
+                aria-haspopup="dialog"
+                aria-label={`${edu.label} — ${edu.years}`}
+              >
+                <span className="pointer-events-none absolute -inset-1 rounded-full bg-cyan-400/70 blur-sm opacity-70 group-hover:opacity-100 transition-opacity" />
+              </button>
 
-                <div
-                  className={`absolute ${
-                    edu.placement === "above"
-                      ? "bottom-[calc(100%+18px)]"
-                      : "top-[calc(100%+18px)]"
-                  } left-1/2 -translate-x-1/2 w-[min(46ch,44vw)]`}
-                >
-                  <div className="rounded-xl border border-cyan-400/40 bg-slate-900/60 p-3 text-center shadow-[0_0_24px_rgba(0,255,255,0.18)]">
-                    <div className="text-xs md:text-sm text-cyan-200 font-semibold">
-                      {edu.label}
-                    </div>
-                    <div className="mt-1 text-[11px] md:text-xs text-cyan-300/80">
-                      {edu.years}
-                    </div>
+              <div
+                className={`absolute ${
+                  edu.placement === "above"
+                    ? "bottom-[calc(100%+22px)]"
+                    : "top-[calc(100%+22px)]"
+                } left-1/2 -translate-x-1/2 w-[min(48ch,46vw)]`}
+              >
+                <div className="rounded-xl border border-cyan-400/40 bg-slate-900/60 p-3 text-center shadow-[0_0_24px_rgba(0,255,255,0.18)]">
+                  <div className="text-xs md:text-sm text-cyan-200 font-semibold">
+                    {edu.label}
+                  </div>
+                  <div className="mt-1 text-[11px] md:text-xs text-cyan-300/80">
+                    {edu.years}
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Start / Present labels */}
+        <div className="mt-6 md:mt-8 flex justify-between text-cyan-300/80 text-xs md:text-sm">
+          <span>2015</span>
+          <span>Present</span>
         </div>
       </div>
+
+      {/* Extra bottom breathing room so it never feels like a footer */}
+      <div className="mt-20 md:mt-28" />
 
       <AnimatePresence>
         {open && (
@@ -242,7 +248,7 @@ export default function EducationHUD() {
             <motion.div
               role="dialog"
               aria-modal="true"
-              className="hud-scan pointer-events-auto w:[min(92vw,980px)] w-[min(92vw,980px)] max-w-full overflow-hidden rounded-2xl border border-cyan-400/60 bg-slate-950/80 shadow-[0_0_60px_rgba(0,255,255,0.35)]"
+              className="hud-scan pointer-events-auto w-[min(92vw,980px)] max-w-full overflow-hidden rounded-2xl border border-cyan-400/60 bg-slate-950/80 shadow-[0_0_60px_rgba(0,255,255,0.35)]"
               initial={{ scale: 0.96, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.98, opacity: 0 }}
