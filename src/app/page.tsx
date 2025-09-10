@@ -29,10 +29,8 @@ export default function Page() {
         <ProjectsHUD />
       </section>
 
-      {/* Education */}
-      <section id="education" aria-label="Education">
-        <EducationHUD />
-      </section>
+      {/* Education (no outer wrapper with id to avoid duplicate IDs) */}
+      <EducationHUD />
     </main>
   );
 }
