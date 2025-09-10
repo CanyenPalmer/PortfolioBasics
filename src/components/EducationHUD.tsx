@@ -174,7 +174,7 @@ export default function EducationHUD() {
       id="education"
       className="relative mx-auto max-w-7xl px-4 py-32 md:py-40 scroll-mt-24"
     >
-      <div className="mb-14 md:mb-20">
+      <div className="mb-16 md:mb-20">
         <h2 className="text-center text-3xl md:text-4xl font-semibold tracking-[0.2em] text-cyan-300">
           EDUCATION
         </h2>
@@ -185,56 +185,69 @@ export default function EducationHUD() {
 
       <HoloBg />
 
-      <div className="relative">
-        <div className="h-1 w-full rounded-full bg-gradient-to-r from-cyan-400/60 via-cyan-400/30 to-fuchsia-400/60" />
+      {/* Spine container with nodes centered on the line */}
+      <div className="relative w-full h-56 md:h-64">
+        {/* Spine exactly through node centers */}
+        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[2px] rounded-full bg-gradient-to-r from-cyan-400/60 via-cyan-400/30 to-fuchsia-400/60" />
 
-        {/* Evenly spaced nodes across the full width */}
-        <div className="mt-10 md:mt-16 w-full flex justify-between items-start">
+        {/* End labels pinned to the extreme ends */}
+        <div className="absolute inset-x-0 top-[calc(50%+36px)] flex justify-between text-cyan-300/80 text-xs md:text-sm">
+          <span>2015</span>
+          <span>Present</span>
+        </div>
+
+        {/* Evenly spaced nodes along the spine */}
+        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between items-center">
           {items.map((edu) => (
-            <div key={edu.id} className="relative flex flex-col items-center">
-              <div
-                className={`absolute left-1/2 -translate-x-1/2 ${
-                  edu.placement === "above" ? "bottom-full" : "top-full"
-                } h-20 md:h-24 w-[2px] bg-cyan-400/40`}
-              />
+            <div key={edu.id} className="relative flex items-center justify-center">
+              {/* Node */}
               <button
                 onClick={() => setOpen(edu)}
-                className="group relative mx-auto block h-4 w-4 rounded-full bg-cyan-400 shadow-[0_0_20px_rgba(0,255,255,.6)]"
+                className="group relative h-4 w-4 rounded-full bg-cyan-400 shadow-[0_0_20px_rgba(0,255,255,.6)]"
                 aria-haspopup="dialog"
                 aria-label={`${edu.label} — ${edu.years}`}
               >
                 <span className="pointer-events-none absolute -inset-1 rounded-full bg-cyan-400/70 blur-sm opacity-70 group-hover:opacity-100 transition-opacity" />
               </button>
 
-              <div
-                className={`absolute ${
-                  edu.placement === "above"
-                    ? "bottom-[calc(100%+22px)]"
-                    : "top-[calc(100%+22px)]"
-                } left-1/2 -translate-x-1/2 w-[min(48ch,46vw)]`}
-              >
-                <div className="rounded-xl border border-cyan-400/40 bg-slate-900/60 p-3 text-center shadow-[0_0_24px_rgba(0,255,255,0.18)]">
-                  <div className="text-xs md:text-sm text-cyan-200 font-semibold">
-                    {edu.label}
-                  </div>
-                  <div className="mt-1 text-[11px] md:text-xs text-cyan-300/80">
-                    {edu.years}
+              {/* Connector that DOES NOT touch the spine (starts just off the node) */}
+              {edu.placement === "above" ? (
+                <div className="absolute left-1/2 -translate-x-1/2 top-[-92px] md:top-[-112px] h-[80px] md:h-[96px] w-[2px] bg-cyan-400/40" />
+              ) : (
+                <div className="absolute left-1/2 -translate-x-1/2 bottom-[-92px] md:bottom-[-112px] h-[80px] md:h-[96px] w-[2px] bg-cyan-400/40" />
+              )}
+
+              {/* Label card */}
+              {edu.placement === "above" ? (
+                <div className="absolute left-1/2 -translate-x-1/2 top-[-128px] md:top-[-156px] w-[min(48ch,46vw)]">
+                  <div className="rounded-xl border border-cyan-400/40 bg-slate-900/60 p-3 text-center shadow-[0_0_24px_rgba(0,255,255,0.18)]">
+                    <div className="text-xs md:text-sm text-cyan-200 font-semibold">
+                      {edu.label}
+                    </div>
+                    <div className="mt-1 text-[11px] md:text-xs text-cyan-300/80">
+                      {edu.years}
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="absolute left-1/2 -translate-x-1/2 bottom-[-128px] md:bottom-[-156px] w-[min(48ch,46vw)]">
+                  <div className="rounded-xl border border-cyan-400/40 bg-slate-900/60 p-3 text-center shadow-[0_0_24px_rgba(0,255,255,0.18)]">
+                    <div className="text-xs md:text-sm text-cyan-200 font-semibold">
+                      {edu.label}
+                    </div>
+                    <div className="mt-1 text-[11px] md:text-xs text-cyan-300/80">
+                      {edu.years}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
-
-        {/* Start / Present labels */}
-        <div className="mt-6 md:mt-8 flex justify-between text-cyan-300/80 text-xs md:text-sm">
-          <span>2015</span>
-          <span>Present</span>
-        </div>
       </div>
 
-      {/* Extra bottom breathing room so it never feels like a footer */}
-      <div className="mt-20 md:mt-28" />
+      {/* Extra bottom breathing room */}
+      <div className="mt-24 md:mt-32" />
 
       <AnimatePresence>
         {open && (
@@ -387,3 +400,4 @@ function renderCourseBuckets(b?: CourseBuckets) {
       </div>
     ));
 }
+
