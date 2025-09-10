@@ -177,26 +177,23 @@ export default function EducationHUD() {
         </p>
       </div>
 
-      {/* Timeline area */}
-      <div className="relative w-full h-64 md:h-72">
-        {/* Bookend labels locked to edges */}
-        <span className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 text-cyan-300/80 text-xs md:text-sm">
+      {/* Timeline */}
+      <div className="relative w-full h-64 md:h-72 overflow-visible">
+        {/* bookends pulled just inside edges to avoid clipping */}
+        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-cyan-300/80 text-xs md:text-sm whitespace-nowrap">
           2015
         </span>
-        <span className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1 text-cyan-300/80 text-xs md:text-sm">
+        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-cyan-300/80 text-xs md:text-sm whitespace-nowrap">
           Present
         </span>
 
-        {/* Spine spans almost full width with small insets so labels don't overlap */}
-        <div className="absolute inset-y-1/2 -translate-y-1/2 left-8 right-8">
-          {/* spine */}
+        {/* spine spans almost full width, respecting bookends */}
+        <div className="absolute inset-y-1/2 -translate-y-1/2 left-12 right-12">
           <div className="h-[2px] rounded-full bg-gradient-to-r from-cyan-400/60 via-cyan-400/30 to-fuchsia-400/60" />
 
-          {/* nodes on the spine */}
           <div className="absolute inset-0 flex justify-between items-center">
             {items.map((edu) => (
               <div key={edu.id} className="relative flex items-center justify-center">
-                {/* node (slightly larger for visibility) */}
                 <button
                   onClick={() => setOpen(edu)}
                   className="group relative h-[18px] w-[18px] rounded-full bg-cyan-400 shadow-[0_0_20px_rgba(0,255,255,.6)]"
@@ -206,14 +203,12 @@ export default function EducationHUD() {
                   <span className="pointer-events-none absolute -inset-1 rounded-full bg-cyan-400/70 blur-sm opacity-70 group-hover:opacity-100 transition-opacity" />
                 </button>
 
-                {/* connector that doesn't touch the spine */}
                 {edu.placement === "above" ? (
                   <div className="absolute left-1/2 -translate-x-1/2 top-[-104px] md:top-[-124px] h-[90px] md:h-[108px] w-[2px] bg-cyan-400/40" />
                 ) : (
                   <div className="absolute left-1/2 -translate-x-1/2 bottom-[-104px] md:bottom-[-124px] h-[90px] md:h-[108px] w-[2px] bg-cyan-400/40" />
                 )}
 
-                {/* label card */}
                 {edu.placement === "above" ? (
                   <div className="absolute left-1/2 -translate-x-1/2 top-[-148px] md:top-[-176px] w-[min(48ch,46vw)]">
                     <div className="rounded-xl border border-cyan-400/40 bg-slate-900/60 p-3 text-center shadow-[0_0_24px_rgba(0,255,255,0.18)]">
@@ -243,10 +238,8 @@ export default function EducationHUD() {
         </div>
       </div>
 
-      {/* bottom spacing so it feels like a section */}
       <div className="mt-24 md:mt-32" />
 
-      {/* modal */}
       <AnimatePresence>
         {open && (
           <motion.div
@@ -287,6 +280,58 @@ export default function EducationHUD() {
                     <InfoSection title="Highlights" items={open.highlights} />
                   )}
                 </div>
+
+                {open.courses && (
+                  <div className="mt-6">
+                    <button
+                      onClick={() => setCoursesOpen(true)}
+                      className="inline-flex items-center gap-2 rounded-md border border-cyan-400/50 bg-cyan-400/10 px-3 py-2 text-cyan-200 hover:bg-cyan-400/20"
+                      aria-haspopup="dialog"
+                    >
+                      Courses
+                    </button>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {open && open.courses && coursesOpen && (
+          <motion.div
+            className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setCoursesOpen(false)}
+          >
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              className="hud-scan pointer-events-auto w-[min(92vw,900px)] max-w-full overflow-hidden rounded-2xl border border-cyan-400/60 bg-slate-950/85 shadow-[0_0_60px_rgba(0,255,255,0.35)]"
+              initial={{ scale: 0.96, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.98, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 140, damping: 18 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="relative flex items-center justify-between border-b border-cyan-400/40 bg-slate-900/60 px-5 py-3">
+                <h3 className="text-cyan-200 font-semibold tracking-wide">
+                  Courses — {open.label}
+                </h3>
+                <button
+                  onClick={() => setCoursesOpen(false)}
+                  className="rounded-md border border-cyan-400/40 bg-cyan-400/10 px-2 py-1 text-cyan-200 hover:bg-cyan-400/20"
+                  aria-label="Close"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="max-h-[72vh] overflow-y-auto px-5 py-4 grid gap-5 md:grid-cols-2">
+                {renderCourseBuckets(open.courses)}
               </div>
             </motion.div>
           </motion.div>
@@ -310,4 +355,39 @@ function InfoSection({ title, items }: { title: string; items: string[] }) {
       </ul>
     </div>
   );
+}
+
+function renderCourseBuckets(b?: CourseBuckets) {
+  if (!b) return null;
+  const sections: Array<[string, string[] | undefined]> = [
+    ["Programming", b.programming ?? []],
+    ["Foundations", b.foundations ?? []],
+    ["Computing Core", b.core ?? []],
+    ["Mathematics", b.math ?? []],
+    ["Computer Science", b.cs ?? []],
+    ["Finance", b.finance ?? []],
+    ["Analytics & Insights", b.analytics ?? []],
+    ["Modeling & ML", b.ml ?? []],
+    ["Electives", b.electives ?? []],
+    ["Other / Supporting", b.other ?? []],
+    ["Capstone", b.capstone ?? []],
+  ];
+  return sections
+    .filter(([, arr]) => arr && arr.length)
+    .map(([label, arr]) => (
+      <div
+        key={label}
+        className="rounded-xl border border-cyan-400/40 bg-slate-900/40 p-4"
+      >
+        <div className="mb-2 text-cyan-300 font-semibold">{label}</div>
+        <ul className="space-y-1.5 text-sm leading-snug text-teal-100/90">
+          {arr!.map((t, i) => (
+            <li key={i} className="flex gap-2">
+              <span className="mt-[7px] h-[6px] w-[6px] rounded-full bg-cyan-400/70" />
+              <span>{t}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ));
 }
