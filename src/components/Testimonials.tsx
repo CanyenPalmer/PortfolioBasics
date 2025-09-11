@@ -52,7 +52,7 @@ function DossierCard({ t }: { t: MinimalTestimonial }) {
   const [flipped, setFlipped] = React.useState(false);
 
   const wrapper =
-    "relative h-[560px] md:h-[600px] lg:h-[640px] w-full rounded-2xl border border-cyan-300/30 bg-white/5 backdrop-blur-md shadow-[0_0_0_1px_rgba(0,229,255,.12)]";
+    "relative h-[560px] md:h-[600px] lg:h-[640px] w-full rounded-2xl border border-cyan-300/30 bg-white/5 backdrop-blur-md shadow-[0_0_0_1px_rgba(0,229,255,.12)] overflow-hidden";
 
   return (
     <motion.div
@@ -93,7 +93,9 @@ function DossierCard({ t }: { t: MinimalTestimonial }) {
               <div className="text-sm font-semibold text-white/90">{t.app}</div>
             </div>
 
-            <p className="mt-2 text-base/7 text-white/90 leading-relaxed">{teaserFromQuote(t.quote)}</p>
+            <p className="mt-2 text-base/7 text-white/90 leading-relaxed">
+              {teaserFromQuote(t.quote)}
+            </p>
 
             {(t.name || t.role) && (
               <div className="mt-4 text-sm text-white/60">
@@ -112,7 +114,8 @@ function DossierCard({ t }: { t: MinimalTestimonial }) {
           animate={flipped ? { rotateY: 0 } : { rotateY: -180 }}
           transition={{ duration: prefersReduced ? 0 : 0.36 }}
         >
-          <div className="flex h-full flex-col p-6 md:p-7">
+          <div className="flex h-full min-h-0 flex-col p-6 md:p-7">
+            {/* Header (static, not scrolling) */}
             <div>
               <div className="text-sm font-semibold text-white/90">{t.app}</div>
               {(t.name || t.role) && (
@@ -123,7 +126,8 @@ function DossierCard({ t }: { t: MinimalTestimonial }) {
               )}
             </div>
 
-            <div className="mt-4 space-y-4">
+            {/* Scrollable content area */}
+            <div className="mt-4 flex-1 overflow-y-auto space-y-4 pr-1">
               <p className="text-base/7 text-white/90 leading-relaxed">{t.quote}</p>
 
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -142,7 +146,8 @@ function DossierCard({ t }: { t: MinimalTestimonial }) {
               </div>
             </div>
 
-            <div className="mt-auto pt-6 text-xs text-white/60">Click to flip back ↺</div>
+            {/* Footer (pinned inside card) */}
+            <div className="pt-6 text-xs text-white/60">Click to flip back ↺</div>
           </div>
         </motion.div>
       </div>
