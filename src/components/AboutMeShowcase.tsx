@@ -160,7 +160,7 @@ const POSES: readonly Pose[] = [
           make life better for all.
         </p>
         <p>
-          I am currently <strong>open to work and collaborate</strong> with companies who share this
+          I am currently <strong>open to work and want to collaborate</strong> with companies who share this
           vision. If your mission is to build solutions that improve people’s lives,{" "}
           <strong>I’d love to connect and talk more.</strong>
         </p>
