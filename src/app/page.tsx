@@ -6,11 +6,12 @@ import ServicesCityscape from "@/components/ServicesCityscape";
 import ProjectsHUD from "@/components/ProjectsHUD";
 import EducationHUD from "@/components/EducationHUD";
 import AboutMeShowcase from "@/components/AboutMeShowcase";
+import Testimonials from "@/components/Testimonials";
 
 export default function Page() {
   return (
     <main className="relative">
-      {/* Hero Section */}
+      {/* Hero */}
       <section id="hero" aria-label="Hero">
         <Hero />
       </section>
@@ -35,9 +36,14 @@ export default function Page() {
         <EducationHUD />
       </section>
 
-      {/* About Me (moved after Education) */}
+      {/* About Me (kept after Education, per your layout) */}
       <section id="about" aria-label="About Me">
         <AboutMeShowcase />
+      </section>
+
+      {/* Testimonials (new, after About Me) */}
+      <section id="testimonials" aria-label="Testimonials">
+        <Testimonials />
       </section>
     </main>
   );
