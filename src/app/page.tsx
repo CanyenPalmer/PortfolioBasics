@@ -2,10 +2,10 @@
 
 import Hero from "@/components/Hero";
 import Experience from "@/components/Experience";
-import AboutMeShowcase from "@/components/AboutMeShowcase";
 import ServicesCityscape from "@/components/ServicesCityscape";
 import ProjectsHUD from "@/components/ProjectsHUD";
 import EducationHUD from "@/components/EducationHUD";
+import AboutMeShowcase from "@/components/AboutMeShowcase";
 
 export default function Page() {
   return (
@@ -18,11 +18,6 @@ export default function Page() {
       {/* Experience */}
       <section id="experience" aria-label="Experience">
         <Experience />
-      </section>
-
-      {/* About Me */}
-      <section id="about" aria-label="About Me">
-        <AboutMeShowcase />
       </section>
 
       {/* Services */}
@@ -38,6 +33,11 @@ export default function Page() {
       {/* Education */}
       <section id="education" aria-label="Education">
         <EducationHUD />
+      </section>
+
+      {/* About Me (moved after Education) */}
+      <section id="about" aria-label="About Me">
+        <AboutMeShowcase />
       </section>
     </main>
   );
