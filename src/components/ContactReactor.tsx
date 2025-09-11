@@ -12,11 +12,10 @@ type Props = {
 };
 
 /**
- * ContactReactor — Reactor core CTA with rotating branches & nodes
- * - Three rotating "arms" that connect from core -> node (GitHub, LinkedIn, Email)
- * - Inner orbit rotates CW, middle CCW, outer CW (all slow for easy clicking)
- * - SVG starfield/orbits in the back; HTML nodes in rotating wrappers for crisp interactivity
- * - Tailwind-only; no global CSS edits
+ * ContactReactor — centered stage:
+ * - One absolute, square "stage" box centers everything (rings, core, arms)
+ * - Rings, core, and rotating arms share the EXACT same center
+ * - Inner orbit CW, middle CCW, outer CW (slow for clickability)
  */
 export default function ContactReactor({
   linkedinHref = "https://www.linkedin.com/in/canyen-palmer-b0b6762a0",
@@ -72,9 +71,9 @@ export default function ContactReactor({
 
   /**
    * RotatingArm
-   * - A square wrapper centered on the core with size = 2 * radius
-   * - Inside, a mini-SVG draws a branch (line) from center to the right edge
-   * - A Node is placed at the right edge; wrapper rotation animates the whole arm+node around the core
+   * - A square wrapper centered on the stage with size = 2 * radius
+   * - A branch (line) from center to right edge + node anchored at the end
+   * - The entire wrapper rotates, keeping branch + node attached and centered to the core
    */
   const RotatingArm = ({
     radius,
@@ -92,6 +91,9 @@ export default function ContactReactor({
     href: string;
   }) => {
     const size = radius * 2;
+    const nodeSize = 56; // h-14 w-14
+    const nodeR = nodeSize / 2;
+
     return (
       <motion.div
         className="pointer-events-auto absolute"
@@ -103,13 +105,11 @@ export default function ContactReactor({
           transform: "translate(-50%, -50%)",
           transformOrigin: "center center",
         }}
-        aria-hidden={false}
         animate={{ rotate: reverse ? -360 : 360 }}
         transition={{ repeat: Infinity, duration, ease: "linear" }}
       >
-        {/* Branch from center to right edge */}
+        {/* Orbit (ghost ring) + branch from center to node anchor */}
         <svg viewBox={`0 0 ${size} ${size}`} className="absolute inset-0">
-          {/* subtle orbit line (ghost) */}
           <circle
             cx={radius}
             cy={radius}
@@ -118,23 +118,22 @@ export default function ContactReactor({
             strokeWidth={1}
             fill="none"
           />
-          {/* bright branch line (center -> node) */}
           <line
             x1={radius}
             y1={radius}
-            x2={size - 28} // stop slightly before edge so line tucks under the node circle nicely
+            x2={size - nodeR}
             y2={radius}
             className="stroke-cyan-300/50"
             strokeWidth={2.25}
           />
         </svg>
 
-        {/* Node anchored at the right edge of the arm */}
+        {/* Node exactly at end of branch */}
         <div
           className="absolute"
           style={{
-            left: size - 28 - 28, // align center of node where line ends (node is 56px; 28 is radius)
-            top: radius - 28,
+            left: size - nodeSize,
+            top: radius - nodeR,
           }}
         >
           <Node href={href} label={ariaLabel}>
@@ -151,7 +150,7 @@ export default function ContactReactor({
       aria-label="Contact"
       className="relative isolate overflow-hidden py-28 sm:py-36"
     >
-      {/* Subtle starfield / glow */}
+      {/* Subtle starfield / vignette */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(0,255,255,0.08),transparent_60%)]"
@@ -172,76 +171,80 @@ export default function ContactReactor({
           </p>
         </div>
 
-        {/* Stage */}
+        {/* === CENTERED STAGE (everything aligns to this box) === */}
         <div className="relative mx-auto grid place-items-center">
-          {/* Background orbits in a single SVG (bigger for more separation) */}
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          {/* Square stage ensures exact centering across rings, core, and arms */}
+          <div className="relative h-[640px] w-[640px] sm:h-[720px] sm:w-[720px]">
+            {/* Background concentric rings — SAME center as core & arms */}
             <svg
-              className="h-[520px] w-[520px] sm:h-[600px] sm:w-[600px]"
-              viewBox="0 0 600 600"
+              className="absolute inset-0 h-full w-full"
+              viewBox="0 0 720 720"
               fill="none"
             >
-              {/* faint concentric rings */}
-              <circle cx="300" cy="300" r="130" className="stroke-cyan-300/14" strokeWidth="1.5" />
-              <circle cx="300" cy="300" r="200" className="stroke-cyan-300/10" strokeWidth="1.5" />
-              <circle cx="300" cy="300" r="270" className="stroke-cyan-300/7" strokeWidth="1.5" />
+              <circle cx="360" cy="360" r="160" className="stroke-cyan-300/14" strokeWidth="1.5" />
+              <circle cx="360" cy="360" r="240" className="stroke-cyan-300/10" strokeWidth="1.5" />
+              <circle cx="360" cy="360" r="320" className="stroke-cyan-300/7" strokeWidth="1.5" />
             </svg>
+
+            {/* Core — perfectly centered inside stage */}
+            <motion.div
+              animate={coreControls}
+              className="absolute left-1/2 top-1/2 z-10 grid -translate-x-1/2 -translate-y-1/2 place-items-center"
+            >
+              <div className="relative h-44 w-44 rounded-full">
+                {/* inner glow */}
+                <div className="absolute inset-0 rounded-full bg-gradient-to-br from-cyan-300/60 via-indigo-400/60 to-fuchsia-400/60 blur-2xl" />
+                {/* core body */}
+                <div className="absolute inset-0 rounded-full bg-gradient-to-b from-cyan-400 to-indigo-500 shadow-[0_0_44px_rgba(34,211,238,0.45)]" />
+                {/* sheen */}
+                <div className="absolute inset-2 rounded-full bg-gradient-to-t from-transparent via-white/20 to-transparent opacity-60" />
+                {/* slow ring */}
+                <motion.div
+                  aria-hidden
+                  className="absolute -inset-2 rounded-full border border-cyan-300/30"
+                  animate={{ rotate: 360 }}
+                  transition={{ repeat: Infinity, duration: 28, ease: "linear" }}
+                />
+              </div>
+            </motion.div>
+
+            {/*
+              Rotating arms — centered within the SAME stage box
+              Radii chosen to match the background rings for perfect alignment.
+              - Inner: r=160, CW, 60s
+              - Middle: r=240, CCW, 80s
+              - Outer: r=320, CW, 100s
+            */}
+            <RotatingArm
+              radius={160}
+              duration={60}
+              reverse={false}
+              ariaLabel="GitHub"
+              href={githubHref}
+            >
+              <Github className="h-6 w-6 text-cyan-100" />
+            </RotatingArm>
+
+            <RotatingArm
+              radius={240}
+              duration={80}
+              reverse
+              ariaLabel="LinkedIn"
+              href={linkedinHref}
+            >
+              <Linkedin className="h-6 w-6 text-cyan-100" />
+            </RotatingArm>
+
+            <RotatingArm
+              radius={320}
+              duration={100}
+              reverse={false}
+              ariaLabel="Email"
+              href={emailHref}
+            >
+              <Mail className="h-6 w-6 text-cyan-100" />
+            </RotatingArm>
           </div>
-
-          {/* Core */}
-          <motion.div animate={coreControls} className="relative z-10 grid place-items-center">
-            <div className="relative h-44 w-44 rounded-full">
-              {/* inner glow */}
-              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-cyan-300/60 via-indigo-400/60 to-fuchsia-400/60 blur-2xl" />
-              {/* core body */}
-              <div className="absolute inset-0 rounded-full bg-gradient-to-b from-cyan-400 to-indigo-500 shadow-[0_0_44px_rgba(34,211,238,0.45)]" />
-              {/* sheen */}
-              <div className="absolute inset-2 rounded-full bg-gradient-to-t from-transparent via-white/20 to-transparent opacity-60" />
-              {/* slow outer ring */}
-              <motion.div
-                aria-hidden
-                className="absolute -inset-2 rounded-full border border-cyan-300/30"
-                animate={{ rotate: 360 }}
-                transition={{ repeat: Infinity, duration: 28, ease: "linear" }}
-              />
-            </div>
-          </motion.div>
-
-          {/*
-            Rotating arms (bigger radii => more separation)
-            - Inner: radius 160px, CW, 60s
-            - Middle: radius 230px, CCW, 80s
-            - Outer: radius 300px, CW, 100s
-          */}
-          <RotatingArm
-            radius={160}
-            duration={60}
-            reverse={false}
-            ariaLabel="GitHub"
-            href={githubHref}
-          >
-            <Github className="h-6 w-6 text-cyan-100" />
-          </RotatingArm>
-
-          <RotatingArm
-            radius={230}
-            duration={80}
-            reverse
-            ariaLabel="LinkedIn"
-            href={linkedinHref}
-          >
-            <Linkedin className="h-6 w-6 text-cyan-100" />
-          </RotatingArm>
-
-          <RotatingArm
-            radius={300}
-            duration={100}
-            reverse={false}
-            ariaLabel="Email"
-            href={emailHref}
-          >
-            <Mail className="h-6 w-6 text-cyan-100" />
-          </RotatingArm>
         </div>
 
         {/* Tagline */}
