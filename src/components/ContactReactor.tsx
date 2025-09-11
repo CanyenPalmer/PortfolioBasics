@@ -12,10 +12,10 @@ type Props = {
 };
 
 /**
- * ContactReactor — centered stage:
- * - One absolute, square "stage" box centers everything (rings, core, arms)
- * - Rings, core, and rotating arms share the EXACT same center
- * - Inner orbit CW, middle CCW, outer CW (slow for clickability)
+ * ContactReactor — perfectly centered stage:
+ * - One square stage; rings, core, and arms all use the SAME absolute center
+ * - Orbits: inner CW, middle CCW, outer CW (slow)
+ * - Nodes are spaced farther apart and branches connect directly to them
  */
 export default function ContactReactor({
   linkedinHref = "https://www.linkedin.com/in/canyen-palmer-b0b6762a0",
@@ -45,7 +45,6 @@ export default function ContactReactor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Node badge
   const Node = ({
     href,
     label,
@@ -60,7 +59,7 @@ export default function ContactReactor({
       aria-label={label}
       target={href.startsWith("http") ? "_blank" : undefined}
       rel={href.startsWith("http") ? "noreferrer noopener" : undefined}
-      className="group relative inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-full outline-none ring-0 focus-visible:ring-2 focus-visible:ring-cyan-300/80 transition"
+      className="group relative inline-flex h-14 w-14 items-center justify-center rounded-full outline-none ring-0 focus-visible:ring-2 focus-visible:ring-cyan-300/80 transition"
     >
       <span className="absolute inset-0 rounded-full bg-cyan-400/25 blur-xl opacity-0 group-hover:opacity-100 transition" />
       <span className="relative z-10 flex h-14 w-14 items-center justify-center rounded-full border border-cyan-300/40 bg-cyan-400/10 backdrop-blur-md">
@@ -70,53 +69,46 @@ export default function ContactReactor({
   );
 
   /**
-   * RotatingArm
-   * - A square wrapper centered on the stage with size = 2 * radius
-   * - A branch (line) from center to right edge + node anchored at the end
-   * - The entire wrapper rotates, keeping branch + node attached and centered to the core
+   * RotatingArm — centered wrapper; draws an orbit ring + branch to a node.
+   * All arms, rings, and core are centered at the same point (stage center).
    */
   const RotatingArm = ({
     radius,
     duration,
     reverse = false,
-    children,
-    ariaLabel,
     href,
+    ariaLabel,
+    children,
+    initialAngle = 0,
   }: {
     radius: number; // px
     duration: number; // seconds
     reverse?: boolean;
-    children: React.ReactNode;
-    ariaLabel: string;
     href: string;
+    ariaLabel: string;
+    children: React.ReactNode;
+    initialAngle?: number; // degrees
   }) => {
     const size = radius * 2;
-    const nodeSize = 56; // h-14 w-14
+    const nodeSize = 56; // 14 * 4
     const nodeR = nodeSize / 2;
 
     return (
       <motion.div
-        className="pointer-events-auto absolute"
-        style={{
-          width: size,
-          height: size,
-          left: "50%",
-          top: "50%",
-          transform: "translate(-50%, -50%)",
-          transformOrigin: "center center",
-        }}
+        className="pointer-events-auto absolute left-1/2 top-1/2"
+        style={{ transform: "translate(-50%, -50%)", width: size, height: size }}
+        initial={{ rotate: initialAngle }}
         animate={{ rotate: reverse ? -360 : 360 }}
         transition={{ repeat: Infinity, duration, ease: "linear" }}
       >
-        {/* Orbit (ghost ring) + branch from center to node anchor */}
-        <svg viewBox={`0 0 ${size} ${size}`} className="absolute inset-0">
+        {/* Orbit ring + branch (same center as core) */}
+        <svg className="absolute inset-0" viewBox={`0 0 ${size} ${size}`} fill="none">
           <circle
             cx={radius}
             cy={radius}
             r={radius}
-            className="stroke-cyan-300/10"
-            strokeWidth={1}
-            fill="none"
+            className="stroke-cyan-300/12"
+            strokeWidth={1.5}
           />
           <line
             x1={radius}
@@ -131,10 +123,7 @@ export default function ContactReactor({
         {/* Node exactly at end of branch */}
         <div
           className="absolute"
-          style={{
-            left: size - nodeSize,
-            top: radius - nodeR,
-          }}
+          style={{ left: size - nodeSize, top: radius - nodeR }}
         >
           <Node href={href} label={ariaLabel}>
             {children}
@@ -150,7 +139,7 @@ export default function ContactReactor({
       aria-label="Contact"
       className="relative isolate overflow-hidden py-28 sm:py-36"
     >
-      {/* Subtle starfield / vignette */}
+      {/* Background glow + subtle dot grid */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(0,255,255,0.08),transparent_60%)]"
@@ -171,14 +160,16 @@ export default function ContactReactor({
           </p>
         </div>
 
-        {/* === CENTERED STAGE (everything aligns to this box) === */}
+        {/* === SINGLE CENTERED STAGE (everything aligns to this) === */}
         <div className="relative mx-auto grid place-items-center">
-          {/* Square stage ensures exact centering across rings, core, and arms */}
-          <div className="relative h-[640px] w-[640px] sm:h-[720px] sm:w-[720px]">
-            {/* Background concentric rings — SAME center as core & arms */}
+          {/* Stage: fixed square to avoid any flex/scale drift */}
+          <div className="relative h-[720px] w-[720px] max-w-full">
+            {/* Rings — absolutely centered on the SAME point as the core */}
             <svg
-              className="absolute inset-0 h-full w-full"
+              width={720}
+              height={720}
               viewBox="0 0 720 720"
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
               fill="none"
             >
               <circle cx="360" cy="360" r="160" className="stroke-cyan-300/14" strokeWidth="1.5" />
@@ -186,7 +177,7 @@ export default function ContactReactor({
               <circle cx="360" cy="360" r="320" className="stroke-cyan-300/7" strokeWidth="1.5" />
             </svg>
 
-            {/* Core — perfectly centered inside stage */}
+            {/* Core — absolutely centered on the SAME point */}
             <motion.div
               animate={coreControls}
               className="absolute left-1/2 top-1/2 z-10 grid -translate-x-1/2 -translate-y-1/2 place-items-center"
@@ -209,18 +200,16 @@ export default function ContactReactor({
             </motion.div>
 
             {/*
-              Rotating arms — centered within the SAME stage box
-              Radii chosen to match the background rings for perfect alignment.
-              - Inner: r=160, CW, 60s
-              - Middle: r=240, CCW, 80s
-              - Outer: r=320, CW, 100s
+              Rotating arms — each wrapper is absolutely centered to the SAME point.
+              Radii match the rings so everything stays concentric.
             */}
             <RotatingArm
               radius={160}
               duration={60}
               reverse={false}
-              ariaLabel="GitHub"
               href={githubHref}
+              ariaLabel="GitHub"
+              initialAngle={210}
             >
               <Github className="h-6 w-6 text-cyan-100" />
             </RotatingArm>
@@ -229,8 +218,9 @@ export default function ContactReactor({
               radius={240}
               duration={80}
               reverse
-              ariaLabel="LinkedIn"
               href={linkedinHref}
+              ariaLabel="LinkedIn"
+              initialAngle={30}
             >
               <Linkedin className="h-6 w-6 text-cyan-100" />
             </RotatingArm>
@@ -239,8 +229,9 @@ export default function ContactReactor({
               radius={320}
               duration={100}
               reverse={false}
-              ariaLabel="Email"
               href={emailHref}
+              ariaLabel="Email"
+              initialAngle={300}
             >
               <Mail className="h-6 w-6 text-cyan-100" />
             </RotatingArm>
