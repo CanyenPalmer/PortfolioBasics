@@ -12,10 +12,10 @@ type Props = {
 
 /**
  * ContactReactor — single centered SVG with stems attached to rings
- * - ONE SVG (900x900), shared center (450,450)
+ * - ONE SVG (960x960), shared center (480,480)
  * - 3 static rings + pulsing core
- * - 3 rotating arms: stem begins ON ring circumference, extends outward to node
- * - Arms rotate around the core (no in-place spinning) via translate-to-center, then rotate
+ * - 3 arms: stem begins ON ring circumference, extends outward to node
+ * - Arms ORBIT the core via transformOrigin at (CX,CY); inner content counter-rotates to stay upright
  * - Brand icons in nodes (inline SVG paths)
  */
 export default function ContactReactor({
@@ -38,28 +38,28 @@ export default function ContactReactor({
   }, []);
 
   // === Single SVG coordinate system ===
-  const W = 900, H = 900;
-  const CX = 450, CY = 450;
+  const W = 960, H = 960;
+  const CX = 480, CY = 480;
 
-  // Orbits (match visual rings)
-  const R1 = 200;  // inner
-  const R2 = 300;  // middle
-  const R3 = 380;  // outer (fits within 900px with halo)
+  // Orbits (chosen to keep outer node + halo inside the stage)
+  const R1 = 220;  // inner
+  const R2 = 310;  // middle
+  const R3 = 400;  // outer
 
-  // Node + stem styling
-  const NODE_R = 28;             // 56px diameter
-  const HALO = 14;               // halo ring
-  const STEM_GAP = 12;           // gap between ring and node edge
+  // Node / stem styling
+  const NODE_R = 28;      // 56px diameter
+  const HALO = 14;        // halo radius beyond node
+  const STEM_GAP = 12;    // gap from ring to node edge
   const BRANCH = "#67e8f9";
   const STEM_STROKE = 3;
 
-  // Since arms are built in a local coord system at the center,
-  // x positions are relative to (0,0) = center.
-  // Ring point is at (r, 0). Node sits further on +X.
-  const stemEndX = (r: number) => r + STEM_GAP + NODE_R - 3; // -3 to tuck under badge
-  const nodeCenterX = (r: number) => r + STEM_GAP + NODE_R;
+  // Arm geometry in ABSOLUTE SVG coords (so transformOrigin can orbit around CX,CY)
+  // Start point is ON ring at angle 0 (to the right). Rotation animates the whole group.
+  const stemStart = (r: number) => ({ x: CX + r, y: CY });
+  const nodeCenter = (r: number) => ({ x: CX + r + STEM_GAP + NODE_R, y: CY });
+  const stemEnd = (r: number) => ({ x: CX + r + STEM_GAP + NODE_R - 3, y: CY }); // -3 tuck under badge
 
-  // Brand icons (lucide-like)
+  // Brand icons (lucide-like outlines), centered at (x,y)
   const IconGithub = ({ x, y, size = 20 }: { x: number; y: number; size?: number }) => {
     const s = size;
     return (
@@ -89,7 +89,7 @@ export default function ContactReactor({
     );
   };
 
-  // SVG-only node for perfect alignment
+  // SVG-only node (clickable)
   const Node = ({ href, label, x, y, children }: { href: string; label: string; x: number; y: number; children: React.ReactNode }) => (
     <a href={href} target={href.startsWith("http") ? "_blank" : undefined} rel="noreferrer noopener" style={{ cursor: "pointer" }}>
       {/* halo */}
@@ -100,6 +100,11 @@ export default function ContactReactor({
       <title>{label}</title>
     </a>
   );
+
+  // Shared transitions
+  const cw60 = { repeat: Infinity, duration: 60, ease: "linear" } as const;
+  const ccw80 = { repeat: Infinity, duration: 80, ease: "linear" } as const;
+  const cw100 = { repeat: Infinity, duration: 100, ease: "linear" } as const;
 
   return (
     <section id="contact" aria-label="Contact" className="relative isolate overflow-hidden py-28 sm:py-36">
@@ -136,70 +141,85 @@ export default function ContactReactor({
 
             {/* core */}
             <motion.g animate={coreControls}>
-              <circle cx={CX} cy={CY} r={118} fill="url(#coreGlow)" opacity={0.9} />
+              <circle cx={CX} cy={CY} r={130} fill="url(#coreGlow)" opacity={0.9} />
               <motion.circle
-                cx={CX} cy={CY} r={128} fill="none" stroke="url(#coreRing)" strokeWidth={1.5}
+                cx={CX} cy={CY} r={142} fill="none" stroke="url(#coreRing)" strokeWidth={1.6}
                 animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 28, ease: "linear" }}
                 style={{ transformOrigin: `${CX}px ${CY}px` }}
               />
             </motion.g>
 
-            {/* === ARMS: translate to center, then rotate — this creates orbit (no self-spin) === */}
+            {/* === ARMS — orbit around (CX,CY) with transformOrigin; nodes counter-rotate to stay upright === */}
 
-            {/* Inner orbit — CW — GitHub */}
+            {/* Inner (GitHub) — CW */}
             <motion.g
-              initial={{ rotate: 320 }}
-              animate={{ rotate: 320 + 360 }}
-              transition={{ repeat: Infinity, duration: 60, ease: "linear" }}
+              initial={{ rotate: 300 }}
+              animate={{ rotate: 300 + 360 }}
+              transition={cw60}
+              style={{ transformOrigin: `${CX}px ${CY}px` }}
             >
-              <g transform={`translate(${CX}, ${CY})`}>
-                {/* stem: starts ON ring, extends outward */}
-                <line
-                  x1={R1} y1={0}
-                  x2={stemEndX(R1)} y2={0}
-                  stroke={BRANCH} strokeOpacity={0.85} strokeWidth={STEM_STROKE} strokeLinecap="round"
-                />
-                {/* node: just beyond ring */}
-                <Node href={githubHref} label="GitHub" x={nodeCenterX(R1)} y={0}>
-                  <IconGithub x={nodeCenterX(R1)} y={0} />
+              {/* stem attached to inner ring */}
+              <line
+                x1={stemStart(R1).x} y1={stemStart(R1).y}
+                x2={stemEnd(R1).x}   y2={stemEnd(R1).y}
+                stroke={BRANCH} strokeOpacity={0.85} strokeWidth={STEM_STROKE} strokeLinecap="round"
+              />
+              {/* Node group counter-rotates to keep icon upright */}
+              <motion.g
+                animate={{ rotate: -(300 + 360) }}
+                transition={cw60}
+                style={{ transformOrigin: `${nodeCenter(R1).x}px ${nodeCenter(R1).y}px` }}
+              >
+                <Node href={githubHref} label="GitHub" x={nodeCenter(R1).x} y={nodeCenter(R1).y}>
+                  <IconGithub x={nodeCenter(R1).x} y={nodeCenter(R1).y} />
                 </Node>
-              </g>
+              </motion.g>
             </motion.g>
 
-            {/* Middle orbit — CCW — LinkedIn */}
+            {/* Middle (LinkedIn) — CCW */}
             <motion.g
               initial={{ rotate: 180 }}
               animate={{ rotate: 180 - 360 }}
-              transition={{ repeat: Infinity, duration: 80, ease: "linear" }}
+              transition={ccw80}
+              style={{ transformOrigin: `${CX}px ${CY}px` }}
             >
-              <g transform={`translate(${CX}, ${CY})`}>
-                <line
-                  x1={R2} y1={0}
-                  x2={stemEndX(R2)} y2={0}
-                  stroke={BRANCH} strokeOpacity={0.85} strokeWidth={STEM_STROKE} strokeLinecap="round"
-                />
-                <Node href={linkedinHref} label="LinkedIn" x={nodeCenterX(R2)} y={0}>
-                  <IconLinkedIn x={nodeCenterX(R2)} y={0} />
+              <line
+                x1={stemStart(R2).x} y1={stemStart(R2).y}
+                x2={stemEnd(R2).x}   y2={stemEnd(R2).y}
+                stroke={BRANCH} strokeOpacity={0.85} strokeWidth={STEM_STROKE} strokeLinecap="round"
+              />
+              <motion.g
+                animate={{ rotate: -(180 - 360) }}
+                transition={ccw80}
+                style={{ transformOrigin: `${nodeCenter(R2).x}px ${nodeCenter(R2).y}px` }}
+              >
+                <Node href={linkedinHref} label="LinkedIn" x={nodeCenter(R2).x} y={nodeCenter(R2).y}>
+                  <IconLinkedIn x={nodeCenter(R2).x} y={nodeCenter(R2).y} />
                 </Node>
-              </g>
+              </motion.g>
             </motion.g>
 
-            {/* Outer orbit — CW — Email */}
+            {/* Outer (Email) — CW */}
             <motion.g
               initial={{ rotate: 40 }}
               animate={{ rotate: 40 + 360 }}
-              transition={{ repeat: Infinity, duration: 100, ease: "linear" }}
+              transition={cw100}
+              style={{ transformOrigin: `${CX}px ${CY}px` }}
             >
-              <g transform={`translate(${CX}, ${CY})`}>
-                <line
-                  x1={R3} y1={0}
-                  x2={stemEndX(R3)} y2={0}
-                  stroke={BRANCH} strokeOpacity={0.85} strokeWidth={STEM_STROKE} strokeLinecap="round"
-                />
-                <Node href={emailHref} label="Email" x={nodeCenterX(R3)} y={0}>
-                  <IconMail x={nodeCenterX(R3)} y={0} />
+              <line
+                x1={stemStart(R3).x} y1={stemStart(R3).y}
+                x2={stemEnd(R3).x}   y2={stemEnd(R3).y}
+                stroke={BRANCH} strokeOpacity={0.85} strokeWidth={STEM_STROKE} strokeLinecap="round"
+              />
+              <motion.g
+                animate={{ rotate: -(40 + 360) }}
+                transition={cw100}
+                style={{ transformOrigin: `${nodeCenter(R3).x}px ${nodeCenter(R3).y}px` }}
+              >
+                <Node href={emailHref} label="Email" x={nodeCenter(R3).x} y={nodeCenter(R3).y}>
+                  <IconMail x={nodeCenter(R3).x} y={nodeCenter(R3).y} />
                 </Node>
-              </g>
+              </motion.g>
             </motion.g>
           </motion.svg>
         </div>
