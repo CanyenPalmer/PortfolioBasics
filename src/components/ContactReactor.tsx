@@ -12,10 +12,11 @@ type Props = {
 
 /**
  * ContactReactor — single centered SVG with stems attached to rings
- * - ONE SVG (840x840), shared center (420,420)
+ * - ONE SVG (900x900), shared center (450,450)
  * - 3 static rings + pulsing core
  * - 3 rotating arms: stem begins ON ring circumference, extends outward to node
- * - Brand icons in nodes (inline paths)
+ * - Arms rotate around the core (no in-place spinning) via translate-to-center, then rotate
+ * - Brand icons in nodes (inline SVG paths)
  */
 export default function ContactReactor({
   linkedinHref = "https://www.linkedin.com/in/canyen-palmer-b0b6762a0",
@@ -37,26 +38,28 @@ export default function ContactReactor({
   }, []);
 
   // === Single SVG coordinate system ===
-  const W = 840, H = 840;
-  const CX = 420, CY = 420;
+  const W = 900, H = 900;
+  const CX = 450, CY = 450;
 
   // Orbits (match visual rings)
-  const R1 = 190;  // inner
-  const R2 = 280;  // middle
-  const R3 = 360;  // outer
+  const R1 = 200;  // inner
+  const R2 = 300;  // middle
+  const R3 = 380;  // outer (fits within 900px with halo)
 
   // Node + stem styling
   const NODE_R = 28;             // 56px diameter
+  const HALO = 14;               // halo ring
   const STEM_GAP = 12;           // gap between ring and node edge
   const BRANCH = "#67e8f9";
   const STEM_STROKE = 3;
 
-  // Given a ring radius r, compute stem start (on ring), end (near node), and node center
-  const stemStartX = (r: number) => CX + r;                                             // on ring
-  const nodeCenterX = (r: number) => CX + r + STEM_GAP + NODE_R;                        // after gap + node radius
-  const stemEndX   = (r: number) => nodeCenterX(r) - (NODE_R - 3);                      // tuck under badge by 3px
+  // Since arms are built in a local coord system at the center,
+  // x positions are relative to (0,0) = center.
+  // Ring point is at (r, 0). Node sits further on +X.
+  const stemEndX = (r: number) => r + STEM_GAP + NODE_R - 3; // -3 to tuck under badge
+  const nodeCenterX = (r: number) => r + STEM_GAP + NODE_R;
 
-  // Brand icons (lucide-style strokes) centered at (x,y)
+  // Brand icons (lucide-like)
   const IconGithub = ({ x, y, size = 20 }: { x: number; y: number; size?: number }) => {
     const s = size;
     return (
@@ -86,16 +89,13 @@ export default function ContactReactor({
     );
   };
 
-  // SVG-only node for pixel-perfect alignment
-  const Node = ({
-    href, label, x, y, children,
-  }: { href: string; label: string; x: number; y: number; children: React.ReactNode }) => (
+  // SVG-only node for perfect alignment
+  const Node = ({ href, label, x, y, children }: { href: string; label: string; x: number; y: number; children: React.ReactNode }) => (
     <a href={href} target={href.startsWith("http") ? "_blank" : undefined} rel="noreferrer noopener" style={{ cursor: "pointer" }}>
       {/* halo */}
-      <circle cx={x} cy={y} r={NODE_R + 14} fill="none" stroke={BRANCH} strokeOpacity={0.18} />
+      <circle cx={x} cy={y} r={NODE_R + HALO} fill="none" stroke={BRANCH} strokeOpacity={0.18} />
       {/* badge */}
       <circle cx={x} cy={y} r={NODE_R} fill="rgba(34,211,238,0.10)" stroke={BRANCH} strokeOpacity={0.45} />
-      {/* icon */}
       {children}
       <title>{label}</title>
     </a>
@@ -115,7 +115,7 @@ export default function ContactReactor({
 
         {/* Single, perfectly centered SVG stage */}
         <div className="relative mx-auto flex items-center justify-center">
-          <motion.svg width={840} height={840} viewBox="0 0 840 840" className="block">
+          <motion.svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="block">
             {/* defs */}
             <defs>
               <radialGradient id="coreGlow" cx="50%" cy="50%" r="50%">
@@ -136,35 +136,34 @@ export default function ContactReactor({
 
             {/* core */}
             <motion.g animate={coreControls}>
-              <circle cx={CX} cy={CY} r={110} fill="url(#coreGlow)" opacity={0.9} />
+              <circle cx={CX} cy={CY} r={118} fill="url(#coreGlow)" opacity={0.9} />
               <motion.circle
-                cx={CX} cy={CY} r={120} fill="none" stroke="url(#coreRing)" strokeWidth={1.5}
+                cx={CX} cy={CY} r={128} fill="none" stroke="url(#coreRing)" strokeWidth={1.5}
                 animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 28, ease: "linear" }}
                 style={{ transformOrigin: `${CX}px ${CY}px` }}
               />
             </motion.g>
 
-            {/* === ARMS (rotate around same center). IMPORTANT:
-                 stem starts ON ring (stemStartX), ends before node (stemEndX).
-                 node is placed after a gap so it reads as "attached to ring". === */}
+            {/* === ARMS: translate to center, then rotate — this creates orbit (no self-spin) === */}
 
             {/* Inner orbit — CW — GitHub */}
             <motion.g
               initial={{ rotate: 320 }}
               animate={{ rotate: 320 + 360 }}
               transition={{ repeat: Infinity, duration: 60, ease: "linear" }}
-              style={{ transformOrigin: `${CX}px ${CY}px` }}
             >
-              {/* stem attached to inner ring */}
-              <line
-                x1={stemStartX(R1)} y1={CY}
-                x2={stemEndX(R1)}   y2={CY}
-                stroke={BRANCH} strokeOpacity={0.85} strokeWidth={STEM_STROKE} strokeLinecap="round"
-              />
-              {/* node just outside ring */}
-              <Node href={githubHref} label="GitHub" x={nodeCenterX(R1)} y={CY}>
-                <IconGithub x={nodeCenterX(R1)} y={CY} />
-              </Node>
+              <g transform={`translate(${CX}, ${CY})`}>
+                {/* stem: starts ON ring, extends outward */}
+                <line
+                  x1={R1} y1={0}
+                  x2={stemEndX(R1)} y2={0}
+                  stroke={BRANCH} strokeOpacity={0.85} strokeWidth={STEM_STROKE} strokeLinecap="round"
+                />
+                {/* node: just beyond ring */}
+                <Node href={githubHref} label="GitHub" x={nodeCenterX(R1)} y={0}>
+                  <IconGithub x={nodeCenterX(R1)} y={0} />
+                </Node>
+              </g>
             </motion.g>
 
             {/* Middle orbit — CCW — LinkedIn */}
@@ -172,16 +171,17 @@ export default function ContactReactor({
               initial={{ rotate: 180 }}
               animate={{ rotate: 180 - 360 }}
               transition={{ repeat: Infinity, duration: 80, ease: "linear" }}
-              style={{ transformOrigin: `${CX}px ${CY}px` }}
             >
-              <line
-                x1={stemStartX(R2)} y1={CY}
-                x2={stemEndX(R2)}   y2={CY}
-                stroke={BRANCH} strokeOpacity={0.85} strokeWidth={STEM_STROKE} strokeLinecap="round"
-              />
-              <Node href={linkedinHref} label="LinkedIn" x={nodeCenterX(R2)} y={CY}>
-                <IconLinkedIn x={nodeCenterX(R2)} y={CY} />
-              </Node>
+              <g transform={`translate(${CX}, ${CY})`}>
+                <line
+                  x1={R2} y1={0}
+                  x2={stemEndX(R2)} y2={0}
+                  stroke={BRANCH} strokeOpacity={0.85} strokeWidth={STEM_STROKE} strokeLinecap="round"
+                />
+                <Node href={linkedinHref} label="LinkedIn" x={nodeCenterX(R2)} y={0}>
+                  <IconLinkedIn x={nodeCenterX(R2)} y={0} />
+                </Node>
+              </g>
             </motion.g>
 
             {/* Outer orbit — CW — Email */}
@@ -189,16 +189,17 @@ export default function ContactReactor({
               initial={{ rotate: 40 }}
               animate={{ rotate: 40 + 360 }}
               transition={{ repeat: Infinity, duration: 100, ease: "linear" }}
-              style={{ transformOrigin: `${CX}px ${CY}px` }}
             >
-              <line
-                x1={stemStartX(R3)} y1={CY}
-                x2={stemEndX(R3)}   y2={CY}
-                stroke={BRANCH} strokeOpacity={0.85} strokeWidth={STEM_STROKE} strokeLinecap="round"
-              />
-              <Node href={emailHref} label="Email" x={nodeCenterX(R3)} y={CY}>
-                <IconMail x={nodeCenterX(R3)} y={CY} />
-              </Node>
+              <g transform={`translate(${CX}, ${CY})`}>
+                <line
+                  x1={R3} y1={0}
+                  x2={stemEndX(R3)} y2={0}
+                  stroke={BRANCH} strokeOpacity={0.85} strokeWidth={STEM_STROKE} strokeLinecap="round"
+                />
+                <Node href={emailHref} label="Email" x={nodeCenterX(R3)} y={0}>
+                  <IconMail x={nodeCenterX(R3)} y={0} />
+                </Node>
+              </g>
             </motion.g>
           </motion.svg>
         </div>
