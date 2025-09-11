@@ -11,11 +11,12 @@ type Props = {
 };
 
 /**
- * ContactReactor (single centered SVG)
- * - ONE SVG (840x840). Shared center at (420,420).
- * - Concentric rings, pulsing core, 3 rotating arms.
- * - Branch lines meet the node AT ITS EDGE (not through the center).
- * - Wide initial angle separation so nodes don't bunch.
+ * ContactReactor — Single centered SVG (no HTML overlay)
+ * - Everything shares center (CX, CY).
+ * - Static concentric rings.
+ * - Core with pulse/ring.
+ * - 3 rotating arms (<motion.g>) that carry branch + node together.
+ * - Nodes use brand icons (inline SVG paths).
  */
 export default function ContactReactor({
   linkedinHref = "https://www.linkedin.com/in/canyen-palmer-b0b6762a0",
@@ -48,58 +49,87 @@ export default function ContactReactor({
   const CX = 420;
   const CY = 420;
 
-  // Orbits — slightly larger for better separation
-  const R1 = 180; // inner
-  const R2 = 270; // middle
+  // Orbits — spaced for breathing room
+  const R1 = 190; // inner
+  const R2 = 280; // middle
   const R3 = 360; // outer
 
   // Node styling
   const NODE_R = 28; // 56px diameter
   const BRANCH = "#67e8f9";
 
-  // Utility: endpoint for branch that meets node *edge*, not center
-  const branchEndX = (radius: number) => CX + radius - (NODE_R - 4); // 4px inset so the line tucks cleanly
+  // Branch endpoint so it meets node *edge*, not center
+  const branchEndX = (radius: number) => CX + radius - NODE_R + 3; // +3 so line tucks just under the badge
   const nodeCenterX = (radius: number) => CX + radius;
 
-  // Minimal node (SVG-only for perfect alignment)
+  // Brand icons (lucide-like paths)
+  const IconGithub = ({ x, y, size = 20 }: { x: number; y: number; size?: number }) => {
+    const s = size;
+    return (
+      <g transform={`translate(${x - s / 2}, ${y - s / 2})`} fill="none" stroke="#e6fdff" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+        {/* lucide github outline */}
+        <path d="M8 23c-4.5 1.5-4.5-2.5-6-3m12 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 18 5.77 5.07 5.07 0 0 0 17.91 2S16.73 1.65 14 3.46a13.38 13.38 0 0 0-6 0C5.27 1.65 4.09 2 4.09 2A5.07 5.07 0 0 0 4 5.77 5.44 5.44 0 0 0 2.5 9.5c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 8 19.13V23" />
+      </g>
+    );
+  };
+
+  const IconLinkedIn = ({ x, y, size = 20 }: { x: number; y: number; size?: number }) => {
+    const s = size;
+    return (
+      <g transform={`translate(${x - s / 2}, ${y - s / 2})`} fill="none" stroke="#e6fdff" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+        {/* lucide linkedin outline */}
+        <rect x="2" y="2" width="20" height="20" rx="2" />
+        <path d="M7 17v-7" />
+        <circle cx="7" cy="7" r="1" />
+        <path d="M11 17v-4a2 2 0 0 1 4 0v4" />
+      </g>
+    );
+  };
+
+  const IconMail = ({ x, y, size = 20 }: { x: number; y: number; size?: number }) => {
+    const s = size;
+    return (
+      <g transform={`translate(${x - s / 2}, ${y - s / 2})`} fill="none" stroke="#e6fdff" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+        {/* lucide mail outline */}
+        <rect x="2" y="4" width="20" height="16" rx="2" />
+        <path d="m22 6-10 7L2 6" />
+      </g>
+    );
+  };
+
+  // Minimal SVG-only node for pixel-perfect alignment
   const Node = ({
     href,
     label,
     x,
     y,
-    text,
+    children,
   }: {
     href: string;
     label: string;
     x: number;
     y: number;
-    text: string;
+    children: React.ReactNode; // icon group
   }) => (
-    <a href={href} target={href.startsWith("http") ? "_blank" : undefined} rel="noreferrer noopener">
+    <a
+      href={href}
+      target={href.startsWith("http") ? "_blank" : undefined}
+      rel="noreferrer noopener"
+      style={{ cursor: "pointer" }}
+    >
       {/* halo */}
       <circle cx={x} cy={y} r={NODE_R + 14} fill="none" stroke={BRANCH} strokeOpacity={0.18} />
       {/* badge */}
       <circle cx={x} cy={y} r={NODE_R} fill="rgba(34,211,238,0.10)" stroke={BRANCH} strokeOpacity={0.45} />
-      {/* glyph */}
-      <text
-        x={x}
-        y={y + 6}
-        textAnchor="middle"
-        fontSize="16"
-        fontWeight={600}
-        fill="#e6fdff"
-        aria-label={label}
-        style={{ fontFamily: "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto" }}
-      >
-        {text}
-      </text>
+      {/* icon */}
+      {children}
       <title>{label}</title>
     </a>
   );
 
   return (
     <section id="contact" aria-label="Contact" className="relative isolate overflow-hidden py-28 sm:py-36">
-      {/* vignette + dot grid */}
+      {/* background vignette + dot grid */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(0,255,255,0.08),transparent_60%)]"
@@ -133,18 +163,18 @@ export default function ContactReactor({
               </linearGradient>
             </defs>
 
-            {/* rings (concentric) */}
+            {/* concentric rings */}
             <circle cx={CX} cy={CY} r={R1} stroke={BRANCH} strokeOpacity={0.22} strokeWidth={1.6} fill="none" />
             <circle cx={CX} cy={CY} r={R2} stroke={BRANCH} strokeOpacity={0.16} strokeWidth={1.6} fill="none" />
             <circle cx={CX} cy={CY} r={R3} stroke={BRANCH} strokeOpacity={0.12} strokeWidth={1.6} fill="none" />
 
             {/* core */}
             <motion.g animate={coreControls}>
-              <circle cx={CX} cy={CY} r={104} fill="url(#coreGlow)" opacity={0.9} />
+              <circle cx={CX} cy={CY} r={110} fill="url(#coreGlow)" opacity={0.9} />
               <motion.circle
                 cx={CX}
                 cy={CY}
-                r={114}
+                r={120}
                 fill="none"
                 stroke="url(#coreRing)"
                 strokeWidth={1.5}
@@ -154,12 +184,12 @@ export default function ContactReactor({
               />
             </motion.g>
 
-            {/* ARMS — rotate as groups around (CX,CY) */}
+            {/* ARMS — rotate as groups around (CX,CY). Branch stops at node edge. */}
 
-            {/* Inner: CW (GitHub) — initial 330° */}
+            {/* Inner: CW (GitHub) — initial 320° */}
             <motion.g
-              initial={{ rotate: 330 }}
-              animate={{ rotate: 330 + 360 }}
+              initial={{ rotate: 320 }}
+              animate={{ rotate: 320 + 360 }}
               transition={{ repeat: Infinity, duration: 60, ease: "linear" }}
               style={{ transformOrigin: `${CX}px ${CY}px` }}
             >
@@ -169,11 +199,13 @@ export default function ContactReactor({
                 x2={branchEndX(R1)}
                 y2={CY}
                 stroke={BRANCH}
-                strokeOpacity={0.78}
+                strokeOpacity={0.8}
                 strokeWidth={3}
                 strokeLinecap="round"
               />
-              <Node href={githubHref} label="GitHub" x={nodeCenterX(R1)} y={CY} text="GH" />
+              <Node href={githubHref} label="GitHub" x={nodeCenterX(R1)} y={CY}>
+                <IconGithub x={nodeCenterX(R1)} y={CY} />
+              </Node>
             </motion.g>
 
             {/* Middle: CCW (LinkedIn) — initial 180° */}
@@ -189,17 +221,19 @@ export default function ContactReactor({
                 x2={branchEndX(R2)}
                 y2={CY}
                 stroke={BRANCH}
-                strokeOpacity={0.78}
+                strokeOpacity={0.8}
                 strokeWidth={3}
                 strokeLinecap="round"
               />
-              <Node href={linkedinHref} label="LinkedIn" x={nodeCenterX(R2)} y={CY} text="in" />
+              <Node href={linkedinHref} label="LinkedIn" x={nodeCenterX(R2)} y={CY}>
+                <IconLinkedIn x={nodeCenterX(R2)} y={CY} />
+              </Node>
             </motion.g>
 
-            {/* Outer: CW (Email) — initial 45° */}
+            {/* Outer: CW (Email) — initial 40° */}
             <motion.g
-              initial={{ rotate: 45 }}
-              animate={{ rotate: 45 + 360 }}
+              initial={{ rotate: 40 }}
+              animate={{ rotate: 40 + 360 }}
               transition={{ repeat: Infinity, duration: 100, ease: "linear" }}
               style={{ transformOrigin: `${CX}px ${CY}px` }}
             >
@@ -209,11 +243,13 @@ export default function ContactReactor({
                 x2={branchEndX(R3)}
                 y2={CY}
                 stroke={BRANCH}
-                strokeOpacity={0.78}
+                strokeOpacity={0.8}
                 strokeWidth={3}
                 strokeLinecap="round"
               />
-              <Node href={emailHref} label="Email" x={nodeCenterX(R3)} y={CY} text="✉" />
+              <Node href={emailHref} label="Email" x={nodeCenterX(R3)} y={CY}>
+                <IconMail x={nodeCenterX(R3)} y={CY} />
+              </Node>
             </motion.g>
           </motion.svg>
         </div>
