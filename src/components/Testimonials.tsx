@@ -6,6 +6,8 @@ import { TESTIMONIALS, MinimalTestimonial } from "@/data/testimonials";
 
 const CYAN = "#00e5ff";
 
+/* ---------- helpers ---------- */
+
 function useTilt(disabled: boolean) {
   const [tilt, setTilt] = React.useState({ rx: 0, ry: 0, s: 1 });
   const ref = React.useRef<HTMLDivElement | null>(null);
@@ -31,6 +33,19 @@ function teaserFromQuote(q: string, max = 160) {
   return (cut > 80 ? slice.slice(0, cut) : slice) + "…";
 }
 
+function firstFrom(items: string[] | string | undefined) {
+  if (!items) return "";
+  if (Array.isArray(items)) return items[0] || "";
+  // try to split a sentence if it's a single string
+  const parts = items.split(/[\.\n•;-]\s*/).filter(Boolean);
+  return parts[0] || items;
+}
+
+function truncate(s: string, n: number) {
+  if (!s) return s;
+  return s.length > n ? s.slice(0, n - 1) + "…" : s;
+}
+
 function BulletList({ items }: { items: string[] | string }) {
   if (Array.isArray(items)) {
     return (
@@ -45,6 +60,67 @@ function BulletList({ items }: { items: string[] | string }) {
   }
   return <p className="text-white/85 leading-relaxed">{items}</p>;
 }
+
+/* ---------- front-face motif backgrounds (pure CSS) ---------- */
+
+function FrontMotif({ app }: { app: string }) {
+  const a = app.toLowerCase();
+  if (a.includes("caddy")) {
+    // Fairway/grid motif: soft cyan diagonal grid + radial glow
+    return (
+      <div className="pointer-events-none absolute inset-0 opacity-20">
+        <div className="absolute inset-0 [background:radial-gradient(60%_60%_at_30%_20%,rgba(0,229,255,.10),transparent_70%)]" />
+        <div className="absolute inset-0 [background:repeating-linear-gradient(45deg,rgba(0,229,255,.10)_0_2px,transparent_2px_16px)]" />
+      </div>
+    );
+  }
+  if (a.includes("nfl")) {
+    // Yard-line motif: faint horizontal yard lines + top glow
+    return (
+      <div className="pointer-events-none absolute inset-0 opacity-20">
+        <div className="absolute inset-0 [background:repeating-linear-gradient(0deg,rgba(255,255,255,.10)_0_2px,transparent_2px_28px)]" />
+        <div className="absolute inset-0 [background:radial-gradient(50%_40%_at_50%_0%,rgba(0,229,255,.10),transparent_60%)]" />
+      </div>
+    );
+  }
+  // Default soft glow
+  return (
+    <div className="pointer-events-none absolute inset-0 opacity-15 [background:radial-gradient(60%_60%_at_30%_20%,rgba(0,229,255,.10),transparent_70%)]" />
+  );
+}
+
+/* ---------- mini chips from your existing data (no new fields) ---------- */
+
+function MiniChips({
+  before,
+  after,
+  app,
+}: {
+  before?: string[] | string;
+  after?: string[] | string;
+  app: string;
+}) {
+  const b = truncate(firstFrom(before), 28);
+  const a = truncate(firstFrom(after), 28);
+  if (!b && !a) return null;
+
+  return (
+    <div className="mt-4 flex flex-wrap gap-2">
+      {b ? (
+        <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 text-xs text-white/75">
+          Before: {b}
+        </span>
+      ) : null}
+      {a ? (
+        <span className="rounded-full border border-cyan-300/30 bg-cyan-300/10 px-2.5 py-0.5 text-xs text-cyan-100">
+          After: {a}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+/* ---------- card ---------- */
 
 function DossierCard({ t }: { t: MinimalTestimonial }) {
   const prefersReduced = useReducedMotion();
@@ -88,23 +164,38 @@ function DossierCard({ t }: { t: MinimalTestimonial }) {
           animate={flipped ? { rotateY: 180 } : { rotateY: 0 }}
           transition={{ duration: prefersReduced ? 0 : 0.36 }}
         >
-          <div className="flex h-full flex-col justify-between p-6 md:p-7">
-            <div className="flex items-baseline gap-2">
+          <div className="relative flex h-full flex-col justify-between p-6 md:p-7">
+            {/* motif */}
+            <FrontMotif app={t.app} />
+
+            {/* header */}
+            <div className="relative z-[1] flex items-baseline gap-2">
               <div className="text-sm font-semibold text-white/90">{t.app}</div>
             </div>
 
-            <p className="mt-2 text-base/7 text-white/90 leading-relaxed">
-              {teaserFromQuote(t.quote)}
+            {/* teaser (short on mobile, longer on desktop) */}
+            <p className="relative z-[1] mt-2 text-base/7 text-white/90 leading-relaxed">
+              <span className="md:hidden">{teaserFromQuote(t.quote, 160)}</span>
+              <span className="hidden md:inline">{teaserFromQuote(t.quote, 280)}</span>
             </p>
 
+            {/* attribution */}
             {(t.name || t.role) && (
-              <div className="mt-4 text-sm text-white/60">
+              <div className="relative z-[1] mt-4 text-sm text-white/60">
                 {t.name ? `— ${t.name.replace(/^—\s*/, "")}` : null}
                 {t.role ? <span className="text-white/40"> ({t.role})</span> : null}
               </div>
             )}
 
-            <div className="mt-5 text-xs text-white/60">Click to flip for details ↺</div>
+            {/* mini chips from existing data */}
+            <div className="relative z-[1]">
+              <MiniChips app={t.app} before={t.before} after={t.after} />
+            </div>
+
+            {/* flip hint */}
+            <div className="relative z-[1] mt-5 text-xs text-white/60">
+              Click to flip for details ↺
+            </div>
           </div>
         </motion.div>
 
@@ -115,7 +206,7 @@ function DossierCard({ t }: { t: MinimalTestimonial }) {
           transition={{ duration: prefersReduced ? 0 : 0.36 }}
         >
           <div className="flex h-full min-h-0 flex-col p-6 md:p-7">
-            {/* Header (static, not scrolling) */}
+            {/* Header (static) */}
             <div>
               <div className="text-sm font-semibold text-white/90">{t.app}</div>
               {(t.name || t.role) && (
@@ -126,7 +217,7 @@ function DossierCard({ t }: { t: MinimalTestimonial }) {
               )}
             </div>
 
-            {/* Scrollable content area */}
+            {/* Scrollable content */}
             <div className="mt-4 flex-1 overflow-y-auto space-y-4 pr-1">
               <p className="text-base/7 text-white/90 leading-relaxed">{t.quote}</p>
 
@@ -146,7 +237,7 @@ function DossierCard({ t }: { t: MinimalTestimonial }) {
               </div>
             </div>
 
-            {/* Footer (pinned inside card) */}
+            {/* Footer (pinned) */}
             <div className="pt-6 text-xs text-white/60">Click to flip back ↺</div>
           </div>
         </motion.div>
@@ -154,6 +245,8 @@ function DossierCard({ t }: { t: MinimalTestimonial }) {
     </motion.div>
   );
 }
+
+/* ---------- section ---------- */
 
 export default function Testimonials() {
   return (
