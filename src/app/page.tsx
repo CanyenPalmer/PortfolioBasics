@@ -7,6 +7,7 @@ import ProjectsHUD from "@/components/ProjectsHUD";
 import EducationHUD from "@/components/EducationHUD";
 import AboutMeShowcase from "@/components/AboutMeShowcase";
 import Testimonials from "@/components/Testimonials";
+import ContactReactor from "@/components/ContactReactor";
 
 export default function Page() {
   return (
@@ -44,6 +45,11 @@ export default function Page() {
       {/* Testimonials (new, after About Me) */}
       <section id="testimonials" aria-label="Testimonials">
         <Testimonials />
+      </section>
+
+      {/* Contact (final closer) */}
+      <section id="contact-section" aria-label="Contact">
+        <ContactReactor />
       </section>
     </main>
   );
