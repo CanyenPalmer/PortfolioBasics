@@ -34,16 +34,16 @@ function teaserFromQuote(q: string, max = 160) {
 function BulletList({ items }: { items: string[] | string }) {
   if (Array.isArray(items)) {
     return (
-      <ul className="list-disc pl-5 text-white/85">
+      <ul className="list-disc pl-5 text-white/85 leading-relaxed">
         {items.map((it, i) => (
-          <li key={i} className="mb-1">
+          <li key={i} className="mb-1.5">
             {it}
           </li>
         ))}
       </ul>
     );
   }
-  return <p className="text-white/85">{items}</p>;
+  return <p className="text-white/85 leading-relaxed">{items}</p>;
 }
 
 function DossierCard({ t }: { t: MinimalTestimonial }) {
@@ -52,7 +52,7 @@ function DossierCard({ t }: { t: MinimalTestimonial }) {
   const [flipped, setFlipped] = React.useState(false);
 
   const wrapper =
-    "relative h-[360px] w-full rounded-2xl border border-cyan-300/30 bg-white/5 backdrop-blur-md shadow-[0_0_0_1px_rgba(0,229,255,.12)]";
+    "relative h-[560px] md:h-[600px] lg:h-[640px] w-full rounded-2xl border border-cyan-300/30 bg-white/5 backdrop-blur-md shadow-[0_0_0_1px_rgba(0,229,255,.12)]";
 
   return (
     <motion.div
@@ -88,21 +88,21 @@ function DossierCard({ t }: { t: MinimalTestimonial }) {
           animate={flipped ? { rotateY: 180 } : { rotateY: 0 }}
           transition={{ duration: prefersReduced ? 0 : 0.36 }}
         >
-          <div className="flex h-full flex-col justify-between p-5">
+          <div className="flex h-full flex-col justify-between p-6 md:p-7">
             <div className="flex items-baseline gap-2">
               <div className="text-sm font-semibold text-white/90">{t.app}</div>
             </div>
 
-            <p className="mt-2 text-base/7 text-white/90">{teaserFromQuote(t.quote)}</p>
+            <p className="mt-2 text-base/7 text-white/90 leading-relaxed">{teaserFromQuote(t.quote)}</p>
 
             {(t.name || t.role) && (
-              <div className="mt-3 text-sm text-white/60">
+              <div className="mt-4 text-sm text-white/60">
                 {t.name ? `— ${t.name.replace(/^—\s*/, "")}` : null}
                 {t.role ? <span className="text-white/40"> ({t.role})</span> : null}
               </div>
             )}
 
-            <div className="mt-4 text-xs text-white/60">Click to flip for details ↺</div>
+            <div className="mt-5 text-xs text-white/60">Click to flip for details ↺</div>
           </div>
         </motion.div>
 
@@ -112,7 +112,7 @@ function DossierCard({ t }: { t: MinimalTestimonial }) {
           animate={flipped ? { rotateY: 0 } : { rotateY: -180 }}
           transition={{ duration: prefersReduced ? 0 : 0.36 }}
         >
-          <div className="flex h-full flex-col p-5">
+          <div className="flex h-full flex-col p-6 md:p-7">
             <div>
               <div className="text-sm font-semibold text-white/90">{t.app}</div>
               {(t.name || t.role) && (
@@ -123,18 +123,18 @@ function DossierCard({ t }: { t: MinimalTestimonial }) {
               )}
             </div>
 
-            <div className="mt-3 space-y-3">
-              <p className="text-base/7 text-white/90">{t.quote}</p>
+            <div className="mt-4 space-y-4">
+              <p className="text-base/7 text-white/90 leading-relaxed">{t.quote}</p>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div>
-                  <div className="mb-1 text-sm font-semibold text-cyan-300/90">
+                  <div className="mb-2 text-sm font-semibold text-cyan-300/90">
                     Before {t.app}
                   </div>
                   <BulletList items={t.before} />
                 </div>
                 <div>
-                  <div className="mb-1 text-sm font-semibold text-cyan-300/90">
+                  <div className="mb-2 text-sm font-semibold text-cyan-300/90">
                     After {t.app}
                   </div>
                   <BulletList items={t.after} />
@@ -142,7 +142,7 @@ function DossierCard({ t }: { t: MinimalTestimonial }) {
               </div>
             </div>
 
-            <div className="mt-auto pt-4 text-xs text-white/60">Click to flip back ↺</div>
+            <div className="mt-auto pt-6 text-xs text-white/60">Click to flip back ↺</div>
           </div>
         </motion.div>
       </div>
@@ -152,14 +152,14 @@ function DossierCard({ t }: { t: MinimalTestimonial }) {
 
 export default function Testimonials() {
   return (
-    <section id="testimonials" className="relative w-full bg-[#0b1016] py-20 text-white">
+    <section id="testimonials" className="relative w-full bg-[#0b1016] py-32 text-white">
       <div className="mx-auto max-w-7xl px-6">
-        <div className="mb-10 flex items-baseline justify-between gap-4">
+        <div className="mb-12 flex items-baseline justify-between gap-4 md:mb-16">
           <h2 className="text-2xl font-semibold tracking-tight">Testimonials</h2>
           <div className="text-sm text-white/60">Click a card to flip for details</div>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
           {TESTIMONIALS.map((t, idx) => (
             <DossierCard key={idx} t={t} />
           ))}
