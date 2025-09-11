@@ -1,7 +1,6 @@
 "use client";
 
 import { motion, useAnimationControls } from "framer-motion";
-import { Github, Linkedin, Mail } from "lucide-react";
 import * as React from "react";
 
 type Props = {
@@ -12,11 +11,12 @@ type Props = {
 };
 
 /**
- * ContactReactor — concentric, SVG-anchored stage
- * - ONE square Stage (absolute center) controls all positioning
- * - Rings, Core, Arms share the exact same center (no flex/grid drift)
- * - Inner orbit CW, middle CCW, outer CW (slow)
- * - Branches are high-contrast and terminate right under each node
+ * ContactReactor (single-SVG, truly concentric)
+ * - ONE centered SVG (720x720). Everything shares cx=cy=360.
+ * - Static concentric rings.
+ * - Core drawn inside the SVG (gradients + soft glow).
+ * - Three rotating arms are <motion.g> groups that rotate around the same center.
+ * - Each arm draws a branch line from the center to a node; node is a clickable <a> link.
  */
 export default function ContactReactor({
   linkedinHref = "https://www.linkedin.com/in/canyen-palmer-b0b6762a0",
@@ -30,14 +30,12 @@ export default function ContactReactor({
     const loop = async () => {
       while (true) {
         await coreControls.start({
-          opacity: 0.92,
-          scale: 1.045,
-          transition: { duration: 2.1, ease: "easeInOut" },
+          scale: 1.04,
+          transition: { duration: 2.0, ease: "easeInOut" },
         });
         await coreControls.start({
-          opacity: 1,
           scale: 1,
-          transition: { duration: 2.1, ease: "easeInOut" },
+          transition: { duration: 2.0, ease: "easeInOut" },
         });
       }
     };
@@ -45,112 +43,59 @@ export default function ContactReactor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /** Clickable node badge */
+  // SVG constants (single coordinate system)
+  const W = 720;
+  const H = 720;
+  const CX = 360;
+  const CY = 360;
+
+  // Orbit radii (match arms exactly)
+  const R1 = 160; // inner
+  const R2 = 240; // middle
+  const R3 = 320; // outer
+
+  // Node visual constants
+  const NODE_R = 28; // 56px diameter
+  const BRANCH_COLOR = "#67e8f9";
+
+  // Helper to draw a node with icon-like text
   const Node = ({
     href,
     label,
-    children,
+    x,
+    y,
+    text,
   }: {
     href: string;
     label: string;
-    children: React.ReactNode;
+    x: number;
+    y: number;
+    text: string; // "GH", "in", "✉" etc.
   }) => (
-    <a
-      href={href}
-      aria-label={label}
-      target={href.startsWith("http") ? "_blank" : undefined}
-      rel={href.startsWith("http") ? "noreferrer noopener" : undefined}
-      className="group relative inline-flex h-14 w-14 items-center justify-center rounded-full outline-none ring-0 focus-visible:ring-2 focus-visible:ring-cyan-300/80 transition"
-    >
-      <span className="absolute inset-0 rounded-full bg-cyan-400/30 blur-xl opacity-0 group-hover:opacity-100 transition" />
-      <span className="relative z-10 flex h-14 w-14 items-center justify-center rounded-full border border-cyan-300/50 bg-cyan-400/10 backdrop-blur-md">
-        {children}
-      </span>
+    <a href={href} target={href.startsWith("http") ? "_blank" : undefined} rel="noreferrer noopener">
+      {/* glow ring */}
+      <circle cx={x} cy={y} r={NODE_R + 14} fill="none" stroke={BRANCH_COLOR} strokeOpacity={0.18} />
+      {/* node pill */}
+      <circle cx={x} cy={y} r={NODE_R} fill="rgba(34,211,238,0.10)" stroke={BRANCH_COLOR} strokeOpacity={0.45} />
+      {/* label (icon-ish) */}
+      <text
+        x={x}
+        y={y + 6}
+        textAnchor="middle"
+        fontSize="16"
+        fontWeight={600}
+        fill="#e6fdff"
+        aria-label={label}
+        style={{ fontFamily: "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto" }}
+      >
+        {text}
+      </text>
     </a>
   );
 
-  /**
-   * RotatingArm — purely centered wrapper:
-   * - size = 2 * radius
-   * - draws orbit ring + branch from exact center to node
-   * - node positioned precisely at the branch tip
-   */
-  const RotatingArm = ({
-    radius,
-    duration,
-    reverse = false,
-    href,
-    ariaLabel,
-    children,
-    initialAngle = 0,
-  }: {
-    radius: number; // px
-    duration: number; // seconds
-    reverse?: boolean;
-    href: string;
-    ariaLabel: string;
-    children: React.ReactNode;
-    initialAngle?: number; // degrees
-  }) => {
-    const size = radius * 2;
-    const nodeSize = 56; // 14 * 4
-    const nodeR = nodeSize / 2;
-
-    return (
-      <motion.div
-        className="pointer-events-auto absolute left-1/2 top-1/2"
-        style={{
-          transform: "translate(-50%, -50%)",
-          width: size,
-          height: size,
-        }}
-        initial={{ rotate: initialAngle }}
-        animate={{ rotate: reverse ? -360 : 360 }}
-        transition={{ repeat: Infinity, duration, ease: "linear" }}
-      >
-        {/* Orbit + Branch share SAME center as core */}
-        <svg className="absolute inset-0" viewBox={`0 0 ${size} ${size}`} fill="none">
-          {/* orbit ring (ghost) */}
-          <circle
-            cx={radius}
-            cy={radius}
-            r={radius}
-            stroke="#67e8f9"
-            strokeOpacity={0.18}
-            strokeWidth={1.5}
-          />
-          {/* bright branch from center to just under node center */}
-          <line
-            x1={radius}
-            y1={radius}
-            x2={size - nodeR}
-            y2={radius}
-            stroke="#67e8f9"
-            strokeOpacity={0.7}
-            strokeWidth={2.75}
-          />
-        </svg>
-
-        {/* Node exactly at end of branch tip */}
-        <div
-          className="absolute"
-          style={{ left: size - nodeSize, top: radius - nodeR }}
-        >
-          <Node href={href} label={ariaLabel}>
-            {children}
-          </Node>
-        </div>
-      </motion.div>
-    );
-  };
-
   return (
-    <section
-      id="contact"
-      aria-label="Contact"
-      className="relative isolate overflow-hidden py-28 sm:py-36"
-    >
-      {/* Subtle vignette + dotted field */}
+    <section id="contact" aria-label="Contact" className="relative isolate overflow-hidden py-28 sm:py-36">
+      {/* Background vignette + subtle grid */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(0,255,255,0.08),transparent_60%)]"
@@ -161,91 +106,119 @@ export default function ContactReactor({
       />
 
       <div className="mx-auto max-w-6xl px-6">
-        {/* Heading */}
         <div className="mb-12 text-center">
-          <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-            Let&apos;s Build Together
-          </h2>
-          <p className="mt-3 text-balance text-sm text-white/70">
-            Open to conversations, collaborations, and new challenges.
-          </p>
+          <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">Let&apos;s Build Together</h2>
+          <p className="mt-3 text-balance text-sm text-white/70">Open to conversations, collaborations, and new challenges.</p>
         </div>
 
-        {/* === STAGE: everything anchored to THIS exact center === */}
+        {/* Single centered SVG stage — everything concentric */}
         <div className="relative mx-auto flex items-center justify-center">
-          {/* Fixed square so centering never drifts */}
-          <div className="relative h-[720px] w-[720px] max-w-full">
-            {/* RINGS — centered to same point as core & arms */}
-            <svg
-              viewBox="0 0 720 720"
-              className="absolute left-1/2 top-1/2 h-[720px] w-[720px] -translate-x-1/2 -translate-y-1/2"
-              fill="none"
-            >
-              <circle cx="360" cy="360" r="160" stroke="#67e8f9" strokeOpacity={0.22} strokeWidth={1.8} />
-              <circle cx="360" cy="360" r="240" stroke="#67e8f9" strokeOpacity={0.16} strokeWidth={1.6} />
-              <circle cx="360" cy="360" r="320" stroke="#67e8f9" strokeOpacity={0.12} strokeWidth={1.6} />
-            </svg>
+          <motion.svg
+            width={W}
+            height={H}
+            viewBox={`0 0 ${W} ${H}`}
+            className="block"
+            initial={{}}
+            animate={{}}
+          >
+            {/* --- defs for gradients/glow --- */}
+            <defs>
+              {/* core gradient */}
+              <radialGradient id="coreGlow" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="#7dd3fc" stopOpacity="0.9" />
+                <stop offset="60%" stopColor="#6366f1" stopOpacity="0.85" />
+                <stop offset="100%" stopColor="#a78bfa" stopOpacity="0.75" />
+              </radialGradient>
+              {/* core ring gradient */}
+              <linearGradient id="coreRing" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#67e8f9" stopOpacity="0.4" />
+                <stop offset="100%" stopColor="#67e8f9" stopOpacity="0.1" />
+              </linearGradient>
+            </defs>
 
-            {/* CORE — centered to same point */}
-            <motion.div
-              animate={coreControls}
-              className="absolute left-1/2 top-1/2 z-10 grid -translate-x-1/2 -translate-y-1/2 place-items-center"
-            >
-              <div className="relative h-44 w-44 rounded-full">
-                {/* inner glow */}
-                <div className="absolute inset-0 rounded-full bg-gradient-to-br from-cyan-300/60 via-indigo-400/60 to-fuchsia-400/60 blur-2xl" />
-                {/* core body */}
-                <div className="absolute inset-0 rounded-full bg-gradient-to-b from-cyan-400 to-indigo-500 shadow-[0_0_54px_rgba(34,211,238,0.55)]" />
-                {/* sheen */}
-                <div className="absolute inset-2 rounded-full bg-gradient-to-t from-transparent via-white/20 to-transparent opacity-60" />
-                {/* slow ring */}
-                <motion.div
-                  aria-hidden
-                  className="absolute -inset-2 rounded-full border border-cyan-300/35"
-                  animate={{ rotate: 360 }}
-                  transition={{ repeat: Infinity, duration: 28, ease: "linear" }}
-                />
-              </div>
-            </motion.div>
+            {/* --- static orbits (centered) --- */}
+            <circle cx={CX} cy={CY} r={R1} stroke={BRANCH_COLOR} strokeOpacity={0.22} strokeWidth={1.6} fill="none" />
+            <circle cx={CX} cy={CY} r={R2} stroke={BRANCH_COLOR} strokeOpacity={0.16} strokeWidth={1.6} fill="none" />
+            <circle cx={CX} cy={CY} r={R3} stroke={BRANCH_COLOR} strokeOpacity={0.12} strokeWidth={1.6} fill="none" />
 
-            {/*
-              ARMS — wrappers absolutely centered to same point.
-              Radii match the rings exactly; lines terminate under node centers.
-              Initial angles staggered to avoid overlap at load.
-            */}
-            <RotatingArm
-              radius={160}
-              duration={60}
-              reverse={false}
-              href={githubHref}
-              ariaLabel="GitHub"
-              initialAngle={210}
-            >
-              <Github className="h-6 w-6 text-cyan-100" />
-            </RotatingArm>
+            {/* --- core (centered) --- */}
+            <motion.g animate={coreControls}>
+              {/* soft glow */}
+              <circle cx={CX} cy={CY} r={96} fill="url(#coreGlow)" opacity={0.85} />
+              {/* ring */}
+              <motion.circle
+                cx={CX}
+                cy={CY}
+                r={106}
+                fill="none"
+                stroke="url(#coreRing)"
+                strokeWidth={1.4}
+                animate={{ rotate: 360 }}
+                transition={{ repeat: Infinity, duration: 28, ease: "linear" }}
+                style={{ transformOrigin: `${CX}px ${CY}px` }}
+              />
+            </motion.g>
 
-            <RotatingArm
-              radius={240}
-              duration={80}
-              reverse
-              href={linkedinHref}
-              ariaLabel="LinkedIn"
-              initialAngle={30}
-            >
-              <Linkedin className="h-6 w-6 text-cyan-100" />
-            </RotatingArm>
+            {/* --- rotating arms (groups rotate around the SAME center) --- */}
 
-            <RotatingArm
-              radius={320}
-              duration={100}
-              reverse={false}
-              href={emailHref}
-              ariaLabel="Email"
-              initialAngle={300}
+            {/* Inner: CW, GitHub (label GH) */}
+            <motion.g
+              initial={{ rotate: 210 }}
+              animate={{ rotate: 210 + 360 }}
+              transition={{ repeat: Infinity, duration: 60, ease: "linear" }}
+              style={{ transformOrigin: `${CX}px ${CY}px` }}
             >
-              <Mail className="h-6 w-6 text-cyan-100" />
-            </RotatingArm>
-          </div>
+              {/* branch from center to node center */}
+              <line
+                x1={CX}
+                y1={CY}
+                x2={CX + R1}
+                y2={CY}
+                stroke={BRANCH_COLOR}
+                strokeOpacity={0.75}
+                strokeWidth={2.8}
+              />
+              <Node href={githubHref} label="GitHub" x={CX + R1} y={CY} text="GH" />
+            </motion.g>
+
+            {/* Middle: CCW, LinkedIn (label in) */}
+            <motion.g
+              initial={{ rotate: 30 }}
+              animate={{ rotate: 30 - 360 }}
+              transition={{ repeat: Infinity, duration: 80, ease: "linear" }}
+              style={{ transformOrigin: `${CX}px ${CY}px` }}
+            >
+              <line
+                x1={CX}
+                y1={CY}
+                x2={CX + R2}
+                y2={CY}
+                stroke={BRANCH_COLOR}
+                strokeOpacity={0.75}
+                strokeWidth={2.8}
+              />
+              <Node href={linkedinHref} label="LinkedIn" x={CX + R2} y={CY} text="in" />
+            </motion.g>
+
+            {/* Outer: CW, Email (label ✉) */}
+            <motion.g
+              initial={{ rotate: 300 }}
+              animate={{ rotate: 300 + 360 }}
+              transition={{ repeat: Infinity, duration: 100, ease: "linear" }}
+              style={{ transformOrigin: `${CX}px ${CY}px` }}
+            >
+              <line
+                x1={CX}
+                y1={CY}
+                x2={CX + R3}
+                y2={CY}
+                stroke={BRANCH_COLOR}
+                strokeOpacity={0.75}
+                strokeWidth={2.8}
+              />
+              <Node href={emailHref} label="Email" x={CX + R3} y={CY} text="✉" />
+            </motion.g>
+          </motion.svg>
         </div>
 
         {/* Tagline */}
