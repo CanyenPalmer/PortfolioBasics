@@ -17,20 +17,19 @@ type EduItem = {
 
 type Props = {
   heading?: string;
-  /** Optional. If not provided, we use profile.education */
-  items?: EduItem[];
+  /** Optional. If not provided, uses profile.education */
+  items?: ReadonlyArray<EduItem>;
 };
 
 export default function Education({ heading = "Education", items }: Props) {
-  const list: EduItem[] = items ?? ((profile as any)?.education ?? []);
+  const list: ReadonlyArray<EduItem> =
+    items ?? (((profile as any)?.education ?? []) as ReadonlyArray<EduItem>);
 
   if (!Array.isArray(list) || list.length === 0) return null;
 
   return (
     <section aria-label="Education">
-      <h2 className="mb-6 text-xl font-semibold tracking-wide text-cyan-200">
-        {heading}
-      </h2>
+      <h2 className="mb-6 text-xl font-semibold tracking-wide text-cyan-200">{heading}</h2>
 
       <div className="space-y-6">
         {list.map((e, i) => (
@@ -46,22 +45,15 @@ export default function Education({ heading = "Education", items }: Props) {
               <h3 className="text-lg font-semibold text-white/90">
                 {e.school}
                 {e.program || e.degree ? (
-                  <span className="text-white/60">
-                    {" "}
-                    — {e.program ?? e.degree}
-                  </span>
+                  <span className="text-white/60"> — {e.program ?? e.degree}</span>
                 ) : null}
               </h3>
               {e.dates && (
-                <span className="font-mono text-xs text-cyan-300/80">
-                  {e.dates}
-                </span>
+                <span className="font-mono text-xs text-cyan-300/80">{e.dates}</span>
               )}
             </header>
 
-            {e.location && (
-              <p className="text-sm text-white/60">{e.location}</p>
-            )}
+            {e.location && <p className="text-sm text-white/60">{e.location}</p>}
 
             {Array.isArray(e.bullets) && e.bullets.length > 0 && (
               <ul className="mt-3 list-disc space-y-1.5 pl-6 text-sm text-white/85">
