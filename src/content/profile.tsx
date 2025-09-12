@@ -9,9 +9,10 @@ import * as React from "react";
 
 export const profile = {
   hero: {
-    headline: 'Data Scientist & Google-Certified Data Analyst Professional',
-    subheadline: 'Specializing in statistics, machine learning, predictive modeling, and optimization.',
-    typer: 'Data Scientist & Google-Certified Data Analytics Professional',
+    headline: "Data Scientist & Google-Certified Data Analyst Professional",
+    subheadline:
+      "Specializing in statistics, machine learning, predictive modeling, and optimization.",
+    typer: "Data Scientist & Google-Certified Data Analytics Professional",
   },
   about: {
     poses: [
@@ -166,7 +167,7 @@ export const profile = {
           name: "CGM Patient Responsibility Tracker",
           details: [
             "Machine-Learning Model capable of mass data upload via CSV, mining and manipulation for key insights, and output of newly constructed CSV.",
-            "Discovered $20,000 in transferable funds through **one** subset of CGM patient responsibility alone.",
+            "Discovered $20,000 in transferable funds through one subset of CGM patient responsibility alone.",
           ],
         },
         {
@@ -198,7 +199,7 @@ export const profile = {
   ],
   projects: [
     {
-      title: "CGM Patient Analytics – Identifying Unpaid Balances",
+      title: "CGM Patient Analytics",
       tech: ["Python", "Pandas", "SQLite", "Excel", "Jupyter"],
       packages: ["pandas", "numpy", "sqlite3", "openpyxl"],
       points: [
@@ -216,7 +217,6 @@ export const profile = {
         ],
         results: [
           "Identified $317,000 in unpaid balances across claims.",
-          "Supported reporting that led to improved downstream reimbursement tracking.",
         ],
         visuals: [
           "Excel and Google Sheets dashboards for department-wide interpretation.",
@@ -230,7 +230,7 @@ export const profile = {
       links: [{ label: "GitHub", href: "https://github.com/CanyenPalmer" }],
     },
     {
-      title: "Logistic Regression & Tree-Based Models for Classification",
+      title: "Logistic Regression & Tree-Based ML",
       tech: ["Python", "scikit-learn", "pandas", "numpy", "matplotlib"],
       packages: ["scikit-learn", "pandas", "numpy", "matplotlib"],
       points: [
@@ -280,6 +280,40 @@ export const profile = {
       },
       links: [{ label: "GitHub", href: "https://github.com/CanyenPalmer" }],
     },
+    {
+      title: "Python 101",
+      tech: ["Python", "Pandas", "Jupyter"],
+      packages: ["pandas", "numpy", "matplotlib"],
+      points: [
+        "Beginner-friendly Python notebooks introducing data analysis workflows.",
+        "Covers data loading, cleaning, visualization, and simple modeling.",
+      ],
+      details: {
+        datasets: ["Small CSV practice datasets."],
+        methods: ["Notebook-driven learning with executable examples."],
+        results: ["Students can reproduce common data tasks and basic EDA."],
+        visuals: ["Inline Matplotlib figures; table previews."],
+        nextSteps: ["Add exercises and auto-grading with nbgrader."],
+      },
+      links: [{ label: "GitHub", href: "https://github.com/CanyenPalmer" }],
+    },
+    {
+      title: "MyCaddy — Physics Shot Calculator",
+      tech: ["React", "TypeScript", "Python (Flask)", "SQLite"],
+      packages: ["react", "typescript", "flask", "sqlite3"],
+      points: [
+        "Custom golf yardage-book generator and strategy tool.",
+        "Physics-based shot calculator (wind, temp, lie) with mobile-first UI.",
+      ],
+      details: {
+        datasets: ["User-entered round data; simulator/launch monitor metrics."],
+        methods: ["Domain rules + physics formulas driving shot outcomes."],
+        results: ["More consistent strategy and club selection on-course."],
+        visuals: ["Clean mobile UI for quick decisions; charts for shot dispersion."],
+        nextSteps: ["Integrate wearable data; add caddie recommendations."],
+      },
+      links: [{ label: "GitHub", href: "https://github.com/CanyenPalmer" }],
+    },
   ],
   testimonials: [
     {
@@ -316,6 +350,6 @@ export const profile = {
     },
   ],
   contact: {
-    email: "Canyen2019@gmail.com"
-  }
+    email: "Canyen2019@gmail.com",
+  },
 } as const;
