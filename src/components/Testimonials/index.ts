@@ -1,3 +1,8 @@
-// Re-export the named component as default so imports like
-// `import Testimonials from "@/components/Testimonials"` work.
-export { Testimonials as default } from "./Testimonials";
+// This shim makes BOTH import styles work:
+//
+//   import Testimonials from "@/components/Testimonials";
+//   import { Testimonials } from "@/components/Testimonials";
+//
+import T, { Testimonials as Named } from "./Testimonials";
+export default T;
+export { Named as Testimonials };
