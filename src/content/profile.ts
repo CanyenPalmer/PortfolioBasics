@@ -134,11 +134,65 @@ export const profile = {
     ],
   },
 
-  experience: [/* pulled in full from Experience.tsx, shortened here for brevity */],
+  experience: [
+    {
+      id: "lead_analyst",
+      title: "Lead Analyst",
+      company: "Iconic Care Inc.",
+      location: "Indianapolis, Indiana",
+      dates: "June 2025 – Aug 2025",
+      context: "Internal analytics & custom ML models for data insights.",
+      tech: ["Python", "SQLite", "Excel", "Google Sheets/Slides", "GitHub", "Jupyter Notebooks"],
+      skills: ["Analytics", "Custom ML Models", "Revenue Cycle KPIs"],
+      highlights: [
+        "Built internal analytics tools using Python, Google Sheets, and ML models to support billing, rep performance, and operational forecasting.",
+        "Created optimization models that support field representative efficiency, tying performance metrics directly to revenue outcomes.",
+        "Acted as the cross-functional analytics lead between billing, customer service, sales, and leadership, managing mission-critical projects across departments.",
+      ],
+      creations: [
+        {
+          name: "CGM Patient Responsibility Tracker",
+          details: [
+            "Machine-Learning Model capable of mass data upload via CSV, mining and manipulation for key insights, and output of newly constructed CSV.",
+            "Discovered **$20,000** in transferable funds through CGM equipment alone.",
+          ],
+        },
+        {
+          name: "CalendarExtractor",
+          details: [
+            "Python model that extracts specific information from Google Calendar entries across any period, exporting mined data to CSV for further testing.",
+            "Saves **12+ hours/week** per sales rep.",
+          ],
+        },
+      ],
+      fileName: "lead_analyst.json",
+    },
+    {
+      id: "billing_revenue_specialist",
+      title: "Billing & Revenue Specialist",
+      company: "Iconic Care Inc.",
+      location: "Indianapolis, Indiana",
+      dates: "May 2025 – Jun 2025",
+      context: "Billing operations & analytics: dashboards, denials, reimbursement.",
+      tech: ["Python", "Excel", "Google Sheets/Docs", "Brightree"],
+      skills: ["Analytics", "Project Management", "System Testing", "Medical Billing", "Databases"],
+      highlights: [
+        "Optimized Payor Level Dashboards, Billing Cycle Processes, Patient Information Checklist, HPCPS Code Validations, Cost/Reimbursement Data, and BrightTree Consignment to be interpreted throughout all departments of Iconic Care Inc.",
+        "Expressed analytical insights throughout a multitude of departments while maintaining the confidentiality of crucial company metrics.",
+        "Created denial tracking and prevention dashboards to increase success rates.",
+        "Constructed Iconic Care's first-ever balance sheet for tracking all crucial financial metrics.",
+      ],
+    },
+    // …include the rest of your roles exactly as in Experience.tsx
+  ],
 
-  projects: [/* pulled in full from ProjectsHUD.tsx */],
+  projects: [
+    // Full PROJECTS array from ProjectsHUD.tsx goes here
+  ],
 
-  testimonials: [/* pulled in full from testimonials.ts */],
+  testimonials: [
+    // Full TESTIMONIALS array from testimonials.ts goes here
+  ],
 
   contact: {
     email: "Canyen2019@gmail.com",
@@ -146,4 +200,3 @@ export const profile = {
     github: "https://github.com/CanyenPalmer",
   },
 } as const;
-
