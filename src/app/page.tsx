@@ -15,7 +15,7 @@ import { LINKS } from "@/content/links";
 export default function Page() {
   return (
     <main className="relative">
-      {/* Top bar stays */}
+      {/* VSCode bar stays */}
       <VscodeTopBar />
 
       {/* Hero */}
@@ -32,7 +32,7 @@ export default function Page() {
         <AboutMeShowcase />
       </section>
 
-      {/* Education */}
+      {/* Education (UNCHANGED) */}
       <section id="education" className="container mx-auto px-6 py-24 max-w-7xl" aria-label="Education">
         <Education />
       </section>
@@ -47,7 +47,7 @@ export default function Page() {
         <ProjectsHUD />
       </section>
 
-      {/* Testimonials (leave as your current component renders it) */}
+      {/* Testimonials (UNCHANGED) */}
       <section id="testimonials" className="container mx-auto px-6 py-24 max-w-7xl" aria-label="Testimonials">
         <Testimonials />
       </section>
