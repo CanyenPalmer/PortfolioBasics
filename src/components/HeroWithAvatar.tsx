@@ -19,18 +19,17 @@ export default function Hero({
       className="relative min-h-[78vh] overflow-hidden border-b border-cyan-400/10"
       aria-label="Hero"
     >
-      {/* --- BACKDROP: soft neon gradients + scanlines --- */}
+      {/* Backdrop */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute inset-0 opacity-[0.08] [background-image:radial-gradient(ellipse_at_center,black,transparent_70%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(0,229,255,.15),transparent_30%),radial-gradient(circle_at_85%_65%,rgba(255,59,212,.12),transparent_28%)]" />
         <div className="absolute inset-0 opacity-[.08] [background:repeating-linear-gradient(0deg,rgba(255,255,255,.06)_0_1px,transparent_1px_3px)]" />
       </div>
 
-      {/* --- CONTENT LAYER --- */}
+      {/* Content */}
       <div className="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-10 px-6 py-20 md:grid-cols-2 md:py-28">
-        {/* LEFT: AVATAR PANEL */}
+        {/* Avatar */}
         <div className="relative mx-auto w-full max-w-[520px]">
-          {/* Neon frame */}
           <motion.div
             className="relative rounded-2xl border border-cyan-400/25 bg-[#0b1016]/40 p-3 shadow-[0_0_50px_rgba(0,229,255,.15)]"
             initial={{ opacity: 0, y: 12 }}
@@ -38,17 +37,17 @@ export default function Hero({
             transition={{ duration: 0.6 }}
           >
             <motion.div
-              className="relative rounded-xl overflow-hidden ring-1 ring-cyan-400/20"
+              className="relative overflow-hidden rounded-xl ring-1 ring-cyan-400/20"
               initial={{ scale: 0.98 }}
               animate={{ scale: 1 }}
               transition={{ duration: 0.6, delay: 0.05 }}
             >
-              {/* The avatar image — replace the file below with your custom art */}
               <motion.div
                 initial={{ y: 6 }}
                 animate={{ y: [6, 0, 6] }}
                 transition={{ duration: 8, repeat: Infinity }}
               >
+                {/* Replace with your avatar asset */}
                 <Image
                   src="/images/avatar.png"
                   alt="Manga-style 2D avatar of Canyen Palmer"
@@ -58,12 +57,8 @@ export default function Hero({
                   className="block h-auto w-full"
                 />
               </motion.div>
-
-              {/* Subtle glow edge */}
               <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-cyan-400/15" />
             </motion.div>
-
-            {/* Floating neon chips (tiny ambient motion) */}
             <motion.div
               className="pointer-events-none absolute -left-4 top-3 h-20 w-20 rounded-full"
               animate={{ x: [0, 2, 0], y: [0, -2, 0] }}
@@ -76,7 +71,7 @@ export default function Hero({
           </motion.div>
         </div>
 
-        {/* RIGHT: HEADLINE + SUBLINE */}
+        {/* Headline */}
         <div className="relative">
           <motion.h1
             className="text-5xl font-extrabold tracking-tight md:text-6xl"
@@ -107,7 +102,6 @@ export default function Hero({
             {typer}
           </motion.p>
 
-          {/* Shards / energy underline */}
           <motion.div
             className="mt-6 h-[2px] w-44 bg-gradient-to-r from-cyan-400/80 via-cyan-200/60 to-transparent"
             initial={{ scaleX: 0 }}
@@ -117,7 +111,7 @@ export default function Hero({
         </div>
       </div>
 
-      {/* --- CORNER HUD DOTS (keeps the same “editor panel” vibe) --- */}
+      {/* Editor dots */}
       <div className="pointer-events-none absolute left-3 top-3 flex gap-1">
         <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#ff5f56] shadow-[0_0_8px_#ff5f56]" />
         <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#ffbd2e] shadow-[0_0_8px_#ffbd2e]" />
