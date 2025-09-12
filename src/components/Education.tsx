@@ -46,13 +46,13 @@ export default function Education({ heading = "Education", items }: Props) {
                 {ed.range && <div className="text-white/60 text-sm md:text-base">{ed.range}</div>}
               </div>
 
-              {ed.details && ed.details.length > 0 && (
+              {ed.details?.length ? (
                 <ul className="mt-4 list-disc pl-5 text-white/80 space-y-1">
                   {ed.details.map((d, j) => (<li key={j}>{d}</li>))}
                 </ul>
-              )}
+              ) : null}
 
-              {ed.coursework && ed.coursework.length > 0 && (
+              {ed.coursework?.length ? (
                 <div className="mt-4">
                   <div className="text-xs uppercase tracking-wider text-white/60">Selected Coursework</div>
                   <div className="mt-2 flex flex-wrap gap-2">
@@ -63,9 +63,9 @@ export default function Education({ heading = "Education", items }: Props) {
                     ))}
                   </div>
                 </div>
-              )}
+              ) : null}
 
-              {ed.badges && ed.badges.length > 0 && (
+              {ed.badges?.length ? (
                 <div className="mt-3">
                   <div className="text-xs uppercase tracking-wider text-white/60">Focus Areas</div>
                   <div className="mt-2 flex flex-wrap gap-2">
@@ -74,7 +74,7 @@ export default function Education({ heading = "Education", items }: Props) {
                     ))}
                   </div>
                 </div>
-              )}
+              ) : null}
             </motion.div>
           ))}
         </div>
