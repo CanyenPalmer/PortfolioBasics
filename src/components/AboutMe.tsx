@@ -7,7 +7,7 @@ type Props = {
   heading: string;
   lead?: string;
   body?: string[];
-  images?: string[]; // e.g., ["/about/impact-dashboard.jpg", ...]
+  images?: string[];
 };
 
 export default function AboutMe({ heading, lead, body = [], images = [] }: Props) {
@@ -37,7 +37,6 @@ export default function AboutMe({ heading, lead, body = [], images = [] }: Props
         )}
 
         <div className="mt-10 grid md:grid-cols-2 gap-10 items-start">
-          {/* Text */}
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -46,13 +45,10 @@ export default function AboutMe({ heading, lead, body = [], images = [] }: Props
             className="space-y-5"
           >
             {body.map((p, i) => (
-              <p key={i} className="text-white/80 leading-relaxed">
-                {p}
-              </p>
+              <p key={i} className="text-white/80 leading-relaxed">{p}</p>
             ))}
           </motion.div>
 
-          {/* Images */}
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -62,22 +58,12 @@ export default function AboutMe({ heading, lead, body = [], images = [] }: Props
           >
             {images.length === 0 ? (
               <div className="col-span-2 text-sm text-white/50">
-                (Add images under <code>/public/about/</code> and pass their paths to <code>images</code>.)
+                (Add images under <code>/public/images/</code> and pass their paths.)
               </div>
             ) : (
               images.map((src, idx) => (
-                <div
-                  key={idx}
-                  className="relative aspect-[4/3] overflow-hidden rounded-2xl ring-1 ring-white/10 bg-white/5"
-                >
-                  <Image
-                    src={src}
-                    alt={`About image ${idx + 1}`}
-                    fill
-                    sizes="(max-width: 768px) 50vw, 25vw"
-                    className="object-cover"
-                    priority={idx === 0}
-                  />
+                <div key={idx} className="relative aspect-[4/3] overflow-hidden rounded-2xl ring-1 ring-white/10 bg-white/5">
+                  <Image src={src} alt={`About image ${idx + 1}`} fill sizes="(max-width: 768px) 50vw, 25vw" className="object-cover" priority={idx===0} />
                 </div>
               ))
             )}
