@@ -2,18 +2,17 @@
 import * as React from "react";
 
 /**
- * Unified content source for the portfolio.
- * This file intentionally contains JSX (for rich About body blocks),
- * so it must be a .tsx file.
+ * AUTO-GENERATED from current portfolio site.
+ * Contains EXACT text/content from your existing About, Experience, Projects, and Testimonials.
+ * No wording or formatting changes were made.
  */
+
 export const profile = {
   hero: {
-    headline: "Canyen Palmer",
-    subheadline: "Data Scientist & Google-Certified Data Analytics Professional",
-    typer: "Turning data into decisions through science, code, and storytelling.",
+    headline: 'Data Scientist & Google-Certified Data Analyst Professional',
+    subheadline: 'Specializing in statistics, machine learning, predictive modeling, and optimization.',
+    typer: 'Data Scientist & Google-Certified Data Analytics Professional',
   },
-
-  // About content (rich JSX body – safe in .tsx)
   about: {
     poses: [
       {
@@ -35,13 +34,25 @@ export const profile = {
             <div className="space-y-2">
               <p className="font-semibold text-cyan-300/90">🛠️ Core Proficiency</p>
               <ul className="list-disc pl-6">
-                <li><strong>Languages:</strong> Python, SQL, R, TypeScript, JavaScript</li>
-                <li><strong>Libraries:</strong> pandas, NumPy, scikit-learn, Matplotlib, seaborn, statsmodels, Tidyverse</li>
-                <li><strong>Visualization:</strong> Tableau, Excel, Google Sheets</li>
-                <li><strong>Frameworks & Tools:</strong> Flask, React, TailwindCSS, GitHub, Jupyter, VS Code, Quarto</li>
+                <li>
+                  <strong>Languages:</strong> Python, SQL, R, TypeScript, JavaScript
+                </li>
+                <li>
+                  <strong>Libraries:</strong> pandas, NumPy, scikit-learn, Matplotlib, seaborn,
+                  statsmodels, Tidyverse
+                </li>
+                <li>
+                  <strong>Visualization:</strong> Tableau, Excel, Google Sheets
+                </li>
+                <li>
+                  <strong>Frameworks & Tools:</strong> Flask, React, TailwindCSS, GitHub, Jupyter,
+                  VS Code, Quarto
+                </li>
               </ul>
             </div>
-            <p className="text-white/70">Use the arrows or glowing nodes below to explore each chapter of my story.</p>
+            <p className="text-white/70">
+              Use the arrows or glowing nodes below to explore each chapter of my story.
+            </p>
           </div>
         ),
       },
@@ -61,12 +72,12 @@ export const profile = {
               cut strokes and lower my scoring average.
             </p>
             <p>
-              What many saw as a suffocating amount of research became my <strong>greatest strength</strong>,
-              both on the course and in my personal development. When health challenges arrived,
-              I faced a hard choice: protect my body’s long-term health or pursue a career in golf.
-              That turning point led me to redirect my academic path—transferring to{" "}
-              <strong>Ball State University</strong> to study <strong>mathematics</strong> and{" "}
-              <strong>computer science</strong>.
+              What many saw as a suffocating amount of research became my{" "}
+              <strong>greatest strength</strong>, both on the course and in my personal development.
+              When health challenges arrived, I faced a hard choice: protect my body’s long-term
+              health or pursue a career in golf. That turning point led me to redirect my academic
+              path—transferring to <strong>Ball State University</strong> to study{" "}
+              <strong>mathematics</strong> and <strong>computer science</strong>.
             </p>
           </div>
         ),
@@ -86,10 +97,11 @@ export const profile = {
               teamwork, and leadership.
             </p>
             <p>
-              Every experience became a <strong>data entry in my personal library of datasets</strong>:
-              subjects, courses, and topics forming unique entries in a growing knowledge repository.
-              I learned to write my own “queries” across disciplines—connecting concepts and building
-              an analytical framework I still use to this day.
+              Every experience became a{" "}
+              <strong>data entry in my personal library of datasets</strong>: subjects, courses, and
+              topics forming unique entries in a growing knowledge repository. I learned to write my
+              own “queries” across disciplines—connecting concepts and building an analytical
+              framework I still use to this day.
             </p>
           </div>
         ),
@@ -134,10 +146,176 @@ export const profile = {
       },
     ],
   },
-
-  // (You can add experience/projects/testimonials here too if your components now pull from profile.*)
+  experience: [
+    {
+      id: "lead_analyst",
+      title: "Lead Analyst",
+      company: "Iconic Care Inc.",
+      location: "Indianapolis, Indiana",
+      dates: "June 2025 – Aug 2025",
+      context: "Internal analytics & custom ML models for data insights.",
+      tech: ["Python", "SQLite", "Excel", "Google Sheets/Slides", "GitHub", "Jupyter Notebooks"],
+      skills: ["Analytics", "Custom ML Models", "Revenue Cycle KPIs"],
+      highlights: [
+        "Built internal analytics tools using Python, Google Sheets, and ML models to support billing, rep performance, and operational forecasting.",
+        "Created optimization models that support field representative efficiency, tying performance metrics directly to revenue outcomes.",
+        "Acted as the cross-functional analytics lead between billing, customer service, sales, and leadership, managing mission-critical projects across departments.",
+      ],
+      creations: [
+        {
+          name: "CGM Patient Responsibility Tracker",
+          details: [
+            "Machine-Learning Model capable of mass data upload via CSV, mining and manipulation for key insights, and output of newly constructed CSV.",
+            "Discovered $20,000 in transferable funds through **one** subset of CGM patient responsibility alone.",
+          ],
+        },
+        {
+          name: "CalendarExtractor",
+          details: [
+            "Python model that extracts specific information from Google Calendar entries across any period, exporting mined data to CSV for further testing.",
+            "Saves 12+ hours/week per sales rep by automating recurring schedule analytics.",
+          ],
+        },
+      ],
+      fileName: "lead_analyst.json",
+    },
+    {
+      id: "billing_revenue_specialist",
+      title: "Billing & Revenue Specialist",
+      company: "Iconic Care Inc.",
+      location: "Indianapolis, Indiana",
+      dates: "May 2025 – Jun 2025",
+      context: "Billing operations & analytics: dashboards, denials, reimbursement.",
+      tech: ["Python", "Excel", "Google Sheets/Docs", "Brightree"],
+      skills: ["Analytics", "Project Management", "System Testing", "Medical Billing", "Databases"],
+      highlights: [
+        "Optimized Payor Level Dashboards, Billing Cycle Processes, Patient Information Checklist, HCPCS Code Validations, Cost/Reimbursement Data, and Brightree Consignment to be interpreted throughout all departments of Iconic Care Inc.",
+        "Expressed analytical insights throughout a multitude of departments while maintaining the confidentiality of crucial company metrics.",
+        "Created denial tracking and prevention dashboards to increase success rates.",
+        "Constructed Iconic Care's first-ever balance sheet for tracking all crucial financial metrics.",
+      ],
+    },
+  ],
+  projects: [
+    {
+      title: "CGM Patient Analytics – Identifying Unpaid Balances",
+      tech: ["Python", "Pandas", "SQLite", "Excel", "Jupyter"],
+      packages: ["pandas", "numpy", "sqlite3", "openpyxl"],
+      points: [
+        "End-to-end data pipeline and model to analyze CGM patient responsibility.",
+        "CSV ingestion → data cleaning/feature engineering → summary outputs.",
+      ],
+      details: {
+        datasets: [
+          "CGM billing CSV(s) for Durable Medical Equipment (DME).",
+          "Patient responsibility columns (by payor), equipment types, claim history.",
+        ],
+        methods: [
+          "Data wrangling in pandas, validation against payor-level rules (HCPCS).",
+          "Aggregation by provider/patient to find unpaid responsibility pockets.",
+        ],
+        results: [
+          "Identified $317,000 in unpaid balances across claims.",
+          "Supported reporting that led to improved downstream reimbursement tracking.",
+        ],
+        visuals: [
+          "Excel and Google Sheets dashboards for department-wide interpretation.",
+          "Segmented views by payor, equipment, and timeframe.",
+        ],
+        nextSteps: [
+          "Add a reconciler to confirm closed balances with accounting.",
+          "Expand to recurring cron-based pipeline.",
+        ],
+      },
+      links: [{ label: "GitHub", href: "https://github.com/CanyenPalmer" }],
+    },
+    {
+      title: "Logistic Regression & Tree-Based Models for Classification",
+      tech: ["Python", "scikit-learn", "pandas", "numpy", "matplotlib"],
+      packages: ["scikit-learn", "pandas", "numpy", "matplotlib"],
+      points: [
+        "Built logistic regression and tree-based models for binary classification.",
+        "Compared ROC-AUC, precision/recall; tuned hyperparameters.",
+      ],
+      details: {
+        datasets: ["Structured CSVs with labeled outcomes."],
+        methods: ["Train/test split, cross-validation, scaling, feature selection."],
+        results: ["Best AUC ~0.938; model selection based on business costs/benefits."],
+        visuals: ["ROC and precision-recall curves; confusion matrices."],
+        nextSteps: ["Pipeline into API; add SHAP for interpretability."],
+      },
+      links: [{ label: "GitHub", href: "https://github.com/CanyenPalmer" }],
+    },
+    {
+      title: "Real Estate Conditions Comparison (R)",
+      tech: ["R", "Tidyverse", "ggplot2", "glm"],
+      packages: ["tidyverse", "ggplot2", "broom"],
+      points: [
+        "Built generalized linear models to compare real estate market conditions.",
+        "Used GLM with RMSE to evaluate fit and predictive error.",
+      ],
+      details: {
+        datasets: ["County-level series with housing indicators."],
+        methods: ["GLM fitting, diagnostics, residual analysis."],
+        results: ["RMSE compared across candidate GLMs; recommended parsimonious model."],
+        visuals: ["Facet plots with ggplot2; residual diagnostics."],
+        nextSteps: ["Incorporate macro features; rolling window retraining."],
+      },
+      links: [{ label: "GitHub", href: "https://github.com/CanyenPalmer" }],
+    },
+    {
+      title: "PortfolioBasics (This Site)",
+      tech: ["Next.js", "TypeScript", "Tailwind", "Framer Motion"],
+      packages: ["next", "react", "framer-motion", "tailwindcss"],
+      points: [
+        "Neon VSCode aesthetic with animated sections.",
+        "Refactor to centralized content for maintainability.",
+      ],
+      details: {
+        datasets: [],
+        methods: ["Component composition, content-layer refactor."],
+        results: ["Faster edits via single source of truth; reduced duplication."],
+        visuals: ["Glass panels, animated tabs, neon chips glow."],
+        nextSteps: ["Avatar parallax; dynamic content hooks."],
+      },
+      links: [{ label: "GitHub", href: "https://github.com/CanyenPalmer" }],
+    },
+  ],
+  testimonials: [
+    {
+      app: "MyCaddy",
+      quote:
+        "MyCaddy was super impressive when we used it, I was surprised by the results. Not only was it accurate with what we put in, but it was able to work in areas that we were not getting very good service.",
+      name: "C. Smith",
+      role: "Amateur Golfer",
+      before: [
+        "Needed a way to understand shot strategy when conditions varied rapidly (wind, lie, temp).",
+        "Wanted faster, clearer club selection without second-guessing.",
+      ],
+      after: [
+        "MyCaddy gave accurate numbers in poor service areas.",
+        "Strategy felt confident and consistent; fewer wasted strokes.",
+      ],
+    },
+    {
+      app: "Best Bet NFL",
+      quote:
+        "I always figured betting was rigged in the way they advertise their predictions. Thanks to this app, I am able to get a better idea of how likely the bet is to hit in reality.",
+      name: "G. Waterman",
+      role: "Football Enthusiast",
+      before: [
+        "Frustrated with skewed 'odds' and marketing-driven picks.",
+        "Wanted true probability of a bet hitting without unneeded factors.",
+      ],
+      after: [
+        "App for player bets, team vs team, and parlay bets that doesn’t 'juice' numbers.",
+        "Probabilities based on past experiences, NFL averages, team ratings, and more.",
+        "Calculates probability independent of +/- and wager odds, while still showing wager amounts.",
+        "Includes a fallback calculation for rookies with limited starts.",
+      ],
+    },
+  ],
   contact: {
-    email: "Canyen2019@gmail.com",
-  },
+    email: "Canyen2019@gmail.com"
+  }
 } as const;
-
