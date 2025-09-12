@@ -7,7 +7,7 @@ export default function ProjectsHUD() {
   const projects = profile.projects;
   return (
     <section id="projects" className="section-wrap">
-      {/* render projects */}
+      {/* render projects just like before, but using `projects` */}
     </section>
   );
 }
