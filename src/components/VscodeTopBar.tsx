@@ -18,27 +18,27 @@ export default function VscodeTopBar({
   return (
     <header className="sticky top-0 z-50 bg-[#0b1016]/85 backdrop-blur supports-[backdrop-filter]:bg-[#0b1016]/60 border-b border-white/10">
       <nav className="mx-auto max-w-6xl px-4 py-3 flex items-center gap-4">
-        {/* left — faux VSCode controls */}
+        {/* VSCode window controls */}
         <div className="flex items-center gap-2">
           <span className="inline-block h-3 w-3 rounded-full bg-[#ff5f57]" />
           <span className="inline-block h-3 w-3 rounded-full bg-[#febc2e]" />
           <span className="inline-block h-3 w-3 rounded-full bg-[#28c840]" />
         </div>
 
-        {/* center — tabs */}
+        {/* navigation tabs */}
         <ul className="hidden md:flex items-center gap-5 text-sm text-white/70">
           <li className="hover:text-white"><a href="#home">Home</a></li>
+          <li className="hover:text-white"><a href="#about">About</a></li>
+          <li className="hover:text-white"><a href="#education">Education</a></li>
           <li className="hover:text-white"><a href="#experience">Experience</a></li>
           <li className="hover:text-white"><a href="#projects">Projects</a></li>
-          <li className="hover:text-white"><a href="#education">Education</a></li>
           <li className="hover:text-white"><a href="#testimonials">Testimonials</a></li>
           <li className="hover:text-white"><a href="#contact">Contact</a></li>
         </ul>
 
-        {/* spacer */}
         <div className="grow" />
 
-        {/* right — links */}
+        {/* external links */}
         <div className="flex items-center gap-4 text-sm">
           <Link
             href={resumeHref}
