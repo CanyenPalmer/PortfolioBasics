@@ -7,7 +7,7 @@ import AboutMeShowcase from "@/components/AboutMeShowcase";
 import Education from "@/components/Education";
 import Experience from "@/components/Experience";
 import ProjectsHUD from "@/components/ProjectsHUD";
-import { Testimonials } from "@/components/Testimonials"; // ✅ named import
+import { Testimonials } from "@/components/Testimonials"; // works with our shim or direct named export
 import Contact from "@/components/Contact";
 import { profile } from "@/content/profile";
 import { LINKS } from "@/content/links";
@@ -42,7 +42,7 @@ export default function Page() {
         <Experience />
       </section>
 
-      {/* Projects */}
+      {/* Projects (no avatar column) */}
       <section id="projects" className="px-6 py-24" aria-label="Projects">
         <ProjectsHUD />
       </section>
