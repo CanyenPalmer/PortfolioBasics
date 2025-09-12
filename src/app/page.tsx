@@ -4,6 +4,8 @@ import Hero from "@/components/Hero";
 import AboutMe from "@/components/AboutMe";
 import Experience from "@/components/Experience";
 import Projects from "@/components/Projects";
+import Testimonials from "@/components/Testimonials";
+import Contact from "@/components/Contact";
 
 export default function Page() {
   return (
@@ -33,9 +35,7 @@ export default function Page() {
             {
               title: "Data Scientist",
               range: "2021—Present",
-              bullets: [
-                "Shipped predictive models and analytics workflows end-to-end.",
-              ],
+              bullets: ["Shipped predictive models and analytics workflows end-to-end."],
               metric: { value: "10%", label: "user engagement" },
             },
             {
@@ -59,16 +59,14 @@ export default function Page() {
           projects={[
             {
               title: "E-commerce Sales Prediction",
-              summary:
-                "End-to-end pipeline from wrangling to modeling, plus a decision dashboard.",
+              summary: "End-to-end pipeline from wrangling to modeling, plus a decision dashboard.",
               tags: ["Python", "Scikit-learn", "Pandas"],
               chart: [2, 6, 4, 8, 5, 9, 7],
-              href: "https://github.com/CanyenPalmer", // replace per-project
+              href: "https://github.com/CanyenPalmer",
             },
             {
               title: "CGM Patient Analytics",
-              summary:
-                "Segmentation + forecasting for clinical monitoring and ops insights.",
+              summary: "Segmentation + forecasting for clinical monitoring and ops insights.",
               tags: ["R", "Forecast", "ggplot2"],
               chart: [3, 3, 5, 6, 7, 8, 11],
             },
@@ -76,6 +74,42 @@ export default function Page() {
           sideIllustrationSrc="/illustrations/side.png"
         />
       </section>
-    </main>
-  );
-}
+
+      <section className="container mx-auto px-6 py-24 max-w-6xl">
+        <Testimonials
+          items={[
+            {
+              app: "Best Bet NFL",
+              quote:
+                "Clear logic and transparency — it actually helped me understand variance instead of selling hype.",
+              name: "User Feedback",
+              role: "Power user",
+            },
+            {
+              app: "CGM Patient Tracker",
+              quote:
+                "Surfaced $317k in unpaid claims by aligning operations with predictive alerts.",
+              name: "Ops Lead",
+              role: "Healthcare org",
+            },
+            {
+              app: "MyCaddy",
+              quote:
+                "Loved the UX — went from manual stat tracking to automated insights in one round.",
+              name: "Early Adopter",
+            },
+          ]}
+          cols={3}
+        />
+      </section>
+
+      <section className="container mx-auto px-6 py-24 max-w-6xl">
+        <Contact
+          links={{
+            emailHref: "mailto:canyen2019@gmail.com",
+            linkedinHref: "https://www.linkedin.com/in/canyen-palmer-b0b6762a0",
+            githubHref: "https://github.com/CanyenPalmer",
+            resumeHref: "/Canyen_Palmer_Resume.pdf",
+          }}
+        />
+      </
