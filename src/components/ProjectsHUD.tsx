@@ -3,29 +3,14 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 
-type Project = {
-  title: string;
-  summary: string;
-  tags: string[];
-  chart?: number[]; // simple inline bar chart values
-  href?: string;
-};
+type Project = { title: string; summary: string; tags: string[]; chart?: number[]; href?: string; };
+type Props = { heading?: string; projects: Project[]; sideIllustrationSrc?: string; };
 
-type Props = {
-  heading?: string;
-  projects: Project[];
-  sideIllustrationSrc?: string; // optional manga/cyber portrait
-};
-
-export default function Projects({
-  heading = "Projects",
-  projects,
-  sideIllustrationSrc,
-}: Props) {
+export default function Projects({ heading = "Projects", projects, sideIllustrationSrc }: Props) {
   return (
     <section id="projects" className="section-wrap">
       <div className="grid lg:grid-cols-[1.2fr_.8fr] gap-10 items-start">
-        <Panel>
+        <div className="hud-panel">
           <motion.h2
             initial={{ opacity: 0, y: 8 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -51,18 +36,11 @@ export default function Projects({
               >
                 <div className="text-lg font-semibold">{p.title}</div>
                 <p className="mt-1 text-white/70 text-sm">{p.summary}</p>
-
                 <div className="mt-3 flex flex-wrap gap-2">
                   {p.tags.map((t, j) => (
-                    <span
-                      key={j}
-                      className="text-xs px-2 py-1 rounded-md ring-1 ring-white/15 bg-white/[0.04]"
-                    >
-                      {t}
-                    </span>
+                    <span key={j} className="text-xs px-2 py-1 rounded-md ring-1 ring-white/15 bg-white/[0.04]">{t}</span>
                   ))}
                 </div>
-
                 {p.chart && p.chart.length > 0 && (
                   <div className="mt-4 rounded-xl bg-black/30 p-3 ring-1 ring-white/10">
                     <MiniBars values={p.chart} />
@@ -71,7 +49,7 @@ export default function Projects({
               </motion.a>
             ))}
           </div>
-        </Panel>
+        </div>
 
         {/* Optional illustration column */}
         <div className="relative hidden lg:block">
@@ -79,16 +57,10 @@ export default function Projects({
             <div className="relative aspect-[4/5] rounded-[28px] overflow-hidden ring-1 ring-white/10 bg-white/5">
               <div className="absolute -inset-6 bg-[#00e5ff22] blur-3xl pointer-events-none" />
               {sideIllustrationSrc ? (
-                <Image
-                  src={sideIllustrationSrc}
-                  alt="Cyber illustration"
-                  fill
-                  sizes="40vw"
-                  className="object-cover opacity-[.9] mix-blend-screen"
-                />
+                <Image src={sideIllustrationSrc} alt="Cyber illustration" fill sizes="40vw" className="object-cover opacity-[.9] mix-blend-screen" />
               ) : (
                 <div className="absolute inset-0 grid place-items-center text-white/40 text-sm p-6 text-center">
-                  (Add a stylized portrait at <code>/public/illustrations/side.png</code> and pass its path as <code>sideIllustrationSrc</code>.)
+                  (Add a portrait at <code>/public/images/portfolio.png</code>.)
                 </div>
               )}
             </div>
@@ -99,16 +71,9 @@ export default function Projects({
   );
 }
 
-function Panel({ children }: { children: React.ReactNode }) {
-  return <div className="hud-panel">{children}</div>;
-}
-
 function MiniBars({ values }: { values: number[] }) {
-  // simple inline SVG bar chart (neon-ish)
   const max = Math.max(...values);
-  const width = 280;
-  const height = 120;
-  const pad = 12;
+  const width = 280, height = 120, pad = 12;
   const barW = (width - pad * 2) / values.length - 6;
 
   return (
