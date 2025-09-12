@@ -11,7 +11,7 @@ export default function AboutMeShowcase() {
   const poses = profile.about.poses;
   return (
     <section id="about" className="relative w-full">
-      {/* your existing rendering logic stays the same, but use poses */}
+      {/* render poses just like before, but using `poses` */}
     </section>
   );
 }
