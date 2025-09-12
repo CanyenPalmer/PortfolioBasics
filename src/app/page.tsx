@@ -6,20 +6,23 @@ import Experience from "@/components/Experience";
 import Projects from "@/components/Projects";
 import Testimonials from "@/components/Testimonials";
 import Contact from "@/components/Contact";
+import Education from "@/components/Education";
 
 export default function Page() {
   return (
     <main className="min-h-screen">
+      {/* VSCode top bar remains in app/layout.tsx — unchanged */}
       <Hero />
 
-      <section id="about" className="container mx-auto px-6 py-24 max-w-6xl">
+      {/* ABOUT */}
+      <section className="container mx-auto px-6 py-24 max-w-6xl">
         <AboutMe
           heading="About Me"
           lead="I build end-to-end analytics and ML workflows — from clean data pipelines to models and decision dashboards."
           body={[
             "Currently pursuing my Master’s in Data Science at the University of Pittsburgh.",
-            "Focus areas: Python, R, SQL, and modern viz stacks used to ship measurable impact.",
-            "This redesign keeps all original facts intact while leaning into a clean cyber-tech aesthetic.",
+            "My toolkit centers on Python, R, SQL, and modern visualization stacks to ship measurable outcomes (CGM analytics, ops intelligence, attrition modeling).",
+            "This redesign keeps all original facts intact while leaning into a clean cyber-tech aesthetic that matches my brand.",
           ]}
           images={[
             "/about/impact-dashboard.jpg",
@@ -29,6 +32,43 @@ export default function Page() {
         />
       </section>
 
+      {/* EDUCATION */}
+      <section className="container mx-auto px-6 py-24 max-w-6xl">
+        <Education
+          items={[
+            {
+              school: "University of Pittsburgh",
+              degree: "M.S. in Data Science",
+              range: "2024 — 2026 (Expected)",
+              details: [
+                "Graduate coursework integrating statistics, machine learning, and scalable analytics.",
+                "Capstone focused on deploying ML for operational decision-making.",
+              ],
+              coursework: [
+                { code: "DSCI 2001", name: "Statistical Learning" },
+                { code: "DSCI 2102", name: "Machine Learning Systems" },
+                { code: "DSCI 2305", name: "Data Visualization & Storytelling" },
+              ],
+              badges: ["Python", "R", "SQL", "ML", "MLOps", "Tableau"],
+            },
+            {
+              school: "Undergraduate Institution",
+              degree: "B.S. in [Your Major]",
+              range: "2018 — 2022",
+              details: [
+                "Foundation in quantitative methods and software engineering.",
+              ],
+              coursework: [
+                { code: "STAT 410", name: "Regression Analysis" },
+                { code: "CS 220", name: "Data Structures" },
+              ],
+              badges: ["Statistics", "Linear Algebra", "Data Structures"],
+            },
+          ]}
+        />
+      </section>
+
+      {/* EXPERIENCE */}
       <section className="container mx-auto px-6 py-24 max-w-6xl">
         <Experience
           roles={[
@@ -54,19 +94,22 @@ export default function Page() {
         />
       </section>
 
+      {/* PROJECTS */}
       <section className="container mx-auto px-6 py-24 max-w-6xl">
         <Projects
           projects={[
             {
               title: "E-commerce Sales Prediction",
-              summary: "End-to-end pipeline from wrangling to modeling, plus a decision dashboard.",
+              summary:
+                "End-to-end pipeline from wrangling to modeling, plus a decision dashboard.",
               tags: ["Python", "Scikit-learn", "Pandas"],
               chart: [2, 6, 4, 8, 5, 9, 7],
               href: "https://github.com/CanyenPalmer",
             },
             {
               title: "CGM Patient Analytics",
-              summary: "Segmentation + forecasting for clinical monitoring and ops insights.",
+              summary:
+                "Segmentation + forecasting for clinical monitoring and ops insights.",
               tags: ["R", "Forecast", "ggplot2"],
               chart: [3, 3, 5, 6, 7, 8, 11],
             },
@@ -75,6 +118,7 @@ export default function Page() {
         />
       </section>
 
+      {/* TESTIMONIALS */}
       <section className="container mx-auto px-6 py-24 max-w-6xl">
         <Testimonials
           items={[
@@ -103,6 +147,7 @@ export default function Page() {
         />
       </section>
 
+      {/* CONTACT */}
       <section className="container mx-auto px-6 py-24 max-w-6xl">
         <Contact
           links={{
@@ -112,4 +157,7 @@ export default function Page() {
             resumeHref: "/Canyen_Palmer_Resume.pdf",
           }}
         />
-      </
+      </section>
+    </main>
+  );
+}
