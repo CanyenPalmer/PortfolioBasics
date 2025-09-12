@@ -3,15 +3,10 @@
 @tailwind utilities;
 
 /* ---------- Base Styles ---------- */
-html, body {
-  height: 100%;
-}
+html, body { height: 100%; }
+body { @apply bg-[#0b1016] text-white antialiased; }
 
-body {
-  @apply bg-[#0b1016] text-white antialiased;
-}
-
-/* Container utility (matches Tailwind container but with custom widths) */
+/* Container utility (custom widths) */
 .container { width: 100%; }
 @media (min-width: 1024px) { .container { max-width: 1024px; } }
 @media (min-width: 1280px) { .container { max-width: 1200px; } }
@@ -20,7 +15,7 @@ body {
 .grid-bg {
   position: absolute;
   inset: 0;
-  background-image: 
+  background-image:
     linear-gradient(to right, rgba(255,255,255,.08) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(255,255,255,.08) 1px, transparent 1px);
   background-size: 32px 32px;
@@ -28,96 +23,51 @@ body {
   animation: grid-shift 16s linear infinite;
   opacity: .35;
 }
-@keyframes grid-shift {
-  0%   { transform: translateY(0px); }
-  100% { transform: translateY(-32px); }
-}
+@keyframes grid-shift { 0% { transform: translateY(0); } 100% { transform: translateY(-32px); } }
 
 /* ---------- Radial Pulse ---------- */
-@keyframes slow-pulse {
-  0%, 100% { opacity: .65; }
-  50%      { opacity: 1; }
-}
+@keyframes slow-pulse { 0%,100%{opacity:.65} 50%{opacity:1} }
 .animate-slow-pulse { animation: slow-pulse 5s ease-in-out infinite; }
 
 /* ---------- Typewriter Line ---------- */
 .typewriter {
-  display: inline-block;
-  overflow: hidden;
-  white-space: nowrap;
+  display: inline-block; overflow: hidden; white-space: nowrap;
   border-right: .12em solid rgba(255,255,255,.7);
-  animation: typing 4.5s steps(42, end) 0.2s 1 both;
+  animation: typing 4.5s steps(42, end) .2s 1 both;
 }
-.caret {
-  display: inline-block;
-  width: .12em;
-  margin-left: 2px;
-  background: rgba(255,255,255,.85);
-  animation: blink 1s step-end infinite;
-}
-@keyframes typing {
-  from { width: 0; }
-  to   { width: 48ch; } /* adjust to match line length */
-}
-@keyframes blink {
-  50% { opacity: 0; }
-}
+.caret { display:inline-block; width:.12em; margin-left:2px; background:rgba(255,255,255,.85); animation: blink 1s step-end infinite; }
+@keyframes typing { from{width:0} to{width:48ch} }
+@keyframes blink { 50%{opacity:0} }
 
 /* ---------- HUD Panels & Neon Headings ---------- */
 .section-wrap { position: relative; }
-
 .hud-panel {
-  position: relative;
-  border-radius: 20px;
+  position: relative; border-radius: 20px;
   border: 1px solid rgba(255,255,255,.08);
   background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.02));
   padding: 22px;
-  box-shadow:
-    inset 0 0 0 1px rgba(255,255,255,.02),
-    0 10px 30px rgba(0,0,0,.35);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.02), 0 10px 30px rgba(0,0,0,.35);
 }
-
 .neon-title {
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-size: clamp(22px, 3vw, 28px);
-  color: #9af6ff;
+  font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+  font-size: clamp(22px, 3vw, 28px); color: #9af6ff;
   text-shadow: 0 0 14px rgba(0,229,255,.55);
-  border-bottom: 2px solid rgba(0,229,255,.45);
-  padding-bottom: 10px;
+  border-bottom: 2px solid rgba(0,229,255,.45); padding-bottom: 10px;
 }
 .neon-title.magenta {
-  color: #ffb3f2;
-  border-bottom-color: rgba(255,59,212,.45);
+  color: #ffb3f2; border-bottom-color: rgba(255,59,212,.45);
   text-shadow: 0 0 14px rgba(255,59,212,.55);
 }
 
 /* ---------- Testimonials Flip Cards ---------- */
-.flip-3d {
-  position: relative;
-  transform-style: preserve-3d;
-  transition: transform .6s cubic-bezier(.2,.7,.2,1);
-  min-height: 240px;
-}
+.flip-3d { position:relative; transform-style:preserve-3d; transition: transform .6s cubic-bezier(.2,.7,.2,1); min-height:240px; }
 .flip-3d.is-flipped { transform: rotateY(180deg); }
-.flip-face {
-  backface-visibility: hidden;
-  position: relative;
-}
-.flip-back {
-  position: absolute;
-  inset: 0;
-  transform: rotateY(180deg);
-}
+.flip-face { backface-visibility: hidden; position: relative; }
+.flip-back { position:absolute; inset:0; transform: rotateY(180deg); }
 .flip-face p { overflow-wrap: anywhere; }
 
 /* ---------- Contact SVG Helpers ---------- */
-svg text { 
-  paint-order: stroke; 
-  stroke: rgba(0,0,0,0.25); 
-  stroke-width: 1px; 
-}
+svg text { paint-order: stroke; stroke: rgba(0,0,0,.25); stroke-width: 1px; }
 
-/* Slight glow for cyan strokes */
+/* Slight glow token */
 :root { --neon-cyan: #00e5ff; }
