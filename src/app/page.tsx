@@ -7,7 +7,7 @@ import AboutMeShowcase from "@/components/AboutMeShowcase";
 import Education from "@/components/Education";
 import Experience from "@/components/Experience";
 import ProjectsHUD from "@/components/ProjectsHUD";
-import Testimonials from "@/components/Testimonials";
+import { Testimonials } from "@/components/Testimonials"; // ✅ named import
 import Contact from "@/components/Contact";
 import { profile } from "@/content/profile";
 import { LINKS } from "@/content/links";
@@ -32,22 +32,22 @@ export default function Page() {
         <AboutMeShowcase />
       </section>
 
-      {/* Education (UNCHANGED) */}
+      {/* Education */}
       <section id="education" className="container mx-auto px-6 py-24 max-w-7xl" aria-label="Education">
         <Education />
       </section>
 
-      {/* Experience (panelized) */}
+      {/* Experience */}
       <section id="experience" className="px-6 py-24" aria-label="Experience">
         <Experience />
       </section>
 
-      {/* Projects (panelized, two-column) */}
+      {/* Projects */}
       <section id="projects" className="px-6 py-24" aria-label="Projects">
         <ProjectsHUD />
       </section>
 
-      {/* Testimonials (UNCHANGED) */}
+      {/* Testimonials */}
       <section id="testimonials" className="container mx-auto px-6 py-24 max-w-7xl" aria-label="Testimonials">
         <Testimonials />
       </section>
