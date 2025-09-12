@@ -56,17 +56,11 @@ export default function AboutMe({ heading, lead, body = [], images = [] }: Props
             transition={{ delay: 0.05, duration: 0.5 }}
             className="grid grid-cols-2 gap-4"
           >
-            {images.length === 0 ? (
-              <div className="col-span-2 text-sm text-white/50">
-                (Add images under <code>/public/images/</code> and pass their paths.)
+            {images.map((src, idx) => (
+              <div key={idx} className="relative aspect-[4/3] overflow-hidden rounded-2xl ring-1 ring-white/10 bg-white/5">
+                <Image src={src} alt={`About image ${idx + 1}`} fill sizes="(max-width: 768px) 50vw, 25vw" className="object-cover" priority={idx===0} />
               </div>
-            ) : (
-              images.map((src, idx) => (
-                <div key={idx} className="relative aspect-[4/3] overflow-hidden rounded-2xl ring-1 ring-white/10 bg-white/5">
-                  <Image src={src} alt={`About image ${idx + 1}`} fill sizes="(max-width: 768px) 50vw, 25vw" className="object-cover" priority={idx===0} />
-                </div>
-              ))
-            )}
+            ))}
           </motion.div>
         </div>
       </div>
