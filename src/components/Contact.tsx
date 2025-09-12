@@ -100,3 +100,4 @@ function CyberContactSVG({ emailHref, linkedinHref, githubHref, resumeHref }: Co
     </svg>
   );
 }
+
