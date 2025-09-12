@@ -39,7 +39,6 @@ export default function Experience() {
               </ul>
             )}
 
-            {/* Creations */}
             {Array.isArray(role.creations) && role.creations.length > 0 && (
               <div className="mt-5">
                 <h4 className="mb-2 font-semibold text-cyan-300/90">Creations</h4>
