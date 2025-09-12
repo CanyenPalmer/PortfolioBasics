@@ -49,11 +49,11 @@ export default function Experience({ heading = "Experience", roles }: Props) {
                       {r.org && <span>{r.org}</span>}
                     </div>
                   )}
-                  {r.bullets && r.bullets.length > 0 && (
+                  {r.bullets?.length ? (
                     <ul className="mt-2 list-disc pl-5 text-white/80 space-y-1">
                       {r.bullets.map((b, i) => (<li key={i}>{b}</li>))}
                     </ul>
-                  )}
+                  ) : null}
                 </div>
               </motion.li>
             ))}
