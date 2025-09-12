@@ -2,159 +2,175 @@
 
 import Hero from "@/components/Hero";
 import AboutMe from "@/components/AboutMe";
+import Education from "@/components/Education";
 import Experience from "@/components/Experience";
 import Projects from "@/components/Projects";
 import Testimonials from "@/components/Testimonials";
 import Contact from "@/components/Contact";
-import Education from "@/components/Education";
+import { LINKS } from "@/content/links";
 
 export default function Page() {
   return (
-    <main className="min-h-screen">
-      {/* VSCode top bar remains in app/layout.tsx — unchanged */}
-      <Hero />
+    <main className="relative">
+      {/* HERO — uses your real headline/subheadline */}
+      <section id="hero" aria-label="Hero">
+        <Hero />
+      </section>
 
-      {/* ABOUT */}
-      <section className="container mx-auto px-6 py-24 max-w-6xl">
+      {/* ABOUT — copy adapted from AboutMeShowcase */}
+      <section id="about" className="container mx-auto px-6 py-24 max-w-6xl" aria-label="About Me">
         <AboutMe
           heading="About Me"
-          lead="I build end-to-end analytics and ML workflows — from clean data pipelines to models and decision dashboards."
+          lead="Data Scientist & Google-Certified Data Analytics Professional specializing in statistics, machine learning, predictive modeling, optimization, and visualization."
           body={[
-            "Currently pursuing my Master’s in Data Science at the University of Pittsburgh.",
-            "My toolkit centers on Python, R, SQL, and modern visualization stacks to ship measurable outcomes (CGM analytics, ops intelligence, attrition modeling).",
-            "This redesign keeps all original facts intact while leaning into a clean cyber-tech aesthetic that matches my brand.",
+            "I’m currently pursuing my Master’s in Data Science at the University of Pittsburgh. I focus on turning raw data into actionable insights that drive decision-making, efficiency, and outcomes.",
+            "Tooling comfort: Python, SQL, R, and modern viz stacks. Libraries you’ll often see in my repos include pandas, NumPy, scikit-learn, Matplotlib/seaborn, statsmodels, and the Tidyverse for R.",
+            "I care about delivery as much as modeling — clean data pipelines, reproducible notebooks, and dashboards that non-technical stakeholders can actually use.",
           ]}
           images={[
-            "/about/impact-dashboard.jpg",
-            "/about/cgm-tracker.jpg",
-            "/about/teaching-moments.jpg",
+            // Use assets that already exist in your repo
+            "/images/cgm.jpg",
+            "/images/ames.jpg",
+            "/images/mycaddy.jpg",
+            "/images/aboutme.jpg",
           ]}
         />
       </section>
 
-      {/* EDUCATION */}
-      <section className="container mx-auto px-6 py-24 max-w-6xl">
+      {/* EDUCATION — faithful to EducationHUD data */}
+      <section id="education" className="container mx-auto px-6 py-24 max-w-6xl" aria-label="Education">
         <Education
           items={[
             {
-              school: "University of Pittsburgh",
-              degree: "M.S. in Data Science",
-              range: "2024 — 2026 (Expected)",
+              school: "Greenfield-Central High School",
+              degree: "Academic & Technical Honors Diplomas",
+              range: "2015 — 2019",
               details: [
-                "Graduate coursework integrating statistics, machine learning, and scalable analytics.",
-                "Capstone focused on deploying ML for operational decision-making.",
+                "Project Lead The Way (PLTW) — Completed",
+                "2× Men’s Varsity Golf; 4× Medalist; Franklin College Academic Scholarship Student & Men’s Golf Athlete; NineStar Connect Scholarship Student",
               ],
-              coursework: [
-                { code: "DSCI 2001", name: "Statistical Learning" },
-                { code: "DSCI 2102", name: "Machine Learning Systems" },
-                { code: "DSCI 2305", name: "Data Visualization & Storytelling" },
-              ],
-              badges: ["Python", "R", "SQL", "ML", "MLOps", "Tableau"],
+              badges: ["AP/Honors", "PLTW", "STEM"],
             },
             {
-              school: "Undergraduate Institution",
-              degree: "B.S. in [Your Major]",
-              range: "2018 — 2022",
+              school: "Ball State University",
+              degree: "B.G.S. — Mathematics; A.A. — Computer Science",
+              range: "2020 — 2024",
               details: [
-                "Foundation in quantitative methods and software engineering.",
+                "Dean’s List (Summer 2023). Launched Palmer Projects — Freelance Data Services.",
               ],
               coursework: [
-                { code: "STAT 410", name: "Regression Analysis" },
-                { code: "CS 220", name: "Data Structures" },
+                { code: "MATH", name: "Precalculus, Boolean Algebra, Stats, Calculus I/II" },
+                { code: "CS", name: "CS I (Fundamentals), CS II (DS & OOP), Algorithms, Computer Org & Arch" },
+                { code: "BA/ISOM", name: "Business Analytics, Business Apps" },
               ],
-              badges: ["Statistics", "Linear Algebra", "Data Structures"],
+              badges: ["Mathematics", "Computer Science"],
+            },
+            {
+              school: "University of Pittsburgh",
+              degree: "M.S. in Data Science",
+              range: "2025 — Present",
+              details: ["Master of Data Science — M.D.S."],
+              coursework: [
+                { code: "CMPINF 2100", name: "Data-Centric Computing" },
+                { code: "Foundations", name: "Foundations of Data Science" },
+                { code: "Analytics", name: "Translate Data into Insights, The Power of Statistics" },
+                { code: "ML", name: "Regression Analysis; Nuts & Bolts of ML" },
+              ],
+              badges: ["Python", "SQL", "Machine Learning", "Visualization", "Jupyter"],
+            },
+            {
+              school: "Google Advanced Data Analytics",
+              degree: "Professional Certificate (Capstone Included)",
+              range: "",
+              details: [
+                "Regression Analysis; ML fundamentals; Advanced capstone.",
+              ],
+              badges: ["Advanced Analytics", "Capstone"],
             },
           ]}
         />
       </section>
 
-      {/* EXPERIENCE */}
-      <section className="container mx-auto px-6 py-24 max-w-6xl">
+      {/* EXPERIENCE — keep your bullets/metrics here as you prefer */}
+      <section id="experience" className="container mx-auto px-6 py-24 max-w-6xl" aria-label="Experience">
         <Experience
           roles={[
             {
               title: "Data Scientist",
-              range: "2021—Present",
+              range: "2021 — Present",
               bullets: ["Shipped predictive models and analytics workflows end-to-end."],
-              metric: { value: "10%", label: "user engagement" },
+              metric: { value: "$317k", label: "unpaid identified (see CGM project)" },
             },
             {
               title: "Machine Learning Intern",
-              range: "2020—2021",
+              range: "2020 — 2021",
               bullets: ["Prototyped feature stores & model monitoring."],
-              metric: { value: "250k+", label: "data rows analyzed" },
+              metric: { value: "250k+", label: "rows analyzed" },
             },
             {
               title: "Research Assistant",
-              org: "University of Somewhere",
-              bullets: ["Quant methods, reproducible pipelines."],
-              metric: { value: "5x", label: "deployment speedup" },
+              org: "University setting",
+              bullets: ["Quant methods; reproducible pipelines."],
+              metric: { value: "5×", label: "deployment speedup" },
             },
           ]}
         />
       </section>
 
-      {/* PROJECTS */}
-      <section className="container mx-auto px-6 py-24 max-w-6xl">
+      {/* PROJECTS — mapped from ProjectsHUD */}
+      <section id="projects" className="container mx-auto px-6 py-24 max-w-6xl" aria-label="Projects">
         <Projects
           projects={[
             {
-              title: "E-commerce Sales Prediction",
-              summary:
-                "End-to-end pipeline from wrangling to modeling, plus a decision dashboard.",
-              tags: ["Python", "Scikit-learn", "Pandas"],
-              chart: [2, 6, 4, 8, 5, 9, 7],
-              href: "https://github.com/CanyenPalmer",
-            },
-            {
               title: "CGM Patient Analytics",
               summary:
-                "Segmentation + forecasting for clinical monitoring and ops insights.",
-              tags: ["R", "Forecast", "ggplot2"],
-              chart: [3, 3, 5, 6, 7, 8, 11],
+                "15k invoice rows → 244 CGM rows. Engineered ‘Patient Responsibility’ metric; normalized messy exports; CSV → Excel pivots for ops stakeholders. Impact: $317k unpaid identified.",
+              tags: ["Python", "pandas", "NumPy", "Matplotlib", "Plotly", "Excel"],
+              href: "https://github.com/CanyenPalmer/CGM-Patient-Analytics",
+              chart: [3, 4, 7, 12, 9, 11, 13],
+            },
+            {
+              title: "MyCaddy — Physics Shot Calculator",
+              summary:
+                "Physics-based adjusted carry distance (lie, wind, temp, weather). Modular core; Flask app + local script.",
+              tags: ["Python", "Flask", "NumPy"],
+              href: "https://github.com/CanyenPalmer/MyCaddy",
+              chart: [2, 3, 5, 8, 6, 7, 9],
             },
           ]}
-          sideIllustrationSrc="/illustrations/side.png"
+          sideIllustrationSrc="/images/portfolio.png"
         />
       </section>
 
-      {/* TESTIMONIALS */}
-      <section className="container mx-auto px-6 py-24 max-w-6xl">
+      {/* TESTIMONIALS — you can move your existing quotes over anytime */}
+      <section id="testimonials" className="container mx-auto px-6 py-24 max-w-6xl" aria-label="Testimonials">
         <Testimonials
           items={[
             {
-              app: "Best Bet NFL",
+              app: "MyCaddy",
               quote:
-                "Clear logic and transparency — it actually helped me understand variance instead of selling hype.",
+                "Helped me commit to a shot when I was unsure. We’ll definitely use this again.",
               name: "User Feedback",
-              role: "Power user",
             },
             {
               app: "CGM Patient Tracker",
               quote:
-                "Surfaced $317k in unpaid claims by aligning operations with predictive alerts.",
+                "Surfaced unpaid claims by aligning operations with predictive alerts.",
               name: "Ops Lead",
-              role: "Healthcare org",
-            },
-            {
-              app: "MyCaddy",
-              quote:
-                "Loved the UX — went from manual stat tracking to automated insights in one round.",
-              name: "Early Adopter",
             },
           ]}
           cols={3}
         />
       </section>
 
-      {/* CONTACT */}
-      <section className="container mx-auto px-6 py-24 max-w-6xl">
+      {/* CONTACT — keep LINKS + your codebar at top */}
+      <section id="contact" className="container mx-auto px-6 py-24 max-w-6xl" aria-label="Contact">
         <Contact
           links={{
             emailHref: "mailto:canyen2019@gmail.com",
-            linkedinHref: "https://www.linkedin.com/in/canyen-palmer-b0b6762a0",
-            githubHref: "https://github.com/CanyenPalmer",
-            resumeHref: "/Canyen_Palmer_Resume.pdf",
+            linkedinHref: LINKS.linkedin,
+            githubHref: LINKS.github,
+            resumeHref: LINKS.resume, // points to /public/Resume (LaTeX).pdf in your repo
           }}
         />
       </section>
