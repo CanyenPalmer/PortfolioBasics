@@ -135,7 +135,7 @@ export default function HeroWithAvatar({
         </div>
       </div>
 
-      {/* Header dots */}
+      {/* Header dots (chrome) */}
       <div className="pointer-events-none absolute left-3 top-3 flex gap-1">
         <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#ff5f56] shadow-[0_0_8px_#ff5f56]" />
         <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#ffbd2e] shadow-[0_0_8px_#ffbd2e]" />
@@ -145,4 +145,3 @@ export default function HeroWithAvatar({
     </section>
   );
 }
-
