@@ -8,7 +8,7 @@ export default function Experience() {
   const experiences = profile.experience;
   return (
     <section id="experience" className="section-wrap">
-      {/* render experiences */}
+      {/* render experiences just like before, but using `experiences` */}
     </section>
   );
 }
