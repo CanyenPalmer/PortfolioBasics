@@ -1,6 +1,11 @@
-// src/content/profile.ts
-// Unified content source for the portfolio
+// src/content/profile.tsx
+import * as React from "react";
 
+/**
+ * Unified content source for the portfolio.
+ * This file intentionally contains JSX (for rich About body blocks),
+ * so it must be a .tsx file.
+ */
 export const profile = {
   hero: {
     headline: "Canyen Palmer",
@@ -8,6 +13,7 @@ export const profile = {
     typer: "Turning data into decisions through science, code, and storytelling.",
   },
 
+  // About content (rich JSX body – safe in .tsx)
   about: {
     poses: [
       {
@@ -30,16 +36,12 @@ export const profile = {
               <p className="font-semibold text-cyan-300/90">🛠️ Core Proficiency</p>
               <ul className="list-disc pl-6">
                 <li><strong>Languages:</strong> Python, SQL, R, TypeScript, JavaScript</li>
-                <li><strong>Libraries:</strong> pandas, NumPy, scikit-learn, Matplotlib, seaborn,
-                  statsmodels, Tidyverse</li>
+                <li><strong>Libraries:</strong> pandas, NumPy, scikit-learn, Matplotlib, seaborn, statsmodels, Tidyverse</li>
                 <li><strong>Visualization:</strong> Tableau, Excel, Google Sheets</li>
-                <li><strong>Frameworks & Tools:</strong> Flask, React, TailwindCSS, GitHub, Jupyter,
-                  VS Code, Quarto</li>
+                <li><strong>Frameworks & Tools:</strong> Flask, React, TailwindCSS, GitHub, Jupyter, VS Code, Quarto</li>
               </ul>
             </div>
-            <p className="text-white/70">
-              Use the arrows or glowing nodes below to explore each chapter of my story.
-            </p>
+            <p className="text-white/70">Use the arrows or glowing nodes below to explore each chapter of my story.</p>
           </div>
         ),
       },
@@ -59,12 +61,12 @@ export const profile = {
               cut strokes and lower my scoring average.
             </p>
             <p>
-              What many saw as a suffocating amount of research became my{" "}
-              <strong>greatest strength</strong>, both on the course and in my personal development.
-              When health challenges arrived, I faced a hard choice: protect my body’s long-term
-              health or pursue a career in golf. That turning point led me to redirect my academic
-              path—transferring to <strong>Ball State University</strong> to study{" "}
-              <strong>mathematics</strong> and <strong>computer science</strong>.
+              What many saw as a suffocating amount of research became my <strong>greatest strength</strong>,
+              both on the course and in my personal development. When health challenges arrived,
+              I faced a hard choice: protect my body’s long-term health or pursue a career in golf.
+              That turning point led me to redirect my academic path—transferring to{" "}
+              <strong>Ball State University</strong> to study <strong>mathematics</strong> and{" "}
+              <strong>computer science</strong>.
             </p>
           </div>
         ),
@@ -84,11 +86,10 @@ export const profile = {
               teamwork, and leadership.
             </p>
             <p>
-              Every experience became a{" "}
-              <strong>data entry in my personal library of datasets</strong>: subjects, courses, and
-              topics forming unique entries in a growing knowledge repository. I learned to write my
-              own “queries” across disciplines—connecting concepts and building an analytical
-              framework I still use to this day.
+              Every experience became a <strong>data entry in my personal library of datasets</strong>:
+              subjects, courses, and topics forming unique entries in a growing knowledge repository.
+              I learned to write my own “queries” across disciplines—connecting concepts and building
+              an analytical framework I still use to this day.
             </p>
           </div>
         ),
@@ -134,69 +135,9 @@ export const profile = {
     ],
   },
 
-  experience: [
-    {
-      id: "lead_analyst",
-      title: "Lead Analyst",
-      company: "Iconic Care Inc.",
-      location: "Indianapolis, Indiana",
-      dates: "June 2025 – Aug 2025",
-      context: "Internal analytics & custom ML models for data insights.",
-      tech: ["Python", "SQLite", "Excel", "Google Sheets/Slides", "GitHub", "Jupyter Notebooks"],
-      skills: ["Analytics", "Custom ML Models", "Revenue Cycle KPIs"],
-      highlights: [
-        "Built internal analytics tools using Python, Google Sheets, and ML models to support billing, rep performance, and operational forecasting.",
-        "Created optimization models that support field representative efficiency, tying performance metrics directly to revenue outcomes.",
-        "Acted as the cross-functional analytics lead between billing, customer service, sales, and leadership, managing mission-critical projects across departments.",
-      ],
-      creations: [
-        {
-          name: "CGM Patient Responsibility Tracker",
-          details: [
-            "Machine-Learning Model capable of mass data upload via CSV, mining and manipulation for key insights, and output of newly constructed CSV.",
-            "Discovered **$20,000** in transferable funds through CGM equipment alone.",
-          ],
-        },
-        {
-          name: "CalendarExtractor",
-          details: [
-            "Python model that extracts specific information from Google Calendar entries across any period, exporting mined data to CSV for further testing.",
-            "Saves **12+ hours/week** per sales rep.",
-          ],
-        },
-      ],
-      fileName: "lead_analyst.json",
-    },
-    {
-      id: "billing_revenue_specialist",
-      title: "Billing & Revenue Specialist",
-      company: "Iconic Care Inc.",
-      location: "Indianapolis, Indiana",
-      dates: "May 2025 – Jun 2025",
-      context: "Billing operations & analytics: dashboards, denials, reimbursement.",
-      tech: ["Python", "Excel", "Google Sheets/Docs", "Brightree"],
-      skills: ["Analytics", "Project Management", "System Testing", "Medical Billing", "Databases"],
-      highlights: [
-        "Optimized Payor Level Dashboards, Billing Cycle Processes, Patient Information Checklist, HPCPS Code Validations, Cost/Reimbursement Data, and BrightTree Consignment to be interpreted throughout all departments of Iconic Care Inc.",
-        "Expressed analytical insights throughout a multitude of departments while maintaining the confidentiality of crucial company metrics.",
-        "Created denial tracking and prevention dashboards to increase success rates.",
-        "Constructed Iconic Care's first-ever balance sheet for tracking all crucial financial metrics.",
-      ],
-    },
-    // …include the rest of your roles exactly as in Experience.tsx
-  ],
-
-  projects: [
-    // Full PROJECTS array from ProjectsHUD.tsx goes here
-  ],
-
-  testimonials: [
-    // Full TESTIMONIALS array from testimonials.ts goes here
-  ],
-
+  // (You can add experience/projects/testimonials here too if your components now pull from profile.*)
   contact: {
     email: "Canyen2019@gmail.com",
-    linkedin: "https://www.linkedin.com/in/canyen-palmer-b0b6762a0",
-    github: "https://github.com/CanyenPalmer",
   },
 } as const;
+
