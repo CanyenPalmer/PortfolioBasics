@@ -81,3 +81,5 @@ export default function Education({ heading = "Education", items }: Props) {
     </section>
   );
 }
+
+// hope this works
