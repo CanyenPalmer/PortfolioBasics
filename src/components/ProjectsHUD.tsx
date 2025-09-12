@@ -8,7 +8,8 @@ import SectionPanel from "@/components/ui/SectionPanel";
 import { profile } from "@/content/profile";
 
 export default function ProjectsHUD() {
-  const projects = profile.projects as any[];
+  // Treat profile.projects as a readonly array (we never mutate it)
+  const projects = ((profile as any)?.projects ?? []) as ReadonlyArray<any>;
 
   return (
     <SectionPanel title="Projects" className="mx-auto max-w-7xl">
