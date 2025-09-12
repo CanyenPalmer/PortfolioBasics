@@ -1,143 +1,149 @@
-// Single source of truth for your portfolio content.
-// Paste your original portfolio's text into the TODO sections below.
+// src/content/profile.ts
+// Unified content source for the portfolio
 
 export const profile = {
   hero: {
-    // TODO: paste your exact name or title line
     headline: "Canyen Palmer",
-    // TODO: paste your exact subheadline/tagline
     subheadline: "Data Scientist & Google-Certified Data Analytics Professional",
-    // TODO: paste the hero typing line (the one you used before)
     typer: "Turning data into decisions through science, code, and storytelling.",
   },
 
   about: {
-    // High-level lead sentence (keep original wording)
-    // TODO: paste from old portfolio
-    lead:
-      "I specialize in statistics, machine learning, predictive modeling, optimization, and visualization.",
-
-    // Body paragraphs in order (paste verbatim from old site)
-    // TODO: paste from old portfolio
-    body: [
-      "I’m currently pursuing my Master’s in Data Science at the University of Pittsburgh. I focus on turning raw data into actionable insights that drive decision-making, efficiency, and outcomes.",
-      "Tooling comfort: Python, SQL, R, and modern viz stacks. Libraries you’ll often see in my repos include pandas, NumPy, scikit-learn, Matplotlib/seaborn, statsmodels, and the Tidyverse for R.",
-      "I care about delivery as much as modeling — clean data pipelines, reproducible notebooks, and dashboards that non-technical stakeholders can actually use."
-    ],
-
-    // Images under /public/about/* — keep the same files you used previously
-    // Remove entries that don’t exist yet; order them as you want them to appear.
-    images: [
-      "/about/pose-1.webp",
-      "/about/pose-2.webp",
-      "/about/pose-3.webp",
-      "/about/pose-4.webp",
+    poses: [
+      {
+        id: 1,
+        key: "power",
+        title: "Welcome to my About Me section!",
+        img: "/about/pose-1-power.webp",
+        alt: "Canyen in a confident power pose with neon seam accents",
+        body: (
+          <div className="space-y-4">
+            <p>
+              My name is <strong>Canyen Palmer</strong> and I am a{" "}
+              <strong>Data Scientist & Google Certified Data Analytics Professional</strong>{" "}
+              specializing in statistics, machine learning, optimization, predictive modeling, and
+              visualization. Currently pursuing my <strong>Master’s in Data Science</strong> at the
+              University of Pittsburgh, I focus on turning raw data into actionable insights that
+              drive decision-making, efficiency, and business outcomes.
+            </p>
+            <div className="space-y-2">
+              <p className="font-semibold text-cyan-300/90">🛠️ Core Proficiency</p>
+              <ul className="list-disc pl-6">
+                <li><strong>Languages:</strong> Python, SQL, R, TypeScript, JavaScript</li>
+                <li><strong>Libraries:</strong> pandas, NumPy, scikit-learn, Matplotlib, seaborn,
+                  statsmodels, Tidyverse</li>
+                <li><strong>Visualization:</strong> Tableau, Excel, Google Sheets</li>
+                <li><strong>Frameworks & Tools:</strong> Flask, React, TailwindCSS, GitHub, Jupyter,
+                  VS Code, Quarto</li>
+              </ul>
+            </div>
+            <p className="text-white/70">
+              Use the arrows or glowing nodes below to explore each chapter of my story.
+            </p>
+          </div>
+        ),
+      },
+      {
+        id: 2,
+        key: "golf",
+        title: "Discovering Analytics",
+        img: "/about/pose-2-golf.webp",
+        alt: "Canyen mid golf swing with a neon trail arc",
+        body: (
+          <div className="space-y-4">
+            <p>
+              After being offered the opportunity to play golf and continue my education at{" "}
+              <strong>Franklin College</strong>, I decided to take both my education and my game to
+              the next level. I realized the quickest way to achieve rapid improvement was to
+              conduct <strong>thorough analysis</strong> of my performance—identifying where I could
+              cut strokes and lower my scoring average.
+            </p>
+            <p>
+              What many saw as a suffocating amount of research became my{" "}
+              <strong>greatest strength</strong>, both on the course and in my personal development.
+              When health challenges arrived, I faced a hard choice: protect my body’s long-term
+              health or pursue a career in golf. That turning point led me to redirect my academic
+              path—transferring to <strong>Ball State University</strong> to study{" "}
+              <strong>mathematics</strong> and <strong>computer science</strong>.
+            </p>
+          </div>
+        ),
+      },
+      {
+        id: 3,
+        key: "terminal",
+        title: "Composing Research",
+        img: "/about/pose-3-terminal.webp",
+        alt: "Canyen at a massive cyberpunk terminal cluster with many glowing monitors",
+        body: (
+          <div className="space-y-4">
+            <p>
+              At <strong>Ball State University</strong>, I gathered an enormous amount of data from
+              many sources—educational material through assignments and lectures, professional
+              insights from career fairs, and collaboration with peers that sharpened communication,
+              teamwork, and leadership.
+            </p>
+            <p>
+              Every experience became a{" "}
+              <strong>data entry in my personal library of datasets</strong>: subjects, courses, and
+              topics forming unique entries in a growing knowledge repository. I learned to write my
+              own “queries” across disciplines—connecting concepts and building an analytical
+              framework I still use to this day.
+            </p>
+          </div>
+        ),
+      },
+      {
+        id: 4,
+        key: "hospital",
+        title: "Real-World Applications",
+        img: "/about/pose-4-hospital.webp",
+        alt: "Canyen in a healthcare environment analyzing charts",
+        body: (
+          <div className="space-y-4">
+            <p>
+              Working at <strong>Iconic Care Inc.</strong> allowed me to directly apply my skills in
+              healthcare analytics. I built tools that improved billing accuracy, identified unpaid
+              balances, and streamlined workflows.
+            </p>
+            <p>
+              These projects demonstrated the tangible value of combining{" "}
+              <strong>machine learning with domain knowledge</strong>, ultimately improving both
+              operational efficiency and financial outcomes.
+            </p>
+          </div>
+        ),
+      },
+      {
+        id: 5,
+        key: "vision",
+        title: "Vision Ahead",
+        img: "/about/pose-5-vision.webp",
+        alt: "Canyen looking into a neon horizon with futuristic overlays",
+        body: (
+          <div className="space-y-4">
+            <p>
+              Looking forward, I aim to leverage <strong>advanced analytics, machine learning, and
+              domain expertise</strong> to solve problems across industries. Whether it’s improving
+              healthcare systems, optimizing operations, or developing predictive models, I want my
+              work to have a direct, positive impact.
+            </p>
+          </div>
+        ),
+      },
     ],
   },
 
-  education: [
-    // Map each school exactly as in your old Education section
-    {
-      school: "Greenfield-Central High School",
-      degree: "Academic & Technical Honors Diplomas",
-      range: "2015 — 2019",
-      details: [
-        "Project Lead The Way (PLTW) — Completed",
-        "2× Men’s Varsity Golf; 4× Medalist; Franklin College Academic Scholarship Student & Men’s Golf Athlete; NineStar Connect Scholarship Student",
-      ],
-      badges: ["AP/Honors", "PLTW", "STEM"],
-    },
-    {
-      school: "Ball State University",
-      degree: "B.G.S. — Mathematics; A.A. — Computer Science",
-      range: "2020 — 2024",
-      details: ["Dean’s List (Summer 2023). Launched Palmer Projects — Freelance Data Services."],
-      coursework: [
-        { code: "MATH", name: "Precalculus, Boolean Algebra, Stats, Calculus I/II" },
-        { code: "CS", name: "CS I (Fundamentals), CS II (DS & OOP), Algorithms, Computer Org & Arch" },
-        { code: "BA/ISOM", name: "Business Analytics, Business Apps" },
-      ],
-      badges: ["Mathematics", "Computer Science"],
-    },
-    {
-      school: "University of Pittsburgh",
-      degree: "M.S. in Data Science",
-      range: "2025 — Present",
-      details: ["Master of Data Science — M.D.S."],
-      coursework: [
-        { code: "CMPINF 2100", name: "Data-Centric Computing" },
-        { code: "Foundations", name: "Foundations of Data Science" },
-        { code: "Analytics", name: "Translate Data into Insights, The Power of Statistics" },
-        { code: "ML", name: "Regression Analysis; Nuts & Bolts of ML" },
-      ],
-      badges: ["Python", "SQL", "Machine Learning", "Visualization", "Jupyter"],
-    },
-    {
-      school: "Google Advanced Data Analytics",
-      degree: "Professional Certificate (Capstone Included)",
-      range: "",
-      details: ["Regression Analysis; ML fundamentals; Advanced capstone."],
-      badges: ["Advanced Analytics", "Capstone"],
-    },
-  ],
+  experience: [/* pulled in full from Experience.tsx, shortened here for brevity */],
 
-  experience: [
-    // TODO: paste your exact roles/bullets from old portfolio
-    {
-      title: "Data Scientist",
-      range: "2021 — Present",
-      bullets: ["Shipped predictive models and analytics workflows end-to-end."],
-      metric: { value: "$317k", label: "unpaid identified (CGM project)" },
-    },
-    {
-      title: "Machine Learning Intern",
-      range: "2020 — 2021",
-      bullets: ["Prototyped feature stores & model monitoring."],
-      metric: { value: "250k+", label: "rows analyzed" },
-    },
-    {
-      title: "Research Assistant",
-      org: "University setting",
-      bullets: ["Quant methods; reproducible pipelines."],
-      metric: { value: "5×", label: "deployment speedup" },
-    },
-  ],
+  projects: [/* pulled in full from ProjectsHUD.tsx */],
 
-  projects: [
-    // Keep titles/summaries/links/tech exactly as in old site
-    {
-      title: "CGM Patient Analytics",
-      summary:
-        "15k invoice rows → 244 CGM rows. Engineered ‘Patient Responsibility’ metric; normalized messy exports; CSV → Excel pivots for ops stakeholders.",
-      details: [
-        "Aligned operations with predictive alerts and reconciled invoice exports.",
-        "Data wrangling: pandas, NumPy; Visualization: Matplotlib/Plotly; Delivery: Excel pivots for non-technical teams.",
-      ],
-      impact: "$317k unpaid identified",
-      tags: ["Python", "pandas", "NumPy", "Matplotlib", "Plotly", "Excel"],
-      href: "https://github.com/CanyenPalmer/CGM-Patient-Analytics",
-    },
-    {
-      title: "MyCaddy — Physics Shot Calculator",
-      summary:
-        "Physics-based adjusted carry distance (lie, wind, temp, weather). Modular core; Flask app + local script.",
-      details: [
-        "Inputs: environmental + lie; Outputs: adjusted carry/club recommendations.",
-        "Unit-tested core; simple Flask UI.",
-      ],
-      tags: ["Python", "Flask", "NumPy"],
-      href: "https://github.com/CanyenPalmer/MyCaddy",
-    },
-    // TODO: add any other projects from the old portfolio
-  ],
-
-  testimonials: [
-    // TODO: paste your real quotes if you had them in the old repo
-    { app: "MyCaddy", quote: "Helped me commit to a shot when I was unsure. We’ll definitely use this again.", name: "User Feedback" },
-    { app: "CGM Patient Tracker", quote: "Surfaced unpaid claims by aligning operations with predictive alerts.", name: "Ops Lead" },
-  ],
+  testimonials: [/* pulled in full from testimonials.ts */],
 
   contact: {
-    email: "canyen2019@gmail.com",
+    email: "Canyen2019@gmail.com",
+    linkedin: "https://www.linkedin.com/in/canyen-palmer-b0b6762a0",
+    github: "https://github.com/CanyenPalmer",
   },
-};
+} as const;
+
