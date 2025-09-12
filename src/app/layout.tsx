@@ -13,7 +13,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="bg-[#0b1016] text-white antialiased">
         <VscodeTopBar
-          resumeHref="/Canyen_Palmer_Resume.pdf"
+          resumeHref="/Resume%20(LaTeX).pdf"   {/* keep your real path */}
           linkedinHref="https://www.linkedin.com/in/canyen-palmer-b0b6762a0"
           githubHref="https://github.com/CanyenPalmer"
           signature="Canyen Palmer"
