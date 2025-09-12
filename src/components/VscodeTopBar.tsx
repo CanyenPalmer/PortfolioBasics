@@ -23,10 +23,7 @@ const sections: { label: string; href: string }[] = [
   { label: "Contact", href: "#contact" },
 ];
 
-type Props = {
-  signature?: string;
-  minimal?: boolean;
-};
+type Props = { signature?: string; minimal?: boolean };
 
 export default function VscodeTopBar({ signature, minimal = false }: Props) {
   const pathname = usePathname();
@@ -37,10 +34,8 @@ export default function VscodeTopBar({ signature, minimal = false }: Props) {
       className={`sticky top-0 z-50 ${BAR_BG} ${NEON_RING} border-b ${CYAN_BORDER} shadow-[0_4px_30px_rgba(0,0,0,.35)]`}
       role="banner"
     >
-      {/* Top Row */}
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="flex h-12 items-center justify-between gap-3">
-          {/* Left: Traffic lights + signature */}
           <div className="flex items-center gap-3">
             <TrafficLights />
             <div className="flex items-baseline gap-2">
@@ -52,7 +47,6 @@ export default function VscodeTopBar({ signature, minimal = false }: Props) {
             </div>
           </div>
 
-          {/* Right: Actions */}
           <div className="flex items-center gap-2">
             <IconButton href={LINKS.resume} title="Resume" ariaLabel="Open resume" icon={<DownloadIcon />} />
             <IconButton href={LINKS.linkedin} title="LinkedIn" ariaLabel="Open LinkedIn" icon={<LinkedInIcon />} external />
@@ -61,7 +55,6 @@ export default function VscodeTopBar({ signature, minimal = false }: Props) {
         </div>
       </div>
 
-      {/* Bottom Row: Tabs */}
       {!minimal && (
         <nav className="mx-auto max-w-7xl px-2 sm:px-4" aria-label="Primary">
           <div className="flex flex-wrap items-center gap-1 py-2">
@@ -75,8 +68,7 @@ export default function VscodeTopBar({ signature, minimal = false }: Props) {
   );
 }
 
-/* ---------------- Icons (inline SVGs) ---------------- */
-
+/* Icons */
 function ExternalIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 opacity-70" fill="none" stroke="currentColor" strokeWidth="2">
@@ -86,7 +78,6 @@ function ExternalIcon() {
     </svg>
   );
 }
-
 function GitHubIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
@@ -94,7 +85,6 @@ function GitHubIcon() {
     </svg>
   );
 }
-
 function LinkedInIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
@@ -102,7 +92,6 @@ function LinkedInIcon() {
     </svg>
   );
 }
-
 function DownloadIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
@@ -113,8 +102,7 @@ function DownloadIcon() {
   );
 }
 
-/* ---------------- UI bits ---------------- */
-
+/* Bits */
 function TrafficLights() {
   return (
     <div className="flex items-center gap-1.5">
@@ -124,7 +112,6 @@ function TrafficLights() {
     </div>
   );
 }
-
 function TabLink({ href, label }: { href: string; label: string }) {
   return (
     <motion.a
@@ -138,20 +125,9 @@ function TabLink({ href, label }: { href: string; label: string }) {
     </motion.a>
   );
 }
-
 function IconButton({
-  href,
-  title,
-  ariaLabel,
-  icon,
-  external = false,
-}: {
-  href: string;
-  title: string;
-  ariaLabel: string;
-  icon: React.ReactNode;
-  external?: boolean;
-}) {
+  href, title, ariaLabel, icon, external = false,
+}: { href: string; title: string; ariaLabel: string; icon: React.ReactNode; external?: boolean }) {
   const content = (
     <span className="inline-flex items-center gap-1.5">
       {icon}
@@ -159,26 +135,13 @@ function IconButton({
       {external && <ExternalIcon />}
     </span>
   );
-
-  const baseClass =
-    "rounded-md px-2.5 py-1.5 text-xs sm:text-sm font-medium text-white/85 border border-cyan-400/25 hover:border-cyan-400/50 hover:bg-cyan-400/5 transition-colors";
-
-  if (external) {
-    return (
-      <a
-        href={href}
-        target="_blank"
-        rel="noreferrer noopener"
-        aria-label={ariaLabel}
-        className={baseClass}
-      >
-        {content}
-      </a>
-    );
-  }
-
-  return (
-    <Link href={href} aria-label={ariaLabel} className={baseClass}>
+  const base = "rounded-md px-2.5 py-1.5 text-xs sm:text-sm font-medium text-white/85 border border-cyan-400/25 hover:border-cyan-400/50 hover:bg-cyan-400/5 transition-colors";
+  return external ? (
+    <a href={href} target="_blank" rel="noreferrer noopener" aria-label={ariaLabel} className={base}>
+      {content}
+    </a>
+  ) : (
+    <Link href={href} aria-label={ariaLabel} className={base}>
       {content}
     </Link>
   );
