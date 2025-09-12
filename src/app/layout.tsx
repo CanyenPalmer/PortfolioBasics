@@ -5,16 +5,17 @@ import VscodeTopBar from "@/components/VscodeTopBar";
 export const metadata: Metadata = {
   title: "Canyen Palmer • Portfolio",
   description: "Turning data into decisions through science, code, and storytelling.",
+  icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="bg-[#0b1016] text-white">
+      <body className="bg-[#0b1016] text-white antialiased">
         <VscodeTopBar
           resumeHref="/Canyen_Palmer_Resume.pdf"
-          linkedinHref="https://www.linkedin.com/in/your-handle"
-          githubHref="https://github.com/your-handle"
+          linkedinHref="https://www.linkedin.com/in/canyen-palmer-b0b6762a0"
+          githubHref="https://github.com/CanyenPalmer"
           signature="Canyen Palmer"
         />
         {children}
