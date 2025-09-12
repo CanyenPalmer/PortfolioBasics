@@ -5,14 +5,14 @@ import * as React from "react";
 import { motion } from "framer-motion";
 import { profile } from "@/content/profile";
 
-type EduItem = {
+export type EduItem = {
   school?: string;
   program?: string;
   degree?: string;
   dates?: string;
   location?: string;
-  bullets?: string[];
-  details?: string[];
+  bullets?: ReadonlyArray<string>;
+  details?: ReadonlyArray<string>;
 };
 
 type Props = {
@@ -22,17 +22,22 @@ type Props = {
 };
 
 export default function Education({ heading = "Education", items }: Props) {
-  const list: ReadonlyArray<EduItem> =
-    items ?? (((profile as any)?.education ?? []) as ReadonlyArray<EduItem>);
+  // Make profile.education strongly typed so TS can infer downstream
+  const fromProfile = ((profile as unknown as { education?: ReadonlyArray<EduItem> })?.education ??
+    []) as ReadonlyArray<EduItem>;
+
+  const list: ReadonlyArray<EduItem> = items ?? fromProfile;
 
   if (!Array.isArray(list) || list.length === 0) return null;
 
   return (
     <section aria-label="Education">
-      <h2 className="mb-6 text-xl font-semibold tracking-wide text-cyan-200">{heading}</h2>
+      <h2 className="mb-6 text-xl font-semibold tracking-wide text-cyan-200">
+        {heading}
+      </h2>
 
       <div className="space-y-6">
-        {list.map((e, i) => (
+        {list.map((e: EduItem, i: number) => (
           <motion.article
             key={`${e.school ?? "edu"}-${i}`}
             initial={{ opacity: 0, y: 8 }}
@@ -44,9 +49,9 @@ export default function Education({ heading = "Education", items }: Props) {
             <header className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
               <h3 className="text-lg font-semibold text-white/90">
                 {e.school}
-                {e.program || e.degree ? (
+                {(e.program || e.degree) && (
                   <span className="text-white/60"> — {e.program ?? e.degree}</span>
-                ) : null}
+                )}
               </h3>
               {e.dates && (
                 <span className="font-mono text-xs text-cyan-300/80">{e.dates}</span>
@@ -57,7 +62,7 @@ export default function Education({ heading = "Education", items }: Props) {
 
             {Array.isArray(e.bullets) && e.bullets.length > 0 && (
               <ul className="mt-3 list-disc space-y-1.5 pl-6 text-sm text-white/85">
-                {e.bullets.map((b, bi) => (
+                {e.bullets.map((b: string, bi: number) => (
                   <li key={bi} dangerouslySetInnerHTML={{ __html: b }} />
                 ))}
               </ul>
@@ -65,7 +70,7 @@ export default function Education({ heading = "Education", items }: Props) {
 
             {Array.isArray(e.details) && e.details.length > 0 && (
               <ul className="mt-3 list-disc space-y-1.5 pl-6 text-sm text-white/85">
-                {e.details.map((d, di) => (
+                {e.details.map((d: string, di: number) => (
                   <li key={di} dangerouslySetInnerHTML={{ __html: d }} />
                 ))}
               </ul>
