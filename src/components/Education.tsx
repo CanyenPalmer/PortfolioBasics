@@ -1,68 +1,85 @@
+// src/components/Education.tsx
 "use client";
-import { motion } from "framer-motion";
 
-type Course = { code?: string; name: string };
+import * as React from "react";
+import { motion } from "framer-motion";
+import { profile } from "@/content/profile";
+
 type EduItem = {
-  school: string;
-  degree: string;
-  range?: string;
+  school?: string;
+  program?: string;
+  degree?: string;
+  dates?: string;
+  location?: string;
+  bullets?: string[];
   details?: string[];
-  coursework?: Course[];
-  badges?: string[];
 };
 
-export default function Education({ heading = "Education", items }: { heading?: string; items: EduItem[]; }) {
+type Props = {
+  heading?: string;
+  /** Optional. If not provided, we use profile.education */
+  items?: EduItem[];
+};
+
+export default function Education({ heading = "Education", items }: Props) {
+  const list: EduItem[] = items ?? ((profile as any)?.education ?? []);
+
+  if (!Array.isArray(list) || list.length === 0) return null;
+
   return (
-    <section id="education" className="section-wrap">
-      <div className="hud-panel">
-        <motion.h2 initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.5 }} className="neon-title magenta">
-          {heading.toUpperCase()}
-        </motion.h2>
+    <section aria-label="Education">
+      <h2 className="mb-6 text-xl font-semibold tracking-wide text-cyan-200">
+        {heading}
+      </h2>
 
-        <div className="mt-8 space-y-8">
-          {items.map((ed, i) => (
-            <motion.div key={i} initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-80px" }} transition={{ duration: 0.45, delay: i * 0.05 }}
-              className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-                <div>
-                  <div className="text-lg md:text-xl font-semibold">{ed.school}</div>
-                  <div className="text-white/70">{ed.degree}</div>
-                </div>
-                {ed.range && <div className="text-white/60 text-sm md:text-base">{ed.range}</div>}
-              </div>
-
-              {!!ed.details?.length && (
-                <ul className="mt-4 list-disc pl-5 text-white/80 space-y-1">
-                  {ed.details.map((d, j) => (<li key={j}>{d}</li>))}
-                </ul>
+      <div className="space-y-6">
+        {list.map((e, i) => (
+          <motion.article
+            key={`${e.school ?? "edu"}-${i}`}
+            initial={{ opacity: 0, y: 8 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.45, delay: i * 0.03 }}
+            className="rounded-lg border border-cyan-400/10 bg-black/20 p-5"
+          >
+            <header className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+              <h3 className="text-lg font-semibold text-white/90">
+                {e.school}
+                {e.program || e.degree ? (
+                  <span className="text-white/60">
+                    {" "}
+                    — {e.program ?? e.degree}
+                  </span>
+                ) : null}
+              </h3>
+              {e.dates && (
+                <span className="font-mono text-xs text-cyan-300/80">
+                  {e.dates}
+                </span>
               )}
+            </header>
 
-              {!!ed.coursework?.length && (
-                <div className="mt-4">
-                  <div className="text-xs uppercase tracking-wider text-white/60">Selected Coursework</div>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {ed.coursework.map((c, k) => (
-                      <span key={k} className="text-xs px-2 py-1 rounded-md ring-1 ring-white/15 bg-white/[0.04]" title={c.name}>
-                        {c.code ? `${c.code}: ` : ""}{c.name}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
+            {e.location && (
+              <p className="text-sm text-white/60">{e.location}</p>
+            )}
 
-              {!!ed.badges?.length && (
-                <div className="mt-3">
-                  <div className="text-xs uppercase tracking-wider text-white/60">Focus Areas</div>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {ed.badges.map((b, z) => (<span key={z} className="text-xs px-2 py-1 rounded-md ring-1 ring-white/15 bg-white/[0.04]">{b}</span>))}
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          ))}
-        </div>
+            {Array.isArray(e.bullets) && e.bullets.length > 0 && (
+              <ul className="mt-3 list-disc space-y-1.5 pl-6 text-sm text-white/85">
+                {e.bullets.map((b, bi) => (
+                  <li key={bi} dangerouslySetInnerHTML={{ __html: b }} />
+                ))}
+              </ul>
+            )}
+
+            {Array.isArray(e.details) && e.details.length > 0 && (
+              <ul className="mt-3 list-disc space-y-1.5 pl-6 text-sm text-white/85">
+                {e.details.map((d, di) => (
+                  <li key={di} dangerouslySetInnerHTML={{ __html: d }} />
+                ))}
+              </ul>
+            )}
+          </motion.article>
+        ))}
       </div>
     </section>
   );
