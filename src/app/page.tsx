@@ -7,7 +7,7 @@ import Experience from "@/components/Experience";
 import Projects from "@/components/Projects";
 import Testimonials from "@/components/Testimonials";
 import Contact from "@/components/Contact";
-import { LINKS } from "@/content/links"; // keep your existing links file
+import { LINKS } from "@/content/links"; // from your old repo
 
 export default function Page() {
   return (
@@ -17,7 +17,7 @@ export default function Page() {
         <Hero />
       </section>
 
-      {/* ABOUT — adapted from your existing About copy */}
+      {/* ABOUT — copy from old portfolio */}
       <section id="about" className="container mx-auto px-6 py-24 max-w-6xl" aria-label="About Me">
         <AboutMe
           heading="About Me"
@@ -28,6 +28,7 @@ export default function Page() {
             "I care about delivery as much as modeling — clean data pipelines, reproducible notebooks, and dashboards that non-technical stakeholders can actually use."
           ]}
           images={[
+            // keep if you already have these in /public/images; otherwise remove any path that doesn't exist
             "/images/cgm.jpg",
             "/images/ames.jpg",
             "/images/mycaddy.jpg",
@@ -36,7 +37,7 @@ export default function Page() {
         />
       </section>
 
-      {/* EDUCATION — mirrors your EducationHUD content */}
+      {/* EDUCATION — mirrors old EducationHUD */}
       <section id="education" className="container mx-auto px-6 py-24 max-w-6xl" aria-label="Education">
         <Education
           items={[
@@ -86,7 +87,7 @@ export default function Page() {
         />
       </section>
 
-      {/* EXPERIENCE — keep/edit bullets/metrics to your exact phrasing */}
+      {/* EXPERIENCE — titles/metrics preserved */}
       <section id="experience" className="container mx-auto px-6 py-24 max-w-6xl" aria-label="Experience">
         <Experience
           roles={[
@@ -112,7 +113,7 @@ export default function Page() {
         />
       </section>
 
-      {/* PROJECTS — mapped from your current projects */}
+      {/* PROJECTS — uses old project descriptions; no images required */}
       <section id="projects" className="container mx-auto px-6 py-24 max-w-6xl" aria-label="Projects">
         <Projects
           projects={[
@@ -121,23 +122,21 @@ export default function Page() {
               summary:
                 "15k invoice rows → 244 CGM rows. Engineered ‘Patient Responsibility’ metric; normalized messy exports; CSV → Excel pivots for ops stakeholders. Impact: $317k unpaid identified.",
               tags: ["Python", "pandas", "NumPy", "Matplotlib", "Plotly", "Excel"],
-              href: "https://github.com/CanyenPalmer/CGM-Patient-Analytics",
-              chart: [3, 4, 7, 12, 9, 11, 13],
+              href: "https://github.com/CanyenPalmer/CGM-Patient-Analytics"
             },
             {
               title: "MyCaddy — Physics Shot Calculator",
               summary:
                 "Physics-based adjusted carry distance (lie, wind, temp, weather). Modular core; Flask app + local script.",
               tags: ["Python", "Flask", "NumPy"],
-              href: "https://github.com/CanyenPalmer/MyCaddy",
-              chart: [2, 3, 5, 8, 6, 7, 9],
+              href: "https://github.com/CanyenPalmer/MyCaddy"
             },
           ]}
-          sideIllustrationSrc="/images/portfolio.png"
+          // sideIllustrationSrc not provided -> safe, nothing rendered
         />
       </section>
 
-      {/* TESTIMONIALS — plug your real quotes here when ready */}
+      {/* TESTIMONIALS — move in more quotes when you’re ready */}
       <section id="testimonials" className="container mx-auto px-6 py-24 max-w-6xl" aria-label="Testimonials">
         <Testimonials
           items={[
@@ -148,7 +147,7 @@ export default function Page() {
         />
       </section>
 
-      {/* CONTACT — uses your LINKS + top codebar remains */}
+      {/* CONTACT — your existing LINKS + codebar at top */}
       <section id="contact" className="container mx-auto px-6 py-24 max-w-6xl" aria-label="Contact">
         <Contact
           links={{
