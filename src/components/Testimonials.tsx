@@ -1,22 +1,14 @@
 "use client";
-
 import { useState } from "react";
 import { motion } from "framer-motion";
 
 export type Testimonial = { app: string; name?: string; role?: string; quote: string; };
-type Props = { heading?: string; items: Testimonial[]; cols?: 2 | 3; };
-
-export default function Testimonials({ heading = "Testimonials", items, cols = 3 }: Props) {
+export default function Testimonials({ heading = "Testimonials", items, cols = 3 }: { heading?: string; items: Testimonial[]; cols?: 2|3; }) {
   return (
     <section id="testimonials" className="section-wrap">
       <div className="hud-panel">
-        <motion.h2
-          initial={{ opacity: 0, y: 8 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.5 }}
-          className="neon-title"
-        >
+        <motion.h2 initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.5 }} className="neon-title">
           {heading.toUpperCase()}
         </motion.h2>
 
@@ -31,17 +23,10 @@ export default function Testimonials({ heading = "Testimonials", items, cols = 3
 function FlipCard({ t, delay = 0 }: { t: Testimonial; delay?: number }) {
   const [flipped, setFlipped] = useState(false);
   return (
-    <motion.button
-      type="button"
-      aria-label={`Toggle testimonial from ${t.app}`}
-      initial={{ opacity: 0, y: 8 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-80px" }}
-      transition={{ duration: 0.45, delay }}
-      onClick={() => setFlipped(v => !v)}
-      className="group relative w-full rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
-      style={{ perspective: 1200 }}
-    >
+    <motion.button type="button" aria-label={`Toggle testimonial from ${t.app}`}
+      initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-80px" }}
+      transition={{ duration: 0.45, delay }} onClick={() => setFlipped(v => !v)}
+      className="group relative w-full rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-cyan-300" style={{ perspective: 1200 }}>
       <div className={`flip-3d ${flipped ? "is-flipped" : ""}`} role="region" aria-live="polite">
         <div className="flip-face rounded-2xl ring-1 ring-white/12 bg-white/[0.035] p-6 md:p-7 flex flex-col justify-between min-h-[240px] lg:min-h-[280px]">
           <div>
@@ -68,4 +53,3 @@ function FlipCard({ t, delay = 0 }: { t: Testimonial; delay?: number }) {
     </motion.button>
   );
 }
-
