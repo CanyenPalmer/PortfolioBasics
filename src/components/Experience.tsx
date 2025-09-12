@@ -7,7 +7,8 @@ import SectionPanel from "@/components/ui/SectionPanel";
 import { profile } from "@/content/profile";
 
 export default function Experience() {
-  const items = profile.experience as any[];
+  // Treat profile.experience as a readonly array (we never mutate it)
+  const items = ((profile as any)?.experience ?? []) as ReadonlyArray<any>;
 
   return (
     <SectionPanel title="Experience" className="mx-auto max-w-7xl">
@@ -39,6 +40,7 @@ export default function Experience() {
               </ul>
             )}
 
+            {/* Creations */}
             {Array.isArray(role.creations) && role.creations.length > 0 && (
               <div className="mt-5">
                 <h4 className="mb-2 font-semibold text-cyan-300/90">Creations</h4>
