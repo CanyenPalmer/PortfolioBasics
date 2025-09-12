@@ -1,78 +1,50 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-:root { color-scheme: dark; }
-body { background: #0b0b0c; color: white; }
-
-/* ====== Holographic + marquee styles for SkillsBelt ====== */
-@keyframes marquee-x { to { transform: translateX(-50%); } }
-.marquee {
-  width: max-content;
-  animation: marquee-x var(--marquee-duration, 26s) linear infinite;
-  will-change: transform;
+/* === Subtle animated grid background (stays in-frame) === */
+.grid-bg {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(to right, rgba(255,255,255,.08) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(255,255,255,.08) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
+  animation: grid-shift 16s linear infinite;
+  opacity: .35;
 }
-/* nicer UX: pause scroll while interacting */
-.marquee:hover,
-.marquee:focus-within { animation-play-state: paused; }
-
-@media (prefers-reduced-motion: reduce) { .marquee { animation: none; } }
-
-.holo-frame {
-  background:
-    radial-gradient(120% 120% at 10% 0%, rgba(34,211,238,0.25) 0%, transparent 40%),
-    radial-gradient(120% 120% at 90% 100%, rgba(168,85,247,0.25) 0%, transparent 40%),
-    linear-gradient(90deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
-}
-.holo-glow {
-  background: conic-gradient(from 0deg at 50% 50%,
-    rgba(34,211,238,0.12), rgba(168,85,247,0.12), rgba(250,204,21,0.10), rgba(34,211,238,0.12));
-  filter: blur(18px);
-  mix-blend-mode: screen;
-  opacity: 0.6;
+@keyframes grid-shift {
+  0%   { transform: translateY(0px); }
+  100% { transform: translateY(-32px); }
 }
 
-/* Hover-only sheen: OFF by default */
-.holo-sheen {
-  background: linear-gradient(
-    120deg,
-    rgba(255,255,255,0.0) 30%,
-    rgba(255,255,255,0.25) 50%,
-    rgba(255,255,255,0.0) 70%
-  );
-  mix-blend-mode: screen;
-  opacity: 0;
-  animation: none;             /* stop always-on animation */
-  will-change: transform;
+/* === Slow radial pulse === */
+@keyframes slow-pulse {
+  0%, 100% { opacity: .65; }
+  50%      { opacity: 1; }
 }
-/* Turn sheen ON only when a tile is hovered/focused */
-.belt-tile:hover .holo-sheen,
-.belt-tile:focus-within .holo-sheen {
-  opacity: 1;
-  animation: sheen-move 1.8s ease-in-out both; /* runs once per hover */
+.animate-slow-pulse { animation: slow-pulse 5s ease-in-out infinite; }
+
+/* === Typewriter line (no JS library required) === */
+.typewriter {
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  border-right: .12em solid rgba(255,255,255,.7);
+  animation: typing 4.5s steps(42, end) 0.2s 1 both;
+}
+.caret {
+  display: inline-block;
+  width: .12em;
+  margin-left: 2px;
+  background: rgba(255,255,255,.85);
+  animation: blink 1s step-end infinite;
+}
+@keyframes typing {
+  from { width: 0; }
+  to   { width: 48ch; } /* tune to your sentence length */
+}
+@keyframes blink {
+  50% { opacity: 0; }
 }
 
-@keyframes sheen-move {
-  0% { transform: translateX(-120%); opacity: 0.0; }
-  35% { opacity: 0.35; }
-  50% { transform: translateX(0%); }
-  65% { opacity: 0.35; }
-  100% { transform: translateX(120%); opacity: 0.0; }
-}
-
-/* --- HUD helpers (scanlines overlay used by ProjectsHUD) --- */
-.hud-scan { position: relative; isolation: isolate; }
-.hud-scan::after {
-  content:"";
-  position:absolute;
-  inset:0;
-  pointer-events:none;
-  opacity:.15;
-  background:repeating-linear-gradient(
-    to bottom,
-    rgba(255,255,255,.06) 0 1px,
-    transparent 1px 3px
-  );
-  mix-blend-mode:screen;
-}
-
+/* Utilities */
+.container { width: 100%; }
+@media (min-width: 1024px) { .container { max-width: 1024px; } }
+@media (min-width: 1280px) { .container { max-width: 1200px; } }
