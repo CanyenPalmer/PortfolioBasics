@@ -1,51 +1,31 @@
-import VscodeTopBar from "@/components/VscodeTopBar"; // keep yours as-is
-import HeroAvatar from "@/components/hero/HeroAvatar";
-import ExperienceLog from "@/components/experience/ExperienceLog";
+"use client";
 
-// If your other sections are already implemented, keep rendering them below.
-// We are not deleting or renaming any existing sections/IDs.
+import Hero from "@/components/Hero";
+import AboutMe from "@/components/AboutMe";
 
-export default function HomePage() {
+export default function Page() {
   return (
-    <main className="bg-[#0b1016] text-white">
-      <VscodeTopBar
-        resumeHref="/Canyen_Palmer_Resume.pdf"
-        linkedinHref="https://www.linkedin.com/in/your-handle"
-        githubHref="https://github.com/your-handle"
-        signature="Canyen Palmer"
-      />
+    <main className="min-h-screen">
+      <Hero />
 
-      {/* HERO — AVATAR LANDING */}
-      <HeroAvatar
-        id="home"
-        name="Canyen Palmer"
-        tagline="Turning data into decisions..."
-        toolbar={[
-          { label: "Resume", href: "/Canyen_Palmer_Resume.pdf" },
-          { label: "GitHub", href: "https://github.com/your-handle", external: true },
-          { label: "LinkedIn", href: "https://www.linkedin.com/in/your-handle", external: true },
-          { label: "Email", href: "mailto:canyen2019@gmail.com", external: true },
-        ]}
-      />
-
-      {/* EXPERIENCE — TERMINAL TIMELINE */}
-      <ExperienceLog
-        id="experience"
-        heading="EXPERIENCE — BATTLE RECORDS"
-        items={[
-          // === Replace these with your exact current entries/metrics ===
-          { title: "Data Scientist", org: "Tech Innovations", date: "2023 — Present", highlight: "10% user engagement" },
-          { title: "Machine Learning Intern", org: "Insights Corp", date: "2021 — 2023", highlight: "250k+ rows analyzed" },
-          { title: "Research Assistant", org: "University of Somewheres", date: "2019 — 2021", highlight: "5x deployment speedup" },
-        ]}
-      />
-
-      {/* === Your existing sections continue below exactly as they are now === */}
-      {/* <Projects id="projects" ... /> */}
-      {/* <About id="about" ... /> */}
-      {/* <Testimonials id="testimonials" ... /> */}
-      {/* <Services id="services" ... /> */}
-      {/* <Contact id="contact" ... /> */}
+      {/* ABOUT ME — keeps your current voice; light copy tweak to match the new art direction */}
+      <section id="about" className="container mx-auto px-6 py-24 max-w-6xl">
+        <AboutMe
+          heading="About Me"
+          lead="I build end-to-end analytics and ML workflows — from clean data pipelines to models and decision dashboards."
+          body={[
+            "Currently pursuing my Master’s in Data Science at the University of Pittsburgh.",
+            "My focus: Python, R, SQL, and modern viz stacks — used to ship measurable impact (think: patient analytics, ops intelligence, attrition modeling).",
+            "This site’s redesign keeps all original facts intact while leaning into a clean cyber-tech aesthetic.",
+          ]}
+          images={[
+            // Keep your existing About images here — these <img> tags fail-safe if a file is missing.
+            "/about/impact-dashboard.jpg",
+            "/about/cgm-tracker.jpg",
+            "/about/teaching-moments.jpg",
+          ]}
+        />
+      </section>
     </main>
   );
 }
