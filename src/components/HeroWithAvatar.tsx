@@ -3,20 +3,13 @@
 
 import Image from "next/image";
 import * as React from "react";
-import {
-  motion,
-  useMotionValue,
-  useSpring,
-  useTransform,
-  AnimatePresence,
-} from "framer-motion";
+import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 
 type Props = {
   headline: string;
   subheadline: string;
   typer: string;
-  /** Path to the avatar asset. Defaults to /images/avatar.png */
-  avatarSrc?: string;
+  avatarSrc?: string; // default /images/avatar.png
 };
 
 export default function HeroWithAvatar({
@@ -25,103 +18,61 @@ export default function HeroWithAvatar({
   typer,
   avatarSrc = "/images/avatar.png",
 }: Props) {
-  // Pointer-based parallax values
   const x = useMotionValue(0);
   const y = useMotionValue(0);
-
-  // Gentle spring so motion is smooth
-  const rx = useSpring(useTransform(y, [-0.5, 0.5], [8, -8]), {
-    stiffness: 140,
-    damping: 14,
-    mass: 0.3,
-  });
-  const ry = useSpring(useTransform(x, [-0.5, 0.5], [-12, 12]), {
-    stiffness: 140,
-    damping: 14,
-    mass: 0.3,
-  });
-
-  // Eye highlight drift (tiny offset relative to pointer)
-  const eyeX = useSpring(useTransform(x, [-0.5, 0.5], [-6, 6]), {
-    stiffness: 120,
-    damping: 12,
-    mass: 0.2,
-  });
-  const eyeY = useSpring(useTransform(y, [-0.5, 0.5], [-4, 4]), {
-    stiffness: 120,
-    damping: 12,
-    mass: 0.2,
-  });
+  const rx = useSpring(useTransform(y, [-0.5, 0.5], [8, -8]), { stiffness: 140, damping: 14 });
+  const ry = useSpring(useTransform(x, [-0.5, 0.5], [-12, 12]), { stiffness: 140, damping: 14 });
 
   const cardRef = React.useRef<HTMLDivElement | null>(null);
-
   const onPointerMove = (e: React.PointerEvent) => {
-    const el = cardRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const px = (e.clientX - rect.left) / rect.width; // 0..1
-    const py = (e.clientY - rect.top) / rect.height; // 0..1
-    // Recenter to -0.5..0.5 range
-    x.set(px - 0.5);
-    y.set(py - 0.5);
+    const rect = cardRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    x.set((e.clientX - rect.left) / rect.width - 0.5);
+    y.set((e.clientY - rect.top) / rect.height - 0.5);
   };
-
   const onPointerLeave = () => {
     x.set(0);
     y.set(0);
   };
 
   return (
-    <section
-      id="home"
-      className="relative min-h-[78vh] overflow-hidden border-b border-cyan-400/10"
-      aria-label="Hero"
-    >
-      {/* --- BACKDROP: soft neon gradients + scanlines --- */}
+    <section id="home" className="relative min-h-[78vh] overflow-hidden border-b border-cyan-400/10" aria-label="Hero">
+      {/* Background + shards */}
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-0 opacity-[0.08] [background-image:radial-gradient(ellipse_at_center,black,transparent_70%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(0,229,255,.15),transparent_30%),radial-gradient(circle_at_85%_65%,rgba(255,59,212,.12),transparent_28%)]" />
-        <div className="absolute inset-0 opacity-[.08] [background:repeating-linear-gradient(0deg,rgba(255,255,255,.06)_0_1px,transparent_1px_3px)]" />
+        <div className="absolute inset-0 opacity-[0.10] [background-image:radial-gradient(ellipse_at_center,black,transparent_70%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(0,229,255,.18),transparent_30%),radial-gradient(circle_at_85%_65%,rgba(255,59,212,.14),transparent_28%)]" />
+        <div className="absolute inset-0 opacity-[.07] [background:repeating-linear-gradient(0deg,rgba(255,255,255,.07)_0_1px,transparent_1px_3px)]" />
+        <div className="absolute left-2 top-14 h-64 w-64 -rotate-12 opacity-80 [mask-image:radial-gradient(closest-side,white,transparent)]">
+          <div className="absolute inset-0 bg-[conic-gradient(from_120deg,rgba(0,229,255,.55),transparent_40%)] blur-[1px]" />
+        </div>
+        <div className="absolute right-4 top-10 h-64 w-64 rotate-6 opacity-80 [mask-image:radial-gradient(closest-side,white,transparent)]">
+          <div className="absolute inset-0 bg-[conic-gradient(from_-60deg,rgba(255,59,212,.45),transparent_40%)] blur-[1px]" />
+        </div>
       </div>
 
-      {/* --- CONTENT --- */}
       <div className="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-10 px-6 py-20 md:grid-cols-2 md:py-28">
-        {/* LEFT: INTERACTIVE AVATAR PANEL */}
+        {/* Avatar panel (parallax) */}
         <motion.div
           ref={cardRef}
           onPointerMove={onPointerMove}
           onPointerLeave={onPointerLeave}
-          // Disable parallax on touch devices
-          onTouchStart={() => {
-            x.set(0);
-            y.set(0);
-          }}
           className="relative mx-auto w-full max-w-[520px] perspective-[1200px]"
-          style={{
-            // parent needs perspective; we apply rotate on child
-          }}
         >
           <motion.div
-            className="relative rounded-2xl border border-cyan-400/25 bg-[#0b1016]/40 p-3 shadow-[0_0_50px_rgba(0,229,255,.15)]"
-            style={{
-              rotateX: rx,
-              rotateY: ry,
-              transformStyle: "preserve-3d",
-            }}
+            className="relative rounded-2xl border border-cyan-400/25 bg-[#0b1016]/40 p-3 shadow-[0_0_60px_rgba(0,229,255,.20)]"
+            style={{ rotateX: rx, rotateY: ry, transformStyle: "preserve-3d" }}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            {/* Avatar frame */}
             <motion.div
-              className="relative overflow-hidden rounded-xl ring-1 ring-cyan-400/20"
+              className="relative overflow-hidden rounded-xl ring-1 ring-cyan-400/25"
               initial={{ scale: 0.985 }}
               animate={{ scale: 1 }}
               transition={{ duration: 0.6, delay: 0.05 }}
               style={{ transformStyle: "preserve-3d" }}
             >
-              {/* Image floats slightly forward in 3D */}
-              <motion.div style={{ transform: "translateZ(25px)" }}>
+              <motion.div style={{ transform: "translateZ(26px)" }}>
                 <Image
                   src={avatarSrc}
                   alt="Stylized 2D avatar of Canyen Palmer"
@@ -131,40 +82,20 @@ export default function HeroWithAvatar({
                   className="block h-auto w-full select-none"
                 />
               </motion.div>
-
-              {/* Eye highlight (subtle neon dot that drifts with pointer) */}
-              <motion.div
-                aria-hidden
-                className="pointer-events-none absolute left-[58%] top-[37%] h-3 w-3 rounded-full"
-                style={{
-                  x: eyeX,
-                  y: eyeY,
-                  boxShadow:
-                    "0 0 14px rgba(0,229,255,.85), 0 0 26px rgba(255,59,212,.35)",
-                  background:
-                    "radial-gradient(circle, rgba(255,255,255,.85), rgba(0,229,255,.8) 60%, transparent 70%)",
-                  transform: "translateZ(40px)",
-                }}
-              />
-
-              {/* Subtle inner ring */}
               <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-cyan-400/12" />
             </motion.div>
 
-            {/* Ambient glow chip */}
+            {/* Ambient neon chip */}
             <motion.div
               className="pointer-events-none absolute -left-4 top-3 h-20 w-20 rounded-full"
               animate={{ x: [0, 2, 0], y: [0, -2, 0] }}
               transition={{ duration: 6, repeat: Infinity }}
-              style={{
-                boxShadow:
-                  "0 0 24px rgba(0,229,255,.25), 0 0 48px rgba(255,59,212,.15)",
-              }}
+              style={{ boxShadow: "0 0 24px rgba(0,229,255,.25), 0 0 48px rgba(255,59,212,.15)" }}
             />
           </motion.div>
         </motion.div>
 
-        {/* RIGHT: TEXT STACK */}
+        {/* Text stack */}
         <div className="relative">
           <motion.h1
             className="text-5xl font-extrabold tracking-tight md:text-6xl"
@@ -204,7 +135,7 @@ export default function HeroWithAvatar({
         </div>
       </div>
 
-      {/* --- CORNER HUD DOTS --- */}
+      {/* Header dots */}
       <div className="pointer-events-none absolute left-3 top-3 flex gap-1">
         <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#ff5f56] shadow-[0_0_8px_#ff5f56]" />
         <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#ffbd2e] shadow-[0_0_8px_#ffbd2e]" />
@@ -214,3 +145,4 @@ export default function HeroWithAvatar({
     </section>
   );
 }
+
