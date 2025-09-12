@@ -1,6 +1,6 @@
 "use client";
 
-import Hero from "@/components/Hero";
+import Hero from "@/components/HeroWithAvatar";
 import AboutMe from "@/components/AboutMe";
 import Education from "@/components/Education";
 import Experience from "@/components/Experience";
@@ -13,44 +13,72 @@ import { LINKS } from "@/content/links";
 export default function Page() {
   return (
     <main className="relative">
+      {/* Hero Section */}
       <section id="hero" aria-label="Hero">
-        <Hero headline={profile.hero.headline} subheadline={profile.hero.subheadline} typer={profile.hero.typer} />
+        <Hero
+          headline={profile.hero.headline}
+          subheadline={profile.hero.subheadline}
+          typer={profile.hero.typer}
+        />
       </section>
 
-      <section id="about" className="container mx-auto px-6 py-24 max-w-6xl" aria-label="About Me">
+      {/* About Section */}
+      <section
+        id="about"
+        className="container mx-auto px-6 py-24 max-w-6xl"
+        aria-label="About Me"
+      >
         <AboutMe
           heading="About Me"
           lead={profile.about.lead}
           body={profile.about.body}
-          images={profile.about.images /* expects /public/about/* paths */}
+          images={profile.about.images}
         />
       </section>
 
-      <section id="education" className="container mx-auto px-6 py-24 max-w-6xl" aria-label="Education">
-        <Education items={profile.education} />
+      {/* Education Section */}
+      <section
+        id="education"
+        className="container mx-auto px-6 py-24 max-w-6xl"
+        aria-label="Education"
+      >
+        <Education education={profile.education} />
       </section>
 
-      <section id="experience" className="container mx-auto px-6 py-24 max-w-6xl" aria-label="Experience">
-        <Experience roles={profile.experience} />
+      {/* Experience Section */}
+      <section
+        id="experience"
+        className="container mx-auto px-6 py-24 max-w-6xl"
+        aria-label="Experience"
+      >
+        <Experience />
       </section>
 
-      <section id="projects" className="container mx-auto px-6 py-24 max-w-6xl" aria-label="Projects">
-        <Projects projects={profile.projects /* no images required */} />
+      {/* Projects Section */}
+      <section
+        id="projects"
+        className="container mx-auto px-6 py-24 max-w-6xl"
+        aria-label="Projects"
+      >
+        <Projects />
       </section>
 
-      <section id="testimonials" className="container mx-auto px-6 py-24 max-w-6xl" aria-label="Testimonials">
-        <Testimonials items={profile.testimonials} cols={3} />
+      {/* Testimonials Section */}
+      <section
+        id="testimonials"
+        className="container mx-auto px-6 py-24 max-w-6xl"
+        aria-label="Testimonials"
+      >
+        <Testimonials />
       </section>
 
-      <section id="contact" className="container mx-auto px-6 py-24 max-w-6xl" aria-label="Contact">
-        <Contact
-          links={{
-            emailHref: `mailto:${profile.contact.email}`,
-            linkedinHref: LINKS.linkedin,
-            githubHref: LINKS.github,
-            resumeHref: LINKS.resume,
-          }}
-        />
+      {/* Contact Section */}
+      <section
+        id="contact"
+        className="container mx-auto px-6 py-24 max-w-6xl"
+        aria-label="Contact"
+      >
+        <Contact email={profile.contact.email} links={LINKS} />
       </section>
     </main>
   );
