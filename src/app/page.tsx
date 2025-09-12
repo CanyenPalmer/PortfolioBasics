@@ -7,17 +7,17 @@ import Experience from "@/components/Experience";
 import Projects from "@/components/Projects";
 import Testimonials from "@/components/Testimonials";
 import Contact from "@/components/Contact";
-import { LINKS } from "@/content/links";
+import { LINKS } from "@/content/links"; // keep your existing links file
 
 export default function Page() {
   return (
     <main className="relative">
-      {/* HERO — uses your real headline/subheadline */}
+      {/* HERO — keep your brand hero implementation */}
       <section id="hero" aria-label="Hero">
         <Hero />
       </section>
 
-      {/* ABOUT — copy adapted from AboutMeShowcase */}
+      {/* ABOUT — adapted from your existing About copy */}
       <section id="about" className="container mx-auto px-6 py-24 max-w-6xl" aria-label="About Me">
         <AboutMe
           heading="About Me"
@@ -25,19 +25,18 @@ export default function Page() {
           body={[
             "I’m currently pursuing my Master’s in Data Science at the University of Pittsburgh. I focus on turning raw data into actionable insights that drive decision-making, efficiency, and outcomes.",
             "Tooling comfort: Python, SQL, R, and modern viz stacks. Libraries you’ll often see in my repos include pandas, NumPy, scikit-learn, Matplotlib/seaborn, statsmodels, and the Tidyverse for R.",
-            "I care about delivery as much as modeling — clean data pipelines, reproducible notebooks, and dashboards that non-technical stakeholders can actually use.",
+            "I care about delivery as much as modeling — clean data pipelines, reproducible notebooks, and dashboards that non-technical stakeholders can actually use."
           ]}
           images={[
-            // Use assets that already exist in your repo
             "/images/cgm.jpg",
             "/images/ames.jpg",
             "/images/mycaddy.jpg",
-            "/images/aboutme.jpg",
+            "/images/aboutme.jpg"
           ]}
         />
       </section>
 
-      {/* EDUCATION — faithful to EducationHUD data */}
+      {/* EDUCATION — mirrors your EducationHUD content */}
       <section id="education" className="container mx-auto px-6 py-24 max-w-6xl" aria-label="Education">
         <Education
           items={[
@@ -55,9 +54,7 @@ export default function Page() {
               school: "Ball State University",
               degree: "B.G.S. — Mathematics; A.A. — Computer Science",
               range: "2020 — 2024",
-              details: [
-                "Dean’s List (Summer 2023). Launched Palmer Projects — Freelance Data Services.",
-              ],
+              details: ["Dean’s List (Summer 2023). Launched Palmer Projects — Freelance Data Services."],
               coursework: [
                 { code: "MATH", name: "Precalculus, Boolean Algebra, Stats, Calculus I/II" },
                 { code: "CS", name: "CS I (Fundamentals), CS II (DS & OOP), Algorithms, Computer Org & Arch" },
@@ -82,16 +79,14 @@ export default function Page() {
               school: "Google Advanced Data Analytics",
               degree: "Professional Certificate (Capstone Included)",
               range: "",
-              details: [
-                "Regression Analysis; ML fundamentals; Advanced capstone.",
-              ],
+              details: ["Regression Analysis; ML fundamentals; Advanced capstone."],
               badges: ["Advanced Analytics", "Capstone"],
             },
           ]}
         />
       </section>
 
-      {/* EXPERIENCE — keep your bullets/metrics here as you prefer */}
+      {/* EXPERIENCE — keep/edit bullets/metrics to your exact phrasing */}
       <section id="experience" className="container mx-auto px-6 py-24 max-w-6xl" aria-label="Experience">
         <Experience
           roles={[
@@ -99,7 +94,7 @@ export default function Page() {
               title: "Data Scientist",
               range: "2021 — Present",
               bullets: ["Shipped predictive models and analytics workflows end-to-end."],
-              metric: { value: "$317k", label: "unpaid identified (see CGM project)" },
+              metric: { value: "$317k", label: "unpaid identified (CGM project)" },
             },
             {
               title: "Machine Learning Intern",
@@ -117,7 +112,7 @@ export default function Page() {
         />
       </section>
 
-      {/* PROJECTS — mapped from ProjectsHUD */}
+      {/* PROJECTS — mapped from your current projects */}
       <section id="projects" className="container mx-auto px-6 py-24 max-w-6xl" aria-label="Projects">
         <Projects
           projects={[
@@ -142,35 +137,25 @@ export default function Page() {
         />
       </section>
 
-      {/* TESTIMONIALS — you can move your existing quotes over anytime */}
+      {/* TESTIMONIALS — plug your real quotes here when ready */}
       <section id="testimonials" className="container mx-auto px-6 py-24 max-w-6xl" aria-label="Testimonials">
         <Testimonials
           items={[
-            {
-              app: "MyCaddy",
-              quote:
-                "Helped me commit to a shot when I was unsure. We’ll definitely use this again.",
-              name: "User Feedback",
-            },
-            {
-              app: "CGM Patient Tracker",
-              quote:
-                "Surfaced unpaid claims by aligning operations with predictive alerts.",
-              name: "Ops Lead",
-            },
+            { app: "MyCaddy", quote: "Helped me commit to a shot when I was unsure. We’ll definitely use this again.", name: "User Feedback" },
+            { app: "CGM Patient Tracker", quote: "Surfaced unpaid claims by aligning operations with predictive alerts.", name: "Ops Lead" },
           ]}
           cols={3}
         />
       </section>
 
-      {/* CONTACT — keep LINKS + your codebar at top */}
+      {/* CONTACT — uses your LINKS + top codebar remains */}
       <section id="contact" className="container mx-auto px-6 py-24 max-w-6xl" aria-label="Contact">
         <Contact
           links={{
             emailHref: "mailto:canyen2019@gmail.com",
             linkedinHref: LINKS.linkedin,
             githubHref: LINKS.github,
-            resumeHref: LINKS.resume, // points to /public/Resume (LaTeX).pdf in your repo
+            resumeHref: LINKS.resume,
           }}
         />
       </section>
