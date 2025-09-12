@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 export default function Hero() {
   return (
     <section id="home" className="relative flex items-center justify-center min-h-[72vh] overflow-hidden">
-      {/* subtle animated grid + glow */}
+      {/* background grid + glow */}
       <div className="absolute inset-0 opacity-[0.08] pointer-events-none [mask-image:radial-gradient(ellipse_at_center,black,transparent_70%)]">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,transparent_30%,#00e5ff20_31%,transparent_32%)] animate-slow-pulse" />
         <div className="grid-bg" />
@@ -51,7 +51,7 @@ export default function Hero() {
             </motion.div>
           </div>
 
-          {/* right — simple HUD graphic */}
+          {/* right — HUD graphic */}
           <motion.div
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
