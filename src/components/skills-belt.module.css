@@ -1,6 +1,6 @@
 /* src/components/skills-belt.module.css */
 
-/* Outer container: adds faint CRT scan + edge fades that fit the neon HUD look */
+/* Outer container: adds faint CRT scan + edge fades */
 .belt {
   position: relative;
   isolation: isolate;
@@ -26,16 +26,11 @@
   background: linear-gradient(to left, rgba(0,0,0,0.75), rgba(0,0,0,0));
 }
 
-/* Subtle scanlines to match your CRT/HUD aesthetic */
-.belt::part(scanlines) {}
-.belt::after,
-.belt::before {}
-
+/* Optional: subtle scanlines matching your HUD aesthetic */
 @keyframes sb-scan {
   0% { transform: translateY(0); opacity: .15; }
   100% { transform: translateY(2px); opacity: .15; }
 }
-/* Optional: add a light scan layer */
 .belt > .scan {
   content: "";
   position: absolute;
@@ -53,7 +48,6 @@
 /* The moving track */
 .track {
   display: flex;
-  /* Ensure the loop “wrap” is invisible */
   width: max-content;
   animation-name: sb-marquee-x;
   animation-timing-function: linear;
@@ -87,7 +81,7 @@
   );
   transform: translateX(-120%);
   animation: sb-sheen 6s ease-in-out infinite;
-  border-radius: 0.375rem; /* rounded-md to match Tailwind tiles */
+  border-radius: 0.375rem; /* rounded-md */
   pointer-events: none;
 }
 
@@ -101,7 +95,7 @@
 /* Animations */
 @keyframes sb-marquee-x {
   0%   { transform: translateX(0); }
-  100% { transform: translateX(-50%); } /* because we duplicated the list */
+  100% { transform: translateX(-50%); } /* because we duplicate the list */
 }
 
 @keyframes sb-sheen {
