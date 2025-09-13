@@ -2,112 +2,101 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
-import styles from "./skills-belt.module.css";
 
 type LogoSpec = {
-  /** Path under /public (e.g., "/logos/python.svg") */
-  src: string;
+  src: string;   // path under /public, e.g. "/logos/python.svg"
   alt: string;
-  /** Optional destination; if present, tile is clickable */
   href?: string;
-  /** Optional tooltip/title text */
   title?: string;
 };
 
 export type SkillsBeltProps = {
-  /** Speed of one full loop in seconds */
-  speedSeconds?: number;
-  /** Pixel height of each logo tile (actual image rendered at this height) */
-  logoHeight?: number;
-  /** Horizontal gap (Tailwind class or raw CSS length) between tiles */
-  gapClass?: string;
-  /** Pause animation when user hovers the belt (default true) */
+  speedSeconds?: number;         // full loop time
+  logoHeight?: number;           // px
+  gapPx?: number;                // horizontal gap in px
   pauseOnHover?: boolean;
-  /** Custom logo set; if omitted we use a sensible default */
   logos?: ReadonlyArray<LogoSpec>;
-  /** Optional aria-label override */
   ariaLabel?: string;
 };
 
 const defaultLogos: ReadonlyArray<LogoSpec> = [
-  { src: "/logos/python.svg", alt: "Python", title: "Python" },
-  { src: "/logos/r.svg", alt: "R", title: "R" },
-  { src: "/logos/javascript.svg", alt: "JavaScript", title: "JavaScript" },
-  { src: "/logos/pandas.svg", alt: "pandas", title: "pandas" },
-  { src: "/logos/numpy.svg", alt: "NumPy", title: "NumPy" },
-  { src: "/logos/scipy.svg", alt: "SciPy", title: "SciPy" },
-  { src: "/logos/sqlite.svg", alt: "SQL / SQLite", title: "SQL / SQLite" },
-  { src: "/logos/tableau.svg", alt: "Tableau", title: "Tableau" },
-  { src: "/logos/jupyter.svg", alt: "Jupyter", title: "Jupyter" },
-  { src: "/logos/excel.svg", alt: "Excel", title: "Excel" },
-  { src: "/logos/tidyverse.svg", alt: "tidyverse", title: "tidyverse" },
-  { src: "/logos/github.svg", alt: "GitHub", title: "GitHub" },
-  { src: "/logos/githubpages.svg", alt: "GitHub Pages", title: "GitHub Pages" },
-  { src: "/logos/googleslides.svg", alt: "Google Slides", title: "Google Slides" },
+  { src: "/logos/python.svg", alt: "Python" },
+  { src: "/logos/r.svg", alt: "R" },
+  { src: "/logos/javascript.svg", alt: "JavaScript" },
+  { src: "/logos/pandas.svg", alt: "pandas" },
+  { src: "/logos/numpy.svg", alt: "NumPy" },
+  { src: "/logos/scipy.svg", alt: "SciPy" },
+  { src: "/logos/sqlite.svg", alt: "SQL / SQLite" },
+  { src: "/logos/tableau.svg", alt: "Tableau" },
+  { src: "/logos/jupyter.svg", alt: "Jupyter" },
+  { src: "/logos/excel.svg", alt: "Excel" },
+  { src: "/logos/tidyverse.svg", alt: "tidyverse" },
+  { src: "/logos/github.svg", alt: "GitHub" },
+  { src: "/logos/githubpages.svg", alt: "GitHub Pages" },
+  { src: "/logos/googleslides.svg", alt: "Google Slides" },
 ];
 
 export default function SkillsBelt({
   speedSeconds = 26,
   logoHeight = 28,
-  gapClass = "gap-6 md:gap-10",
+  gapPx = 28,
   pauseOnHover = true,
   logos = defaultLogos,
   ariaLabel = "Skillset toolbelt",
 }: SkillsBeltProps) {
-  // Duplicate the list so the marquee loops seamlessly
-  const loopLogos = React.useMemo(() => [...logos, ...logos], [logos]);
+  // Duplicate for seamless loop
+  const loop = React.useMemo(() => [...logos, ...logos], [logos]);
 
   return (
     <section
       aria-label={ariaLabel}
-      className={[
-        // Outer “HUD rail” frame to match your panels
-        "rounded-xl border border-cyan-400/10 bg-black/20 p-3 md:p-4",
-        "shadow-[0_0_0_1px_rgba(0,255,255,0.05)]",
-        "relative",
-      ].join(" ")}
+      className="relative rounded-xl border border-cyan-400/10 bg-black/20 p-3 md:p-4 shadow-[0_0_0_1px_rgba(0,255,255,0.05)]"
     >
       <div
         className={[
-          styles.belt,
-          pauseOnHover ? styles.pauseOnHover : "",
-          "overflow-hidden rounded-lg",
+          "relative overflow-hidden rounded-lg",
+          pauseOnHover ? "sb-pause" : "",
+          // ensure visible even if images fail to load
+          "min-h-[56px]",
         ].join(" ")}
+        style={
+          {
+            // pass CSS vars to styled-jsx
+            ["--sb-speed" as any]: `${speedSeconds}s`,
+            ["--sb-gap" as any]: `${gapPx}px`,
+            ["--sb-height" as any]: `${logoHeight}px`,
+          } as React.CSSProperties
+        }
       >
-        <div
-          className={[styles.track, "flex items-center", gapClass].join(" ")}
-          style={{ animationDuration: `${speedSeconds}s` }}
-        >
-          {loopLogos.map((logo, i) => {
+        {/* edge fades */}
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-[60px] z-10 sb-fade-left" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-[60px] z-10 sb-fade-right" />
+
+        {/* track */}
+        <div className="sb-track flex items-center">
+          {loop.map((l, i) => {
             const content = (
               <span
-                className={[
-                  styles.tile,
-                  "inline-flex items-center justify-center rounded-md",
-                  "px-4 py-2 ring-1 ring-white/5",
-                ].join(" ")}
-                title={logo.title ?? logo.alt}
+                className="sb-tile inline-flex items-center justify-center rounded-md px-4 py-2 ring-1 ring-white/5"
+                title={l.title ?? l.alt}
               >
-                <Image
-                  src={logo.src}
-                  alt={logo.alt}
-                  width={Math.round(logoHeight * 1.4)}
+                {/* using <img> for bulletproof SVG rendering from /public */}
+                <img
+                  src={l.src}
+                  alt={l.alt}
                   height={logoHeight}
-                  style={{ height: logoHeight, width: "auto" }}
-                  priority={i < 6}
+                  style={{ height: `var(--sb-height)`, width: "auto", display: "block" }}
                 />
               </span>
             );
-
             return (
-              <div key={`${logo.src}-${i}`} className="shrink-0">
-                {logo.href ? (
+              <div key={`${l.src}-${i}`} className="shrink-0" style={{ marginRight: `var(--sb-gap)` }}>
+                {l.href ? (
                   <a
-                    href={logo.href}
+                    href={l.href}
                     target="_blank"
                     rel="noreferrer"
-                    className="focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 rounded-md"
+                    className="rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
                   >
                     {content}
                   </a>
@@ -118,7 +107,110 @@ export default function SkillsBelt({
             );
           })}
         </div>
+
+        {/* optional subtle scanlines */}
+        <div className="pointer-events-none absolute inset-0 z-[1] sb-scan" />
       </div>
+
+      {/* styled-jsx keeps everything self-contained */}
+      <style jsx>{`
+        .sb-track {
+          width: max-content;
+          animation: sb-marquee var(--sb-speed) linear infinite;
+        }
+        .sb-pause:hover .sb-track {
+          animation-play-state: paused;
+        }
+
+        .sb-tile {
+          position: relative;
+          background: rgba(255, 255, 255, 0.02);
+          box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+            0 0 18px rgba(0, 255, 255, 0.05);
+          transition: transform 180ms ease, box-shadow 180ms ease;
+        }
+        .sb-tile::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          border-radius: 0.375rem; /* rounded-md */
+          pointer-events: none;
+          background: linear-gradient(
+            100deg,
+            rgba(255, 255, 255, 0) 0%,
+            rgba(255, 255, 255, 0.08) 45%,
+            rgba(255, 255, 255, 0) 60%
+          );
+          transform: translateX(-120%);
+          animation: sb-sheen 6s ease-in-out infinite;
+        }
+        .sb-tile:hover {
+          transform: translateY(-1px) scale(1.02);
+          box-shadow: inset 0 0 0 1px rgba(0, 255, 255, 0.15),
+            0 0 22px rgba(0, 255, 255, 0.1);
+        }
+
+        /* scanlines + edge fades */
+        .sb-scan {
+          background: repeating-linear-gradient(
+            to bottom,
+            rgba(255, 255, 255, 0.04) 0 1px,
+            transparent 1px 3px
+          );
+          animation: sb-scan 2s linear infinite;
+        }
+        .sb-fade-left {
+          background: linear-gradient(to right, rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0));
+        }
+        .sb-fade-right {
+          background: linear-gradient(to left, rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0));
+        }
+
+        /* animations */
+        @keyframes sb-marquee {
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(-50%);
+          }
+        }
+        @keyframes sb-sheen {
+          0%,
+          40% {
+            transform: translateX(-120%);
+          }
+          60% {
+            transform: translateX(120%);
+          }
+          100% {
+            transform: translateX(120%);
+          }
+        }
+        @keyframes sb-scan {
+          0% {
+            transform: translateY(0);
+            opacity: 0.15;
+          }
+          100% {
+            transform: translateY(2px);
+            opacity: 0.15;
+          }
+        }
+
+        /* respect reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+          .sb-track {
+            animation: none !important;
+          }
+          .sb-tile::after {
+            animation: none !important;
+          }
+          .sb-scan {
+            animation: none !important;
+          }
+        }
+      `}</style>
     </section>
   );
 }
