@@ -8,9 +8,8 @@ import Education from "@/components/Education";
 import Experience from "@/components/Experience";
 import ProjectsHUD from "@/components/ProjectsHUD";
 import { Testimonials } from "@/components/Testimonials"; // works with our shim or direct named export
-import Contact from "@/components/Contact";
+import ContactIconsPanel from "@/components/ContactIconsPanel"; // ⬅ new
 import { profile } from "@/content/profile";
-import { LINKS } from "@/content/links";
 
 export default function Page() {
   return (
@@ -54,7 +53,15 @@ export default function Page() {
 
       {/* Contact */}
       <section id="contact" className="container mx-auto px-6 py-24 max-w-7xl" aria-label="Contact">
-        <Contact email={profile.contact.email} links={LINKS} />
+        <ContactIconsPanel
+          heading="Contact"
+          links={[
+            { label: "LinkedIn", href: "https://www.linkedin.com/in/canyen-palmer-b0b6762a0" },
+            { label: "GitHub",   href: "https://github.com/CanyenPalmer" },
+            { label: "Email",    href: "mailto:canyen2019@gmail.com" },
+            { label: "Resume",   href: "/Canyen_Palmer_Resume.pdf" },
+          ]}
+        />
       </section>
     </main>
   );
