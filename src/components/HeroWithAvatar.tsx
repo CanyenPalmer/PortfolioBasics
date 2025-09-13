@@ -7,9 +7,11 @@ import InteractiveAvatar from "@/components/InteractiveAvatar";
 type Props = {
   headline: string;
   subheadline: string;
+  /** Optional typing-line text your page.tsx passes through */
+  typer?: string;
 };
 
-export default function Hero({ headline, subheadline }: Props) {
+export default function Hero({ headline, subheadline, typer }: Props) {
   const areaRef = useRef<HTMLDivElement | null>(null);
   const [vec, setVec] = useState({ x: 0, y: 0 });
 
@@ -36,9 +38,13 @@ export default function Hero({ headline, subheadline }: Props) {
         <div className="space-y-4">
           <h1 className="text-4xl md:text-5xl font-bold">{headline}</h1>
           <p className="text-neutral-300 text-lg">{subheadline}</p>
+          {/* Render typer if provided, otherwise omit */}
+          {typer ? (
+            <p className="text-sm text-neutral-400 leading-relaxed">{typer}</p>
+          ) : null}
         </div>
 
-        {/* Avatar (no external libs) */}
+        {/* Avatar (dependency-free) */}
         <div className="justify-self-center">
           <InteractiveAvatar
             src="/about/avatar-hero-headshot.png"
