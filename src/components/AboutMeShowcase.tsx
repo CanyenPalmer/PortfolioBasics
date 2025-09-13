@@ -7,31 +7,46 @@ import { motion } from "framer-motion";
 import { profile } from "@/content/profile";
 import SkillsBelt from "@/components/SkillsBelt";
 
+type AboutImage = {
+  img: string;
+  alt?: string;
+  caption?: string;
+};
+
 type Pose = {
   id?: string | number;
   key?: string;
   title?: string;
   img?: string;
   alt?: string;
-  // In your content file this is JSX (ReactNode)
-  body?: React.ReactNode;
+  body?: React.ReactNode; // JSX from content file
 };
 
 export default function AboutMeShowcase() {
   const about: any = (profile as any)?.about ?? {};
   const title: string = about?.title ?? "About Me";
 
-  // Your current content uses "poses" (each with body JSX + img)
+  // Your primary source of truth (JSX bodies + optional img/alt)
   const poses: Pose[] = Array.isArray(about?.poses) ? (about.poses as Pose[]) : [];
 
-  // If someone later switches back to paragraphs/gallery, keep a gentle fallback:
+  // Legacy fallback fields (HTML strings + gallery)
   const paragraphs: string[] = Array.isArray(about?.paragraphs) ? about.paragraphs : [];
-  const gallery: Array<{ img: string; alt?: string; caption?: string }> = Array.isArray(
-    about?.gallery
-  )
-    ? about.gallery
-    : [];
+  const gallery: AboutImage[] = Array.isArray(about?.gallery) ? (about.gallery as AboutImage[]) : [];
 
+  // --- Normalize gallery items without using a typed predicate ---
+  const normalizedGallery: { img: string; alt?: string }[] = React.useMemo(() => {
+    if (poses.length > 0) {
+      // Use pose images if provided
+      return poses.flatMap((p) => (p?.img ? [{ img: p.img as string, alt: p.alt }] : []));
+    }
+    if (gallery.length > 0) {
+      // Fall back to gallery array
+      return gallery.flatMap((g) => (g?.img ? [{ img: g.img as string, alt: g.alt }] : []));
+    }
+    return [];
+  }, [poses, gallery]);
+
+  // We ALWAYS render the section (so the belt is visible) even if text/gallery are empty
   return (
     <section id="about" aria-label="About">
       <h2 className="mb-6 text-xl font-semibold tracking-wide text-cyan-200">{title}</h2>
@@ -52,7 +67,6 @@ export default function AboutMeShowcase() {
                 {p.title ? (
                   <h3 className="text-white/90 font-semibold">{p.title}</h3>
                 ) : null}
-                {/* p.body is already JSX from your content file */}
                 <div>{p.body}</div>
               </motion.div>
             ))
@@ -70,20 +84,15 @@ export default function AboutMeShowcase() {
             ))
           ) : (
             <p className="text-white/60">
-              About content isn’t configured yet. Add entries to <code>profile.about.poses</code> or
-              <code> profile.about.paragraphs</code>.
+              About content isn’t configured yet. Add entries to{" "}
+              <code>profile.about.poses</code> (preferred) or <code>profile.about.paragraphs</code>.
             </p>
           )}
         </div>
 
         {/* Gallery / Images */}
         <div className="md:col-span-2 grid grid-cols-2 gap-4">
-          {(poses.length > 0
-            ? poses
-                .map((p) => ({ img: p.img, alt: p.alt }))
-                .filter((g): g is { img: string; alt?: string } => !!g.img)
-            : gallery
-          ).map((g, i) => (
+          {normalizedGallery.map((g, i) => (
             <motion.figure
               key={`${g.img}-${i}`}
               initial={{ opacity: 0, scale: 0.98 }}
