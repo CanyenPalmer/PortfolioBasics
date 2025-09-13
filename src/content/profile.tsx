@@ -4,7 +4,8 @@ import * as React from "react";
 /**
  * AUTO-GENERATED from current portfolio site.
  * Contains EXACT text/content from your existing About, Experience, Projects, and Testimonials.
- * No wording or formatting changes were made.
+ * No wording or formatting changes were made, except:
+ *  - Added `education` section migrated from your old portfolio.
  */
 
 export const profile = {
@@ -14,6 +15,7 @@ export const profile = {
       "Specializing in statistics, machine learning, predictive modeling, and optimization.",
     typer: "Data Scientist & Google-Certified Data Analytics Professional",
   },
+
   about: {
     poses: [
       {
@@ -147,6 +149,69 @@ export const profile = {
       },
     ],
   },
+
+  /* ===== NEW: EDUCATION (migrated from old portfolio) ===== */
+  education: [
+    {
+      school: "Greenfield-Central High School",
+      degree: "Academic & Technical Honors Diplomas",
+      dates: "2015 – 2019",
+      bullets: [
+        "Academic Honors Diploma",
+        "Technical Honors Diploma",
+        "Project Lead The Way (PLTW) — Completed",
+        "2× Men’s Varsity Golf; 4× Men’s Varsity Golf Medalist",
+        "Franklin College 2019 Academic Scholarship Student & Men’s Golf Athlete",
+        "NineStar Connect Scholarship Student",
+      ],
+    },
+    {
+      school: "Ball State University",
+      degree: "B.G.S. – Mathematics; A.A. – Computer Science",
+      dates: "2020 – 2024",
+      bullets: [
+        "Dean’s List (Summer 2023)",
+        "Launched Palmer Projects — Freelance Data Services",
+      ],
+      details: [
+        "Mathematics: MATH 113 (Precalculus Algebra), MATH 114 (Precalculus Trigonometry), MATH 125 (Mathematics Applications), MATH 165 (Calculus I), MATH 166 (Calculus II), MATH 215 (Discrete Systems), MATH 267 (Calculus III), MATH 320 (Probability), MATH 321 (Mathematical Statistics)",
+        "Computer Science: CS 120 (Programming Fundamentals), CS 121 (Data Structures & OOP), CS 224 (Algorithms), CS 230 (Computer Organization & Architecture)",
+        "Other: BA 205 (Foundations of Business Analytics), ISOM 125 (Intro to Business Computer Applications), PHYC 100 (Conceptual Physics), GCM 184 (Graphics | Computer Applications), CT 100 (Future Technology Innovations), FIN 101 & 110 (Personal Finance), IMM 140 (CyberSecurity — Franklin College), LA 103 (Quantitative Reasoning — Franklin College)",
+      ],
+    },
+    {
+      school: "Google Advanced Data Analytics",
+      degree: "Professional Certificate",
+      dates: "2025",
+      bullets: [
+        "Awarded July 2025 (Google)",
+        "Python programming; SQL repositories/workflows; Tableau data visualization",
+        "Capstone: Logistic Regression & Tree-Based ML (see Projects)",
+      ],
+      details: [
+        "Foundations: Foundations of Data Science; Get Started with Python",
+        "Analytics: Go Beyond the Numbers: Translate Data into Insights; The Power of Statistics",
+        "Machine Learning: Regression Analysis: Simplify Complex Data Relationships; The Nuts and Bolts of Machine Learning",
+        "Capstone: Google Advanced Data Analytics Capstone",
+      ],
+    },
+    {
+      school: "University of Pittsburgh",
+      degree: "Master of Data Science (M.D.S.)",
+      dates: "2025 – Present",
+      bullets: [
+        "Master of Data Science — M.D.S.",
+      ],
+      details: [
+        "Programming: CMPINF 2100 — Data-Centric Computing",
+        "Foundations: CMPINF 2105 — Mathematical & Statistical Foundations for Data Science; CMPINF 2140 — Responsible Data Science",
+        "Core: CMPINF 2110 — Managing, Querying, and Preserving Data; CMPINF 2120 — Applied Predictive Modeling; CMPINF 2130 — The Art of Data Visualization",
+        "Electives: CMPINF 2211 — Foundations of Cloud Computing for Data Science Professionals; CMPINF 2221 — Applied Bayesian Data Analysis; CMPINF 2223 — LLMs and Their Applications",
+        "Capstone: CMPINF 2910 — Case Studies in Data Science",
+      ],
+    },
+  ],
+
   experience: [
     {
       id: "lead_analyst",
@@ -197,6 +262,7 @@ export const profile = {
       ],
     },
   ],
+
   projects: [
     {
       title: "CGM Patient Analytics",
@@ -215,9 +281,7 @@ export const profile = {
           "Data wrangling in pandas, validation against payor-level rules (HCPCS).",
           "Aggregation by provider/patient to find unpaid responsibility pockets.",
         ],
-        results: [
-          "Identified $317,000 in unpaid balances across claims.",
-        ],
+        results: ["Identified $317,000 in unpaid balances across claims."],
         visuals: [
           "Excel and Google Sheets dashboards for department-wide interpretation.",
           "Segmented views by payor, equipment, and timeframe.",
@@ -315,6 +379,7 @@ export const profile = {
       links: [{ label: "GitHub", href: "https://github.com/CanyenPalmer" }],
     },
   ],
+
   testimonials: [
     {
       app: "MyCaddy",
@@ -349,6 +414,7 @@ export const profile = {
       ],
     },
   ],
+
   contact: {
     email: "Canyen2019@gmail.com",
   },
