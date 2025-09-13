@@ -5,6 +5,7 @@ import * as React from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { profile } from "@/content/profile";
+import SkillsBelt from "@/components/SkillsBelt";
 
 type AboutImage = {
   img: string;
@@ -30,7 +31,7 @@ export default function AboutMeShowcase() {
       <div className="grid grid-cols-1 gap-8 md:grid-cols-5">
         {/* Text */}
         <div className="md:col-span-3 space-y-4">
-          {paragraphs.map((p, i) => (
+          {paragraphs.map((p: string, i: number) => (
             <motion.p
               key={i}
               initial={{ opacity: 0, y: 6 }}
@@ -45,7 +46,7 @@ export default function AboutMeShowcase() {
 
         {/* Gallery */}
         <div className="md:col-span-2 grid grid-cols-2 gap-4">
-          {gallery.map((g, i) => (
+          {gallery.map((g: AboutImage, i: number) => (
             <motion.figure
               key={`${g.img}-${i}`}
               initial={{ opacity: 0, scale: 0.98 }}
@@ -71,6 +72,12 @@ export default function AboutMeShowcase() {
           ))}
         </div>
       </div>
+
+      {/* Toolbelt rail at the bottom of the About “page” */}
+      <div className="mt-10">
+        <SkillsBelt speedSeconds={26} />
+      </div>
     </section>
   );
 }
+
