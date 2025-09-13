@@ -1,7 +1,7 @@
 // src/components/HeroWithAvatar.tsx
 "use client";
 
-import * as React from "react";
+import React, { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import InteractiveAvatar from "@/components/InteractiveAvatar";
 
@@ -11,88 +11,72 @@ type Props = {
   typer?: string;
 };
 
-export default function Hero({ headline, subheadline, typer }: Props) {
-  const ref = React.useRef<HTMLDivElement | null>(null);
-  const [vec, setVec] = React.useState({ x: 0, y: 0 });
+export default function Hero({ headline, subheadline }: Props) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [vec, setVec] = useState({ x: 0, y: 0 });
 
   const onMove: React.MouseEventHandler<HTMLDivElement> = (e) => {
     const el = ref.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
-    // Normalize cursor relative to hero center → [-1, 1]
-    const cx = r.left + r.width / 2;
-    const cy = r.top + r.height / 2;
-    const nx = (e.clientX - cx) / (r.width / 2);
-    const ny = (e.clientY - cy) / (r.height / 2);
-    setVec({
-      x: Math.max(-1, Math.min(1, nx)),
-      y: Math.max(-1, Math.min(1, ny)),
-    });
+    const nx = ((e.clientX - r.left) / r.width) * 2 - 1;
+    const ny = ((e.clientY - r.top) / r.height) * 2 - 1;
+    setVec({ x: Math.max(-1, Math.min(1, nx)), y: Math.max(-1, Math.min(1, ny)) });
   };
 
   const onLeave = () => setVec({ x: 0, y: 0 });
 
   return (
-    <div
-      ref={ref}
+    <section
+      id="home"
+      className="relative min-h-[72vh] overflow-hidden flex items-center"
       onMouseMove={onMove}
       onMouseLeave={onLeave}
-      className="container mx-auto max-w-7xl px-6 py-20 md:py-28"
-      aria-label="Hero"
+      ref={ref}
     >
-      <div className="grid grid-cols-1 items-center gap-10 md:grid-cols-2">
+      <div className="container mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
         {/* Copy */}
-        <div className="space-y-5">
-          <motion.h1
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="text-3xl font-semibold tracking-tight text-white/95 md:text-4xl"
-          >
-            {headline}
-          </motion.h1>
-
-          {typer ? <p className="text-cyan-300/90">{typer}</p> : null}
-
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.55, delay: 0.05 }}
-            className="max-w-prose text-white/80"
-          >
-            {subheadline}
-          </motion.p>
+        <div className="space-y-4">
+          <h1 className="text-4xl md:text-5xl font-bold">{headline}</h1>
+          <p className="text-neutral-300 text-lg">{subheadline}</p>
         </div>
 
         {/* Avatar */}
         <motion.div
-          initial={{ opacity: 0, y: 6 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="flex justify-center md:justify-end"
+          className="justify-self-center"
+          animate={{ rotate: vec.x * 3, translateY: vec.y * 6 }}
+          transition={{ type: "spring", stiffness: 120, damping: 14, mass: 0.6 }}
         >
           <InteractiveAvatar
-            // Put the transparent headshot you approved here:
             src="/about/avatar-hero-headshot.png"
-            alt="Canyen Palmer"
-            className="w-56 md:w-72 xl:w-80"
-            // Fine-tune these so the pupils sit on your eyes.
-            // These are good starting values for the 3:4 headshot I delivered.
-            eyeL={{ x: 41, y: 47 }}
-            eyeR={{ x: 59, y: 47 }}
-            rotateMaxDeg={10}
-            translateMaxPx={8}
-            pupilRangePx={6}
-            pupilRadiusPx={2.8}
-            pupilColor="rgba(0,0,0,0.38)"
-            showPupils={true}
-            vec={vec}  // ← cursor from the entire hero area
+            width={768}
+            height={1152}
+            vec={vec} // pass hero-area cursor to the avatar
+            className="w-[300px] md:w-[360px] drop-shadow-[0_12px_24px_rgba(0,0,0,0.35)]"
+            leftEye={{
+              cxPct: 40.5,
+              cyPct: 38.0,
+              rx: 22,
+              ry: 14,
+              rotateDeg: -3,
+              pupilR: 6,
+              travel: 7,
+            }}
+            rightEye={{
+              cxPct: 60.5,
+              cyPct: 38.0,
+              rx: 22,
+              ry: 14,
+              rotateDeg: 3,
+              pupilR: 6,
+              travel: 7,
+            }}
+            // Blink defaults are natural; adjust if you want a livelier vibe:
+            // minBlinkSec={2.8}
+            // maxBlinkSec={6.5}
           />
         </motion.div>
       </div>
-    </div>
+    </section>
   );
 }
