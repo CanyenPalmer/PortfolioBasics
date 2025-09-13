@@ -46,11 +46,12 @@ export default function Hero({ headline, subheadline, typer }: Props) {
         {/* Avatar */}
         <div className="justify-self-center">
           <InteractiveAvatar
-            // 👇 make sure this file exists under public/about/
+            // Make sure this file exists under public/about/
             src="/about/avatar-hero-headshot.png"
             width={768}
             height={1152}
             vec={vec}
+            // Width controlled by className (see component tweak)
             className="w-[300px] md:w-[360px] drop-shadow-[0_12px_24px_rgba(0,0,0,0.35)]"
             leftEye={{
               cxPct: 40.5,
@@ -76,3 +77,4 @@ export default function Hero({ headline, subheadline, typer }: Props) {
     </section>
   );
 }
+
