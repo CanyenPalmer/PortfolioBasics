@@ -62,13 +62,12 @@ export default function SkillsBelt({
     <section
       aria-label={ariaLabel}
       className={[
-        // Outer “HUD rail” frame to match the site’s panels
+        // Outer “HUD rail” frame to match your panels
         "rounded-xl border border-cyan-400/10 bg-black/20 p-3 md:p-4",
         "shadow-[0_0_0_1px_rgba(0,255,255,0.05)]",
         "relative",
       ].join(" ")}
     >
-      {/* subtle scanline/glow handled inside CSS module */}
       <div
         className={[
           styles.belt,
@@ -77,11 +76,7 @@ export default function SkillsBelt({
         ].join(" ")}
       >
         <div
-          className={[
-            styles.track,
-            "flex items-center",
-            gapClass,
-          ].join(" ")}
+          className={[styles.track, "flex items-center", gapClass].join(" ")}
           style={{ animationDuration: `${speedSeconds}s` }}
         >
           {loopLogos.map((logo, i) => {
