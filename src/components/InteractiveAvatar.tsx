@@ -1,17 +1,7 @@
 // src/components/InteractiveAvatar.tsx
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
-
-/**
- * InteractiveAvatar
- * - Renders your transparent PNG as the base.
- * - Two SVG eye "sockets" (ellipses) sit precisely over the eyes.
- * - Pupils are real circles that move within each socket (clamped).
- * - Eyelids animate over the sockets in sync to blink.
- *
- * No external deps. Tailwind optional (only for simple sizing/shadows).
- */
+import React, { useEffect, useMemo, useRef, useState, useId } from "react";
 
 type Pt = { x: number; y: number };
 
@@ -38,14 +28,14 @@ export type InteractiveAvatarProps = {
   width?: number;
   height?: number;
 
-  /** Eye configs tuned to *your* image */
+  /** Eye configs tuned to your image */
   leftEye: EyeConfig;
   rightEye: EyeConfig;
 
   /** External cursor vector in [-1…1] range (optional). If omitted, we listen locally. */
   vec?: Pt;
 
-  /** Blink behavior */
+  /** Blink behavior (natural defaults) */
   minBlinkSec?: number; // default 3
   maxBlinkSec?: number; // default 7
   blinkCloseMs?: number; // default 120
@@ -74,10 +64,19 @@ export default function InteractiveAvatar({
 }: InteractiveAvatarProps) {
   const boxRef = useRef<HTMLDivElement>(null);
   const [localVec, setLocalVec] = useState<Pt>({ x: 0, y: 0 });
-  const [blinkPhase, setBlinkPhase] = useState<"idle" | "closing" | "closed" | "opening">("idle");
-  const [blinkT, setBlinkT] = useState(0); // 0..1 progress within the active phase
 
-  // If no external vec is passed, derive from mouse inside the component.
+  // Blink state
+  const [phase, setPhase] = useState<"idle" | "closing" | "closed" | "opening">("idle");
+  const [t, setT] = useState(0); // 0..1 progress in current phase
+  const rafRef = useRef<number | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Unique IDs for clipPaths (avoids collisions if used multiple times on a page)
+  const uid = useId();
+  const leftId = useMemo(() => `clip-L-${uid}`, [uid]);
+  const rightId = useMemo(() => `clip-R-${uid}`, [uid]);
+
+  // Local mouse tracking if vec not provided
   useEffect(() => {
     if (vec) return;
     const el = boxRef.current;
@@ -85,11 +84,8 @@ export default function InteractiveAvatar({
 
     const onMove = (e: MouseEvent) => {
       const r = el.getBoundingClientRect();
-      const mx = e.clientX - r.left;
-      const my = e.clientY - r.top;
-      // Normalize to [-1..1] with center at mid box
-      const nx = (mx / r.width) * 2 - 1;
-      const ny = (my / r.height) * 2 - 1;
+      const nx = ((e.clientX - r.left) / r.width) * 2 - 1;
+      const ny = ((e.clientY - r.top) / r.height) * 2 - 1;
       setLocalVec({ x: clamp(nx, -1, 1), y: clamp(ny, -1, 1) });
     };
     const onLeave = () => setLocalVec({ x: 0, y: 0 });
@@ -102,120 +98,103 @@ export default function InteractiveAvatar({
     };
   }, [vec]);
 
-  // Blink scheduler (randomized natural cadence)
+  // Blink scheduler (simple + robust)
   useEffect(() => {
-    let raf = 0;
-    let timeout: any;
+    const clear = () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      timerRef.current = null;
+      rafRef.current = null;
+    };
 
     const scheduleNext = () => {
       const nextMs = 1000 * (minBlinkSec + Math.random() * (maxBlinkSec - minBlinkSec));
-      timeout = setTimeout(() => {
-        setBlinkPhase("closing");
-        setBlinkT(0);
+      timerRef.current = setTimeout(() => {
+        setPhase("closing");
+        setT(0);
+        drive(performance.now(), blinkCloseMs, "closed", () => {
+          // hold closed
+          timerRef.current = setTimeout(() => {
+            setPhase("opening");
+            setT(0);
+            drive(performance.now(), blinkOpenMs, "idle", () => {
+              scheduleNext();
+            });
+          }, blinkHoldMs);
+        });
       }, nextMs);
     };
 
-    const tick = (tsPrev: number) => (tsNow: number) => {
-      const dt = tsNow - tsPrev;
-      if (blinkPhase === "closing") {
-        setBlinkT((t) => {
-          const nt = t + dt / blinkCloseMs;
-          if (nt >= 1) {
-            setBlinkPhase("closed");
-            return 1;
-          }
-          raf = requestAnimationFrame(tick(tsNow));
-          return nt;
-        });
-      } else if (blinkPhase === "closed") {
-        setTimeout(() => {
-          setBlinkPhase("opening");
-          setBlinkT(0);
-          raf = requestAnimationFrame(tick(performance.now()));
-        }, blinkHoldMs);
-      } else if (blinkPhase === "opening") {
-        setBlinkT((t) => {
-          const nt = t + dt / blinkOpenMs;
-          if (nt >= 1) {
-            setBlinkPhase("idle");
-            setBlinkT(0);
-            scheduleNext();
-            return 1;
-          }
-          raf = requestAnimationFrame(tick(tsNow));
-          return nt;
-        });
-      }
+    const drive = (
+      start: number,
+      duration: number,
+      nextPhase: "closed" | "idle",
+      onDone: () => void
+    ) => {
+      const loop = (now: number) => {
+        const p = clamp((now - start) / duration, 0, 1);
+        setT(p);
+        if (p >= 1) {
+          setPhase(nextPhase === "closed" ? "closed" : "idle");
+          setT(0);
+          onDone();
+          return;
+        }
+        rafRef.current = requestAnimationFrame(loop);
+      };
+      rafRef.current = requestAnimationFrame(loop);
     };
 
-    // Start the scheduler
     scheduleNext();
+    return clear; // cleanup on unmount
+  }, [minBlinkSec, maxBlinkSec, blinkCloseMs, blinkHoldMs, blinkOpenMs]);
 
-    // Drive the first RAF only during active phases
-    const observer = new MutationObserver(() => {
-      if (blinkPhase === "closing" || blinkPhase === "opening") {
-        cancelAnimationFrame(raf);
-        raf = requestAnimationFrame(tick(performance.now()));
-      }
-    });
-    observer.observe(document.documentElement, { attributes: false, childList: false, subtree: false });
-
-    return () => {
-      clearTimeout(timeout);
-      cancelAnimationFrame(raf);
-      observer.disconnect();
-    };
-  }, [minBlinkSec, maxBlinkSec, blinkCloseMs, blinkHoldMs, blinkOpenMs, blinkPhase]);
-
-  // Which vector to use?
   const v = vec ?? localVec;
 
-  const eyeToPx = (eye: EyeConfig) => {
+  const eyeCenterPx = (eye: EyeConfig) => {
     const cx = (eye.cxPct / 100) * width;
     const cy = (eye.cyPct / 100) * height;
     return { cx, cy };
   };
 
-  // Pupil position from vector, clamped to a circle/ellipse
   const pupilPos = (eye: EyeConfig) => {
-    const { cx, cy } = eyeToPx(eye);
+    const { cx, cy } = eyeCenterPx(eye);
     const dx = v.x * eye.travel;
     const dy = v.y * eye.travel;
     return { x: cx + dx, y: cy + dy };
   };
 
-  // Eyelid scale based on blinkPhase/blinkT (0 open → 1 fully closed)
-  const lid = (() => {
-    if (blinkPhase === "closing") return blinkT;
-    if (blinkPhase === "closed") return 1;
-    if (blinkPhase === "opening") return 1 - blinkT;
+  // Lid amount 0(open)→1(closed)
+  const lid = useMemo(() => {
+    if (phase === "closing") return t;
+    if (phase === "closed") return 1;
+    if (phase === "opening") return 1 - t;
     return 0;
-  })();
+  }, [phase, t]);
 
-  // Single eye group
-  const Eye = ({ eye, side }: { eye: EyeConfig; side: "L" | "R" }) => {
-    const { cx, cy } = eyeToPx(eye);
+  const Eye = ({ eye, id }: { eye: EyeConfig; id: string }) => {
+    const { cx, cy } = eyeCenterPx(eye);
     const pupil = pupilPos(eye);
+    const rot = eye.rotateDeg ?? 0;
 
     return (
-      <g transform={`rotate(${eye.rotateDeg ?? 0}, ${cx}, ${cy})`}>
-        {/* Socket: defines the visible region for pupil + iris */}
+      <g transform={`rotate(${rot}, ${cx}, ${cy})`}>
         <defs>
-          <clipPath id={`clip-${side}`}>
+          <clipPath id={id}>
             <ellipse cx={cx} cy={cy} rx={eye.rx} ry={eye.ry} />
           </clipPath>
         </defs>
 
-        {/* Pupil (appears only within socket) */}
+        {/* Pupil */}
         <circle
           cx={pupil.x}
           cy={pupil.y}
           r={eye.pupilR}
-          fill="rgba(0,0,0,0.7)"
-          clipPath={`url(#clip-${side})`}
+          fill="rgba(0,0,0,0.75)"
+          clipPath={`url(#${id})`}
         />
 
-        {/* Eyelid — scales from top & bottom toward center for a natural blink */}
+        {/* Eyelids (top & bottom rects that meet in the middle) */}
         {lid > 0 && (
           <>
             <rect
@@ -224,7 +203,7 @@ export default function InteractiveAvatar({
               width={eye.rx * 2 + 4}
               height={(eye.ry + 2) * lid}
               fill="rgba(0,0,0,0.85)"
-              clipPath={`url(#clip-${side})`}
+              clipPath={`url(#${id})`}
             />
             <rect
               x={cx - eye.rx - 2}
@@ -232,7 +211,7 @@ export default function InteractiveAvatar({
               width={eye.rx * 2 + 4}
               height={(eye.ry + 2) * lid}
               fill="rgba(0,0,0,0.85)"
-              clipPath={`url(#clip-${side})`}
+              clipPath={`url(#${id})`}
             />
           </>
         )}
@@ -251,7 +230,6 @@ export default function InteractiveAvatar({
         contain: "layout paint",
       }}
     >
-      {/* Base avatar */}
       <img
         src={src}
         alt={alt}
@@ -259,15 +237,14 @@ export default function InteractiveAvatar({
         className="absolute inset-0 h-full w-full object-contain select-none"
       />
 
-      {/* Eyes overlay */}
       <svg
         className="absolute inset-0 h-full w-full"
         viewBox={`0 0 ${width} ${height}`}
         preserveAspectRatio="xMidYMid meet"
         aria-hidden
       >
-        <Eye eye={leftEye} side="L" />
-        <Eye eye={rightEye} side="R" />
+        <Eye eye={leftEye} id={leftId} />
+        <Eye eye={rightEye} id={rightId} />
       </svg>
     </div>
   );
