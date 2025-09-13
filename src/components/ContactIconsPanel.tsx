@@ -26,12 +26,8 @@ export default function ContactIconsPanel({ heading = "Contact", links }: Props)
       | ReadonlyArray<{ label?: string; href: string }>
       | undefined;
 
-    const li = socials?.find((s) =>
-      (s.label ?? "").toLowerCase().includes("linkedin")
-    )?.href;
-    const gh = socials?.find((s) =>
-      (s.label ?? "").toLowerCase().includes("github")
-    )?.href;
+    const li = socials?.find((s) => (s.label ?? "").toLowerCase().includes("linkedin"))?.href;
+    const gh = socials?.find((s) => (s.label ?? "").toLowerCase().includes("github"))?.href;
 
     const L: ContactLink[] = [];
     if (li) L.push({ label: "LinkedIn", href: li });
@@ -39,19 +35,15 @@ export default function ContactIconsPanel({ heading = "Contact", links }: Props)
     if (email) L.push({ label: "Email", href: email.includes("mailto:") ? email : `mailto:${email}` });
     if (resume) L.push({ label: "Resume", href: resume });
 
-    // If something is missing, we still return the order with placeholders disabled.
     const order = ["LinkedIn", "GitHub", "Email", "Resume"] as const;
     const byLabel = Object.fromEntries(L.map((x) => [x.label, x.href]));
-    return order.map((lbl) => ({
-      label: lbl,
-      href: byLabel[lbl] ?? "#", // stays visible but inert if not configured
-    }));
+    return order.map((lbl) => ({ label: lbl, href: byLabel[lbl] ?? "#" }));
   }, [links]);
 
   const labelsLine = derived.map((d) => d.label).join(" · ");
 
   return (
-    <section id="contact" aria-label="Contact">
+    <div aria-label="Contact">
       <h2 className="mb-6 text-xl font-semibold tracking-wide text-cyan-200">{heading}</h2>
 
       <div className="rounded-xl border border-cyan-400/10 bg-black/20 p-6 md:p-8 shadow-[0_0_0_1px_rgba(0,255,255,0.05)]">
@@ -73,7 +65,7 @@ export default function ContactIconsPanel({ heading = "Contact", links }: Props)
           {labelsLine}
         </p>
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -104,13 +96,7 @@ function IconButton({ label, href }: { label: string; href: string }) {
 
 /* --- Inline SVG Icons (theme-matched) --- */
 
-function Icon({
-  label,
-  className,
-}: {
-  label: string;
-  className?: string;
-}) {
+function Icon({ label, className }: { label: string; className?: string }) {
   switch (label.toLowerCase()) {
     case "linkedin":
       return (
