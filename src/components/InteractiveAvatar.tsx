@@ -24,7 +24,7 @@ export type InteractiveAvatarProps = {
   src: string;
   alt?: string;
   className?: string;
-  /** Intrinsic layout size (component scales responsively with CSS) */
+  /** Intrinsic layout size for the SVG viewBox (not CSS size) */
   width?: number;
   height?: number;
 
@@ -73,8 +73,8 @@ export default function InteractiveAvatar({
 
   // Unique IDs for clipPaths (avoids collisions if used multiple times on a page)
   const uid = useId();
-  const leftId = useMemo(() => `clip-L-${uid}`, [uid]);
-  const rightId = useMemo(() => `clip-R-${uid}`, [uid]);
+  const leftId = `clip-L-${uid}`;
+  const rightId = `clip-R-${uid}`;
 
   // Local mouse tracking if vec not provided
   useEffect(() => {
@@ -146,7 +146,7 @@ export default function InteractiveAvatar({
     };
 
     scheduleNext();
-    return clear; // cleanup on unmount
+    return clear;
   }, [minBlinkSec, maxBlinkSec, blinkCloseMs, blinkHoldMs, blinkOpenMs]);
 
   const v = vec ?? localVec;
@@ -225,7 +225,8 @@ export default function InteractiveAvatar({
       className={className}
       style={{
         position: "relative",
-        width: "100%",
+        // IMPORTANT: let the className (e.g. w-[360px]) control width.
+        // We only use aspectRatio to derive height from that width.
         aspectRatio: `${width} / ${height}`,
         contain: "layout paint",
       }}
@@ -235,6 +236,10 @@ export default function InteractiveAvatar({
         alt={alt}
         draggable={false}
         className="absolute inset-0 h-full w-full object-contain select-none"
+        onError={(e) => {
+          // Tiny helper to surface path issues during debug
+          console.error("Avatar image failed to load:", (e.target as HTMLImageElement).src);
+        }}
       />
 
       <svg
