@@ -38,15 +38,15 @@ export default function Hero({ headline, subheadline, typer }: Props) {
         <div className="space-y-4">
           <h1 className="text-4xl md:text-5xl font-bold">{headline}</h1>
           <p className="text-neutral-300 text-lg">{subheadline}</p>
-          {/* Render typer if provided, otherwise omit */}
           {typer ? (
             <p className="text-sm text-neutral-400 leading-relaxed">{typer}</p>
           ) : null}
         </div>
 
-        {/* Avatar (dependency-free) */}
+        {/* Avatar */}
         <div className="justify-self-center">
           <InteractiveAvatar
+            // 👇 make sure this file exists under public/about/
             src="/about/avatar-hero-headshot.png"
             width={768}
             height={1152}
