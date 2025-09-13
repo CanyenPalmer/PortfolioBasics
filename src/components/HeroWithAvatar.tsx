@@ -2,9 +2,8 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
 import { motion } from "framer-motion";
-import AvatarFace from "@/components/AvatarFace";
+import InteractiveAvatar from "@/components/InteractiveAvatar";
 
 type Props = {
   headline: string;
@@ -13,10 +12,36 @@ type Props = {
 };
 
 export default function Hero({ headline, subheadline, typer }: Props) {
+  const ref = React.useRef<HTMLDivElement | null>(null);
+  const [vec, setVec] = React.useState({ x: 0, y: 0 });
+
+  const onMove: React.MouseEventHandler<HTMLDivElement> = (e) => {
+    const el = ref.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    // Normalize cursor relative to hero center → [-1, 1]
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height / 2;
+    const nx = (e.clientX - cx) / (r.width / 2);
+    const ny = (e.clientY - cy) / (r.height / 2);
+    setVec({
+      x: Math.max(-1, Math.min(1, nx)),
+      y: Math.max(-1, Math.min(1, ny)),
+    });
+  };
+
+  const onLeave = () => setVec({ x: 0, y: 0 });
+
   return (
-    <div className="container mx-auto max-w-7xl px-6 py-20 md:py-28">
+    <div
+      ref={ref}
+      onMouseMove={onMove}
+      onMouseLeave={onLeave}
+      className="container mx-auto max-w-7xl px-6 py-20 md:py-28"
+      aria-label="Hero"
+    >
       <div className="grid grid-cols-1 items-center gap-10 md:grid-cols-2">
-        {/* Left: copy */}
+        {/* Copy */}
         <div className="space-y-5">
           <motion.h1
             initial={{ opacity: 0, y: 10 }}
@@ -28,9 +53,7 @@ export default function Hero({ headline, subheadline, typer }: Props) {
             {headline}
           </motion.h1>
 
-          {typer ? (
-            <p className="text-cyan-300/90">{typer}</p>
-          ) : null}
+          {typer ? <p className="text-cyan-300/90">{typer}</p> : null}
 
           <motion.p
             initial={{ opacity: 0, y: 10 }}
@@ -43,7 +66,7 @@ export default function Hero({ headline, subheadline, typer }: Props) {
           </motion.p>
         </div>
 
-        {/* Right: avatar (NEW behavior: face mouse + eye tracking) */}
+        {/* Avatar */}
         <motion.div
           initial={{ opacity: 0, y: 6 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -51,29 +74,23 @@ export default function Hero({ headline, subheadline, typer }: Props) {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="flex justify-center md:justify-end"
         >
-          <AvatarFace
-            // Size the avatar here (match what you had before)
+          <InteractiveAvatar
+            // Put the transparent headshot you approved here:
+            src="/about/avatar-hero-headshot.png"
+            alt="Canyen Palmer"
             className="w-56 md:w-72 xl:w-80"
-            // Tune these percentages so the pupils sit in your eyes.
-            // Start values below work well for a centered portrait.
-            eyeL={{ x: 41, y: 44 }}
-            eyeR={{ x: 59, y: 44 }}
-            // Feel tweaks (optional):
-            pupilRangePx={6}
-            pupilRadiusPx={3}
+            // Fine-tune these so the pupils sit on your eyes.
+            // These are good starting values for the 3:4 headshot I delivered.
+            eyeL={{ x: 41, y: 47 }}
+            eyeR={{ x: 59, y: 47 }}
             rotateMaxDeg={10}
             translateMaxPx={8}
-          >
-            {/* KEEP your image src & classes exactly as before: */}
-            <Image
-              src="/about/pose-1-power.webp"  // ← if your hero uses a different file, use that path
-              alt="Canyen Palmer"
-              width={600}
-              height={720}
-              className="rounded-xl ring-1 ring-cyan-400/15 bg-black/20"
-              priority
-            />
-          </AvatarFace>
+            pupilRangePx={6}
+            pupilRadiusPx={2.8}
+            pupilColor="rgba(0,0,0,0.38)"
+            showPupils={true}
+            vec={vec}  // ← cursor from the entire hero area
+          />
         </motion.div>
       </div>
     </div>
