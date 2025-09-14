@@ -3,7 +3,12 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { motion, AnimatePresence, useMotionValue } from "framer-motion";
+import {
+  motion,
+  AnimatePresence,
+  useMotionValue,
+  PanInfo, // type for onDragEnd info
+} from "framer-motion";
 import { profile } from "@/content/profile";
 
 type Pose = {
@@ -15,9 +20,9 @@ type Pose = {
   alt?: string;
 };
 
-const SWIPE_PX = 80;
-const SWIPE_VEL = 550;
-const EXIT_X = 560;
+const SWIPE_PX = 80;   // distance threshold
+const SWIPE_VEL = 550; // velocity threshold
+const EXIT_X = 560;    // how far the leaving card flies
 
 export default function AboutMeShowcase() {
   const poses = (profile as any)?.about?.poses as ReadonlyArray<Pose> | undefined;
@@ -27,36 +32,42 @@ export default function AboutMeShowcase() {
   const [index, setIndex] = React.useState(0);
   const [leaving, setLeaving] = React.useState<null | { pose: Pose; dir: 1 | -1 }>(null);
 
-  const areaRef = React.useRef<HTMLDivElement | null>(null);     // real drag constraints
+  const areaRef = React.useRef<HTMLDivElement | null>(null);
   const x = useMotionValue(0);
 
   const active = poses[index];
 
-  function advance(dir: 1 | -1) {
-    setLeaving({ pose: active, dir });
-    setIndex((i) => (i + dir + count) % count);
-    window.setTimeout(() => setLeaving(null), 380);
-  }
+  const advance = React.useCallback(
+    (dir: 1 | -1) => {
+      // mark current as leaving (animates out behind the new one)
+      setLeaving({ pose: active, dir });
+      // promote next to front immediately
+      setIndex((i) => (i + dir + count) % count);
+      // clear leaving after exit animation
+      window.setTimeout(() => setLeaving(null), 380);
+    },
+    [active, count]
+  );
 
-  function handleDragEnd(
-    _: any,
-    info: { offset: { x: number }; velocity: { x: number } }
-  ) {
-    const dx = info.offset.x;
-    const vx = info.velocity.x;
-    const farEnough = Math.abs(dx) > SWIPE_PX;
-    const fastEnough = Math.abs(vx) > SWIPE_VEL;
+  const handleDragEnd = React.useCallback(
+    (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+      const dx = info.offset.x;
+      const vx = info.velocity.x;
+      const farEnough = Math.abs(dx) > SWIPE_PX;
+      const fastEnough = Math.abs(vx) > SWIPE_VEL;
 
-    if (dx > 0 && (farEnough || fastEnough)) {
-      x.set(0);
-      advance(1);
-    } else if (dx < 0 && (farEnough || fastEnough)) {
-      x.set(0);
-      advance(-1);
-    } else {
-      x.set(0); // snap back
-    }
-  }
+      if (dx > 0 && (farEnough || fastEnough)) {
+        x.set(0);
+        advance(1);
+      } else if (dx < 0 && (farEnough || fastEnough)) {
+        x.set(0);
+        advance(-1);
+      } else {
+        x.set(0); // snap back
+      }
+    },
+    [advance, x]
+  );
 
   return (
     <div className="grid gap-10 md:grid-cols-2 items-center">
@@ -66,13 +77,13 @@ export default function AboutMeShowcase() {
         className="relative h-[420px] md:h-[520px] select-none"
         aria-label="About images"
       >
-        {/* Leaving card (goes BEHIND the new one) */}
+        {/* LEAVING CARD (animates out behind the new one) */}
         <AnimatePresence initial={false}>
           {leaving && (
             <motion.div
               key={`leaving-${String(leaving.pose.id ?? leaving.pose.key ?? "x")}`}
               className="absolute inset-0 rounded-2xl overflow-hidden ring-1 ring-white/10"
-              style={{ zIndex: 10 }}
+              style={{ zIndex: 10 }} // below the active front card
               initial={{ opacity: 1, scale: 1, y: 0 }}
               animate={{ opacity: 1 }}
               exit={{
@@ -105,26 +116,32 @@ export default function AboutMeShowcase() {
           )}
         </AnimatePresence>
 
-        {/* Active, draggable front card */}
+        {/* ACTIVE, DRAGGABLE FRONT CARD */}
         <motion.div
-            key={`front-${String(active.id ?? active.key ?? index)}-${index}`}
-            className="absolute inset-0 rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-2xl cursor-grab"
-            style={{ zIndex: 50, x, touchAction: "pan-y" }}  {/* <-- enables horizontal drag on touch */}
-            drag="x"
-            dragElastic={0.2}
-            dragConstraints={areaRef}                        {/* <-- real element constraints */}
-            dragMomentum={false}
-            whileTap={{ cursor: "grabbing" }}
-            whileDrag={{ rotate: 2, scale: 1.02 }}
-            onDragEnd={handleDragEnd}
-            initial={{ opacity: 0, scale: 0.98, y: 6 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ type: "spring", stiffness: 320, damping: 32 }}
-            role="group"
-            aria-label="About image (drag left or right to change)"
-          >
+          key={`front-${String(active.id ?? active.key ?? index)}-${index}`}
+          className="absolute inset-0 rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-2xl cursor-grab"
+          style={{
+            zIndex: 50,
+            x,
+            // enable horizontal drag on touch; vertical scroll still allowed
+            touchAction: "pan-y" as unknown as React.CSSProperties["touchAction"],
+          }}
+          drag="x"
+          dragElastic={0.2}
+          dragConstraints={areaRef} // real element as constraints
+          dragMomentum={false}
+          whileTap={{ cursor: "grabbing" }}
+          whileDrag={{ rotate: 2, scale: 1.02 }}
+          onDragEnd={handleDragEnd}
+          initial={{ opacity: 0, scale: 0.98, y: 6 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 320, damping: 32 }}
+          role="group"
+          aria-label="About image (drag left or right to change)"
+        >
           {active.img ? (
             <div className="relative w-full h-full flex items-center justify-center bg-white/5">
+              {/* Center the image; never crop */}
               <Image
                 src={active.img}
                 alt={
