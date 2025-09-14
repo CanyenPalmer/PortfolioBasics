@@ -7,17 +7,17 @@ import AboutMeShowcase from "@/components/AboutMeShowcase";
 import Education from "@/components/Education";
 import Experience from "@/components/Experience";
 import ProjectsHUD from "@/components/ProjectsHUD";
-import { Testimonials } from "@/components/Testimonials"; // works with our shim or direct named export
-import ContactIconsPanel from "@/components/ContactIconsPanel"; // ⬅ new
+import { Testimonials } from "@/components/Testimonials";
+import ContactIconsPanel from "@/components/ContactIconsPanel";
 import { profile } from "@/content/profile";
 
 export default function Page() {
   return (
     <main className="relative">
-      {/* VSCode bar stays */}
+      {/* Optional top bar; leaving as-is */}
       <VscodeTopBar />
 
-      {/* Hero */}
+      {/* HERO */}
       <section id="hero" aria-label="Hero">
         <Hero
           headline={profile.hero.headline}
@@ -26,32 +26,32 @@ export default function Page() {
         />
       </section>
 
-      {/* About */}
+      {/* ABOUT (unchanged layout/content) */}
       <section id="about" className="container mx-auto px-6 py-24 max-w-7xl" aria-label="About Me">
         <AboutMeShowcase />
       </section>
 
-      {/* Education */}
-      <section id="education" className="container mx-auto px-6 py-24 max-w-7xl" aria-label="Education">
-        <Education />
-      </section>
-
-      {/* Experience */}
+      {/* EXPERIENCE (moved up, now 3rd) */}
       <section id="experience" className="px-6 py-24" aria-label="Experience">
         <Experience />
       </section>
 
-      {/* Projects (no avatar column) */}
+      {/* PROJECTS (now 4th) */}
       <section id="projects" className="px-6 py-24" aria-label="Projects">
         <ProjectsHUD />
       </section>
 
-      {/* Testimonials */}
+      {/* EDUCATION (moved after Projects) */}
+      <section id="education" className="container mx-auto px-6 py-24 max-w-7xl" aria-label="Education">
+        <Education />
+      </section>
+
+      {/* TESTIMONIALS (unchanged position) */}
       <section id="testimonials" className="container mx-auto px-6 py-24 max-w-7xl" aria-label="Testimonials">
         <Testimonials />
       </section>
 
-      {/* Contact */}
+      {/* CONTACT (unchanged position) */}
       <section id="contact" className="container mx-auto px-6 py-24 max-w-7xl" aria-label="Contact">
         <ContactIconsPanel
           heading="Contact"
