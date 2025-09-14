@@ -12,8 +12,8 @@ export const profile = {
   hero: {
     headline: "Canyen Palmer",
     subheadline:
-      "Specializing in statistics, machine learning, predictive modeling, and optimization.",
-    typer: "Data Scientist & Google-Certified Data Analytics Professional",
+      "Data Scientist & Google Certified Data Analytics Professional",
+    typer: "Specializing in statistics, machine learning, predictive modeling, and optimization.",
   },
 
   about: {
