@@ -21,7 +21,7 @@ export default function Hero({ headline, subheadline, typer }: Props) {
         <div className="space-y-4">
           <h1 className="text-4xl md:text-5xl font-bold">{headline}</h1>
 
-          {/* Toolbar moved here, constrained to text width so it doesn’t hit the avatar */}
+          {/* Toolbar moved here and width-capped to the text column so it won’t hit the avatar */}
           <div className="mt-4 w-full max-w-[520px]">
             <SkillsBelt speedSeconds={26} />
           </div>
