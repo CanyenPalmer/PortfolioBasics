@@ -4,9 +4,9 @@
 import VscodeTopBar from "@/components/VscodeTopBar";
 import Hero from "@/components/HeroWithAvatar";
 import AboutMeShowcase from "@/components/AboutMeShowcase";
-import Education from "@/components/Education";
 import Experience from "@/components/Experience";
 import ProjectsHUD from "@/components/ProjectsHUD";
+import Education from "@/components/Education";
 import { Testimonials } from "@/components/Testimonials";
 import ContactIconsPanel from "@/components/ContactIconsPanel";
 import { profile } from "@/content/profile";
@@ -14,7 +14,6 @@ import { profile } from "@/content/profile";
 export default function Page() {
   return (
     <main className="relative">
-      {/* Optional top bar; leaving as-is */}
       <VscodeTopBar />
 
       {/* HERO */}
@@ -26,32 +25,32 @@ export default function Page() {
         />
       </section>
 
-      {/* ABOUT (unchanged layout/content) */}
+      {/* ABOUT */}
       <section id="about" className="container mx-auto px-6 py-24 max-w-7xl" aria-label="About Me">
         <AboutMeShowcase />
       </section>
 
-      {/* EXPERIENCE (moved up, now 3rd) */}
+      {/* EXPERIENCE */}
       <section id="experience" className="px-6 py-24" aria-label="Experience">
         <Experience />
       </section>
 
-      {/* PROJECTS (now 4th) */}
+      {/* PROJECTS */}
       <section id="projects" className="px-6 py-24" aria-label="Projects">
         <ProjectsHUD />
       </section>
 
-      {/* EDUCATION (moved after Projects) */}
+      {/* EDUCATION */}
       <section id="education" className="container mx-auto px-6 py-24 max-w-7xl" aria-label="Education">
         <Education />
       </section>
 
-      {/* TESTIMONIALS (unchanged position) */}
+      {/* TESTIMONIALS */}
       <section id="testimonials" className="container mx-auto px-6 py-24 max-w-7xl" aria-label="Testimonials">
         <Testimonials />
       </section>
 
-      {/* CONTACT (unchanged position) */}
+      {/* CONTACT */}
       <section id="contact" className="container mx-auto px-6 py-24 max-w-7xl" aria-label="Contact">
         <ContactIconsPanel
           heading="Contact"
@@ -66,3 +65,4 @@ export default function Page() {
     </main>
   );
 }
+
