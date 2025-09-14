@@ -18,23 +18,30 @@ type Pose = {
  * - LEFT: all text sections stacked in order (title + body for each pose)
  * - RIGHT: all images stacked vertically in the same order
  *
- * Safe by design:
- * - Uses the same content source (profile.about.poses)
- * - If a pose has no image, it is skipped on the right column (layout still clean)
- * - Only this About component changes; the rest of the site is untouched
+ * Adjusted to prevent cropping:
+ * - Uses `object-contain` instead of `object-cover`
+ * - Auto-adjusts height by intrinsic image ratio
+ * - Wraps each image in a responsive container so it scales cleanly
  */
 export default function AboutMeShowcase() {
   const poses: Pose[] = (profile.about?.poses as unknown as Pose[]) ?? [];
 
   return (
-    <section id="about" className="px-6 md:px-10 lg:px-16 py-16 md:py-24 max-w-6xl mx-auto">
-      <div className="grid md:grid-cols-2 gap-12 md:gap-16">
+    <section
+      id="about"
+      className="px-6 md:px-10 lg:px-16 py-16 md:py-24 max-w-6xl mx-auto"
+    >
+      <div className="grid md:grid-cols-2 gap-12 md:gap-16 items-start">
         {/* LEFT: Text stack */}
         <div className="space-y-12 md:space-y-16 max-w-3xl">
           {poses.map((p, idx) => (
-            <article key={String(p.id ?? p.key ?? (typeof p.title === "string" ? p.title : idx))}>
+            <article
+              key={String(p.id ?? p.key ?? (typeof p.title === "string" ? p.title : idx))}
+            >
               {p.title ? (
-                <h3 className="text-2xl md:text-3xl font-semibold tracking-tight mb-4">{p.title}</h3>
+                <h3 className="text-2xl md:text-3xl font-semibold tracking-tight mb-4">
+                  {p.title}
+                </h3>
               ) : null}
               <div className="prose prose-invert prose-p:leading-relaxed prose-headings:mt-0 prose-headings:mb-4 text-white/90">
                 {p.body}
@@ -43,29 +50,24 @@ export default function AboutMeShowcase() {
           ))}
         </div>
 
-        {/* RIGHT: Vertical image stack (in pose order) */}
-        <div className="space-y-8 md:space-y-10">
+        {/* RIGHT: Vertical image stack (no cropping) */}
+        <div className="space-y-10">
           {poses.map((p, idx) =>
             p.img ? (
               <figure
                 key={`img-${String(p.id ?? p.key ?? idx)}`}
                 className="w-full"
               >
-                <div className="relative w-full aspect-[4/3] overflow-hidden rounded-xl">
+                <div className="relative w-full">
                   <Image
                     src={p.img}
                     alt={p.alt ?? ""}
-                    fill
-                    sizes="(min-width: 1024px) 640px, 100vw"
-                    className="object-cover"
+                    width={1200}
+                    height={900}
+                    className="w-full h-auto object-contain rounded-xl"
                     priority={idx <= 1}
                   />
                 </div>
-                {/* Optional: small caption if ever needed
-                {typeof p.title === "string" ? (
-                  <figcaption className="mt-2 text-sm text-white/60">{p.title}</figcaption>
-                ) : null}
-                */}
               </figure>
             ) : null
           )}
