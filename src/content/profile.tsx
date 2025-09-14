@@ -10,7 +10,7 @@ import * as React from "react";
 
 export const profile = {
   hero: {
-    headline: "Data Scientist & Google-Certified Data Analyst Professional",
+    headline: "Canyen Palmer",
     subheadline:
       "Specializing in statistics, machine learning, predictive modeling, and optimization.",
     typer: "Data Scientist & Google-Certified Data Analytics Professional",
