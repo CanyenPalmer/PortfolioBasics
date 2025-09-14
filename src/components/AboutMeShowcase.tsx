@@ -3,12 +3,7 @@
 
 import * as React from "react";
 import Image from "next/image";
-import {
-  motion,
-  AnimatePresence,
-  useMotionValue,
-  PanInfo,
-} from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, PanInfo } from "framer-motion";
 import { profile } from "@/content/profile";
 
 type Pose = {
@@ -20,16 +15,14 @@ type Pose = {
   alt?: string;
 };
 
-const SWIPE_DIST = 80;     // px
-const SWIPE_SPEED = 550;   // px/s
-const EXIT_RADIUS = 560;   // px
+const SWIPE_DIST = 80;
+const SWIPE_SPEED = 550;
+const EXIT_RADIUS = 560;
 
-// Snapshot used for the leaving animation
 type LeavingSnap = {
-  uid: number;     // unique each time to force a fresh key
+  uid: number;     // unique key per animation
   src: string;
   alt: string;
-  titleText?: string;
   vx: number;
   vy: number;
 };
@@ -42,70 +35,56 @@ export default function AboutMeShowcase() {
   const [index, setIndex] = React.useState(0);
   const [leaving, setLeaving] = React.useState<LeavingSnap | null>(null);
 
-  const uidRef = React.useRef(0); // increments for each leaving snapshot
+  const uidRef = React.useRef(0);
   const areaRef = React.useRef<HTMLDivElement | null>(null);
 
-  // motion values for active (front) card
   const x = useMotionValue(0);
   const y = useMotionValue(0);
 
   const active = poses[index];
 
-  // Advance forward to the next card with a snapshot of the current (for the wipe)
-  function advanceForward(withVector?: { vx: number; vy: number }) {
-    const current = active; // capture current reference
-    const src = current?.img ?? "";
+  function advanceForward(vec?: { vx: number; vy: number }) {
+    // snapshot CURRENT visible image before changing index
+    const src = active?.img ?? "";
     if (src) {
       uidRef.current += 1;
       const alt =
-        typeof current.title === "string"
-          ? (current.title as string)
-          : current.alt ?? "About image";
+        typeof active.title === "string" ? (active.title as string) : active.alt ?? "About image";
       setLeaving({
         uid: uidRef.current,
         src,
         alt,
-        titleText: typeof current.title === "string" ? (current.title as string) : undefined,
-        vx: withVector?.vx ?? 1,
-        vy: withVector?.vy ?? 0,
+        vx: vec?.vx ?? 1,
+        vy: vec?.vy ?? 0,
       });
     }
 
-    // promote next immediately (so the next image is visible under the leaving wipe)
+    // promote next to front immediately
     setIndex((i) => (i + 1) % count);
 
-    // clear the leaving layer after the exit finishes
+    // clear after exit
     window.setTimeout(() => setLeaving(null), 380);
   }
 
   const handleDragEnd = React.useCallback(
     (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-      const dx = info.offset.x;
-      const dy = info.offset.y;
-      const vx = info.velocity.x;
-      const vy = info.velocity.y;
-
+      const { x: dx, y: dy } = info.offset;
+      const { x: vx, y: vy } = info.velocity;
       const dist = Math.hypot(dx, dy);
       const speed = Math.hypot(vx, vy);
 
       if (dist > SWIPE_DIST || speed > SWIPE_SPEED) {
-        // Use velocity vector when available; fall back to offset
-        let ex = vx, ey = vy;
-        if (Math.hypot(vx, vy) < 1) {
-          ex = dx; ey = dy;
-        }
+        const ex = speed > 1 ? vx : dx;
+        const ey = speed > 1 ? vy : dy;
         advanceForward({ vx: ex, vy: ey });
       } else {
-        // snap back
         x.set(0);
         y.set(0);
       }
     },
-    // x & y are motion values; they don't change identity
-    [x, y] 
+    [x, y]
   );
 
-  // Compute exit target from a vector
   function exitTarget(vx: number, vy: number) {
     const mag = Math.hypot(vx, vy) || 1;
     const ux = vx / mag;
@@ -120,13 +99,13 @@ export default function AboutMeShowcase() {
         ref={areaRef}
         className="relative h-[420px] md:h-[520px] select-none"
         aria-label="About images"
-        onDragStart={(e) => e.preventDefault()} // disable native ghost-drag
+        onDragStart={(e) => e.preventDefault()}
       >
-        {/* LEAVING snapshot — always the image you just dragged */}
+        {/* LEAVING snapshot — render as <img> with a hard key so it's ALWAYS the dragged image */}
         <AnimatePresence initial={false}>
           {leaving && (
             <motion.div
-              key={`leaving-${leaving.uid}`}  // unique each time
+              key={`leaving-${leaving.uid}`}
               className="absolute inset-0"
               style={{ zIndex: 10 }}
               initial={{ opacity: 1, scale: 1, y: 0 }}
@@ -135,29 +114,23 @@ export default function AboutMeShowcase() {
               aria-hidden
               onDragStart={(e) => e.preventDefault()}
             >
-              <Image
+              {/* Use plain <img> to avoid Next/Image node reuse */}
+              <img
+                key={`img-${leaving.uid}`}
                 src={leaving.src}
                 alt={leaving.alt}
-                fill
-                className="object-contain pointer-events-none select-none drop-shadow-md"
-                sizes="(max-width: 768px) 90vw, 40vw"
                 draggable={false}
-                priority={false}
+                className="w-full h-full object-contain select-none pointer-events-none drop-shadow-md"
               />
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* ACTIVE, DRAGGABLE image (free direction; always advances forward) */}
+        {/* ACTIVE, DRAGGABLE image (keyed by index so it's a fresh node per card) */}
         <motion.div
-          key={`front-${String(active?.id ?? active?.key ?? index)}-${index}`}
+          key={`front-${index}`}
           className="absolute inset-0 cursor-grab"
-          style={{
-            zIndex: 50,
-            x,
-            y,
-            touchAction: "none" as unknown as React.CSSProperties["touchAction"],
-          }}
+          style={{ zIndex: 50, x, y, touchAction: "none" as unknown as React.CSSProperties["touchAction"] }}
           drag
           dragElastic={0.18}
           dragConstraints={areaRef}
@@ -174,6 +147,7 @@ export default function AboutMeShowcase() {
         >
           {active?.img && (
             <Image
+              key={`active-${index}`}
               src={active.img}
               alt={
                 typeof active.title === "string" ? (active.title as string) : active.alt ?? "About image"
@@ -190,14 +164,8 @@ export default function AboutMeShowcase() {
 
       {/* RIGHT: text panel */}
       <div className="space-y-4">
-        {active?.title && (
-          <h3 className="text-2xl font-semibold tracking-tight text-white">
-            {active.title}
-          </h3>
-        )}
-        <div className="prose prose-invert max-w-none text-white/85">
-          {active?.body}
-        </div>
+        {active?.title && <h3 className="text-2xl font-semibold tracking-tight text-white">{active.title}</h3>}
+        <div className="prose prose-invert max-w-none text-white/85">{active?.body}</div>
       </div>
     </div>
   );
