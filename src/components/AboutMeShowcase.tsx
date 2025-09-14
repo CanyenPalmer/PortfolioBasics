@@ -20,9 +20,9 @@ type Pose = {
   alt?: string;
 };
 
-const SWIPE_DIST = 80;   // distance threshold (pixels)
-const SWIPE_SPEED = 550; // velocity threshold (px/s)
-const EXIT_RADIUS = 560; // how far the leaving card flies
+const SWIPE_DIST = 80;
+const SWIPE_SPEED = 550;
+const EXIT_RADIUS = 560;
 
 export default function AboutMeShowcase() {
   const poses = (profile as any)?.about?.poses as ReadonlyArray<Pose> | undefined;
@@ -30,8 +30,6 @@ export default function AboutMeShowcase() {
   if (!poses || count === 0) return null;
 
   const [index, setIndex] = React.useState(0);
-
-  // leaving card keeps the pose and the throw vector (vx, vy)
   const [leaving, setLeaving] = React.useState<null | { pose: Pose; vx: number; vy: number }>(null);
 
   const areaRef = React.useRef<HTMLDivElement | null>(null);
@@ -41,17 +39,12 @@ export default function AboutMeShowcase() {
   const active = poses[index];
 
   function advanceForward(withVector?: { vx: number; vy: number }) {
-    // mark current as leaving with the direction vector (for exit animation)
     setLeaving({
       pose: active,
-      vx: withVector?.vx ?? 1,   // default to right if no vector provided
+      vx: withVector?.vx ?? 1,
       vy: withVector?.vy ?? 0,
     });
-
-    // immediately promote next to the front
     setIndex((i) => (i + 1) % count);
-
-    // clear leaving after exit anim
     window.setTimeout(() => setLeaving(null), 380);
   }
 
@@ -61,21 +54,16 @@ export default function AboutMeShowcase() {
       const dy = info.offset.y;
       const vx = info.velocity.x;
       const vy = info.velocity.y;
-
-      // distance and speed magnitude
       const dist = Math.hypot(dx, dy);
       const speed = Math.hypot(vx, vy);
 
       if (dist > SWIPE_DIST || speed > SWIPE_SPEED) {
-        // normalize the velocity vector for exit direction; fallback to offset if vel is ~0
         let ex = vx, ey = vy;
         if (Math.hypot(vx, vy) < 1) {
           ex = dx; ey = dy;
         }
-        // store throw vector and advance to the NEXT card (always forward)
         advanceForward({ vx: ex, vy: ey });
       } else {
-        // snap back
         x.set(0);
         y.set(0);
       }
@@ -83,9 +71,7 @@ export default function AboutMeShowcase() {
     [x, y]
   );
 
-  // compute exit target from stored vector
   function exitTarget(vx: number, vy: number) {
-    // normalize to unit vector
     const mag = Math.hypot(vx, vy) || 1;
     const ux = vx / mag;
     const uy = vy / mag;
@@ -94,14 +80,14 @@ export default function AboutMeShowcase() {
 
   return (
     <div className="grid gap-10 md:grid-cols-2 items-center">
-      {/* LEFT: single visible image card */}
+      {/* LEFT: image card */}
       <div
         ref={areaRef}
         className="relative h-[420px] md:h-[520px] select-none"
         aria-label="About images"
-        onDragStart={(e) => e.preventDefault()} /* prevent native ghost-drag */
+        onDragStart={(e) => e.preventDefault()}
       >
-        {/* LEAVING CARD — animates out following the drag direction, behind the new one */}
+        {/* Leaving card */}
         <AnimatePresence initial={false}>
           {leaving && (
             <motion.div
@@ -110,54 +96,41 @@ export default function AboutMeShowcase() {
               style={{ zIndex: 10 }}
               initial={{ opacity: 1, scale: 1, y: 0 }}
               animate={{ opacity: 1 }}
-              exit={{
-                opacity: 0,
-                ...exitTarget(leaving.vx, leaving.vy),
-                transition: { duration: 0.35 },
-              }}
+              exit={{ opacity: 0, ...exitTarget(leaving.vx, leaving.vy), transition: { duration: 0.35 } }}
               aria-hidden
               onDragStart={(e) => e.preventDefault()}
             >
-              {leaving.pose.img ? (
-                <div
-                  className="relative w-full h-full flex items-center justify-center bg-white/5"
-                  onDragStart={(e) => e.preventDefault()}
-                >
-                  <Image
-                    src={leaving.pose.img}
-                    alt={
-                      typeof leaving.pose.title === "string"
-                        ? (leaving.pose.title as string)
-                        : leaving.pose.alt ?? "About image"
-                    }
-                    fill
-                    className="object-contain"
-                    sizes="(max-width: 768px) 90vw, 40vw"
-                    draggable={false}
-                  />
-                </div>
-              ) : (
-                <div className="h-full w-full bg-white/10" />
+              {leaving.pose.img && (
+                <Image
+                  src={leaving.pose.img}
+                  alt={
+                    typeof leaving.pose.title === "string"
+                      ? (leaving.pose.title as string)
+                      : leaving.pose.alt ?? "About image"
+                  }
+                  fill
+                  className="object-contain"
+                  sizes="(max-width: 768px) 90vw, 40vw"
+                  draggable={false}
+                />
               )}
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/30 to-black/0" />
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* ACTIVE, DRAGGABLE FRONT CARD — drag in ANY direction */}
+        {/* Active card */}
         <motion.div
           key={`front-${String(active.id ?? active.key ?? index)}-${index}`}
-          className="absolute inset-0 rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-2xl cursor-grab"
+          className="absolute inset-0 rounded-2xl overflow-hidden shadow-2xl cursor-grab"
           style={{
             zIndex: 50,
             x,
             y,
-            // allow free 2D drag on touch; prevents browser gestures from blocking
             touchAction: "none" as unknown as React.CSSProperties["touchAction"],
           }}
           drag
           dragElastic={0.18}
-          dragConstraints={areaRef}  // bounds are the visible frame
+          dragConstraints={areaRef}
           dragMomentum={false}
           whileTap={{ cursor: "grabbing" }}
           whileDrag={{ rotate: 2, scale: 1.02 }}
@@ -169,29 +142,21 @@ export default function AboutMeShowcase() {
           aria-label="About image (drag to change)"
           onDragStart={(e) => e.preventDefault()}
         >
-          {active.img ? (
-            <div
-              className="relative w-full h-full flex items-center justify-center bg-white/5"
-              onDragStart={(e) => e.preventDefault()}
-            >
-              <Image
-                src={active.img}
-                alt={
-                  typeof active.title === "string"
-                    ? (active.title as string)
-                    : active.alt ?? "About image"
-                }
-                fill
-                className="object-contain"
-                sizes="(max-width: 768px) 90vw, 40vw"
-                draggable={false}
-                priority
-              />
-            </div>
-          ) : (
-            <div className="h-full w-full bg-white/10" />
+          {active.img && (
+            <Image
+              src={active.img}
+              alt={
+                typeof active.title === "string"
+                  ? (active.title as string)
+                  : active.alt ?? "About image"
+              }
+              fill
+              className="object-contain"
+              sizes="(max-width: 768px) 90vw, 40vw"
+              draggable={false}
+              priority
+            />
           )}
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-black/0 to-transparent" />
         </motion.div>
       </div>
 
