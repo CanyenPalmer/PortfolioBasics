@@ -54,7 +54,7 @@ export const profile = {
               </ul>
             </div>
             <p className="text-white/70">
-              Use the arrows or glowing nodes below to explore each chapter of my story.
+              Continue reading to learn Canyen's story.
             </p>
           </div>
         ),
