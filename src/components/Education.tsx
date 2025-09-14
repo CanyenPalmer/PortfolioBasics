@@ -21,62 +21,56 @@ type Props = {
 
 export default function Education({ heading = "Education", items }: Props) {
   const fromProfile =
-    ((profile as unknown as { education?: ReadonlyArray<EduItem> })
-      ?.education ?? []) as ReadonlyArray<EduItem>;
-
+    ((profile as unknown as { education?: ReadonlyArray<EduItem> })?.education ??
+      []) as ReadonlyArray<EduItem>;
   const list: ReadonlyArray<EduItem> = items ?? fromProfile;
-
   if (!Array.isArray(list) || list.length === 0) return null;
 
   return (
     <section
       aria-label="Education"
-      className="relative bg-[url('/backgrounds/university.png')] bg-cover bg-center"
+      className="relative bg-[url('/backgrounds/university.png')] bg-cover bg-center min-h-[100svh] md:min-h-screen py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start"
     >
-      <h2 className="mb-6 text-xl font-semibold tracking-wide text-cyan-200">
-        {heading}
-      </h2>
+      {/* Optional readability overlay */}
+      <div aria-hidden className="absolute inset-0 bg-black/30" />
 
-      <div className="space-y-6">
-        {list.map((e: EduItem, i: number) => (
-          <motion.article
-            key={`${e.school ?? "edu"}-${i}`}
-            initial={{ opacity: 0, y: 8 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.45, delay: i * 0.03 }}
-            className="rounded-lg border border-cyan-400/10 bg-black/50 p-5"
-          >
-            <header className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-              <h3 className="text-lg font-semibold text-white/90">
-                {e.school}
-                {(e.program || e.degree) && (
-                  <span className="text-white/60">
-                    {" "}
-                    — {e.program ?? e.degree}
-                  </span>
+      <div className="relative z-10 container mx-auto px-6 max-w-7xl">
+        <h2 className="mb-6 text-xl font-semibold tracking-wide text-cyan-200">{heading}</h2>
+
+        <div className="space-y-6">
+          {list.map((e: EduItem, i: number) => (
+            <motion.article
+              key={`${e.school ?? "edu"}-${i}`}
+              initial={{ opacity: 0, y: 8 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.45, delay: i * 0.03 }}
+              className="rounded-lg border border-cyan-400/10 bg-black/50 p-5"
+            >
+              <header className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+                <h3 className="text-lg font-semibold text-white/90">
+                  {e.school}
+                  {(e.program || e.degree) && (
+                    <span className="text-white/60"> — {e.program ?? e.degree}</span>
+                  )}
+                </h3>
+                {e.dates && (
+                  <span className="font-mono text-xs text-cyan-300/80">{e.dates}</span>
                 )}
-              </h3>
-              {e.dates && (
-                <span className="font-mono text-xs text-cyan-300/80">
-                  {e.dates}
-                </span>
+              </header>
+
+              {e.location && <p className="text-sm text-white/60">{e.location}</p>}
+
+              {Array.isArray(e.bullets) && e.bullets.length > 0 && (
+                <ul className="mt-3 list-disc space-y-1.5 pl-6 text-sm text-white/85">
+                  {e.bullets.map((b: string, bi: number) => (
+                    <li key={bi} dangerouslySetInnerHTML={{ __html: b }} />
+                  ))}
+                </ul>
               )}
-            </header>
-
-            {e.location && (
-              <p className="text-sm text-white/60">{e.location}</p>
-            )}
-
-            {Array.isArray(e.bullets) && e.bullets.length > 0 && (
-              <ul className="mt-3 list-disc space-y-1.5 pl-6 text-sm text-white/85">
-                {e.bullets.map((b: string, bi: number) => (
-                  <li key={bi} dangerouslySetInnerHTML={{ __html: b }} />
-                ))}
-              </ul>
-            )}
-          </motion.article>
-        ))}
+            </motion.article>
+          ))}
+        </div>
       </div>
     </section>
   );
