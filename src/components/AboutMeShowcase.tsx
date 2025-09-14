@@ -32,7 +32,6 @@ export default function AboutMeShowcase() {
   const [index, setIndex] = React.useState(0);
   const [isExiting, setIsExiting] = React.useState(false);
   const [nextIndex, setNextIndex] = React.useState<number | null>(null);
-  const [exitVec, setExitVec] = React.useState<{ x: number; y: number }>({ x: EXIT_RADIUS, y: 0 });
 
   const areaRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -44,6 +43,11 @@ export default function AboutMeShowcase() {
   const active = poses[index];
   const upcoming = nextIndex != null ? poses[nextIndex] : poses[(index + 1) % count];
 
+  // Ensure the active card is visible at mount (fixes "no image shows")
+  React.useEffect(() => {
+    controls.set({ x: 0, y: 0, rotate: 0, opacity: 1 });
+  }, [controls]);
+
   function computeExitTarget(vx: number, vy: number) {
     const mag = Math.hypot(vx, vy) || 1;
     const ux = vx / mag;
@@ -51,14 +55,12 @@ export default function AboutMeShowcase() {
     return { x: ux * EXIT_RADIUS, y: uy * EXIT_RADIUS, rotate: ux * 8 + uy * 4 };
   }
 
-  async function animateOutThenAdvance(vx: number, vy: number, forcedNext?: number) {
+  async function animateOutThenAdvance(vx: number, vy: number) {
     setIsExiting(true);
     const target = computeExitTarget(vx, vy);
-    setExitVec({ x: target.x, y: target.y });
-    // Show the next image underneath during exit
-    setNextIndex(forcedNext ?? (index + 1) % count);
+    setNextIndex((index + 1) % count);
 
-    // animate the CURRENT card (the one you dragged) out
+    // animate the CURRENT (dragged) card out
     await controls.start({
       x: target.x,
       y: target.y,
@@ -67,8 +69,8 @@ export default function AboutMeShowcase() {
       transition: { duration: 0.35 },
     });
 
-    // after it’s gone, swap to the next card and reset transforms instantly
-    setIndex((i) => (forcedNext ?? (i + 1) % count));
+    // swap to the next card and reset transforms instantly
+    setIndex((i) => (i + 1) % count);
     controls.set({ x: 0, y: 0, rotate: 0, opacity: 1 });
     x.set(0); y.set(0);
     setIsExiting(false);
@@ -86,13 +88,18 @@ export default function AboutMeShowcase() {
       const speed = Math.hypot(vx, vy);
 
       if (dist > SWIPE_DIST || speed > SWIPE_SPEED) {
-        // use velocity when present, else fall back to offset
         const ex = speed > 1 ? vx : dx;
         const ey = speed > 1 ? vy : dy;
+        // always advance forward (regardless of direction)
         animateOutThenAdvance(ex, ey).catch(() => {});
       } else {
         // snap back
-        controls.start({ x: 0, y: 0, rotate: 0, transition: { type: "spring", stiffness: 320, damping: 32 } });
+        controls.start({
+          x: 0,
+          y: 0,
+          rotate: 0,
+          transition: { type: "spring", stiffness: 320, damping: 32 },
+        });
       }
     },
     [controls]
@@ -107,7 +114,7 @@ export default function AboutMeShowcase() {
         aria-label="About images"
         onDragStart={(e) => e.preventDefault()}
       >
-        {/* Underlay: show the next image ONLY while current is exiting, so it looks like the stack persists */}
+        {/* Underlay: show the NEXT image only while the current one is exiting */}
         {isExiting && upcoming?.img && (
           <div className="absolute inset-0" style={{ zIndex: 1 }}>
             <Image
@@ -127,7 +134,7 @@ export default function AboutMeShowcase() {
           </div>
         )}
 
-        {/* ACTIVE CARD — this is the one that animates out (so it’s always the dragged image) */}
+        {/* ACTIVE CARD — this exact element you dragged flies out */}
         <motion.div
           key={`front-${index}`}
           className="absolute inset-0 cursor-grab"
@@ -146,10 +153,6 @@ export default function AboutMeShowcase() {
           onDragEnd={handleDragEnd}
           initial={{ opacity: 0, scale: 0.98, y: 6 }}
           animate={controls}
-          onAnimationComplete={() => {
-            // noop: sequence handled in animateOutThenAdvance
-          }}
-          role="group"
           aria-label="About image (drag to change)"
           onDragStart={(e) => e.preventDefault()}
         >
