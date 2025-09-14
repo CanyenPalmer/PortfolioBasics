@@ -54,7 +54,7 @@ export const profile = {
               </ul>
             </div>
             <p className="text-white/70">
-              Continue reading to learn Canyen's story.
+              Click and drag the images to continue reading my story!
             </p>
           </div>
         ),
