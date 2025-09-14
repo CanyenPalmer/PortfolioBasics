@@ -5,24 +5,17 @@ import * as React from "react";
 import Link from "next/link";
 
 type VscodeTopBarProps = {
-  /** Left/right action links */
   resumeHref?: string;
   githubHref?: string;
   linkedinHref?: string;
-  /** Signature text in the bar */
   signature?: string;
 };
 
 /**
- * VSCode-style top bar — linear single row
+ * VSCode-style top bar — linear single row with centered tabs
  *
  * Layout (desktop):
- * [ ● ● ● ]  [/ Canyen Palmer – Portfolio ]  [ About | Experience | Projects | Education | Testimonials | Contact ]  [ Resume | GitHub | LinkedIn ]
- *
- * Notes:
- * - Section titles unchanged (formatting only).
- * - Middle nav is single-row and scrolls horizontally on small screens.
- * - Props are OPTIONAL; sensible defaults avoid build errors when used as <VscodeTopBar />.
+ * [ ● ● ●  / Name ]    [ About | Experience | Projects | Education | Testimonials | Contact ]    [ Resume | GitHub | LinkedIn ]
  */
 export default function VscodeTopBar({
   resumeHref = "/Canyen_Palmer_Resume.pdf",
@@ -30,7 +23,6 @@ export default function VscodeTopBar({
   linkedinHref = "https://www.linkedin.com/in/your-handle",
   signature = "Canyen Palmer",
 }: VscodeTopBarProps) {
-  // Your existing section titles/anchors — unchanged labels
   const tabs: { label: string; href: string }[] = [
     { label: "About", href: "#about" },
     { label: "Experience", href: "#experience" },
@@ -46,17 +38,15 @@ export default function VscodeTopBar({
       className="sticky top-0 z-50 border-b border-white/10 bg-[#0b1016]/70 backdrop-blur-sm"
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Single linear row */}
-        <div className="flex h-14 items-center gap-4">
-          {/* Left cluster: dots + brand/signature */}
+        {/* Flex container with three zones */}
+        <div className="relative flex h-14 items-center justify-between">
+          {/* LEFT: Dots + brand */}
           <div className="flex items-center gap-3 shrink-0">
             <div className="flex items-center gap-1.5" aria-hidden="true">
               <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#ff5f56]" />
               <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#ffbd2e]" />
               <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#27c93f]" />
             </div>
-
-            {/* Brand text — keep signature; shorten on very small screens */}
             <div className="whitespace-nowrap text-sm sm:text-base tracking-tight text-white/90">
               <span className="text-white/60 mr-1">/</span>
               <span className="hidden xs:inline">{signature} – Portfolio</span>
@@ -64,12 +54,12 @@ export default function VscodeTopBar({
             </div>
           </div>
 
-          {/* Middle: section tabs — single row; scroll on small screens (no wrapping) */}
+          {/* CENTER: Tabs — absolute centered group */}
           <nav
             aria-label="Main"
-            className="flex-1 overflow-x-auto whitespace-nowrap scrollbar-thin scrollbar-thumb-transparent scrollbar-track-transparent"
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
           >
-            <ul className="flex items-center gap-5 md:gap-6 text-sm">
+            <ul className="flex items-center gap-5 md:gap-6 text-sm whitespace-nowrap">
               {tabs.map((t) => (
                 <li key={t.href} className="shrink-0">
                   <Link
@@ -83,7 +73,7 @@ export default function VscodeTopBar({
             </ul>
           </nav>
 
-          {/* Right: action buttons */}
+          {/* RIGHT: Action buttons */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <a
               href={resumeHref}
@@ -113,7 +103,7 @@ export default function VscodeTopBar({
         </div>
       </div>
 
-      {/* Subtle divider glow */}
+      {/* Divider glow */}
       <div className="h-px w-full bg-gradient-to-r from-transparent via-white/15 to-transparent" />
     </header>
   );
