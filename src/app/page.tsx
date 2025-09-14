@@ -5,7 +5,7 @@ import VscodeTopBar from "@/components/VscodeTopBar";
 import Hero from "@/components/HeroWithAvatar";
 import AboutMeShowcase from "@/components/AboutMeShowcase";
 
-// These components now render their own <section> with backgrounds/padding
+// These components own their own <section> now
 import Experience from "@/components/Experience";
 import ProjectsHUD from "@/components/ProjectsHUD";
 import Education from "@/components/Education";
@@ -16,59 +16,69 @@ import { profile } from "@/content/profile";
 
 export default function Page() {
   return (
-    <main className="relative">
+    // Desktop gets scroll-snap for that page-by-page feel; mobile scrolls naturally
+    <main className="relative md:snap-y md:snap-mandatory">
       <VscodeTopBar />
 
-      {/* HERO — keep wrapper so we can pass props to your HeroWithAvatar */}
-      <section id="hero" aria-label="Hero">
-        <Hero
-          headline={profile.hero.headline}
-          subheadline={profile.hero.subheadline}
-          typer={profile.hero.typer}
-        />
+      {/* HERO — wrapper keeps props; now sized like a page */}
+      <section
+        id="hero"
+        aria-label="Hero"
+        className="min-h-[100svh] md:min-h-screen flex items-center py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start"
+      >
+        <div className="container mx-auto px-6 max-w-7xl w-full">
+          <Hero
+            headline={profile.hero.headline}
+            subheadline={profile.hero.subheadline}
+            typer={profile.hero.typer}
+          />
+        </div>
       </section>
 
-      {/* ABOUT — keep wrapper for your AboutMeShowcase layout */}
+      {/* ABOUT — sized like a page; top-aligned content for natural reading */}
       <section
         id="about"
-        className="container mx-auto px-6 py-24 max-w-7xl"
+        className="min-h-[100svh] md:min-h-screen py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start"
         aria-label="About Me"
       >
-        <AboutMeShowcase />
+        <div className="container mx-auto px-6 max-w-7xl">
+          <AboutMeShowcase />
+        </div>
       </section>
 
-      {/* EXPERIENCE — renders its own <section> with bg + spacing */}
+      {/* EXPERIENCE — component owns <section>; it already includes background */}
       <Experience />
 
-      {/* PROJECTS — renders its own <section> */}
+      {/* PROJECTS — component owns <section> */}
       <ProjectsHUD />
 
-      {/* EDUCATION — renders its own <section> with the University background */}
+      {/* EDUCATION — component owns <section> (University background) */}
       <Education />
 
-      {/* TESTIMONIALS — renders its own <section> */}
+      {/* TESTIMONIALS — component owns <section> */}
       <Testimonials />
 
-      {/* CONTACT — keep wrapper since ContactIconsPanel is a simple block */}
+      {/* CONTACT — centered page section */}
       <section
         id="contact"
-        className="container mx-auto px-6 py-24 max-w-7xl"
+        className="min-h-[100svh] md:min-h-screen flex items-center py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start"
         aria-label="Contact"
       >
-        <ContactIconsPanel
-          heading="Contact"
-          links={[
-            {
-              label: "LinkedIn",
-              href: "https://www.linkedin.com/in/canyen-palmer-b0b6762a0",
-            },
-            { label: "GitHub", href: "https://github.com/CanyenPalmer" },
-            { label: "Email", href: "mailto:canyen2019@gmail.com" },
-            { label: "Resume", href: "/Canyen_Palmer_Resume.pdf" },
-          ]}
-        />
+        <div className="container mx-auto px-6 max-w-7xl w-full">
+          <ContactIconsPanel
+            heading="Contact"
+            links={[
+              {
+                label: "LinkedIn",
+                href: "https://www.linkedin.com/in/canyen-palmer-b0b6762a0",
+              },
+              { label: "GitHub", href: "https://github.com/CanyenPalmer" },
+              { label: "Email", href: "mailto:canyen2019@gmail.com" },
+              { label: "Resume", href: "/Canyen_Palmer_Resume.pdf" },
+            ]}
+          />
+        </div>
       </section>
     </main>
   );
 }
-
