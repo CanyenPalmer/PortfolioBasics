@@ -9,7 +9,11 @@ export default function ProjectsHUD() {
   const projects = ((profile as any)?.projects ?? []) as ReadonlyArray<any>;
 
   return (
-    <section id="projects" aria-label="Projects" className="relative">
+    <section
+      id="projects"
+      aria-label="Projects"
+      className="relative min-h-[100svh] md:min-h-screen py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start"
+    >
       <SectionPanel title="Projects" className="mx-auto max-w-7xl">
         <div className="space-y-6">
           {projects.map((p, i) => (
@@ -21,10 +25,8 @@ export default function ProjectsHUD() {
               transition={{ duration: 0.45, delay: i * 0.03 }}
               className="rounded-lg border border-cyan-400/10 bg-black/20 p-5"
             >
-              {/* Title */}
               <h3 className="text-lg font-semibold text-cyan-200">{p.title}</h3>
 
-              {/* Tech stack */}
               {Array.isArray(p.tech) && p.tech.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-2">
                   {p.tech.map((t: string, ti: number) => (
@@ -38,7 +40,6 @@ export default function ProjectsHUD() {
                 </div>
               )}
 
-              {/* Points */}
               {Array.isArray(p.points) && p.points.length > 0 && (
                 <ul className="mt-3 list-disc space-y-1.5 pl-6 text-sm text-white/85">
                   {p.points.map((pt: string, pi: number) => (
@@ -47,17 +48,13 @@ export default function ProjectsHUD() {
                 </ul>
               )}
 
-              {/* Details */}
               {p.details && (
                 <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
                   {Object.entries(p.details).map(([k, arr]: [string, any]) => {
                     if (!Array.isArray(arr) || arr.length === 0) return null;
                     const title = k[0].toUpperCase() + k.slice(1);
                     return (
-                      <div
-                        key={k}
-                        className="rounded-md border border-cyan-400/10 bg-black/20 p-3"
-                      >
+                      <div key={k} className="rounded-md border border-cyan-400/10 bg-black/20 p-3">
                         <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-cyan-300/90">
                           {title}
                         </div>
@@ -72,7 +69,6 @@ export default function ProjectsHUD() {
                 </div>
               )}
 
-              {/* Links */}
               {Array.isArray(p.links) && p.links.length > 0 && (
                 <div className="mt-4 flex flex-wrap gap-3">
                   {p.links.map((l: any, li: number) => (
