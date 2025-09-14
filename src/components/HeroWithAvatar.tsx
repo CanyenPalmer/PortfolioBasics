@@ -2,6 +2,7 @@
 "use client";
 
 import React from "react";
+import SkillsBelt from "@/components/SkillsBelt";
 
 type Props = {
   headline: string;
@@ -19,6 +20,12 @@ export default function Hero({ headline, subheadline, typer }: Props) {
         {/* Copy */}
         <div className="space-y-4">
           <h1 className="text-4xl md:text-5xl font-bold">{headline}</h1>
+
+          {/* Toolbar moved here, constrained to text width so it doesn’t hit the avatar */}
+          <div className="mt-4 w-full max-w-[520px]">
+            <SkillsBelt speedSeconds={26} />
+          </div>
+
           <p className="text-neutral-300 text-lg">{subheadline}</p>
           {typer ? (
             <p className="text-sm text-neutral-400 leading-relaxed">{typer}</p>
