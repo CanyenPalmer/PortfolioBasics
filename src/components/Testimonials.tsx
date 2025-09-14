@@ -4,9 +4,6 @@ import * as React from "react";
 import { motion } from "framer-motion";
 import { profile } from "@/content/profile";
 
-/**
- * Flexible testimonial shape to match your data.
- */
 type Testimonial = {
   app?: string;
   name?: string;
@@ -23,12 +20,10 @@ type Testimonial = {
 };
 
 export function Testimonials() {
-  // Treat as readonly to match profile typing
   const items = (profile.testimonials ?? []) as ReadonlyArray<Testimonial>;
   if (!Array.isArray(items) || items.length === 0) return null;
 
   const [flipped, setFlipped] = React.useState<Record<number, boolean>>({});
-
   const toggle = (i: number) => setFlipped((s) => ({ ...s, [i]: !s[i] }));
 
   return (
@@ -44,7 +39,6 @@ export function Testimonials() {
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {items.map((t, i) => {
-            // Normalize before/after from multiple possible keys
             const before = (t.before ?? t.diff?.before ?? []) as ReadonlyArray<string>;
             const after = (t.after ?? t.diff?.after ?? []) as ReadonlyArray<string>;
             const hasDiff = (before?.length ?? 0) > 0 || (after?.length ?? 0) > 0;
@@ -56,18 +50,17 @@ export function Testimonials() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.45, delay: i * 0.03 }}
-                className="rounded-xl border border-cyan-400/10 bg-black/20 p-0"
-                style={{ perspective: "1000px" }}
+                className="rounded-xl border border-cyan-400/10 bg-transparent p-0 isolate"
               >
-                {/* Flip container (CSS in globals.css: .flip-3d, .is-flipped, .flip-face, .flip-back) */}
+                {/* Flip container */}
                 <div
                   className={`flip-3d ${flipped[i] ? "is-flipped" : ""}`}
                   onClick={() => hasDiff && toggle(i)}
                   role={hasDiff ? "button" : undefined}
                   aria-pressed={hasDiff ? !!flipped[i] : undefined}
                 >
-                  {/* FRONT */}
-                  <div className="flip-face rounded-xl ring-1 ring-white/10 bg-black/20 p-5 min-h-80 max-h-[70vh]">
+                  {/* FRONT — increase opacity to fully mask back */}
+                  <div className="flip-face rounded-xl ring-1 ring-white/10 bg-black/70 p-5 min-h-80 max-h-[70vh]">
                     {t.app && (
                       <div className="font-mono text-[11px] uppercase tracking-widest text-cyan-300/80">
                         {t.app}
@@ -91,12 +84,12 @@ export function Testimonials() {
                     ) : null}
                   </div>
 
-                  {/* BACK */}
+                  {/* BACK — also reasonably opaque */}
                   {hasDiff ? (
-                    <div className="flip-back rounded-xl ring-1 ring-white/10 bg-black/30 p-5 min-h-80 max-h-[70vh]">
+                    <div className="flip-back rounded-xl ring-1 ring-white/10 bg-black/70 p-5 min-h-80 max-h-[70vh]">
                       <div className="h-full overflow-y-auto pr-2">
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                          <div className="rounded-md border border-cyan-400/10 bg-black/20 p-3">
+                          <div className="rounded-md border border-cyan-400/10 bg-black/50 p-3">
                             <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-rose-300/90">
                               {t.beforeTitle ?? "Before"}
                             </div>
@@ -111,7 +104,7 @@ export function Testimonials() {
                             )}
                           </div>
 
-                          <div className="rounded-md border border-cyan-400/10 bg-black/20 p-3">
+                          <div className="rounded-md border border-cyan-400/10 bg-black/50 p-3">
                             <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-emerald-300/90">
                               {t.afterTitle ?? "After"}
                             </div>
