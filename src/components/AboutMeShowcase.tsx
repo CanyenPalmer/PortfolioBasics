@@ -80,19 +80,19 @@ export default function AboutMeShowcase() {
 
   return (
     <div className="grid gap-10 md:grid-cols-2 items-center">
-      {/* LEFT: image card */}
+      {/* LEFT: image-only card area */}
       <div
         ref={areaRef}
         className="relative h-[420px] md:h-[520px] select-none"
         aria-label="About images"
         onDragStart={(e) => e.preventDefault()}
       >
-        {/* Leaving card */}
+        {/* Leaving card (no rings/backgrounds/shadows) */}
         <AnimatePresence initial={false}>
           {leaving && (
             <motion.div
               key={`leaving-${String(leaving.pose.id ?? leaving.pose.key ?? "x")}`}
-              className="absolute inset-0 rounded-2xl overflow-hidden ring-1 ring-white/10"
+              className="absolute inset-0" /* bare wrapper */
               style={{ zIndex: 10 }}
               initial={{ opacity: 1, scale: 1, y: 0 }}
               animate={{ opacity: 1 }}
@@ -109,7 +109,7 @@ export default function AboutMeShowcase() {
                       : leaving.pose.alt ?? "About image"
                   }
                   fill
-                  className="object-contain"
+                  className="object-contain pointer-events-none select-none drop-shadow-md" /* shadow on image only */
                   sizes="(max-width: 768px) 90vw, 40vw"
                   draggable={false}
                 />
@@ -118,10 +118,10 @@ export default function AboutMeShowcase() {
           )}
         </AnimatePresence>
 
-        {/* Active card */}
+        {/* Active draggable card (image only) */}
         <motion.div
           key={`front-${String(active.id ?? active.key ?? index)}-${index}`}
-          className="absolute inset-0 rounded-2xl overflow-hidden shadow-2xl cursor-grab"
+          className="absolute inset-0 cursor-grab" /* no ring/overlay/shadow */
           style={{
             zIndex: 50,
             x,
@@ -151,7 +151,7 @@ export default function AboutMeShowcase() {
                   : active.alt ?? "About image"
               }
               fill
-              className="object-contain"
+              className="object-contain pointer-events-none select-none drop-shadow-md"
               sizes="(max-width: 768px) 90vw, 40vw"
               draggable={false}
               priority
