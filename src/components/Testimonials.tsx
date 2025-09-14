@@ -5,40 +5,31 @@ import { motion } from "framer-motion";
 import { profile } from "@/content/profile";
 
 /**
- * Expected testimonial shape (flexible):
- * {
- *   app?: string;           // small app tag
- *   name?: string;          // person
- *   role?: string;          // their role
- *   quote?: string;         // short quote (front)
- *   before?: string[];      // back: bullet list (before)
- *   after?: string[];       // back: bullet list (after)
- *   beforeTitle?: string;   // heading override (default "Before")
- *   afterTitle?: string;    // heading override (default "After")
- *   diff?: { before?: string[]; after?: string[]; } // alt location
- * }
+ * Flexible testimonial shape to match your data.
  */
-
 type Testimonial = {
   app?: string;
   name?: string;
   role?: string;
   quote?: string;
-  before?: string[];
-  after?: string[];
+  before?: ReadonlyArray<string>;
+  after?: ReadonlyArray<string>;
   beforeTitle?: string;
   afterTitle?: string;
-  diff?: { before?: string[]; after?: string[] };
+  diff?: {
+    before?: ReadonlyArray<string>;
+    after?: ReadonlyArray<string>;
+  };
 };
 
 export function Testimonials() {
-  const items = (profile.testimonials ?? []) as Testimonial[];
+  // Treat as readonly to match profile typing
+  const items = (profile.testimonials ?? []) as ReadonlyArray<Testimonial>;
   if (!Array.isArray(items) || items.length === 0) return null;
 
   const [flipped, setFlipped] = React.useState<Record<number, boolean>>({});
 
-  const toggle = (i: number) =>
-    setFlipped((s) => ({ ...s, [i]: !s[i] }));
+  const toggle = (i: number) => setFlipped((s) => ({ ...s, [i]: !s[i] }));
 
   return (
     <section
@@ -53,10 +44,10 @@ export function Testimonials() {
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {items.map((t, i) => {
-            // normalize data
-            const before = t.before ?? t.diff?.before ?? [];
-            const after = t.after ?? t.diff?.after ?? [];
-            const hasDiff = (before && before.length > 0) || (after && after.length > 0);
+            // Normalize before/after from multiple possible keys
+            const before = (t.before ?? t.diff?.before ?? []) as ReadonlyArray<string>;
+            const after = (t.after ?? t.diff?.after ?? []) as ReadonlyArray<string>;
+            const hasDiff = (before?.length ?? 0) > 0 || (after?.length ?? 0) > 0;
 
             return (
               <motion.article
@@ -66,9 +57,9 @@ export function Testimonials() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.45, delay: i * 0.03 }}
                 className="rounded-xl border border-cyan-400/10 bg-black/20 p-0"
-                style={{ perspective: "1000px" }} // ensure 3D depth for children
+                style={{ perspective: "1000px" }}
               >
-                {/* Flip container */}
+                {/* Flip container (CSS in globals.css: .flip-3d, .is-flipped, .flip-face, .flip-back) */}
                 <div
                   className={`flip-3d ${flipped[i] ? "is-flipped" : ""}`}
                   onClick={() => hasDiff && toggle(i)}
@@ -96,9 +87,7 @@ export function Testimonials() {
                     )}
 
                     {hasDiff ? (
-                      <div className="mt-4 text-sm text-cyan-300/80">
-                        Click to flip ↺
-                      </div>
+                      <div className="mt-4 text-sm text-cyan-300/80">Click to flip ↺</div>
                     ) : null}
                   </div>
 
@@ -121,6 +110,7 @@ export function Testimonials() {
                               <p className="text-sm text-white/60">—</p>
                             )}
                           </div>
+
                           <div className="rounded-md border border-cyan-400/10 bg-black/20 p-3">
                             <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-emerald-300/90">
                               {t.afterTitle ?? "After"}
@@ -137,9 +127,7 @@ export function Testimonials() {
                           </div>
                         </div>
 
-                        <div className="mt-4 text-sm text-cyan-300/80">
-                          Click to flip back ↺
-                        </div>
+                        <div className="mt-4 text-sm text-cyan-300/80">Click to flip back ↺</div>
                       </div>
                     </div>
                   ) : null}
