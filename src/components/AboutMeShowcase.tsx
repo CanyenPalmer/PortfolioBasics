@@ -3,15 +3,15 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { motion, AnimatePresence, useMotionValue } from "framer-motion";
+import { motion, useMotionValue, AnimatePresence } from "framer-motion";
 import { profile } from "@/content/profile";
 
-/** Minimal shape of an About pose item from profile.about.poses */
+/** Shape of an About pose item from profile.about.poses */
 type Pose = {
   id?: number | string;
   key?: string;
   title?: React.ReactNode;
-  body?: React.ReactNode; // may include headers that act as “end markers” (as on your live site)
+  body?: React.ReactNode; // may include headers as “end markers”
   img?: string;
   alt?: string;
 };
@@ -22,51 +22,64 @@ const EXIT_X = 560;          // how far a dismissed card flies on exit
 export default function AboutMeShowcase() {
   const poses = (profile as any)?.about?.poses as ReadonlyArray<Pose> | undefined;
   const count = poses?.length ?? 0;
-  const [index, setIndex] = React.useState(0);       // active/front card index
-  const [dir, setDir] = React.useState<1 | -1>(1);   // last swipe direction
-  const x = useMotionValue(0);
-
   if (!poses || count === 0) return null;
+
+  // Active/front index
+  const [index, setIndex] = React.useState(0);
+
+  // When swiping, we render BOTH: a leaving card and the next active card.
+  const [leaving, setLeaving] = React.useState<null | { idx: number; dir: 1 | -1 }>(null);
+
+  // Motion value for the active (draggable) card
+  const x = useMotionValue(0);
 
   const active = poses[index];
 
-  const go = React.useCallback(
-    (delta: 1 | -1) => {
-      setDir(delta);
-      setIndex((i) => {
-        const n = (i + delta + count) % count;
-        return n;
-      });
-    },
-    [count]
-  );
+  // Compute background stack positions for depth
+  // rel=0 -> front/active. We draw a few behind it for depth only.
+  const stackOrder = React.useMemo(() => {
+    return poses.map((_, i) => (i - index + count) % count);
+  }, [index, count, poses]);
 
-  // Keyboard fallback (Left/Right arrows)
-  React.useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight") go(1);
-      if (e.key === "ArrowLeft") go(-1);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [go]);
+  // Handle swipe transition:
+  // 1) mark current as leaving (z-index drops below the new one)
+  // 2) immediately promote the next to "active" (so it appears on top)
+  // 3) after a short timeout, finalize by clearing leaving state
+  function go(delta: 1 | -1) {
+    const next = (index + delta + count) % count;
+
+    // put current card into "leaving" state (exits BEHIND the new one)
+    setLeaving({ idx: index, dir: delta });
+
+    // promote next card to active immediately
+    setIndex(next);
+
+    // clear leaving after exit animation
+    window.setTimeout(() => {
+      setLeaving(null);
+      x.set(0);
+    }, 380); // keep in sync with exit transition (~0.35s)
+  }
 
   return (
     <div className="grid gap-10 md:grid-cols-2 items-center">
-      {/* LEFT: Card stack (draggable front card) */}
+      {/* LEFT COLUMN: Image area — centered card stack */}
       <div className="relative h-[420px] md:h-[520px]">
-        {/* Back cards for stack depth */}
+        {/* BACKGROUND CARDS (depth). We skip rel=0 (front) and the one leaving. */}
         {poses.map((p, i) => {
-          const rel = (i - index + count) % count; // 0 = front
-          if (rel === 0) return null; // front rendered below
+          const rel = stackOrder[i]; // 0 = new front
+          if (rel === 0) return null; // front is handled below
+
+          // If this index is the leaving one, don't render it here (it renders in AnimatePresence below)
+          if (leaving && leaving.idx === i) return null;
 
           const scale = 1 - Math.min(rel, 3) * 0.05;
           const translateY = Math.min(rel, 3) * 14;
-          const zIndex = 20 - rel;
+          const zIndex = 20 - rel; // smaller rel -> higher in stack (but still below the active)
 
           return (
             <motion.div
-              key={`bg-${String(p.id ?? p.key ?? i)}`}
+              key={`bg-${String(poses[i].id ?? poses[i].key ?? i)}-${i}`}
               className="absolute inset-0 rounded-2xl ring-1 ring-white/10 overflow-hidden"
               style={{ zIndex }}
               initial={false}
@@ -75,71 +88,115 @@ export default function AboutMeShowcase() {
               aria-hidden
             >
               {p.img ? (
-                <Image
-                  src={p.img}
-                  alt={typeof p.title === "string" ? p.title : p.alt ?? "About image"}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 90vw, 40vw"
-                />
+                <div className="relative w-full h-full flex items-center justify-center bg-white/5">
+                  {/* Center the image within the frame; never crop */}
+                  <Image
+                    src={p.img}
+                    alt={typeof p.title === "string" ? p.title : p.alt ?? "About image"}
+                    fill
+                    className="object-contain"
+                    sizes="(max-width: 768px) 90vw, 40vw"
+                  />
+                </div>
               ) : (
                 <div className="h-full w-full bg-white/5" />
               )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-black/0" />
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/30 to-black/0" />
             </motion.div>
           );
         })}
 
-        {/* Front (active) card — draggable */}
-        <AnimatePresence initial={false} custom={dir}>
-          <motion.div
-            key={`front-${String(active.id ?? active.key ?? index)}-${index}`}
-            className="absolute inset-0 rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-2xl"
-            style={{ zIndex: 50, x }}
-            drag="x"
-            dragElastic={0.2}
-            dragConstraints={{ left: 0, right: 0 }}
-            whileDrag={{ rotate: 2 * dir, scale: 1.02 }}
-            onDragEnd={(_, info) => {
-              const dx = info.offset.x;
-              if (dx > SWIPE_THRESHOLD) {
-                setDir(1);
-                x.set(0);
-                go(1);
-              } else if (dx < -SWIPE_THRESHOLD) {
-                setDir(-1);
-                x.set(0);
-                go(-1);
-              } else {
-                x.set(0); // snap back
-              }
-            }}
-            initial={{ opacity: 0, scale: 0.98, y: 6 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, x: dir > 0 ? EXIT_X : -EXIT_X, rotate: dir > 0 ? 6 : -6 }}
-            transition={{ type: "spring", stiffness: 320, damping: 32 }}
-            role="group"
-            aria-label="About image (drag left or right to change)"
-          >
-            {active.img ? (
+        {/* LEAVING CARD (animates out BEHIND the new active) */}
+        <AnimatePresence initial={false}>
+          {leaving && (
+            <motion.div
+              key={`leaving-${String(poses[leaving.idx].id ?? poses[leaving.idx].key ?? leaving.idx)}`}
+              className="absolute inset-0 rounded-2xl overflow-hidden ring-1 ring-white/10"
+              style={{ zIndex: 15 }} // LOWER than the new active (which uses zIndex: 50)
+              initial={{ opacity: 1, scale: 1, y: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{
+                opacity: 0,
+                x: leaving.dir > 0 ? EXIT_X : -EXIT_X,
+                rotate: leaving.dir > 0 ? 6 : -6
+              }}
+              transition={{ duration: 0.35 }}
+              aria-hidden
+            >
+              {poses[leaving.idx].img ? (
+                <div className="relative w-full h-full flex items-center justify-center bg-white/5">
+                  <Image
+                    src={poses[leaving.idx].img as string}
+                    alt={
+                      typeof poses[leaving.idx].title === "string"
+                        ? (poses[leaving.idx].title as string)
+                        : poses[leaving.idx].alt ?? "About image"
+                    }
+                    fill
+                    className="object-contain"
+                    sizes="(max-width: 768px) 90vw, 40vw"
+                  />
+                </div>
+              ) : (
+                <div className="h-full w-full bg-white/10" />
+              )}
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/30 to-black/0" />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ACTIVE (DRAGGABLE) CARD — always on top */}
+        <motion.div
+          key={`front-${String(active.id ?? active.key ?? index)}-${index}`}
+          className="absolute inset-0 rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-2xl"
+          style={{ zIndex: 50, x }}
+          drag="x"
+          dragElastic={0.2}
+          dragConstraints={{ left: 0, right: 0 }}
+          whileDrag={{ rotate: 2, scale: 1.02 }}
+          onDragEnd={(_, info) => {
+            const dx = info.offset.x;
+            if (dx > SWIPE_THRESHOLD) {
+              x.set(0);
+              go(1);
+            } else if (dx < -SWIPE_THRESHOLD) {
+              x.set(0);
+              go(-1);
+            } else {
+              x.set(0); // snap back
+            }
+          }}
+          initial={{ opacity: 0, scale: 0.98, y: 6 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 320, damping: 32 }}
+          role="group"
+          aria-label="About image (drag left or right to change)"
+        >
+          {active.img ? (
+            <div className="relative w-full h-full flex items-center justify-center bg-white/5">
+              {/* Center the image; never crop or cut off */}
               <Image
                 src={active.img}
-                alt={typeof active.title === "string" ? active.title : active.alt ?? "About image"}
+                alt={
+                  typeof active.title === "string"
+                    ? (active.title as string)
+                    : active.alt ?? "About image"
+                }
                 fill
-                className="object-cover"
+                className="object-contain"
                 sizes="(max-width: 768px) 90vw, 40vw"
                 priority
               />
-            ) : (
-              <div className="h-full w-full bg-white/10" />
-            )}
-            {/* readable edge overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/0 to-transparent pointer-events-none" />
-          </motion.div>
-        </AnimatePresence>
+            </div>
+          ) : (
+            <div className="h-full w-full bg-white/10" />
+          )}
+          {/* subtle edge overlay to improve readability */}
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-black/0 to-transparent" />
+        </motion.div>
       </div>
 
-      {/* RIGHT: Description panel for the active card */}
+      {/* RIGHT COLUMN: Text panel — stays fixed; never covered */}
       <div className="space-y-4">
         {active.title && (
           <h3 className="text-2xl font-semibold tracking-tight text-white">
@@ -148,29 +205,6 @@ export default function AboutMeShowcase() {
         )}
         <div className="prose prose-invert max-w-none text-white/85">
           {active.body}
-        </div>
-
-        {/* Controls (optional + accessible) */}
-        <div className="mt-4 flex items-center gap-3 text-sm text-cyan-300/80">
-          <button
-            type="button"
-            onClick={() => go(-1)}
-            className="rounded-md border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 hover:bg-cyan-400/15"
-            aria-label="Previous card"
-          >
-            ← Previous
-          </button>
-          <button
-            type="button"
-            onClick={() => go(1)}
-            className="rounded-md border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 hover:bg-cyan-400/15"
-            aria-label="Next card"
-          >
-            Next →
-          </button>
-          <span className="ml-auto font-mono">
-            {index + 1} / {count}
-          </span>
         </div>
       </div>
     </div>
