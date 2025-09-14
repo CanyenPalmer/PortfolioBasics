@@ -1,121 +1,67 @@
 // src/components/AboutMeShowcase.tsx
-"use client";
-
 import * as React from "react";
 import Image from "next/image";
-import { motion } from "framer-motion";
 import { profile } from "@/content/profile";
-// Removed: import SkillsBelt from "@/components/SkillsBelt";
 
-type AboutImage = {
-  img: string;
-  alt?: string;
-  caption?: string;
-};
-
-type Pose = {
-  id?: number;
-  key?: string;
-  title?: string;
-  subtitle?: string;
-  alt?: string;
-  img?: string;
-  body?: React.ReactNode;
-};
-
+/**
+ * AboutMeShowcase — Vertical, free-flow layout (no panels)
+ *
+ * What changed:
+ * - Images now stack vertically with their corresponding text blocks.
+ * - Uses the same content source: profile.about.poses
+ * - No changes required to page.tsx or other sections.
+ *
+ * Safe by design:
+ * - If a pose has no image, the image block is simply omitted (no layout break).
+ * - Keeps a consistent 4:3 aspect ratio to match your existing /public/about/* assets.
+ * - Adds subtle alternating x-translation on desktop so the stack breathes (no heavy framing).
+ */
 export default function AboutMeShowcase() {
-  const about: any = (profile as any)?.about ?? {};
-  const title: string = about?.title ?? "About Me";
+  const poses = profile.about?.poses ?? [];
 
-  // Your primary source of truth (JSX bodies + optional img/alt)
-  const poses: Pose[] = Array.isArray(about?.poses) ? (about.poses as Pose[]) : [];
-
-  // Legacy fallback fields (HTML strings + gallery)
-  const paragraphs: string[] = Array.isArray(about?.paragraphs) ? about.paragraphs : [];
-  const gallery: AboutImage[] = Array.isArray(about?.gallery) ? (about.gallery as AboutImage[]) : [];
-
-  // Normalize gallery items without a type guard
-  const normalizedGallery: { img: string; alt?: string }[] = React.useMemo(() => {
-    if (poses.length > 0) {
-      return poses.flatMap((p) => (p?.img ? [{ img: p.img as string, alt: p.alt }] : []));
-    }
-    if (gallery.length > 0) {
-      return gallery.flatMap((g) => (g?.img ? [{ img: g.img as string, alt: g.alt }] : []));
-    }
-    return [];
-  }, [poses, gallery]);
-
-  // Render
   return (
-    <section id="about" aria-label="About">
-      <h2 className="mb-6 text-xl font-semibold tracking-wide text-cyan-200">{title}</h2>
+    <section id="about" className="px-6 md:px-10 lg:px-16 py-16 md:py-24 max-w-6xl mx-auto">
+      <div className="space-y-16 md:space-y-24">
+        {poses.map((p, idx) => (
+          <article key={p.id ?? p.title ?? idx} className="max-w-3xl">
+            {/* Title */}
+            {p.title ? (
+              <h3 className="text-2xl md:text-3xl font-semibold tracking-tight mb-4">
+                {p.title}
+              </h3>
+            ) : null}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-        {/* Left column: text content */}
-        <div className="space-y-5">
-          {poses.length > 0 ? (
-            poses.map((p, i) => (
-              <motion.div
-                key={p.id ?? p.key ?? i}
-                initial={{ opacity: 0, y: 6 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.45, delay: i * 0.04 }}
-                className="text-white/85 space-y-3"
+            {/* Body (already JSX in your content file) */}
+            <div className="prose prose-invert prose-p:leading-relaxed prose-headings:mt-0 prose-headings:mb-4 text-white/90">
+              {p.body}
+            </div>
+
+            {/* Image (stacked under text) */}
+            {p.img ? (
+              <div
+                className={[
+                  "mt-6 md:mt-8",
+                  // Subtle alternating alignment on desktop to keep it airy without panels
+                  idx % 2 === 1
+                    ? "md:translate-x-6 lg:translate-x-12"
+                    : "md:-translate-x-6 lg:-translate-x-12",
+                ].join(" ")}
               >
-                {p.title ? <h3 className="text-white/90 font-semibold">{p.title}</h3> : null}
-                <div>{p.body}</div>
-              </motion.div>
-            ))
-          ) : paragraphs.length > 0 ? (
-            paragraphs.map((html, i) => (
-              <motion.p
-                key={i}
-                initial={{ opacity: 0, y: 6 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.45, delay: i * 0.04 }}
-                className="text-white/85"
-                dangerouslySetInnerHTML={{ __html: html }}
-              />
-            ))
-          ) : (
-            <p className="text-white/60">
-              About content isn’t configured yet. Add entries to{" "}
-              <code>profile.about.poses</code> (preferred) or <code>profile.about.paragraphs</code>.
-            </p>
-          )}
-        </div>
-
-        {/* Right column: image grid (from poses or gallery) */}
-        <div className="grid grid-cols-2 gap-4 self-start">
-          {normalizedGallery.map((g, i) => (
-            <motion.figure
-              key={i}
-              initial={{ opacity: 0, y: 6 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.45, delay: i * 0.04 }}
-              className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-cyan-400/10 to-purple-400/10"
-            >
-              <Image
-                src={g.img}
-                alt={g.alt ?? ""}
-                width={640}
-                height={480}
-                className="h-full w-full object-cover"
-              />
-              <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-cyan-400/12" />
-            </motion.figure>
-          ))}
-        </div>
+                <div className="relative w-full aspect-[4/3] overflow-hidden rounded-xl">
+                  <Image
+                    src={p.img}
+                    alt={p.alt ?? ""}
+                    fill
+                    sizes="(min-width: 1024px) 900px, 100vw"
+                    className="object-cover"
+                    priority={idx <= 1}
+                  />
+                </div>
+              </div>
+            ) : null}
+          </article>
+        ))}
       </div>
-
-      {/* Removed the toolbelt rail from About */}
-      {/* <div className="mt-10">
-        <SkillsBelt speedSeconds={26} />
-      </div> */}
     </section>
   );
 }
-
