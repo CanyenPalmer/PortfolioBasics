@@ -68,19 +68,18 @@ export const profile = {
         body: (
           <div className="space-y-4">
             <p>
-              After being offered the opportunity to play golf and continue my education at{" "}
-              <strong>Franklin College</strong>, I decided to take both my education and my game to
-              the next level. I realized the quickest way to achieve rapid improvement was to
-              conduct <strong>thorough analysis</strong> of my performance—identifying where I could
-              cut strokes and lower my scoring average.
+              After being offered the opportunity to play golf and continue my academic studies at{" "}
+              <strong>Franklin College</strong>, I dedicated myself to finding measurable edges
+              through analytics—refining techniques, improving consistency, and identifying where I
+              could cut strokes and lower my scoring average.
             </p>
             <p>
-              What many saw as a suffocating amount of research became my{" "}
-              <strong>greatest strength</strong>, both on the course and in my personal development.
-              When health challenges arrived, I faced a hard choice: protect my body’s long-term
-              health or pursue a career in golf. That turning point led me to redirect my academic
-              path—transferring to <strong>Ball State University</strong> to study{" "}
-              <strong>mathematics</strong> and <strong>computer science</strong>.
+              What many saw as a suffocating amount of research became my greatest strength, both on
+              the course and in my personal development. When health challenges arrived, I faced a
+              hard choice: protect my body’s long-term health or pursue a career in golf. That
+              turning point led me to redirect my academic path—transferring to{" "}
+              <strong>Ball State University</strong> to study <strong>mathematics</strong> and{" "}
+              <strong>computer science</strong>.
             </p>
           </div>
         ),
@@ -104,7 +103,12 @@ export const profile = {
               <strong>data entry in my personal library of datasets</strong>: subjects, courses, and
               topics forming unique entries in a growing knowledge repository. I learned to write my
               own “queries” across disciplines—connecting concepts and building an analytical
-              framework I still use to this day.
+              framework I still use today.
+            </p>
+            <p>
+              I pushed beyond the classroom by pursuing certifications in data analysis and data
+              science, building real projects, and continuously expanding the scope and depth of that
+              knowledge base.
             </p>
           </div>
         ),
@@ -112,20 +116,25 @@ export const profile = {
       {
         id: 4,
         key: "hospital",
-        title: "Real-World Applications",
+        title: "Down, But Not Out",
         img: "/about/pose-4-hospital.webp",
         alt: "Canyen in a healthcare environment analyzing charts",
         body: (
           <div className="space-y-4">
             <p>
-              Working at <strong>Iconic Care Inc.</strong> allowed me to directly apply my skills in
-              healthcare analytics. I built tools that improved billing accuracy, identified unpaid
-              balances, and streamlined workflows.
+              In <strong>2023</strong>, I underwent a double foot operation that changed my
+              life—surgery was required to relieve nerve stress and prevent paralysis. During
+              recovery, academics became my anchor.
             </p>
             <p>
-              These projects demonstrated the tangible value of combining{" "}
-              <strong>machine learning with domain knowledge</strong>, ultimately improving both
-              operational efficiency and financial outcomes.
+              That summer, I earned placement on the <strong>Dean’s List</strong> at Ball State
+              while continuing to build projects, resumé materials, and my personal brand— all while
+              learning to walk again.
+            </p>
+            <p>
+              I once thought the hardest part would be landing a fair-paying job. Instead, the
+              hardest part was putting on my socks after surgery—and choosing to keep moving
+              forward.
             </p>
           </div>
         ),
@@ -133,16 +142,29 @@ export const profile = {
       {
         id: 5,
         key: "vision",
-        title: "Vision Ahead",
+        title: "The Future",
         img: "/about/pose-5-vision.webp",
         alt: "Canyen looking into a neon horizon with futuristic overlays",
         body: (
           <div className="space-y-4">
             <p>
-              Looking forward, I aim to leverage <strong>advanced analytics, machine learning, and
-              domain expertise</strong> to solve problems across industries. Whether it’s improving
-              healthcare systems, optimizing operations, or developing predictive models, I want my
-              work to have a direct, positive impact.
+              After graduation, I explored what the world could offer me—and what I could offer
+              myself. I gained real-world experience at an overnight manufacturing facility and a{" "}
+              <strong>DME</strong> startup, while continuing freelance analytics for companies,
+              peers, and family. That’s where I learned what it truly means to put passion into
+              work.
+            </p>
+            <p>
+              Today, I’m pursuing my <strong>Master’s in Data Science</strong> at the{" "}
+              <strong>University of Pittsburgh</strong>, focused on giving communities access to
+              insights that can change everyday lives. In a world of rising costs, I believe we can
+              harness data science, machine learning, analytics, and software development to make
+              life better for all.
+            </p>
+            <p>
+              I am currently <strong>open to work</strong> and want to collaborate with companies
+              who share this vision. If your mission is to build solutions that improve people’s
+              lives, I’d love to connect and talk more.
             </p>
           </div>
         ),
