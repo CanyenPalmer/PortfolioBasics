@@ -6,43 +6,42 @@ import Image from "next/image";
 import { motion, AnimatePresence, useMotionValue } from "framer-motion";
 import { profile } from "@/content/profile";
 
-/** Shape of an About pose item from profile.about.poses */
 type Pose = {
   id?: number | string;
   key?: string;
   title?: React.ReactNode;
-  body?: React.ReactNode; // may include headers as “end markers”
+  body?: React.ReactNode;
   img?: string;
   alt?: string;
 };
 
-const SWIPE_PX = 80;        // smaller threshold so drag feels responsive
-const SWIPE_VEL = 550;      // velocity threshold as an alternative trigger
-const EXIT_X = 560;         // how far the leaving card flies
+const SWIPE_PX = 80;
+const SWIPE_VEL = 550;
+const EXIT_X = 560;
 
 export default function AboutMeShowcase() {
   const poses = (profile as any)?.about?.poses as ReadonlyArray<Pose> | undefined;
   const count = poses?.length ?? 0;
   if (!poses || count === 0) return null;
 
-  // active/front index
   const [index, setIndex] = React.useState(0);
-  // card that's animating away (so it can pass "behind" the new one)
   const [leaving, setLeaving] = React.useState<null | { pose: Pose; dir: 1 | -1 }>(null);
 
+  const areaRef = React.useRef<HTMLDivElement | null>(null);     // real drag constraints
   const x = useMotionValue(0);
+
   const active = poses[index];
 
   function advance(dir: 1 | -1) {
-    // mark current as leaving
     setLeaving({ pose: active, dir });
-    // immediately promote next to be the visible front card
     setIndex((i) => (i + dir + count) % count);
-    // clear leaving after the exit completes
     window.setTimeout(() => setLeaving(null), 380);
   }
 
-  function handleDragEnd(_: any, info: { offset: { x: number }; velocity: { x: number } }) {
+  function handleDragEnd(
+    _: any,
+    info: { offset: { x: number }; velocity: { x: number } }
+  ) {
     const dx = info.offset.x;
     const vx = info.velocity.x;
     const farEnough = Math.abs(dx) > SWIPE_PX;
@@ -55,29 +54,32 @@ export default function AboutMeShowcase() {
       x.set(0);
       advance(-1);
     } else {
-      // snap back
-      x.set(0);
+      x.set(0); // snap back
     }
   }
 
   return (
     <div className="grid gap-10 md:grid-cols-2 items-center">
-      {/* LEFT: Image area (single visible card) */}
-      <div className="relative h[420px] md:h-[520px] h-[420px] md:h-[520px]">
-        {/* Leaving card (animates out BEHIND the new front) */}
+      {/* LEFT: single visible image card */}
+      <div
+        ref={areaRef}
+        className="relative h-[420px] md:h-[520px] select-none"
+        aria-label="About images"
+      >
+        {/* Leaving card (goes BEHIND the new one) */}
         <AnimatePresence initial={false}>
           {leaving && (
             <motion.div
               key={`leaving-${String(leaving.pose.id ?? leaving.pose.key ?? "x")}`}
               className="absolute inset-0 rounded-2xl overflow-hidden ring-1 ring-white/10"
-              style={{ zIndex: 10 }} // below the active front card
+              style={{ zIndex: 10 }}
               initial={{ opacity: 1, scale: 1, y: 0 }}
               animate={{ opacity: 1 }}
               exit={{
                 opacity: 0,
                 x: leaving.dir > 0 ? EXIT_X : -EXIT_X,
                 rotate: leaving.dir > 0 ? 6 : -6,
-                transition: { duration: 0.35 }
+                transition: { duration: 0.35 },
               }}
               aria-hidden
             >
@@ -103,25 +105,26 @@ export default function AboutMeShowcase() {
           )}
         </AnimatePresence>
 
-        {/* Active, draggable front card (ONLY visible card while idle) */}
+        {/* Active, draggable front card */}
         <motion.div
-          key={`front-${String(active.id ?? active.key ?? index)}-${index}`}
-          className="absolute inset-0 rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-2xl"
-          style={{ zIndex: 50, x }}
-          drag="x"
-          dragElastic={0.2}
-          dragConstraints={{ left: 0, right: 0 }}
-          whileDrag={{ rotate: 2, scale: 1.02 }}
-          onDragEnd={handleDragEnd}
-          initial={{ opacity: 0, scale: 0.98, y: 6 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ type: "spring", stiffness: 320, damping: 32 }}
-          role="group"
-          aria-label="About image (drag left or right to change)"
-        >
+            key={`front-${String(active.id ?? active.key ?? index)}-${index}`}
+            className="absolute inset-0 rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-2xl cursor-grab"
+            style={{ zIndex: 50, x, touchAction: "pan-y" }}  {/* <-- enables horizontal drag on touch */}
+            drag="x"
+            dragElastic={0.2}
+            dragConstraints={areaRef}                        {/* <-- real element constraints */}
+            dragMomentum={false}
+            whileTap={{ cursor: "grabbing" }}
+            whileDrag={{ rotate: 2, scale: 1.02 }}
+            onDragEnd={handleDragEnd}
+            initial={{ opacity: 0, scale: 0.98, y: 6 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 320, damping: 32 }}
+            role="group"
+            aria-label="About image (drag left or right to change)"
+          >
           {active.img ? (
             <div className="relative w-full h-full flex items-center justify-center bg-white/5">
-              {/* Center the image; never crop */}
               <Image
                 src={active.img}
                 alt={
@@ -138,12 +141,11 @@ export default function AboutMeShowcase() {
           ) : (
             <div className="h-full w-full bg-white/10" />
           )}
-          {/* subtle edge overlay for readability */}
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-black/0 to-transparent" />
         </motion.div>
       </div>
 
-      {/* RIGHT: Text panel (never covered) */}
+      {/* RIGHT: text panel */}
       <div className="space-y-4">
         {active.title && (
           <h3 className="text-2xl font-semibold tracking-tight text-white">
