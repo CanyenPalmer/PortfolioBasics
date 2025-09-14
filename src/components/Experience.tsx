@@ -12,7 +12,7 @@ export default function Experience() {
     <section
       id="experience"
       aria-label="Experience"
-      className="relative bg-[#0e1622]"
+      className="relative bg-[#0e1622] min-h-[100svh] md:min-h-screen py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start"
     >
       <SectionPanel title="Experience" className="mx-auto max-w-7xl">
         <div className="space-y-10">
@@ -27,20 +27,13 @@ export default function Experience() {
             >
               <header className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
                 <h3 className="text-lg font-semibold text-white/90">
-                  {role.title}{" "}
-                  <span className="text-white/60">— {role.company}</span>
+                  {role.title} <span className="text-white/60">— {role.company}</span>
                 </h3>
-                <span className="font-mono text-xs text-cyan-300/80">
-                  {role.dates}
-                </span>
+                <span className="font-mono text-xs text-cyan-300/80">{role.dates}</span>
               </header>
 
-              {role.location && (
-                <p className="text-sm text-white/60">{role.location}</p>
-              )}
-              {role.context && (
-                <p className="mt-2 text-sm text-white/75">{role.context}</p>
-              )}
+              {role.location && <p className="text-sm text-white/60">{role.location}</p>}
+              {role.context && <p className="mt-2 text-sm text-white/75">{role.context}</p>}
 
               {Array.isArray(role.highlights) && role.highlights.length > 0 && (
                 <ul className="mt-4 list-disc space-y-2 pl-6 text-sm text-white/85">
