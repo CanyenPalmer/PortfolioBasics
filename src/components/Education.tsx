@@ -1,4 +1,3 @@
-// src/components/Education.tsx
 "use client";
 
 import * as React from "react";
@@ -17,21 +16,23 @@ export type EduItem = {
 
 type Props = {
   heading?: string;
-  /** Optional. If not provided, uses profile.education */
   items?: ReadonlyArray<EduItem>;
 };
 
 export default function Education({ heading = "Education", items }: Props) {
-  // Make profile.education strongly typed so TS can infer downstream
-  const fromProfile = ((profile as unknown as { education?: ReadonlyArray<EduItem> })?.education ??
-    []) as ReadonlyArray<EduItem>;
+  const fromProfile =
+    ((profile as unknown as { education?: ReadonlyArray<EduItem> })
+      ?.education ?? []) as ReadonlyArray<EduItem>;
 
   const list: ReadonlyArray<EduItem> = items ?? fromProfile;
 
   if (!Array.isArray(list) || list.length === 0) return null;
 
   return (
-    <section aria-label="Education">
+    <section
+      aria-label="Education"
+      className="relative bg-[url('/backgrounds/university.png')] bg-cover bg-center"
+    >
       <h2 className="mb-6 text-xl font-semibold tracking-wide text-cyan-200">
         {heading}
       </h2>
@@ -44,34 +45,33 @@ export default function Education({ heading = "Education", items }: Props) {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.45, delay: i * 0.03 }}
-            className="rounded-lg border border-cyan-400/10 bg-black/20 p-5"
+            className="rounded-lg border border-cyan-400/10 bg-black/50 p-5"
           >
             <header className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
               <h3 className="text-lg font-semibold text-white/90">
                 {e.school}
                 {(e.program || e.degree) && (
-                  <span className="text-white/60"> — {e.program ?? e.degree}</span>
+                  <span className="text-white/60">
+                    {" "}
+                    — {e.program ?? e.degree}
+                  </span>
                 )}
               </h3>
               {e.dates && (
-                <span className="font-mono text-xs text-cyan-300/80">{e.dates}</span>
+                <span className="font-mono text-xs text-cyan-300/80">
+                  {e.dates}
+                </span>
               )}
             </header>
 
-            {e.location && <p className="text-sm text-white/60">{e.location}</p>}
+            {e.location && (
+              <p className="text-sm text-white/60">{e.location}</p>
+            )}
 
             {Array.isArray(e.bullets) && e.bullets.length > 0 && (
               <ul className="mt-3 list-disc space-y-1.5 pl-6 text-sm text-white/85">
                 {e.bullets.map((b: string, bi: number) => (
                   <li key={bi} dangerouslySetInnerHTML={{ __html: b }} />
-                ))}
-              </ul>
-            )}
-
-            {Array.isArray(e.details) && e.details.length > 0 && (
-              <ul className="mt-3 list-disc space-y-1.5 pl-6 text-sm text-white/85">
-                {e.details.map((d: string, di: number) => (
-                  <li key={di} dangerouslySetInnerHTML={{ __html: d }} />
                 ))}
               </ul>
             )}
@@ -81,5 +81,3 @@ export default function Education({ heading = "Education", items }: Props) {
     </section>
   );
 }
-
-
