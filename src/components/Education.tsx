@@ -1,3 +1,4 @@
+// src/components/Education.tsx
 "use client";
 
 import * as React from "react";
@@ -11,65 +12,99 @@ export type EduItem = {
   dates?: string;
   location?: string;
   bullets?: ReadonlyArray<string>;
-  details?: ReadonlyArray<string>;
+  details?: ReadonlyArray<string>; // used for listing classes/courses
 };
 
-type Props = {
-  heading?: string;
-  items?: ReadonlyArray<EduItem>;
-};
+export default function Education() {
+  const education = (profile as any)?.education as ReadonlyArray<EduItem> | undefined;
 
-export default function Education({ heading = "Education", items }: Props) {
-  const fromProfile =
-    ((profile as unknown as { education?: ReadonlyArray<EduItem> })?.education ??
-      []) as ReadonlyArray<EduItem>;
-  const list: ReadonlyArray<EduItem> = items ?? fromProfile;
-  if (!Array.isArray(list) || list.length === 0) return null;
+  if (!education || education.length === 0) {
+    return null;
+  }
 
   return (
     <section
+      id="education"
       aria-label="Education"
-      className="relative bg-[url('/backgrounds/university.png')] bg-cover bg-center min-h-[100svh] md:min-h-screen py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start"
+      className="relative bg-[#0b1016] py-16 md:py-20"
     >
-      {/* Optional readability overlay */}
-      <div aria-hidden className="absolute inset-0 bg-black/30" />
-
-      <div className="relative z-10 container mx-auto px-6 max-w-7xl">
-        <h2 className="mb-6 text-xl font-semibold tracking-wide text-cyan-200">{heading}</h2>
+      <div className="mx-auto w-full max-w-5xl px-6">
+        {/* Section header */}
+        <motion.header
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mb-10"
+        >
+          <h2 className="text-2xl md:text-3xl font-semibold tracking-tight">
+            Education
+          </h2>
+          <p className="mt-2 text-white/70">
+            Degrees, certificates, and relevant coursework.
+          </p>
+        </motion.header>
 
         <div className="space-y-6">
-          {list.map((e: EduItem, i: number) => (
-            <motion.article
-              key={`${e.school ?? "edu"}-${i}`}
-              initial={{ opacity: 0, y: 8 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.45, delay: i * 0.03 }}
-              className="rounded-lg border border-cyan-400/10 bg-black/50 p-5"
-            >
-              <header className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-                <h3 className="text-lg font-semibold text-white/90">
-                  {e.school}
-                  {(e.program || e.degree) && (
-                    <span className="text-white/60"> — {e.program ?? e.degree}</span>
+          {education.map((e, idx) => {
+            const hasBullets = Array.isArray(e.bullets) && e.bullets.length > 0;
+            const hasDetails = Array.isArray(e.details) && e.details.length > 0;
+
+            return (
+              <motion.article
+                key={`${e.school ?? "edu"}-${idx}`}
+                initial={{ opacity: 0, y: 8 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.2 }}
+                transition={{ duration: 0.45 }}
+                className="rounded-xl border border-white/10 bg-white/[0.04] p-5 md:p-6"
+              >
+                {/* Top row: School + dates */}
+                <div className="flex flex-col md:flex-row md:items-baseline md:justify-between gap-1">
+                  <div>
+                    <h3 className="text-lg md:text-xl font-medium">
+                      {e.school}
+                    </h3>
+                    {(e.program || e.degree) && (
+                      <p className="text-white/80">
+                        {[e.program, e.degree].filter(Boolean).join(" • ")}
+                      </p>
+                    )}
+                    {e.location && (
+                      <p className="text-white/60 text-sm">{e.location}</p>
+                    )}
+                  </div>
+                  {e.dates && (
+                    <div className="text-white/60 text-sm md:text-base">
+                      {e.dates}
+                    </div>
                   )}
-                </h3>
-                {e.dates && (
-                  <span className="font-mono text-xs text-cyan-300/80">{e.dates}</span>
+                </div>
+
+                {/* Bullets (honors/notes) */}
+                {hasBullets && (
+                  <ul className="mt-3 list-disc space-y-1.5 pl-6 text-sm text-white/85">
+                    {e.bullets!.map((b, bi) => (
+                      <li key={bi} dangerouslySetInnerHTML={{ __html: b }} />
+                    ))}
+                  </ul>
                 )}
-              </header>
 
-              {e.location && <p className="text-sm text-white/60">{e.location}</p>}
-
-              {Array.isArray(e.bullets) && e.bullets.length > 0 && (
-                <ul className="mt-3 list-disc space-y-1.5 pl-6 text-sm text-white/85">
-                  {e.bullets.map((b: string, bi: number) => (
-                    <li key={bi} dangerouslySetInnerHTML={{ __html: b }} />
-                  ))}
-                </ul>
-              )}
-            </motion.article>
-          ))}
+                {/* Courses / Classes (details) */}
+                {hasDetails && (
+                  <div className="mt-4 border-t border-white/10 pt-4">
+                    <h4 className="mb-2 text-sm font-semibold uppercase tracking-wider text-white/70">
+                      Courses
+                    </h4>
+                    <ul className="space-y-1.5 text-sm text-white/85 list-disc pl-6">
+                      {e.details!.map((d, di) => (
+                        <li key={di} dangerouslySetInnerHTML={{ __html: d }} />
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </motion.article>
+            );
+          })}
         </div>
       </div>
     </section>
