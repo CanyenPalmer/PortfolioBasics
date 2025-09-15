@@ -8,7 +8,7 @@ import { profile } from "@/content/profile";
 export default function ContactSection() {
   const email = (profile as any)?.contact?.email ?? "Canyen2019@gmail.com";
 
-  // Optional subtle clock (like the reference)
+  // Optional subtle clock
   const [now, setNow] = React.useState<string>(() => new Date().toLocaleString());
   React.useEffect(() => {
     const id = setInterval(() => setNow(new Date().toLocaleString()), 1000);
@@ -40,13 +40,9 @@ export default function ContactSection() {
                 <span className="translate-y-[1px]">↗</span>
                 {email}
               </a>
-              {/* Replace with your preferred address or remove */}
-              <address className="not-italic text-white/70">
-                Pittsburgh, PA • United States
-              </address>
+              <address className="not-italic text-white/70">Pittsburgh, PA • United States</address>
             </div>
 
-            {/* Optional note */}
             <p className="mt-8 max-w-md text-xs leading-relaxed text-white/55">
               Always open to collaborate on projects that blend data science, ML, and design.
             </p>
@@ -100,21 +96,37 @@ export default function ContactSection() {
                   GitHub <span className="text-white/50">↗</span>
                 </a>
               </li>
-              {/* Tiny live clock (optional) */}
-              <li className="pt-4 text-xs font-mono uppercase tracking-wider text-white/40">
-                {now}
-              </li>
+              <li className="pt-4 text-xs font-mono uppercase tracking-wider text-white/40">{now}</li>
             </ul>
           </div>
         </div>
       </div>
 
-      {/* Echo footer */}
+      {/* Echo footer — STACKED rows */}
       <div className="relative mt-16 overflow-hidden">
         <div className="echo-mask pointer-events-none">
-          <div className="echo-row">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <span key={i} className="echo-word">CANYEN&nbsp;PALMER</span>
+          {/* bottom row (strongest) */}
+          <div className="echo-row r0">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <span key={`r0-${i}`} className="echo-word">
+                CANYEN&nbsp;PALMER
+              </span>
+            ))}
+          </div>
+          {/* middle row */}
+          <div className="echo-row r1">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <span key={`r1-${i}`} className="echo-word">
+                CANYEN&nbsp;PALMER
+              </span>
+            ))}
+          </div>
+          {/* top row */}
+          <div className="echo-row r2">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <span key={`r2-${i}`} className="echo-word">
+                CANYEN&nbsp;PALMER
+              </span>
             ))}
           </div>
         </div>
@@ -130,27 +142,29 @@ export default function ContactSection() {
       </div>
 
       <style jsx>{`
+        /* Overall mask + soft vertical fade */
         .echo-mask {
           position: relative;
-          height: 130px;
+          height: 220px; /* taller to fit 3 stacked rows */
           background: linear-gradient(
             to bottom,
             rgba(255, 255, 255, 0) 0%,
-            rgba(255, 255, 255, 0.06) 30%,
-            rgba(255, 255, 255, 0.06) 70%,
+            rgba(255, 255, 255, 0.06) 28%,
+            rgba(255, 255, 255, 0.06) 72%,
             rgba(255, 255, 255, 0) 100%
           );
           mask-image: linear-gradient(
             to top,
             transparent 0%,
-            black 25%,
-            black 75%,
+            black 20%,
+            black 80%,
             transparent 100%
           );
         }
+
+        /* Each echo row spans full width and repeats horizontally */
         .echo-row {
           position: absolute;
-          bottom: -16px;
           left: 0;
           right: 0;
           white-space: nowrap;
@@ -158,12 +172,45 @@ export default function ContactSection() {
           gap: 24px;
           justify-content: center;
         }
+
+        /* Bottom / middle / top offsets + opacity for stacked look */
+        .r0 {
+          bottom: -10px;   /* closest to bottom edge */
+          opacity: 0.22;
+        }
+        .r1 {
+          bottom: 58px;    /* sits above r0, slightly lighter */
+          opacity: 0.16;
+        }
+        .r2 {
+          bottom: 126px;   /* sits above r1, lightest */
+          opacity: 0.12;
+        }
+
         .echo-word {
           font-weight: 900;
           letter-spacing: 0.06em;
           font-size: clamp(48px, 12vw, 120px);
-          line-height: 1;
-          color: rgba(255, 255, 255, 0.18);
+          line-height: 0.9; /* slight compression to help overlap */
+          color: rgba(255, 255, 255, 0.9);
+          /* a soft fill + layer blend so rows fuse a bit */
+          background: linear-gradient(
+            to bottom,
+            rgba(255, 255, 255, 0.22),
+            rgba(255, 255, 255, 0.12)
+          );
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+          filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.08));
+        }
+
+        @media (max-width: 768px) {
+          .echo-mask {
+            height: 180px;
+          }
+          .r1 { bottom: 44px; }
+          .r2 { bottom: 100px; }
         }
       `}</style>
     </section>
