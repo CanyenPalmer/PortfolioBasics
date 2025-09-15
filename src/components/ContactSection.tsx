@@ -8,7 +8,7 @@ import { profile } from "@/content/profile";
 export default function ContactSection() {
   const email = (profile as any)?.contact?.email ?? "Canyen2019@gmail.com";
 
-  // Optional subtle clock
+  // Optional small clock (can remove)
   const [now, setNow] = React.useState<string>(() => new Date().toLocaleString());
   React.useEffect(() => {
     const id = setInterval(() => setNow(new Date().toLocaleString()), 1000);
@@ -130,23 +130,16 @@ export default function ContactSection() {
       </div>
 
       <style jsx>{`
-        /* Taller mask and side padding so text never clips */
+        /* Keep only a gentle vertical fade; no white overlay "fog" */
         .echo-mask {
           position: relative;
-          height: 230px;
-          padding: 0 24px;                 /* ← side safety */
-          background: linear-gradient(
-            to bottom,
-            rgba(255, 255, 255, 0) 0%,
-            rgba(255, 255, 255, 0.06) 28%,
-            rgba(255, 255, 255, 0.06) 72%,
-            rgba(255, 255, 255, 0) 100%
-          );
+          height: 220px;
+          /* no background overlay */
           mask-image: linear-gradient(
             to top,
             transparent 0%,
-            black 20%,
-            black 80%,
+            black 18%,
+            black 82%,
             transparent 100%
           );
         }
@@ -156,39 +149,35 @@ export default function ContactSection() {
           left: 0;
           right: 0;
           display: flex;
-          justify-content: center;         /* center single word */
+          justify-content: center;   /* center single word */
           white-space: nowrap;
+          line-height: 1;
         }
 
-        /* Vertical stacking and the EXACT opacities you requested */
-        .r0 { bottom: 0px;   opacity: 1;    }  /* 100% */
-        .r1 { bottom: 68px;  opacity: 0.7;  }  /* 70%  */
-        .r2 { bottom: 136px; opacity: 0.5;  }  /* 50%  */
+        /* Exact opacities requested */
+        .r2 { bottom: 128px; opacity: 0.5; }  /* top */
+        .r1 { bottom: 64px;  opacity: 0.7; }  /* middle */
+        .r0 { bottom: 0px;   opacity: 1.0; }  /* bottom */
 
-        /* Single word per line, responsive width without edge cut-off */
+        /* One word per line; sized to span the width without clipping */
         .echo-word {
           font-weight: 900;
-          letter-spacing: 0.06em;
-          /* Fit across the viewport, but never clip — tune middle value if needed */
-          font-size: clamp(40px, 9.6vw, 140px);
-          line-height: 0.95;
-          /* Subtle glossy fill */
-          background: linear-gradient(
-            to bottom,
-            rgba(255, 255, 255, 0.22),
-            rgba(255, 255, 255, 0.12)
-          );
-          -webkit-background-clip: text;
-          background-clip: text;
-          color: transparent;
-          filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.08));
+          letter-spacing: 0.055em;
+          /* The calc below approximates “full width” for this phrase.
+             It scales with viewport width and leaves a tiny safe margin. */
+          font-size: clamp(44px, calc((100vw - 48px) / 12.0), 160px);
+          /* Center and preserve edges */
+          padding: 0 24px;           /* safe margin so ends don't hard-clip */
+          color: #ffffff;            /* solid white; no gradient fills */
+          text-transform: uppercase;
         }
 
         @media (max-width: 768px) {
-          .echo-mask { height: 200px; padding: 0 16px; }
-          .r1 { bottom: 56px; }
-          .r2 { bottom: 112px; }
-          .echo-word { font-size: clamp(36px, 11vw, 120px); }
+          .echo-mask { height: 190px; }
+          .r2 { bottom: 108px; }
+          .r1 { bottom: 54px; }
+          .r0 { bottom: 0; }
+          .echo-word { font-size: clamp(36px, calc((100vw - 32px) / 12.0), 120px); padding: 0 16px; }
         }
       `}</style>
     </section>
