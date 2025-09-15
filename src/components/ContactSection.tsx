@@ -8,7 +8,6 @@ import { profile } from "@/content/profile";
 export default function ContactSection() {
   const email = (profile as any)?.contact?.email ?? "Canyen2019@gmail.com";
 
-  // Optional small clock (can remove)
   const [now, setNow] = React.useState<string>(() => new Date().toLocaleString());
   React.useEffect(() => {
     const id = setInterval(() => setNow(new Date().toLocaleString()), 1000);
@@ -24,7 +23,7 @@ export default function ContactSection() {
       <div className="mx-auto w-full max-w-7xl px-6">
         {/* 3-column layout */}
         <div className="grid grid-cols-1 gap-10 md:grid-cols-3">
-          {/* Left: blurb + contact */}
+          {/* Left */}
           <div className="space-y-6">
             <p className="max-w-sm text-2xl font-semibold leading-tight text-white/95">
               A portfolio contact that’s both <span className="text-cyan-300">solid</span> and{" "}
@@ -72,7 +71,7 @@ export default function ContactSection() {
             </ul>
           </nav>
 
-          {/* Right: Connect */}
+          {/* Right */}
           <div className="space-y-2 md:justify-self-end">
             <p className="text-sm uppercase tracking-wide text-white/50">Connect</p>
             <ul className="mt-2 space-y-2">
@@ -102,20 +101,26 @@ export default function ContactSection() {
         </div>
       </div>
 
-      {/* Echo footer — three stacked single lines */}
+      {/* Echo footer — three stacked, tiled rows */}
       <div className="relative mt-16 overflow-hidden">
         <div className="echo-mask pointer-events-none">
           {/* Bottom row (100%) */}
           <div className="echo-row r0">
-            <span className="echo-word">CANYEN&nbsp;PALMER</span>
+            {Array.from({ length: 7 }).map((_, i) => (
+              <span key={`r0-${i}`} className="echo-word">CANYEN&nbsp;PALMER</span>
+            ))}
           </div>
-          {/* Middle row (70%) */}
+          {/* Middle row (70%), slight horizontal offset for a staggered feel */}
           <div className="echo-row r1">
-            <span className="echo-word">CANYEN&nbsp;PALMER</span>
+            {Array.from({ length: 8 }).map((_, i) => (
+              <span key={`r1-${i}`} className="echo-word">CANYEN&nbsp;PALMER</span>
+            ))}
           </div>
-          {/* Top row (50%) */}
+          {/* Top row (50%), stronger offset */}
           <div className="echo-row r2">
-            <span className="echo-word">CANYEN&nbsp;PALMER</span>
+            {Array.from({ length: 9 }).map((_, i) => (
+              <span key={`r2-${i}`} className="echo-word">CANYEN&nbsp;PALMER</span>
+            ))}
           </div>
         </div>
       </div>
@@ -130,11 +135,10 @@ export default function ContactSection() {
       </div>
 
       <style jsx>{`
-        /* Keep only a gentle vertical fade; no white overlay "fog" */
+        /* Soft vertical fade only (no fog overlay) */
         .echo-mask {
           position: relative;
           height: 220px;
-          /* no background overlay */
           mask-image: linear-gradient(
             to top,
             transparent 0%,
@@ -149,35 +153,34 @@ export default function ContactSection() {
           left: 0;
           right: 0;
           display: flex;
-          justify-content: center;   /* center single word */
+          gap: 32px;              /* space between repeats */
           white-space: nowrap;
-          line-height: 1;
+          will-change: transform;
         }
 
-        /* Exact opacities requested */
-        .r2 { bottom: 128px; opacity: 0.5; }  /* top */
-        .r1 { bottom: 64px;  opacity: 0.7; }  /* middle */
-        .r0 { bottom: 0px;   opacity: 1.0; }  /* bottom */
+        /* Stack positions + exact opacities */
+        .r0 { bottom: 0px;   opacity: 1.0;  transform: translateX(0%); }
+        .r1 { bottom: 64px;  opacity: 0.7;  transform: translateX(-8%); }
+        .r2 { bottom: 128px; opacity: 0.5;  transform: translateX(-16%); }
 
-        /* One word per line; sized to span the width without clipping */
         .echo-word {
           font-weight: 900;
-          letter-spacing: 0.055em;
-          /* The calc below approximates “full width” for this phrase.
-             It scales with viewport width and leaves a tiny safe margin. */
-          font-size: clamp(44px, calc((100vw - 48px) / 12.0), 160px);
-          /* Center and preserve edges */
-          padding: 0 24px;           /* safe margin so ends don't hard-clip */
-          color: #ffffff;            /* solid white; no gradient fills */
+          letter-spacing: 0.04em;
           text-transform: uppercase;
+          color: #fff;
+
+          /* Size so each word chunk is BIG and tiles across the viewport.
+             The 11.6 divider was tuned to "CANYEN PALMER" width on common screens.
+             Tweak 11.6 → 11.4 (larger) or 11.8 (smaller) if you want tighter/looser. */
+          font-size: clamp(54px, calc(100vw / 11.6), 180px);
+          line-height: 0.9;
         }
 
         @media (max-width: 768px) {
           .echo-mask { height: 190px; }
-          .r2 { bottom: 108px; }
-          .r1 { bottom: 54px; }
-          .r0 { bottom: 0; }
-          .echo-word { font-size: clamp(36px, calc((100vw - 32px) / 12.0), 120px); padding: 0 16px; }
+          .r1 { bottom: 56px; }
+          .r2 { bottom: 112px; }
+          .echo-word { font-size: clamp(40px, calc(100vw / 10.8), 150px); }
         }
       `}</style>
     </section>
