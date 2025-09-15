@@ -38,7 +38,7 @@ export default function ContactSection() {
                 <span className="translate-y-[1px]">↗</span>
                 {email}
               </a>
-              <address className="not-italic text-white/70">Pittsburgh, PA • United States</address>
+              <address className="not-italic text-white/70">Greenfield, IN • United States</address>
             </div>
 
             <p className="mt-8 max-w-md text-xs leading-relaxed text-white/55">
