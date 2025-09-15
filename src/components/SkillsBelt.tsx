@@ -14,157 +14,160 @@ export type SkillsBeltProps = {
   speedSeconds?: number;         // full loop time
   logoHeight?: number;           // px
   gapPx?: number;                // horizontal gap in px
-  rowCount?: number;             // rows to render (1 or 2 typically)
-  pauseOnHover?: boolean;        // pause scrolling on hover
-  logos?: LogoSpec[];            // list of logos (will be duplicated)
-  ariaLabel?: string;            // accessible label for the belt
+  pauseOnHover?: boolean;
+  logos?: ReadonlyArray<LogoSpec>;
+  ariaLabel?: string;
 };
 
-const DEFAULT_LOGOS: LogoSpec[] = [
+const defaultLogos: ReadonlyArray<LogoSpec> = [
   { src: "/logos/python.svg", alt: "Python" },
-  { src: "/logos/typescript.svg", alt: "TypeScript" },
-  { src: "/logos/r-lang.svg", alt: "R" },
-  { src: "/logos/sql.svg", alt: "SQL" },
+  { src: "/logos/r.svg", alt: "R" },
+  { src: "/logos/javascript.svg", alt: "JavaScript" },
+  { src: "/logos/pandas.svg", alt: "pandas" },
+  { src: "/logos/numpy.svg", alt: "NumPy" },
+  { src: "/logos/scipy.svg", alt: "SciPy" },
+  { src: "/logos/sqlite.svg", alt: "SQL / SQLite" },
   { src: "/logos/tableau.svg", alt: "Tableau" },
-  { src: "/logos/nextjs.svg", alt: "Next.js" },
-  { src: "/logos/react.svg", alt: "React" },
-  { src: "/logos/tailwind.svg", alt: "Tailwind CSS" },
+  { src: "/logos/jupyter.svg", alt: "Jupyter" },
+  { src: "/logos/excel.svg", alt: "Excel" },
+  { src: "/logos/tidyverse.svg", alt: "tidyverse" },
+  { src: "/logos/github.svg", alt: "GitHub" },
+  { src: "/logos/githubpages.svg", alt: "GitHub Pages" },
+  { src: "/logos/googleslides.svg", alt: "Google Slides" },
 ];
 
 export default function SkillsBelt({
-  speedSeconds = 28,
-  logoHeight = 26,
+  speedSeconds = 26,
+  logoHeight = 28,
   gapPx = 28,
-  rowCount = 1,
   pauseOnHover = true,
-  logos = DEFAULT_LOGOS,
-  ariaLabel = "Skills toolbar",
+  logos = defaultLogos,
+  ariaLabel = "Skillset toolbelt",
 }: SkillsBeltProps) {
-  // Duplicate list to create a seamless loop
+  // Duplicate for seamless loop
   const loop = React.useMemo(() => [...logos, ...logos], [logos]);
-
-  // Build rows (either 1 or 2)
-  const rows = Array.from({ length: Math.max(1, Math.min(2, rowCount)) }, (_, i) => i);
 
   return (
     <section
       aria-label={ariaLabel}
-      className="relative w-full"
+      className="relative rounded-xl border border-cyan-400/10 bg-black/20 p-3 md:p-4 shadow-[0_0_0_1px_rgba(0,255,255,0.05)]"
     >
-      <div className="sb-belt group relative overflow-hidden select-none">
-        {/* Edge fade */}
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-[#0b1016] to-transparent" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-[#0b1016] to-transparent" />
+      <div
+        className={[
+          "relative overflow-hidden rounded-lg",
+          pauseOnHover ? "sb-pause" : "",
+          // ensure visible even if images fail to load
+          "min-h-[56px]",
+        ].join(" ")}
+        style={
+          {
+            ["--sb-speed" as any]: `${speedSeconds}s`,
+            ["--sb-gap" as any]: `${gapPx}px`,
+            ["--sb-height" as any]: `${logoHeight}px`,
+          } as React.CSSProperties
+        }
+      >
+        {/* edge fades */}
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-[60px] z-10 sb-fade-left" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-[60px] z-10 sb-fade-right" />
 
-        <div className="grid gap-2" style={{ gridTemplateRows: `repeat(${rows.length}, minmax(0, 1fr))` }}>
-          {rows.map((rowIdx) => (
-            <div
-              key={rowIdx}
-              className={`sb-row relative`}
-            >
-              <ul
-                className={`sb-track flex items-center`}
-                style={{
-                  animationDuration: `${speedSeconds}s`,
-                  gap: `${gapPx}px`,
-                }}
-                aria-hidden={false}
+        {/* track */}
+        <div className="sb-track flex items-center">
+          {loop.map((l, i) => {
+            const content = (
+              <span
+                className="sb-tile inline-flex items-center justify-center rounded-md px-4 py-2 ring-1 ring-white/5"
+                title={l.title ?? l.alt}
               >
-                {loop.map((logo, i) => {
-                  const key = `${rowIdx}-${i}-${logo.src}`;
-                  const Tile = (
-                    <div
-                      key={key}
-                      className="sb-tile relative grid place-items-center rounded-xl border border-white/10 bg-white/5 px-4 py-2 backdrop-blur-sm"
-                      style={{
-                        height: `${logoHeight + 18}px`,
-                        minWidth: `${logoHeight * 3}px`,
-                      }}
-                    >
-                      {/* NOTE: The glare has been fully removed.
-                         If you want a STATIC highlight later, see the small note below. */}
-                      {logo.href ? (
-                        <a
-                          href={logo.href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2"
-                          title={logo.title || logo.alt}
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={logo.src}
-                            alt={logo.alt}
-                            height={logoHeight}
-                            style={{ height: logoHeight, width: "auto" }}
-                            draggable={false}
-                          />
-                          <span className="sr-only">{logo.alt}</span>
-                        </a>
-                      ) : (
-                        <>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={logo.src}
-                            alt={logo.alt}
-                            height={logoHeight}
-                            style={{ height: logoHeight, width: "auto" }}
-                            draggable={false}
-                          />
-                          <span className="sr-only">{logo.alt}</span>
-                        </>
-                      )}
-                    </div>
-                  );
-                  return Tile;
-                })}
-              </ul>
-            </div>
-          ))}
+                <img
+                  src={l.src}
+                  alt={l.alt}
+                  height={logoHeight}
+                  style={{ height: `var(--sb-height)`, width: "auto", display: "block" }}
+                />
+              </span>
+            );
+            return (
+              <div key={`${l.src}-${i}`} className="shrink-0" style={{ marginRight: `var(--sb-gap)` }}>
+                {l.href ? (
+                  <a
+                    href={l.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+                  >
+                    {content}
+                  </a>
+                ) : (
+                  content
+                )}
+              </div>
+            );
+          })}
         </div>
+
+        {/* scanlines removed */}
+        <div className="pointer-events-none absolute inset-0 z-[1] sb-scan" />
       </div>
 
       <style jsx>{`
-        .sb-belt {
-          --sb-scan-opacity: 0; /* scan disabled */
-        }
-
-        /* Track marquee (two copies of the list in one UL) */
         .sb-track {
           width: max-content;
-          animation: sb-scroll linear infinite;
-          will-change: transform;
+          animation: sb-marquee var(--sb-speed) linear infinite;
+        }
+        .sb-pause:hover .sb-track {
+          animation-play-state: paused;
         }
 
-        /* Reverse direction on even rows for a subtle weave */
-        .sb-row:nth-child(even) .sb-track {
-          animation-direction: reverse;
-        }
-
-        /* Pause on hover (optional) */
-        .sb-belt:hover .sb-track {
-          animation-play-state: ${pauseOnHover ? "paused" : "running"};
-        }
-
-        /* Individual tiles — NO GLARE/EFFECT NOW */
         .sb-tile {
           position: relative;
-          isolation: isolate;
-          /* Remove any leftover pseudo-element shine */
+          background: rgba(255, 255, 255, 0.02);
+          box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+            0 0 18px rgba(0, 255, 255, 0.05);
+          transition: transform 180ms ease, box-shadow 180ms ease;
         }
         .sb-tile::after {
-          content: none !important; /* <-- kills the glare entirely */
+          content: "";
+          position: absolute;
+          inset: 0;
+          border-radius: 0.375rem;
+          pointer-events: none;
+          /* static diagonal gloss */
+          background: linear-gradient(
+            135deg,
+            rgba(255,255,255,0.18) 0%,
+            rgba(255,255,255,0.06) 40%,
+            rgba(255,255,255,0.02) 60%,
+            transparent 85%
+          );
+          transform: none;
+          animation: none;
+        }
+        .sb-tile:hover {
+          transform: translateY(-1px) scale(1.02);
+          box-shadow: inset 0 0 0 1px rgba(0, 255, 255, 0.15),
+            0 0 22px rgba(0, 255, 255, 0.1);
         }
 
-        /* Marquee scroll (duplicate length is 50%) */
-        @keyframes sb-scroll {
-          0%   { transform: translateX(0); }
+        /* fades */
+        .sb-scan {
+          display: none;
+        }
+        .sb-fade-left {
+          background: linear-gradient(to right, rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0));
+        }
+        .sb-fade-right {
+          background: linear-gradient(to left, rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0));
+        }
+
+        @keyframes sb-marquee {
+          0% { transform: translateX(0); }
           100% { transform: translateX(-50%); }
         }
 
-        /* Respect reduced motion */
         @media (prefers-reduced-motion: reduce) {
           .sb-track { animation: none !important; }
+          .sb-tile::after { animation: none !important; }
         }
       `}</style>
     </section>
