@@ -8,7 +8,7 @@ import { profile } from "@/content/profile";
 export default function ContactSection() {
   const email = (profile as any)?.contact?.email ?? "Canyen2019@gmail.com";
 
-  // (Optional) live clock at top-right, subtle like the reference
+  // Optional subtle clock (like the reference)
   const [now, setNow] = React.useState<string>(() => new Date().toLocaleString());
   React.useEffect(() => {
     const id = setInterval(() => setNow(new Date().toLocaleString()), 1000);
@@ -46,7 +46,7 @@ export default function ContactSection() {
               </address>
             </div>
 
-            {/* Optional acknowledgement / note */}
+            {/* Optional note */}
             <p className="mt-8 max-w-md text-xs leading-relaxed text-white/55">
               Always open to collaborate on projects that blend data science, ML, and design.
             </p>
