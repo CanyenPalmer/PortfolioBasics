@@ -8,6 +8,7 @@ import { profile } from "@/content/profile";
 export default function ContactSection() {
   const email = (profile as any)?.contact?.email ?? "Canyen2019@gmail.com";
 
+  // Optional tiny clock (remove if you don't want it)
   const [now, setNow] = React.useState<string>(() => new Date().toLocaleString());
   React.useEffect(() => {
     const id = setInterval(() => setNow(new Date().toLocaleString()), 1000);
@@ -101,31 +102,31 @@ export default function ContactSection() {
         </div>
       </div>
 
-      {/* Echo footer — three stacked, tiled rows */}
+      {/* ECHO STRIPE — three stacked tiled rows */}
       <div className="relative mt-16 overflow-hidden">
         <div className="echo-mask pointer-events-none">
           {/* Bottom row (100%) */}
           <div className="echo-row r0">
-            {Array.from({ length: 7 }).map((_, i) => (
+            {Array.from({ length: 10 }).map((_, i) => (
               <span key={`r0-${i}`} className="echo-word">CANYEN&nbsp;PALMER</span>
             ))}
           </div>
-          {/* Middle row (70%), slight horizontal offset for a staggered feel */}
+          {/* Middle row (70%) */}
           <div className="echo-row r1">
-            {Array.from({ length: 8 }).map((_, i) => (
+            {Array.from({ length: 11 }).map((_, i) => (
               <span key={`r1-${i}`} className="echo-word">CANYEN&nbsp;PALMER</span>
             ))}
           </div>
-          {/* Top row (50%), stronger offset */}
+          {/* Top row (50%) */}
           <div className="echo-row r2">
-            {Array.from({ length: 9 }).map((_, i) => (
+            {Array.from({ length: 12 }).map((_, i) => (
               <span key={`r2-${i}`} className="echo-word">CANYEN&nbsp;PALMER</span>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Bottom meta row */}
+      {/* Footer meta */}
       <div className="mx-auto mt-8 w-full max-w-7xl px-6">
         <div className="flex items-center justify-between text-[10px] uppercase tracking-widest text-white/45">
           <span>©{new Date().getFullYear()} Canyen Palmer</span>
@@ -135,52 +136,48 @@ export default function ContactSection() {
       </div>
 
       <style jsx>{`
-        /* Soft vertical fade only (no fog overlay) */
+        /* Only a gentle vertical fade so the stack blends into the footer. */
         .echo-mask {
           position: relative;
-          height: 220px;
+          height: 200px; /* feel free to tweak to 220–240 for taller stripe */
           mask-image: linear-gradient(
             to top,
             transparent 0%,
-            black 18%,
-            black 82%,
+            black 20%,
+            black 80%,
             transparent 100%
           );
         }
 
         .echo-row {
           position: absolute;
-          left: 0;
-          right: 0;
+          inset-inline: 0;
           display: flex;
-          gap: 32px;              /* space between repeats */
           white-space: nowrap;
-          will-change: transform;
+          gap: clamp(12px, 1.6vw, 28px); /* spacing between repeats */
         }
 
-        /* Stack positions + exact opacities */
-        .r0 { bottom: 0px;   opacity: 1.0;  transform: translateX(0%); }
-        .r1 { bottom: 64px;  opacity: 0.7;  transform: translateX(-8%); }
-        .r2 { bottom: 128px; opacity: 0.5;  transform: translateX(-16%); }
+        /* Vertical positions and EXACT per-row opacities */
+        .r0 { bottom: 0px;   opacity: 1.0;  transform: translateX(0%);    }
+        .r1 { bottom: 58px;  opacity: 0.7;  transform: translateX(-8%);   }
+        .r2 { bottom: 116px; opacity: 0.5;  transform: translateX(-16%);  }
 
         .echo-word {
           font-weight: 900;
-          letter-spacing: 0.04em;
+          letter-spacing: 0.06em;
           text-transform: uppercase;
-          color: #fff;
-
-          /* Size so each word chunk is BIG and tiles across the viewport.
-             The 11.6 divider was tuned to "CANYEN PALMER" width on common screens.
-             Tweak 11.6 → 11.4 (larger) or 11.8 (smaller) if you want tighter/looser. */
-          font-size: clamp(54px, calc(100vw / 11.6), 180px);
-          line-height: 0.9;
+          color: #fff;           /* clean, solid white (no gradients/shadows) */
+          line-height: 0.95;
+          /* Scales with viewport; tuned so the word tiles cleanly without clipping.
+             Decrease 11.4 for larger letters, increase for smaller. */
+          font-size: clamp(56px, calc(100vw / 11.4), 180px);
         }
 
         @media (max-width: 768px) {
-          .echo-mask { height: 190px; }
-          .r1 { bottom: 56px; }
-          .r2 { bottom: 112px; }
-          .echo-word { font-size: clamp(40px, calc(100vw / 10.8), 150px); }
+          .echo-mask { height: 180px; }
+          .r1 { bottom: 50px; }
+          .r2 { bottom: 100px; }
+          .echo-word { font-size: clamp(40px, calc(100vw / 10.6), 150px); }
         }
       `}</style>
     </section>
