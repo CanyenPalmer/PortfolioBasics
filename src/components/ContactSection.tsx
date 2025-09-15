@@ -102,32 +102,20 @@ export default function ContactSection() {
         </div>
       </div>
 
-      {/* Echo footer — STACKED rows */}
+      {/* Echo footer — three stacked single lines */}
       <div className="relative mt-16 overflow-hidden">
         <div className="echo-mask pointer-events-none">
-          {/* bottom row (strongest) */}
+          {/* Bottom row (100%) */}
           <div className="echo-row r0">
-            {Array.from({ length: 12 }).map((_, i) => (
-              <span key={`r0-${i}`} className="echo-word">
-                CANYEN&nbsp;PALMER
-              </span>
-            ))}
+            <span className="echo-word">CANYEN&nbsp;PALMER</span>
           </div>
-          {/* middle row */}
+          {/* Middle row (70%) */}
           <div className="echo-row r1">
-            {Array.from({ length: 12 }).map((_, i) => (
-              <span key={`r1-${i}`} className="echo-word">
-                CANYEN&nbsp;PALMER
-              </span>
-            ))}
+            <span className="echo-word">CANYEN&nbsp;PALMER</span>
           </div>
-          {/* top row */}
+          {/* Top row (50%) */}
           <div className="echo-row r2">
-            {Array.from({ length: 12 }).map((_, i) => (
-              <span key={`r2-${i}`} className="echo-word">
-                CANYEN&nbsp;PALMER
-              </span>
-            ))}
+            <span className="echo-word">CANYEN&nbsp;PALMER</span>
           </div>
         </div>
       </div>
@@ -142,10 +130,11 @@ export default function ContactSection() {
       </div>
 
       <style jsx>{`
-        /* Overall mask + soft vertical fade */
+        /* Taller mask and side padding so text never clips */
         .echo-mask {
           position: relative;
-          height: 220px; /* taller to fit 3 stacked rows */
+          height: 230px;
+          padding: 0 24px;                 /* ← side safety */
           background: linear-gradient(
             to bottom,
             rgba(255, 255, 255, 0) 0%,
@@ -162,38 +151,28 @@ export default function ContactSection() {
           );
         }
 
-        /* Each echo row spans full width and repeats horizontally */
         .echo-row {
           position: absolute;
           left: 0;
           right: 0;
-          white-space: nowrap;
           display: flex;
-          gap: 24px;
-          justify-content: center;
+          justify-content: center;         /* center single word */
+          white-space: nowrap;
         }
 
-        /* Bottom / middle / top offsets + opacity for stacked look */
-        .r0 {
-          bottom: -10px;   /* closest to bottom edge */
-          opacity: 0.22;
-        }
-        .r1 {
-          bottom: 58px;    /* sits above r0, slightly lighter */
-          opacity: 0.16;
-        }
-        .r2 {
-          bottom: 126px;   /* sits above r1, lightest */
-          opacity: 0.12;
-        }
+        /* Vertical stacking and the EXACT opacities you requested */
+        .r0 { bottom: 0px;   opacity: 1;    }  /* 100% */
+        .r1 { bottom: 68px;  opacity: 0.7;  }  /* 70%  */
+        .r2 { bottom: 136px; opacity: 0.5;  }  /* 50%  */
 
+        /* Single word per line, responsive width without edge cut-off */
         .echo-word {
           font-weight: 900;
           letter-spacing: 0.06em;
-          font-size: clamp(48px, 12vw, 120px);
-          line-height: 0.9; /* slight compression to help overlap */
-          color: rgba(255, 255, 255, 0.9);
-          /* a soft fill + layer blend so rows fuse a bit */
+          /* Fit across the viewport, but never clip — tune middle value if needed */
+          font-size: clamp(40px, 9.6vw, 140px);
+          line-height: 0.95;
+          /* Subtle glossy fill */
           background: linear-gradient(
             to bottom,
             rgba(255, 255, 255, 0.22),
@@ -206,11 +185,10 @@ export default function ContactSection() {
         }
 
         @media (max-width: 768px) {
-          .echo-mask {
-            height: 180px;
-          }
-          .r1 { bottom: 44px; }
-          .r2 { bottom: 100px; }
+          .echo-mask { height: 200px; padding: 0 16px; }
+          .r1 { bottom: 56px; }
+          .r2 { bottom: 112px; }
+          .echo-word { font-size: clamp(36px, 11vw, 120px); }
         }
       `}</style>
     </section>
