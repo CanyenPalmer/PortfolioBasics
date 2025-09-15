@@ -8,7 +8,6 @@ import { profile } from "@/content/profile";
 export default function ContactSection() {
   const email = (profile as any)?.contact?.email ?? "Canyen2019@gmail.com";
 
-  // Optional subtle clock (like the reference)
   const [now, setNow] = React.useState<string>(() => new Date().toLocaleString());
   React.useEffect(() => {
     const id = setInterval(() => setNow(new Date().toLocaleString()), 1000);
@@ -19,12 +18,11 @@ export default function ContactSection() {
     <section
       id="contact"
       aria-label="Contact"
-      className="relative bg-[#0b1016] text-white pt-24 pb-28 md:pt-28 md:pb-36"
+      className="relative bg-[#0b1016] text-white pt-24 pb-28 md:pt-28 md:pb-36 scroll-mt-24 md:scroll-mt-28 md:snap-start"
     >
       <div className="mx-auto w-full max-w-7xl px-6">
-        {/* 3-column layout */}
         <div className="grid grid-cols-1 gap-10 md:grid-cols-3">
-          {/* Left: blurb + contact */}
+          {/* Left */}
           <div className="space-y-6">
             <p className="max-w-sm text-2xl font-semibold leading-tight text-white/95">
               A portfolio contact that’s both <span className="text-cyan-300">solid</span> and{" "}
@@ -40,13 +38,11 @@ export default function ContactSection() {
                 <span className="translate-y-[1px]">↗</span>
                 {email}
               </a>
-              {/* Replace with your preferred address or remove */}
               <address className="not-italic text-white/70">
                 Pittsburgh, PA • United States
               </address>
             </div>
 
-            {/* Optional note */}
             <p className="mt-8 max-w-md text-xs leading-relaxed text-white/55">
               Always open to collaborate on projects that blend data science, ML, and design.
             </p>
@@ -76,7 +72,7 @@ export default function ContactSection() {
             </ul>
           </nav>
 
-          {/* Right: Connect */}
+          {/* Right */}
           <div className="space-y-2 md:justify-self-end">
             <p className="text-sm uppercase tracking-wide text-white/50">Connect</p>
             <ul className="mt-2 space-y-2">
@@ -100,7 +96,6 @@ export default function ContactSection() {
                   GitHub <span className="text-white/50">↗</span>
                 </a>
               </li>
-              {/* Tiny live clock (optional) */}
               <li className="pt-4 text-xs font-mono uppercase tracking-wider text-white/40">
                 {now}
               </li>
