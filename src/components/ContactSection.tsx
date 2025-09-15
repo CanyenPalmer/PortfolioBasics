@@ -8,7 +8,6 @@ import { profile } from "@/content/profile";
 export default function ContactSection() {
   const email = (profile as any)?.contact?.email ?? "Canyen2019@gmail.com";
 
-  // Optional clock
   const [now, setNow] = React.useState<string>(() => new Date().toLocaleString());
   React.useEffect(() => {
     const id = setInterval(() => setNow(new Date().toLocaleString()), 1000);
@@ -113,7 +112,7 @@ export default function ContactSection() {
           <div className="echo-row echo-mid">
             <span className="echo-word">CANYEN&nbsp;PALMER</span>
           </div>
-          {/* Bottom (100%) — sits on top to visually cut through above rows */}
+          {/* Bottom (100%) — on top to cut through the stack */}
           <div className="echo-row echo-bottom">
             <span className="echo-word">CANYEN&nbsp;PALMER</span>
           </div>
@@ -130,69 +129,59 @@ export default function ContactSection() {
       </div>
 
       <style jsx>{`
-        /* Tunables for perfect fit without edge clipping */
+        /* ===== TUNABLES =====
+           --echo-edge: side gutter so letters don't hard-clip
+           --echo-fit:  10.2 is tuned to "CANYEN PALMER" in your font to fill the width.
+                       Smaller -> larger text (closer to edges), bigger -> more breathing room. */
         :root {
-          --echo-edge: 16px;        /* left/right safe gutter */
-          --echo-factor: 11.2;      /* smaller = larger text; tweak 11.0–11.6 to taste */
+          --echo-edge: 20px;
+          --echo-fit: 10.2;
         }
-        @media (min-width: 1024px) {
-          :root {
-            --echo-edge: 20px;
-            --echo-factor: 11.0;
-          }
+        @media (max-width: 768px) {
+          :root { --echo-edge: 14px; --echo-fit: 11.2; }
         }
 
-        /* A gentle vertical fade only (no fog overlay). */
+        /* Soft vertical fade only (no fog overlay) */
         .echo-mask {
           position: relative;
-          height: 220px; /* increase to 240–260 if you want more stack height */
+          height: 230px;
           mask-image: linear-gradient(
             to top,
             transparent 0%,
-            black 20%,
-            black 80%,
+            black 22%,
+            black 78%,
             transparent 100%
           );
         }
 
-        /* Each row uses identical centering so letters align perfectly */
+        /* Center all rows identically so letters align */
         .echo-row {
           position: absolute;
           left: 50%;
-          transform: translateX(-50%); /* center alignment for all rows */
+          transform: translateX(-50%);
           width: max-content;
-          line-height: 0.92;
-          letter-spacing: 0.055em;
-          z-index: 0; /* default; bottom row will override */
+          line-height: 0.9;
+          z-index: 1;
         }
+        .echo-top    { bottom: 128px; opacity: 0.5; z-index: 1; }
+        .echo-mid    { bottom:  64px; opacity: 0.7; z-index: 2; }
+        .echo-bottom { bottom:   0px; opacity: 1.0; z-index: 3; }
 
-        /* Bottom row on top to "cut" the stack like the reference */
-        .echo-bottom { bottom: 0px;  opacity: 1;   z-index: 3; }
-        .echo-mid    { bottom: 64px; opacity: 0.7; z-index: 2; }
-        .echo-top    { bottom: 128px;opacity: 0.5; z-index: 1; }
-
-        /* Single title sized to span edge-to-edge with safe gutters, no repeats */
+        /* One title per line, edge-to-edge with safe gutters */
         .echo-word {
           display: inline-block;
           text-transform: uppercase;
           font-weight: 900;
+          letter-spacing: 0.03em;     /* tighten slightly for width efficiency */
           color: #fff;
           padding-left: var(--echo-edge);
           padding-right: var(--echo-edge);
-          /* The calc below fills the viewport width minus gutters.
-             Adjust --echo-factor slightly if you want tighter or looser edges. */
+          /* Fill viewport width minus gutters. */
           font-size: clamp(
-            48px,
-            calc((100vw - (var(--echo-edge) * 2)) / var(--echo-factor)),
-            180px
+            72px,
+            calc((100vw - (var(--echo-edge) * 2)) / var(--echo-fit)),
+            220px
           );
-        }
-
-        @media (max-width: 768px) {
-          .echo-mask { height: 200px; }
-          .echo-mid  { bottom: 56px; }
-          .echo-top  { bottom: 112px; }
-          :root { --echo-edge: 14px; --echo-factor: 11.6; }
         }
       `}</style>
     </section>
