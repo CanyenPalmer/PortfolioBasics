@@ -25,8 +25,8 @@ export default function ContactSection() {
           {/* Left */}
           <div className="space-y-6">
             <p className="max-w-sm text-2xl font-semibold leading-tight text-white/95">
-              A portfolio contact that’s both <span className="text-cyan-300">solid</span> and{" "}
-              <span className="text-cyan-300">fluid</span> at the same time.
+              I'd love to get in touch! Feel free to <span className="text-cyan-300">contact</span> or{" "}
+              <span className="text-cyan-300">connect</span> with me through the links.
             </p>
 
             <div className="space-y-1">
@@ -119,7 +119,7 @@ export default function ContactSection() {
       <div className="mx-auto mt-8 w-full max-w-7xl px-6">
         <div className="flex items-center justify-between text-[10px] uppercase tracking-widest text-white/45">
           <span>©{new Date().getFullYear()} Canyen Palmer</span>
-          <span>Legal Notice</span>
+          <span>Thank You For Visiting</span>
           <span>Data • Design • Systems</span>
         </div>
       </div>
