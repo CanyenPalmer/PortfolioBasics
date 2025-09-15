@@ -21,7 +21,6 @@ export default function ContactSection() {
       className="relative bg-[#0b1016] text-white pt-24 pb-28 md:pt-28 md:pb-36 scroll-mt-24 md:scroll-mt-28 md:snap-start"
     >
       <div className="mx-auto w-full max-w-7xl px-6">
-        {/* 3-column layout */}
         <div className="grid grid-cols-1 gap-10 md:grid-cols-3">
           {/* Left */}
           <div className="space-y-6">
@@ -101,18 +100,15 @@ export default function ContactSection() {
         </div>
       </div>
 
-      {/* ECHO STRIPE — three aligned, single titles, bottom dominates */}
+      {/* ECHO STRIPE — three aligned single titles; bottom dominates and cuts through */}
       <div className="relative mt-16 overflow-hidden">
         <div className="echo-mask pointer-events-none">
-          {/* Top (50%) */}
           <div className="echo-row echo-top">
             <span className="echo-word">CANYEN&nbsp;PALMER</span>
           </div>
-          {/* Middle (70%) */}
           <div className="echo-row echo-mid">
             <span className="echo-word">CANYEN&nbsp;PALMER</span>
           </div>
-          {/* Bottom (100%) — on top to cut through the stack */}
           <div className="echo-row echo-bottom">
             <span className="echo-word">CANYEN&nbsp;PALMER</span>
           </div>
@@ -129,19 +125,7 @@ export default function ContactSection() {
       </div>
 
       <style jsx>{`
-        /* ===== TUNABLES =====
-           --echo-edge: side gutter so letters don't hard-clip
-           --echo-fit:  10.2 is tuned to "CANYEN PALMER" in your font to fill the width.
-                       Smaller -> larger text (closer to edges), bigger -> more breathing room. */
-        :root {
-          --echo-edge: 20px;
-          --echo-fit: 10.2;
-        }
-        @media (max-width: 768px) {
-          :root { --echo-edge: 14px; --echo-fit: 11.2; }
-        }
-
-        /* Soft vertical fade only (no fog overlay) */
+        /* Gentle vertical fade so the stack blends; no fog overlay. */
         .echo-mask {
           position: relative;
           height: 230px;
@@ -154,34 +138,37 @@ export default function ContactSection() {
           );
         }
 
-        /* Center all rows identically so letters align */
+        /* Center all rows identically so letters align perfectly */
         .echo-row {
           position: absolute;
           left: 50%;
           transform: translateX(-50%);
           width: max-content;
           line-height: 0.9;
-          z-index: 1;
+          letter-spacing: 0.02em;
         }
+
+        /* Exact opacities + stacking order (bottom on top) */
         .echo-top    { bottom: 128px; opacity: 0.5; z-index: 1; }
         .echo-mid    { bottom:  64px; opacity: 0.7; z-index: 2; }
         .echo-bottom { bottom:   0px; opacity: 1.0; z-index: 3; }
 
-        /* One title per line, edge-to-edge with safe gutters */
+        /* One title per row, spanning edge-to-edge using viewport units.
+           Tweak 10.2vw up/down by 0.2 if you want tighter/looser edges. */
         .echo-word {
           display: inline-block;
           text-transform: uppercase;
           font-weight: 900;
-          letter-spacing: 0.03em;     /* tighten slightly for width efficiency */
           color: #fff;
-          padding-left: var(--echo-edge);
-          padding-right: var(--echo-edge);
-          /* Fill viewport width minus gutters. */
-          font-size: clamp(
-            72px,
-            calc((100vw - (var(--echo-edge) * 2)) / var(--echo-fit)),
-            220px
-          );
+          padding: 0 16px;                 /* tiny safe gutter */
+          font-size: clamp(72px, 10.2vw, 220px);
+        }
+
+        @media (max-width: 768px) {
+          .echo-mask { height: 200px; }
+          .echo-top  { bottom: 112px; }
+          .echo-mid  { bottom:  56px; }
+          .echo-word { font-size: clamp(48px, 12vw, 180px); }
         }
       `}</style>
     </section>
