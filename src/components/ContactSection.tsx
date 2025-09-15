@@ -8,7 +8,7 @@ import { profile } from "@/content/profile";
 export default function ContactSection() {
   const email = (profile as any)?.contact?.email ?? "Canyen2019@gmail.com";
 
-  // Optional tiny clock (remove if you don't want it)
+  // Optional clock
   const [now, setNow] = React.useState<string>(() => new Date().toLocaleString());
   React.useEffect(() => {
     const id = setInterval(() => setNow(new Date().toLocaleString()), 1000);
@@ -102,26 +102,20 @@ export default function ContactSection() {
         </div>
       </div>
 
-      {/* ECHO STRIPE — three stacked tiled rows */}
+      {/* ECHO STRIPE — three aligned, single titles, bottom dominates */}
       <div className="relative mt-16 overflow-hidden">
         <div className="echo-mask pointer-events-none">
-          {/* Bottom row (100%) */}
-          <div className="echo-row r0">
-            {Array.from({ length: 10 }).map((_, i) => (
-              <span key={`r0-${i}`} className="echo-word">CANYEN&nbsp;PALMER</span>
-            ))}
+          {/* Top (50%) */}
+          <div className="echo-row echo-top">
+            <span className="echo-word">CANYEN&nbsp;PALMER</span>
           </div>
-          {/* Middle row (70%) */}
-          <div className="echo-row r1">
-            {Array.from({ length: 11 }).map((_, i) => (
-              <span key={`r1-${i}`} className="echo-word">CANYEN&nbsp;PALMER</span>
-            ))}
+          {/* Middle (70%) */}
+          <div className="echo-row echo-mid">
+            <span className="echo-word">CANYEN&nbsp;PALMER</span>
           </div>
-          {/* Top row (50%) */}
-          <div className="echo-row r2">
-            {Array.from({ length: 12 }).map((_, i) => (
-              <span key={`r2-${i}`} className="echo-word">CANYEN&nbsp;PALMER</span>
-            ))}
+          {/* Bottom (100%) — sits on top to visually cut through above rows */}
+          <div className="echo-row echo-bottom">
+            <span className="echo-word">CANYEN&nbsp;PALMER</span>
           </div>
         </div>
       </div>
@@ -136,10 +130,22 @@ export default function ContactSection() {
       </div>
 
       <style jsx>{`
-        /* Only a gentle vertical fade so the stack blends into the footer. */
+        /* Tunables for perfect fit without edge clipping */
+        :root {
+          --echo-edge: 16px;        /* left/right safe gutter */
+          --echo-factor: 11.2;      /* smaller = larger text; tweak 11.0–11.6 to taste */
+        }
+        @media (min-width: 1024px) {
+          :root {
+            --echo-edge: 20px;
+            --echo-factor: 11.0;
+          }
+        }
+
+        /* A gentle vertical fade only (no fog overlay). */
         .echo-mask {
           position: relative;
-          height: 200px; /* feel free to tweak to 220–240 for taller stripe */
+          height: 220px; /* increase to 240–260 if you want more stack height */
           mask-image: linear-gradient(
             to top,
             transparent 0%,
@@ -149,35 +155,44 @@ export default function ContactSection() {
           );
         }
 
+        /* Each row uses identical centering so letters align perfectly */
         .echo-row {
           position: absolute;
-          inset-inline: 0;
-          display: flex;
-          white-space: nowrap;
-          gap: clamp(12px, 1.6vw, 28px); /* spacing between repeats */
+          left: 50%;
+          transform: translateX(-50%); /* center alignment for all rows */
+          width: max-content;
+          line-height: 0.92;
+          letter-spacing: 0.055em;
+          z-index: 0; /* default; bottom row will override */
         }
 
-        /* Vertical positions and EXACT per-row opacities */
-        .r0 { bottom: 0px;   opacity: 1.0;  transform: translateX(0%);    }
-        .r1 { bottom: 58px;  opacity: 0.7;  transform: translateX(-8%);   }
-        .r2 { bottom: 116px; opacity: 0.5;  transform: translateX(-16%);  }
+        /* Bottom row on top to "cut" the stack like the reference */
+        .echo-bottom { bottom: 0px;  opacity: 1;   z-index: 3; }
+        .echo-mid    { bottom: 64px; opacity: 0.7; z-index: 2; }
+        .echo-top    { bottom: 128px;opacity: 0.5; z-index: 1; }
 
+        /* Single title sized to span edge-to-edge with safe gutters, no repeats */
         .echo-word {
-          font-weight: 900;
-          letter-spacing: 0.06em;
+          display: inline-block;
           text-transform: uppercase;
-          color: #fff;           /* clean, solid white (no gradients/shadows) */
-          line-height: 0.95;
-          /* Scales with viewport; tuned so the word tiles cleanly without clipping.
-             Decrease 11.4 for larger letters, increase for smaller. */
-          font-size: clamp(56px, calc(100vw / 11.4), 180px);
+          font-weight: 900;
+          color: #fff;
+          padding-left: var(--echo-edge);
+          padding-right: var(--echo-edge);
+          /* The calc below fills the viewport width minus gutters.
+             Adjust --echo-factor slightly if you want tighter or looser edges. */
+          font-size: clamp(
+            48px,
+            calc((100vw - (var(--echo-edge) * 2)) / var(--echo-factor)),
+            180px
+          );
         }
 
         @media (max-width: 768px) {
-          .echo-mask { height: 180px; }
-          .r1 { bottom: 50px; }
-          .r2 { bottom: 100px; }
-          .echo-word { font-size: clamp(40px, calc(100vw / 10.6), 150px); }
+          .echo-mask { height: 200px; }
+          .echo-mid  { bottom: 56px; }
+          .echo-top  { bottom: 112px; }
+          :root { --echo-edge: 14px; --echo-factor: 11.6; }
         }
       `}</style>
     </section>
