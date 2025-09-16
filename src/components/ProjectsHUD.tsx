@@ -47,7 +47,6 @@ const KEYWORD_BY_TITLE: Record<string, string> = {
   "PortfolioBasics (This Site)": "frontend",
 };
 
-// Predictable heights via aspect-ratio wrappers (prevents overlaps)
 const ASPECT: Record<string, string> = {
   "CGM Patient Analytics": "3 / 4",
   "MyCaddy — Physics Shot Calculator": "3 / 4",
@@ -69,8 +68,8 @@ const LAYOUT = {
       "Logistic Regression & Tree-Based ML": { left: "36%", top: 880, width: "56%" },
       "Python 101": { left: "3%", top: 1080, width: "28%" },
     } as Record<string, { left: string; top: number; width: string }>,
-    // ⬇ lowered & ⬅ moved left to tuck under LR without touching its title
-    note: { left: "58%", top: 1380, width: "34%" },
+    // ⬇ stays low; ⬅ moved further left (closer to LR bottom-right edge)
+    note: { left: "55%", top: 1380, width: "34%" },
   },
   lg: {
     containerHeight: 1750,
@@ -82,8 +81,8 @@ const LAYOUT = {
       "Logistic Regression & Tree-Based ML": { left: "32%", top: 820, width: "54%" },
       "Python 101": { left: "5%", top: 1080, width: "24%" },
     } as Record<string, { left: string; top: number; width: string }>,
-    // ⬇ lowered & ⬅ moved left to align near LR’s bottom-right edge
-    note: { left: "57.5%", top: 1320, width: "34%" },
+    // ⬇ stays low; ⬅ moved further left
+    note: { left: "54%", top: 1320, width: "34%" },
   },
 };
 
