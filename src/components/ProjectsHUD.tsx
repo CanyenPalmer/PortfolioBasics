@@ -69,8 +69,8 @@ const LAYOUT = {
       "Logistic Regression & Tree-Based ML": { left: "36%", top: 880, width: "56%" },
       "Python 101": { left: "3%", top: 1080, width: "28%" },
     } as Record<string, { left: string; top: number; width: string }>,
-    // ⬇️ nudged right & lower; slightly narrower
-    note: { left: "63%", top: 1320, width: "32%" },
+    // ⬇ lowered & ⬅ moved left to tuck under LR without touching its title
+    note: { left: "58%", top: 1380, width: "34%" },
   },
   lg: {
     containerHeight: 1750,
@@ -82,8 +82,8 @@ const LAYOUT = {
       "Logistic Regression & Tree-Based ML": { left: "32%", top: 820, width: "54%" },
       "Python 101": { left: "5%", top: 1080, width: "24%" },
     } as Record<string, { left: string; top: number; width: string }>,
-    // ⬇️ nudged right & lower; slightly narrower
-    note: { left: "61.5%", top: 1260, width: "32%" },
+    // ⬇ lowered & ⬅ moved left to align near LR’s bottom-right edge
+    note: { left: "57.5%", top: 1320, width: "34%" },
   },
 };
 
@@ -140,7 +140,8 @@ function ProjectTile({
             loading="lazy"
             decoding="async"
             onError={(e) => {
-              (e.currentTarget as HTMLImageElement).src = "/images/portfolio-basics-avatar.png";
+              (e.currentTarget as HTMLImageElement).src =
+                "/images/portfolio-basics-avatar.png";
             }}
           />
         </div>
