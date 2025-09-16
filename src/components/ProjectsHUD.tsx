@@ -47,6 +47,7 @@ const KEYWORD_BY_TITLE: Record<string, string> = {
   "PortfolioBasics (This Site)": "frontend",
 };
 
+// Predictable heights via aspect-ratio wrappers (prevents overlaps)
 const ASPECT: Record<string, string> = {
   "CGM Patient Analytics": "3 / 4",
   "MyCaddy — Physics Shot Calculator": "3 / 4",
@@ -56,31 +57,33 @@ const ASPECT: Record<string, string> = {
   "Python 101": "2 / 3",
 };
 
-/** Collage layout (kept from your accepted layout). */
+/** Collage layout (kept from accepted layout). */
 const LAYOUT = {
   md: {
     containerHeight: 1950,
     items: {
-      "CGM Patient Analytics": { left: "3%",  top: 0,    width: "28%" },
-      "MyCaddy — Physics Shot Calculator": { left: "36%", top: 110,  width: "26%" },
-      "PortfolioBasics (This Site)":       { left: "66%", top: 200,  width: "31%" },
-      "Real Estate Conditions Comparison (R)": { left: "3%",  top: 480, width: "28%" },
-      "Logistic Regression & Tree-Based ML":   { left: "36%", top: 880, width: "56%" },
+      "CGM Patient Analytics": { left: "3%", top: 0, width: "28%" },
+      "MyCaddy — Physics Shot Calculator": { left: "36%", top: 110, width: "26%" },
+      "PortfolioBasics (This Site)": { left: "66%", top: 200, width: "31%" },
+      "Real Estate Conditions Comparison (R)": { left: "3%", top: 480, width: "28%" },
+      "Logistic Regression & Tree-Based ML": { left: "36%", top: 880, width: "56%" },
       "Python 101": { left: "3%", top: 1080, width: "28%" },
     } as Record<string, { left: string; top: number; width: string }>,
-    note: { left: "60%", top: 1210, width: "36%" }, // pocket under LR, right of Python
+    // ⬇️ nudged right & lower; slightly narrower
+    note: { left: "63%", top: 1320, width: "32%" },
   },
   lg: {
     containerHeight: 1750,
     items: {
-      "CGM Patient Analytics": { left: "5%",  top: 0,    width: "24%" },
-      "MyCaddy — Physics Shot Calculator": { left: "32%", top: 80,   width: "23%" },
-      "PortfolioBasics (This Site)":       { left: "59%", top: 180,  width: "29%" },
-      "Real Estate Conditions Comparison (R)": { left: "5%",  top: 530, width: "24%" },
-      "Logistic Regression & Tree-Based ML":   { left: "32%", top: 820, width: "54%" },
+      "CGM Patient Analytics": { left: "5%", top: 0, width: "24%" },
+      "MyCaddy — Physics Shot Calculator": { left: "32%", top: 80, width: "23%" },
+      "PortfolioBasics (This Site)": { left: "59%", top: 180, width: "29%" },
+      "Real Estate Conditions Comparison (R)": { left: "5%", top: 530, width: "24%" },
+      "Logistic Regression & Tree-Based ML": { left: "32%", top: 820, width: "54%" },
       "Python 101": { left: "5%", top: 1080, width: "24%" },
     } as Record<string, { left: string; top: number; width: string }>,
-    note: { left: "59%", top: 1170, width: "36%" },
+    // ⬇️ nudged right & lower; slightly narrower
+    note: { left: "61.5%", top: 1260, width: "32%" },
   },
 };
 
@@ -102,8 +105,16 @@ function keywordFor(title: string, tech?: string[]) {
 }
 
 function ProjectTile({
-  p, left, top, width,
-}: { p: Project; left: string; top: number; width: string }) {
+  p,
+  left,
+  top,
+  width,
+}: {
+  p: Project;
+  left: string;
+  top: number;
+  width: string;
+}) {
   const img = IMAGE_BY_TITLE[p.title] ?? {
     src: "/images/portfolio-basics-avatar.png",
     alt: `${p.title} preview`,
@@ -116,7 +127,10 @@ function ProjectTile({
       <Link
         href={`/projects/${slug}?via=projects`}
         className="block"
-        onClick={() => typeof window !== "undefined" && window.sessionStorage.setItem("cameFromProjects", "1")}
+        onClick={() =>
+          typeof window !== "undefined" &&
+          window.sessionStorage.setItem("cameFromProjects", "1")
+        }
       >
         <div style={{ aspectRatio: aspect }} className="w-full bg-transparent">
           <img
@@ -125,7 +139,9 @@ function ProjectTile({
             className="w-full h-full object-contain select-none"
             loading="lazy"
             decoding="async"
-            onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/images/portfolio-basics-avatar.png"; }}
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).src = "/images/portfolio-basics-avatar.png";
+            }}
           />
         </div>
       </Link>
@@ -135,7 +151,10 @@ function ProjectTile({
           <Link
             href={`/projects/${slug}?via=projects`}
             className="hover:underline"
-            onClick={() => typeof window !== "undefined" && window.sessionStorage.setItem("cameFromProjects", "1")}
+            onClick={() =>
+              typeof window !== "undefined" &&
+              window.sessionStorage.setItem("cameFromProjects", "1")
+            }
           >
             {p.title}
           </Link>
@@ -148,7 +167,10 @@ function ProjectTile({
       {Array.isArray(p.tech) && p.tech.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-2">
           {p.tech.slice(0, 4).map((t) => (
-            <span key={t} className="text-[10px] md:text-[11px] px-2 py-0.5 rounded-full bg-white/5 text-white/70">
+            <span
+              key={t}
+              className="text-[10px] md:text-[11px] px-2 py-0.5 rounded-full bg-white/5 text-white/70"
+            >
               {t}
             </span>
           ))}
@@ -158,13 +180,20 @@ function ProjectTile({
   );
 }
 
-/** Blurb + reference-style note (no bullets; skinny left label column). */
-function BlurbAndNote({ left, top, width }: { left: string; top: number; width: string }) {
+/** Blurb + reference-style note (md+ only). */
+function BlurbAndNote({
+  left,
+  top,
+  width,
+}: {
+  left: string;
+  top: number;
+  width: string;
+}) {
   return (
     <div
-      className="absolute hidden md:block select-none"
+      className="absolute hidden md:block pointer-events-none"
       style={{ left, top, width }}
-      id="projects-showcase-note"
     >
       {/* Blurb */}
       <p className="text-[15px] leading-tight text-white/85 mb-4">
@@ -172,35 +201,32 @@ function BlurbAndNote({ left, top, width }: { left: string; top: number; width: 
         rigorous, documented, and usable.
       </p>
 
-      {/* Two columns: label (fixed) + stacked lines (flex) */}
+      {/* Two-column note (no bullets) */}
       <div className="grid grid-cols-[8.5rem,1fr] gap-x-6">
-        {/* Label — two short lines, normal case */}
+        {/* Label */}
         <div className="text-[12px] leading-tight text-white/60 font-medium">
           <div>Showcase</div>
           <div>Highlights</div>
         </div>
 
-        {/* Stacked lines — no bullets, hard bullet suppression in case of globals */}
-        <ul
-          className="flex flex-col gap-2 text-[14px] leading-snug text-white/85 list-none"
-          style={{ listStyleType: "none", paddingLeft: 0, margin: 0 }}
-        >
-          <li className="marker:content-['']">
+        {/* Lines */}
+        <div className="flex flex-col gap-2 text-[14px] leading-snug text-white/85">
+          <div>
             <span className="font-semibold">96.2% accuracy (AUC 93.8%)</span> on employee-retention models
-          </li>
-          <li className="marker:content-['']">
+          </div>
+          <div>
             <span className="font-semibold">$317k patient responsibility</span> surfaced; CSV → Python → Excel export
-          </li>
-          <li className="marker:content-['']">
+          </div>
+          <div>
             <span className="font-semibold">2.3k-home pricing model (R)</span> — 60+ features, RMSE-driven selection
-          </li>
-          <li className="marker:content-['']">
+          </div>
+          <div>
             <span className="font-semibold">Physics-based golf yardage</span> calculator (wind, temp, lie)
-          </li>
-          <li className="marker:content-['']">
+          </div>
+          <div>
             <span className="font-semibold">Next.js portfolio</span> with README-driven project pages
-          </li>
-        </ul>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -226,7 +252,10 @@ export default function ProjectsHUD() {
             <Link
               href={`/projects/${slug}?via=projects`}
               className="block"
-              onClick={() => typeof window !== "undefined" && window.sessionStorage.setItem("cameFromProjects", "1")}
+              onClick={() =>
+                typeof window !== "undefined" &&
+                window.sessionStorage.setItem("cameFromProjects", "1")
+              }
             >
               <div style={{ aspectRatio: aspect }} className="w-full">
                 <img src={img.src} alt={img.alt} className="w-full h-full object-contain" />
@@ -237,7 +266,10 @@ export default function ProjectsHUD() {
                 <Link
                   href={`/projects/${slug}?via=projects`}
                   className="hover:underline"
-                  onClick={() => typeof window !== "undefined" && window.sessionStorage.setItem("cameFromProjects", "1")}
+                  onClick={() =>
+                    typeof window !== "undefined" &&
+                    window.sessionStorage.setItem("cameFromProjects", "1")
+                  }
                 >
                   {p.title}
                 </Link>
@@ -262,7 +294,9 @@ export default function ProjectsHUD() {
       className="relative w-full py-20 md:py-28 scroll-mt-24 md:scroll-mt-28"
     >
       <div className="mx-auto max-w-7xl px-6">
-        <h2 className="text-2xl md:text-3xl font-semibold tracking-tight mb-8">Projects</h2>
+        <h2 className="text-2xl md:text-3xl font-semibold tracking-tight mb-8">
+          Projects
+        </h2>
 
         {/* Mobile stacked */}
         {mobile}
@@ -273,7 +307,15 @@ export default function ProjectsHUD() {
             const p = projects.find((x) => x.title === title);
             if (!p) return null;
             const pos = md.items[title];
-            return <ProjectTile key={`md-${title}`} p={p} left={pos.left} top={pos.top} width={pos.width} />;
+            return (
+              <ProjectTile
+                key={`md-${title}`}
+                p={p}
+                left={pos.left}
+                top={pos.top}
+                width={pos.width}
+              />
+            );
           })}
           <BlurbAndNote left={md.note.left} top={md.note.top} width={md.note.width} />
         </div>
@@ -284,7 +326,15 @@ export default function ProjectsHUD() {
             const p = projects.find((x) => x.title === title);
             if (!p) return null;
             const pos = lg.items[title];
-            return <ProjectTile key={`lg-${title}`} p={p} left={pos.left} top={pos.top} width={pos.width} />;
+            return (
+              <ProjectTile
+                key={`lg-${title}`}
+                p={p}
+                left={pos.left}
+                top={pos.top}
+                width={pos.width}
+              />
+            );
           })}
           <BlurbAndNote left={lg.note.left} top={lg.note.top} width={lg.note.width} />
         </div>
