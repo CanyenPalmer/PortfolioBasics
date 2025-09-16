@@ -58,8 +58,8 @@ const ASPECT: Record<string, string> = {
 };
 
 /**
- * Custom collage layout (no overlap). Tuned from our last pass.
- * Raised container heights slightly to fit the blurb + note block.
+ * Custom collage layout (no overlap). Tuned from our last accepted pass.
+ * Container heights slightly raised to fit the blurb + note block.
  */
 const LAYOUT = {
   md: {
@@ -72,7 +72,8 @@ const LAYOUT = {
       "Logistic Regression & Tree-Based ML":   { left: "36%", top: 880, width: "56%" },
       "Python 101": { left: "3%", top: 1080, width: "28%" },
     } as Record<string, { left: string; top: number; width: string }>,
-    note: { left: "62%", top: 1280, width: "33%" }, // under LR, right of Python 101
+    // Note pocket: under LR, to the right of Python 101
+    note: { left: "60.5%", top: 1220, width: "35%" },
   },
   lg: {
     containerHeight: 1750,
@@ -84,11 +85,11 @@ const LAYOUT = {
       "Logistic Regression & Tree-Based ML":   { left: "32%", top: 820, width: "54%" },
       "Python 101": { left: "5%", top: 1080, width: "24%" },
     } as Record<string, { left: string; top: number; width: string }>,
-    note: { left: "60%", top: 1220, width: "33%" }, // under LR, right of Python 101
+    note: { left: "59.5%", top: 1180, width: "35%" },
   },
 };
 
-// Visual order (helps focus order + matching to image map)
+// Visual order (helps focus order + image map)
 const TILE_ORDER = [
   "CGM Patient Analytics",
   "MyCaddy — Physics Shot Calculator",
@@ -183,6 +184,7 @@ function ProjectTile({
   );
 }
 
+/** Reference-style blurb + note (md+ only). */
 function BlurbAndNote({
   left,
   top,
@@ -193,25 +195,39 @@ function BlurbAndNote({
   width: string;
 }) {
   return (
-    <div className="absolute" style={{ left, top, width }}>
-      {/* Blurb (on top) */}
-      <p className="text-[13px] leading-snug text-white/80 mb-3">
+    <div className="absolute hidden md:block" style={{ left, top, width }}>
+      {/* Blurb (on top, single sentence) */}
+      <p className="text-[15px] leading-tight text-white/85 mb-4">
         I carry projects from messy data to maintainable tools—analyses, models, and apps that are
         rigorous, documented, and usable.
       </p>
 
-      {/* Note block (two skinny columns like the reference) */}
-      <div className="grid grid-cols-[auto,1fr] gap-x-4 gap-y-1">
-        <div className="text-[11px] uppercase tracking-wide text-white/60 pt-1">
-          Showcase Highlights
+      {/* Two-column note: skinny label + stacked lines (no bullets) */}
+      <div className="grid grid-cols-[9rem,1fr] gap-x-6">
+        {/* Label (two lines, normal case) */}
+        <div className="text-[12px] leading-tight text-white/60 font-medium">
+          <div>Showcase</div>
+          <div>Highlights</div>
         </div>
-        <ul className="list-disc list-outside pl-4 text-[13px] leading-relaxed text-white/80 space-y-1">
-          <li><strong>96.2% accuracy (AUC 93.8%)</strong> on employee-retention models</li>
-          <li><strong>$317k patient responsibility</strong> surfaced; CSV → Python → Excel export</li>
-          <li><strong>2.3k-home pricing model (R)</strong> — 60+ features, RMSE-driven selection</li>
-          <li><strong>Physics-based golf yardage</strong> calculator (wind, temp, lie)</li>
-          <li><strong>Next.js portfolio</strong> with README-driven project pages</li>
-        </ul>
+
+        {/* Lines (plain stack, subtle emphasis) */}
+        <div className="flex flex-col gap-2 text-[14px] leading-snug text-white/85">
+          <div>
+            <span className="font-semibold">96.2% accuracy (AUC 93.8%)</span> on employee-retention models
+          </div>
+          <div>
+            <span className="font-semibold">$317k patient responsibility</span> surfaced; CSV → Python → Excel export
+          </div>
+          <div>
+            <span className="font-semibold">2.3k-home pricing model (R)</span> — 60+ features, RMSE-driven selection
+          </div>
+          <div>
+            <span className="font-semibold">Physics-based golf yardage</span> calculator (wind, temp, lie)
+          </div>
+          <div>
+            <span className="font-semibold">Next.js portfolio</span> with README-driven project pages
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -220,7 +236,7 @@ function BlurbAndNote({
 export default function ProjectsHUD() {
   const projects = ((profile as any)?.projects ?? []) as ReadonlyArray<Project>;
 
-  // Mobile: simple stack (note/blurb hidden on mobile by design)
+  // Mobile: simple stack (note/blurb hidden on mobile)
   const mobile = (
     <div className="md:hidden space-y-10">
       {TILE_ORDER.map((title) => {
@@ -286,7 +302,7 @@ export default function ProjectsHUD() {
         {/* Mobile stacked */}
         {mobile}
 
-        {/* md+ collage */}
+        {/* md collage */}
         <div className="relative hidden md:block lg:hidden" style={{ height: md.containerHeight }}>
           {TILE_ORDER.map((title) => {
             const p = projects.find((x) => x.title === title);
