@@ -21,8 +21,8 @@ export default function Page() {
       <VscodeTopBar
         signature="Canyen Palmer"
         resumeHref="/Canyen_Palmer_Resume.pdf"
-        linkedinHref="https://www.linkedin.com/in/your-handle"
-        githubHref="https://github.com/your-handle"
+        linkedinHref="https://www.linkedin.com/in/canyen-palmer/"
+        githubHref="https://github.com/CanyenPalmer"
       />
 
       {/* HERO — wrapper keeps props; now sized like a page */}
