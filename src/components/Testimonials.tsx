@@ -22,15 +22,6 @@ type Testimonial = {
 
 /**
  * Testimonials — Clean 2×2 (No Cards, No Frames)
- *
- * Desktop (lg+):
- *   TL — Text (C. Smith / MyCaddy)
- *   TR — Avatar (smith-avatar.png)   [transparent, free; no bg]
- *   BL — Avatar (waterman-avatar.png)[transparent, free; no bg]
- *   BR — Text (G. Waterman / Best-Bet)
- *
- * Tablet: two rows (text + avatar for pair 1; avatar + text for pair 2)
- * Mobile: each pair stacks (text above avatar) for readability
  */
 
 function TestimonialsComponent() {
@@ -70,7 +61,6 @@ function TestimonialsComponent() {
           Testimonials
         </h2>
 
-        {/* 2×2 board, no visible frames */}
         <div
           className={`
             grid gap-8
@@ -108,12 +98,10 @@ function TestimonialsComponent() {
   );
 }
 
-/* Named export expected by your app and re-exported by components/Testimonials/index.ts */
 export function Testimonials() {
   return <TestimonialsComponent />;
 }
 
-/* Default export for `import Testimonials from ...` */
 export default function DefaultExportedTestimonials() {
   return <TestimonialsComponent />;
 }
@@ -134,7 +122,7 @@ function TextBlock({ t, className }: { t: Testimonial; className?: string }) {
       transition={{ duration: 0.45 }}
       className={["relative", className ?? ""].join(" ")}
     >
-      {/* Header (no frame) */}
+      {/* Header */}
       <div className="flex flex-col">
         {t.app ? (
           <div className="font-mono text-[11px] uppercase tracking-widest text-cyan-300/80">
@@ -156,9 +144,9 @@ function TextBlock({ t, className }: { t: Testimonial; className?: string }) {
         ) : null}
       </div>
 
-      {/* Details (inline, no cards) */}
+      {/* Details (moved down further) */}
       {(hasBefore || hasAfter) && (
-        <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2">
+        <div className="mt-16 grid grid-cols-1 gap-5 sm:grid-cols-2">
           <div>
             <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-rose-300/90">
               {t.beforeTitle ?? "Before"}
@@ -215,7 +203,7 @@ function AvatarFree({
       transition={{ duration: 0.45 }}
       className={["relative", className ?? ""].join(" ")}
     >
-      {/* Transparent PNG only — no background, no border, no frame */}
+      {/* Transparent PNG only */}
       <div className="relative mx-auto w-full max-w-[520px]">
         <Image
           src={src}
@@ -257,10 +245,9 @@ function SinglePair({ t }: { t: Testimonial }) {
 
 /* -------------------- Helpers -------------------- */
 
-/** Map names → avatar files in /public/images/ */
 function pickAvatarSrc(name?: string): string {
   const n = (name ?? "").toLowerCase();
   if (n.includes("smith") || n.includes("c. smith")) return "/images/smith-avatar.png";
   if (n.includes("waterman") || n.includes("g. waterman")) return "/images/waterman-avatar.png";
-  return "/images/avatar.png"; // your existing default
+  return "/images/avatar.png";
 }
