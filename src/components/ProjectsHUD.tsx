@@ -10,41 +10,42 @@ type Project = {
   links?: { label?: string; href: string }[];
 };
 
-// If you already have specific filenames, map them here.
-// Otherwise we’ll auto-generate a slug filename and fall back cleanly.
-const EXPLICIT_IMAGES: Record<string, string> = {
-  "CGM Patient Analytics": "/images/projects/cgm-patient.png",
-  "Logistic Regression & Tree-Based ML": "/images/projects/logistic-regression.png",
-  "Real Estate GLM (R)": "/images/projects/real-estate-glm.png",
-  "Python 101": "/images/projects/python-101.png",
-  "MyCaddy": "/images/projects/mycaddy.png",
-  "Portfolio (This Site)": "/images/projects/portfolio-basics.png",
+const IMAGE_BY_TITLE: Record<string, { src: string; alt: string }> = {
+  "CGM Patient Analytics": {
+    src: "/images/cgm-patient-avatar.png",
+    alt: "CGM Patient Analytics preview",
+  },
+  "Logistic Regression & Tree-Based ML": {
+    src: "/images/logistic-regression-avatar.png",
+    alt: "Logistic & Tree-Based ML preview",
+  },
+  "Real Estate Conditions Comparison (R)": {
+    src: "/images/real-estate-avatar.png",
+    alt: "Real Estate GLM (R) preview",
+  },
+  "Python 101": {
+    src: "/images/python-101-avatar.png",
+    alt: "Python 101 preview",
+  },
+  "MyCaddy — Physics Shot Calculator": {
+    src: "/images/mycaddy-avatar.png",
+    alt: "MyCaddy app preview",
+  },
+  "PortfolioBasics (This Site)": {
+    src: "/images/portfolio-basics-avatar.png",
+    alt: "Portfolio website preview",
+  },
 };
 
 const KEYWORD_BY_TITLE: Record<string, string> = {
   "CGM Patient Analytics": "predictive-analysis",
   "Logistic Regression & Tree-Based ML": "machine-learning",
-  "Real Estate GLM (R)": "regression-analysis",
+  "Real Estate Conditions Comparison (R)": "statistics",
   "Python 101": "education",
-  "MyCaddy": "tooling",
-  "Portfolio (This Site)": "frontend",
+  "MyCaddy — Physics Shot Calculator": "data-pipeline",
+  "PortfolioBasics (This Site)": "frontend",
 };
 
-function slugifyTitle(t: string) {
-  return t
-    .toLowerCase()
-    .replace(/&/g, "and")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
-
-/**
- * ProjectsHUD — minimal, masonry collection (no neon, no frames).
- * - Clean header: just "Projects"
- * - Masonry via CSS columns
- * - Images are NOT cropped (object-contain; natural height)
- * - Uses <img> with onError fallback to avoid Next/Image config issues
- */
 export default function ProjectsHUD() {
   const projects = ((profile as any)?.projects ?? []) as ReadonlyArray<Project>;
 
@@ -54,22 +55,19 @@ export default function ProjectsHUD() {
       aria-label="Projects"
       className="relative w-full py-20 md:py-28 scroll-mt-24 md:scroll-mt-28"
     >
-      {/* Minimal header (no VSCode frame, no neon) */}
+      {/* Minimal header (no frames, no neon) */}
       <div className="mx-auto max-w-6xl px-6">
         <h2 className="text-2xl md:text-3xl font-semibold tracking-tight mb-8">
           Projects
         </h2>
 
-        {/* Masonry columns like your reference */}
-        <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-6 [column-fill:_balance]">
+        {/* Masonry layout (like your reference) */}
+        <div className="columns-1 sm:columns-2 lg:columns-3 gap-6 [column-fill:_balance]">
           {projects.map((p, idx) => {
-            // Determine image src:
-            // 1) explicit mapping if provided
-            // 2) else /images/projects/<slug>.png
-            const slug = slugifyTitle(p.title);
-            const src =
-              EXPLICIT_IMAGES[p.title] ?? `/images/projects/${slug}.png`;
-
+            const img = IMAGE_BY_TITLE[p.title] ?? {
+              src: "/images/portfolio-basics-avatar.png",
+              alt: `${p.title} preview`,
+            };
             const keyword =
               KEYWORD_BY_TITLE[p.title] ??
               (p.tech?.some((t) => /scikit-learn|xgboost|lightgbm/i.test(t))
@@ -96,18 +94,17 @@ export default function ProjectsHUD() {
                   whileHover={{ y: -2 }}
                   transition={{ type: "spring", stiffness: 220, damping: 18 }}
                 >
-                  {/* Image: no cropping, scales down if needed */}
+                  {/* No cropping: full image shown */}
                   <img
-                    src={src}
-                    alt={`${p.title} preview`}
+                    src={img.src}
+                    alt={img.alt}
                     className="w-full h-auto object-contain select-none"
-                    onError={(e) => {
-                      // fallback if file not found
-                      (e.currentTarget as HTMLImageElement).src =
-                        "/images/projects/fallback.png";
-                    }}
                     loading={idx < 2 ? "eager" : "lazy"}
                     decoding="async"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src =
+                        "/images/portfolio-basics-avatar.png";
+                    }}
                   />
                 </motion.a>
 
@@ -116,15 +113,12 @@ export default function ProjectsHUD() {
                   <h3 className="text-base md:text-lg font-medium tracking-tight">
                     {p.title}
                   </h3>
-                  <span
-                    className="text-[11px] md:text-xs uppercase tracking-wide text-white/60"
-                    title={keyword}
-                  >
+                  <span className="text-[11px] md:text-xs uppercase tracking-wide text-white/60">
                     {keyword}
                   </span>
                 </div>
 
-                {/* (Optional) tiny tech badges; subtle only */}
+                {/* Subtle tech badges (optional) */}
                 {Array.isArray(p.tech) && p.tech.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-2">
                     {p.tech.slice(0, 4).map((t) => (
