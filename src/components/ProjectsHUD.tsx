@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { profile } from "@/content/profile";
-import { motion } from "framer-motion";
 
 type Project = {
   title: string;
@@ -46,38 +45,32 @@ const KEYWORD_BY_TITLE: Record<string, string> = {
   "PortfolioBasics (This Site)": "frontend",
 };
 
-/** Small, tasteful angle variety (straightens on hover) */
+// gentle angle options (small enough to avoid clipping neighbors)
 const ROTATE = [
-  "md:-rotate-[1.2deg]",
-  "md:rotate-[0.8deg]",
-  "md:-rotate-[0.6deg]",
-  "md:rotate-[1deg]",
   "md:-rotate-[0.4deg]",
+  "md:rotate-[0.4deg]",
+  "md:-rotate-[0.6deg]",
   "md:rotate-[0.6deg]",
 ];
 
-/** Vertical offsets (to break any hint of rows) */
-const OFFSET_Y = [
-  "md:mt-0",
-  "md:mt-8",
-  "md:mt-16",
-  "md:-mt-6",
-  "md:mt-12",
-  "md:mt-20",
-];
+// vertical offsets to break rows (margins affect layout → no overlap)
+const OFFSET_Y = ["md:mt-0", "md:mt-6", "md:mt-12", "md:mt-16", "md:mt-8"];
 
-/** Horizontal drifts; gentle so we never hit the page walls */
-const DRIFT_X = [
-  "md:translate-x-[-4%]",
-  "md:translate-x-[3%]",
-  "md:translate-x-[-2%]",
-  "md:translate-x-[5%]",
-  "md:translate-x-[-5%]",
-  "md:translate-x-[2%]",
-];
+// small horizontal breathing via margins (no translate → no overlap)
+const DRIFT_X = ["md:ml-0", "md:ml-2", "md:mr-2", "md:ml-4", "md:mr-4"];
 
 export default function ProjectsHUD() {
-  const projects = ((profile as any)?.projects ?? []) as ReadonlyArray<Project>;
+  const all = ((profile as any)?.projects ?? []) as ReadonlyArray<Project>;
+
+  // Pull out the feature (Logistic Regression) so we can show it full-width
+  const featureIdx = all.findIndex((p) =>
+    p.title.toLowerCase().includes("logistic regression")
+  );
+  const feature = featureIdx >= 0 ? all[featureIdx] : null;
+  const rest =
+    featureIdx >= 0
+      ? [...all.slice(0, featureIdx), ...all.slice(featureIdx + 1)]
+      : all;
 
   return (
     <section
@@ -91,18 +84,64 @@ export default function ProjectsHUD() {
           Projects
         </h2>
 
-        {/* Collage container:
-            - 1 column on mobile, 2 columns on md+
-            - columns prevent hard rows; our offsets/rotations add scatter
-         */}
-        <div className="columns-1 md:columns-2 gap-10 [column-fill:_balance]">
-          {projects.map((p, idx) => {
+        {/* ===================== FEATURE (full width) ===================== */}
+        {feature && (
+          <article className="mb-12">
+            <a
+              href={feature.links?.[0]?.href ?? "#"}
+              target={feature.links?.[0]?.href ? "_blank" : undefined}
+              rel={feature.links?.[0]?.href ? "noreferrer" : undefined}
+              className="block"
+            >
+              <img
+                src={
+                  IMAGE_BY_TITLE[feature.title]?.src ??
+                  "/images/portfolio-basics-avatar.png"
+                }
+                alt={
+                  IMAGE_BY_TITLE[feature.title]?.alt ??
+                  `${feature.title} preview`
+                }
+                className="w-full h-auto object-contain select-none"
+                // full width + generous vertical space gives it clear primacy
+                loading="eager"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src =
+                    "/images/portfolio-basics-avatar.png";
+                }}
+              />
+            </a>
+            <div className="mt-4 flex items-baseline justify-between gap-3">
+              <h3 className="text-lg md:text-xl font-semibold tracking-tight">
+                {feature.title}
+              </h3>
+              <span className="text-[11px] md:text-xs uppercase tracking-wide text-white/60">
+                {KEYWORD_BY_TITLE[feature.title] ?? "project"}
+              </span>
+            </div>
+            {Array.isArray(feature.tech) && feature.tech.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {feature.tech.slice(0, 5).map((t) => (
+                  <span
+                    key={t}
+                    className="text-[10px] md:text-[11px] px-2 py-0.5 rounded-full bg-white/5 text-white/70"
+                  >
+                    {t}
+                  </span>
+                ))}
+              </div>
+            )}
+          </article>
+        )}
+
+        {/* ================ COLLAGE (1–2 across, scattered) ================ */}
+        <div className="columns-1 md:columns-2 gap-8 [column-fill:_balance]">
+          {rest.map((p, idx) => {
             const img = IMAGE_BY_TITLE[p.title] ?? {
               src: "/images/portfolio-basics-avatar.png",
               alt: `${p.title} preview`,
             };
             const href = p.links?.[0]?.href;
-
             const keyword =
               KEYWORD_BY_TITLE[p.title] ??
               (p.tech?.some((t) => /scikit-learn|xgboost|lightgbm/i.test(t))
@@ -113,61 +152,41 @@ export default function ProjectsHUD() {
                 ? "data-pipeline"
                 : "project");
 
-            const isFeature =
-              p.title.toLowerCase().includes("logistic regression");
-
+            // choose scatter classes deterministically by index
             const rotate = ROTATE[idx % ROTATE.length];
-            const offsetY = OFFSET_Y[idx % OFFSET_Y.length];
-            const driftX = DRIFT_X[idx % DRIFT_X.length];
+            const oy = OFFSET_Y[idx % OFFSET_Y.length];
+            const dx = DRIFT_X[idx % DRIFT_X.length];
 
             return (
               <article
                 key={`${p.title}-${idx}`}
                 className={[
                   "mb-10 inline-block w-full break-inside-avoid",
-                  offsetY,
+                  oy,
+                  dx,
                 ].join(" ")}
               >
-                <motion.a
+                {/* PURE IMAGE — no borders/rings/backgrounds */}
+                <a
                   href={href ?? "#"}
                   target={href ? "_blank" : undefined}
                   rel={href ? "noreferrer" : undefined}
-                  className={[
-                    // PURE IMAGE — no bg, no ring, no border
-                    "block overflow-visible",
-                    rotate,
-                    driftX,
-                    // gentle breathing room so drifts never touch walls
-                    "px-0 md:px-1",
-                  ].join(" ")}
-                  initial={{ y: 0, rotate: 0 }}
-                  whileHover={{ y: -6, rotate: 0 }}
-                  transition={{ type: "spring", stiffness: 240, damping: 20 }}
+                  className={["block", rotate].join(" ")}
                 >
-                  {/* No cropping: natural size; feature gets a larger scale */}
                   <img
                     src={img.src}
                     alt={img.alt}
-                    className={[
-                      "w-full h-auto object-contain select-none",
-                      isFeature ? "md:scale-[1.6] origin-center" : "md:scale-100",
-                    ].join(" ")}
-                    style={{
-                      // Make sure even the scaled feature doesn't bust the page walls.
-                      maxWidth: isFeature ? "92%" : "100%",
-                      marginLeft: isFeature ? "4%" : "0",
-                      marginRight: isFeature ? "4%" : "0",
-                    }}
-                    loading={idx < 2 ? "eager" : "lazy"}
+                    className="w-full h-auto object-contain select-none"
+                    loading="lazy"
                     decoding="async"
                     onError={(e) => {
                       (e.currentTarget as HTMLImageElement).src =
                         "/images/portfolio-basics-avatar.png";
                     }}
                   />
-                </motion.a>
+                </a>
 
-                {/* Title (left) + keyword (right) — keep minimal */}
+                {/* Title (left) + keyword (right) */}
                 <div className="mt-3 flex items-baseline justify-between gap-3">
                   <h3 className="text-base md:text-lg font-medium tracking-tight">
                     {p.title}
@@ -177,7 +196,7 @@ export default function ProjectsHUD() {
                   </span>
                 </div>
 
-                {/* Tech badges (optional + subtle) */}
+                {/* Subtle tech badges */}
                 {Array.isArray(p.tech) && p.tech.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-2">
                     {p.tech.slice(0, 4).map((t) => (
