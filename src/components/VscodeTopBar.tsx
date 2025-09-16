@@ -1,21 +1,19 @@
 "use client";
 
 import * as React from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 
 /**
  * VscodeTopBar — translucent, fixed header that:
- *  - shows ONLY on sections: about, experience, projects, education, testimonials
- *  - fades in entering "about" and fades out after "testimonials"
+ *  - shows ONLY across: about → experience → projects → education → testimonials
+ *  - fades in when entering "about", fades out after leaving "testimonials"
  *  - removes the left color dots; shows just signature, tabs, and contact links
  *
- * Props preserved from your current layout usage:
- *  - signature: string
- *  - resumeHref: string
- *  - linkedinHref: string
- *  - githubHref: string
+ * Props:
+ *  - signature (required)
+ *  - resumeHref / linkedinHref / githubHref (optional)
  */
 
 type Props = {
@@ -68,11 +66,12 @@ function IconFileText(props: React.SVGProps<SVGSVGElement>) {
 export default function VscodeTopBar({
   signature,
   resumeHref = "/Canyen_Palmer_Resume.pdf",
-  linkedinHref = "https://www.linkedin.com/in/your-handle",
-  githubHref = "https://github.com/your-handle",
+  linkedinHref = "https://www.linkedin.com/in/canyen-palmer-b0b6762a0",
+  githubHref = "https://github.com/CanyenPalmer",
 }: Props) {
   const [visible, setVisible] = useState(false);
   const [active, setActive] = useState<string | null>(null);
+  const rafRef = useRef<number | null>(null);
 
   const tabs = useMemo(
     () =>
@@ -84,6 +83,43 @@ export default function VscodeTopBar({
     []
   );
 
+  /* -------- Visibility band: show between #about top and #testimonials bottom -------- */
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const about = document.getElementById("about");
+    const testimonials = document.getElementById("testimonials");
+    if (!about || !testimonials) return;
+
+    const computeVisible = () => {
+      const aRect = about.getBoundingClientRect();
+      const tRect = testimonials.getBoundingClientRect();
+      const vh = window.innerHeight;
+
+      // When any part of ABOUT is within ~90% viewport height, we can consider it "entered".
+      const aboutEntered = aRect.top <= vh * 0.9;
+      // Keep visible until TESTIMONIALS has fully scrolled past the top by a small margin.
+      const beforeTestimonialsEnd = tRect.bottom >= 40; // 40px tolerance to avoid flicker at the boundary
+
+      setVisible(aboutEntered && beforeTestimonialsEnd);
+    };
+
+    const onScroll = () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(computeVisible);
+    };
+
+    computeVisible(); // initial
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, []);
+
+  /* -------- Active tab: intersection observer with generous rootMargin to prevent flicker -------- */
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -94,30 +130,24 @@ export default function VscodeTopBar({
     if (targets.length === 0) return;
 
     const onIntersect: IntersectionObserverCallback = (entries) => {
-      // Determine if we're anywhere in the observed band and pick the most visible as active
-      let anyVisible = false;
+      // pick the highest ratio entry as active
       let bestId: string | null = null;
       let bestRatio = 0;
-
       for (const entry of entries) {
-        const id = entry.target.id;
-        if (entry.isIntersecting) {
-          anyVisible = true;
-          if (entry.intersectionRatio > bestRatio) {
-            bestRatio = entry.intersectionRatio;
-            bestId = id;
-          }
+        if (entry.isIntersecting && entry.intersectionRatio >= bestRatio) {
+          bestRatio = entry.intersectionRatio;
+          bestId = (entry.target as HTMLElement).id;
         }
       }
-
-      setVisible(anyVisible);
       if (bestId) setActive(bestId);
     };
 
     const observer = new IntersectionObserver(onIntersect, {
       root: null,
-      // Multiple thresholds so we get a nice active-tab update as you scroll
-      threshold: [0.12, 0.25, 0.4, 0.6, 0.8],
+      // Expand viewport top/bottom so a section counts as "in view" earlier and longer.
+      // This prevents the active tab from dropping out between sections.
+      rootMargin: "30% 0px 30% 0px",
+      threshold: [0, 0.1, 0.25, 0.5, 0.75, 1],
     });
 
     targets.forEach((el) => observer.observe(el));
