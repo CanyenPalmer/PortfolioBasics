@@ -46,6 +46,26 @@ const KEYWORD_BY_TITLE: Record<string, string> = {
   "PortfolioBasics (This Site)": "frontend",
 };
 
+// small, tasteful angle variety (straightens on hover)
+const ROTATE_CLASSES = [
+  "md:-rotate-[0.6deg]",
+  "md:rotate-[0.6deg]",
+  "md:-rotate-[1deg]",
+  "md:rotate-[0.8deg]",
+  "md:-rotate-[0.4deg]",
+  "md:rotate-[0.4deg]",
+];
+
+// vertical offsets to break alignment (masonry already helps; this exaggerates it)
+const OFFSET_CLASSES = [
+  "md:mt-0",
+  "md:mt-6",
+  "md:mt-12",
+  "md:-mt-4",
+  "md:mt-10",
+  "md:mt-16",
+];
+
 export default function ProjectsHUD() {
   const projects = ((profile as any)?.projects ?? []) as ReadonlyArray<Project>;
 
@@ -55,19 +75,20 @@ export default function ProjectsHUD() {
       aria-label="Projects"
       className="relative w-full py-20 md:py-28 scroll-mt-24 md:scroll-mt-28"
     >
-      {/* Minimal header */}
       <div className="mx-auto max-w-6xl px-6">
+        {/* Minimal header */}
         <h2 className="text-2xl md:text-3xl font-semibold tracking-tight mb-8">
           Projects
         </h2>
 
-        {/* Collage grid: max 2 per row, with intentional stagger */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* TRUE collage: CSS columns (1–2 only) + break-inside-avoid */}
+        <div className="columns-1 md:columns-2 gap-8 [column-fill:_balance]">
           {projects.map((p, idx) => {
             const img = IMAGE_BY_TITLE[p.title] ?? {
               src: "/images/portfolio-basics-avatar.png",
               alt: `${p.title} preview`,
             };
+            const href = p.links?.[0]?.href;
 
             const keyword =
               KEYWORD_BY_TITLE[p.title] ??
@@ -79,48 +100,39 @@ export default function ProjectsHUD() {
                 ? "data-pipeline"
                 : "project");
 
-            const href = p.links?.[0]?.href;
-
-            // Make Logistic Regression feature-sized (≈2×): span both columns on md+
-            const isFeature =
-              p.title.toLowerCase().includes("logistic regression");
-
-            // Gentle collage offsets so rows don’t align perfectly
-            const stagger =
-              idx % 4 === 1
-                ? "md:mt-8"
-                : idx % 4 === 2
-                ? "md:mt-16"
-                : idx % 6 === 5
-                ? "md:-mt-6"
-                : "";
+            const isFeature = p.title.toLowerCase().includes("logistic regression");
+            const rotate = ROTATE_CLASSES[idx % ROTATE_CLASSES.length];
+            const offset = OFFSET_CLASSES[idx % OFFSET_CLASSES.length];
 
             return (
               <article
                 key={`${p.title}-${idx}`}
                 className={[
-                  "w-full break-inside-avoid",
-                  "inline-block", // ensures height sizing plays nice
-                  isFeature ? "md:col-span-2" : "",
-                  stagger,
+                  "mb-8 inline-block w-full break-inside-avoid",
+                  offset,
                 ].join(" ")}
               >
                 <motion.a
                   href={href ?? "#"}
                   target={href ? "_blank" : undefined}
                   rel={href ? "noreferrer" : undefined}
-                  className="block overflow-hidden rounded-xl bg-[#111418] ring-1 ring-white/5"
-                  initial={{ y: 0 }}
-                  whileHover={{ y: -2 }}
-                  transition={{ type: "spring", stiffness: 220, damping: 18 }}
+                  className={[
+                    "block rounded-xl bg-[#111418] ring-1 ring-white/5 overflow-hidden",
+                    rotate,
+                    // a bit more padding on feature to visually enlarge & give breathing room
+                    isFeature ? "p-3 md:p-4" : "p-2",
+                  ].join(" ")}
+                  initial={{ y: 0, rotate: 0 }}
+                  whileHover={{ y: -4, rotate: 0 }}
+                  transition={{ type: "spring", stiffness: 240, damping: 20 }}
                 >
-                  {/* No cropping: scale naturally; feature tile appears ~2× by spanning two columns */}
+                  {/* No cropping: natural size; feature gets a mild scale bump */}
                   <img
                     src={img.src}
                     alt={img.alt}
                     className={[
                       "w-full h-auto object-contain select-none",
-                      isFeature ? "md:p-2" : "", // tiny breathing room on feature
+                      isFeature ? "md:scale-110" : "",
                     ].join(" ")}
                     loading={idx < 2 ? "eager" : "lazy"}
                     decoding="async"
@@ -131,7 +143,7 @@ export default function ProjectsHUD() {
                   />
                 </motion.a>
 
-                {/* Title (left) + one-word footnote (right) */}
+                {/* Title (left) + keyword (right) */}
                 <div className="mt-3 flex items-baseline justify-between gap-3">
                   <h3 className="text-base md:text-lg font-medium tracking-tight">
                     {p.title}
