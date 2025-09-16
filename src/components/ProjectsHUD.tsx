@@ -12,29 +12,33 @@ type Project = {
   links?: { label?: string; href: string }[];
 };
 
+//
+// 🔧 Map project titles → image files you’ve placed in /public/images/projects/*
+// Update the paths below to match your actual filenames.
+//
 const IMAGE_BY_TITLE: Record<string, { src: string; alt: string }> = {
   "CGM Patient Analytics": {
-    src: "/images/cgm-patient-avatar.png",
+    src: "/images/projects/cgm-patient.png",
     alt: "CGM Patient Analytics preview",
   },
   "Logistic Regression & Tree-Based ML": {
-    src: "/images/logistic-regression-avatar.png",
+    src: "/images/projects/logistic-regression.png",
     alt: "Logistic & Tree-Based ML preview",
   },
   "Real Estate GLM (R)": {
-    src: "/images/real-estate-avatar.png",
+    src: "/images/projects/real-estate-glm.png",
     alt: "Real Estate GLM preview",
   },
   "Python 101": {
-    src: "/images/python-101-avatar.png",
+    src: "/images/projects/python-101.png",
     alt: "Python 101 preview",
   },
   "MyCaddy": {
-    src: "/images/mycaddy-avatar.png",
+    src: "/images/projects/mycaddy.png",
     alt: "MyCaddy app preview",
   },
   "Portfolio (This Site)": {
-    src: "/images/portfolio-basics-avatar.png",
+    src: "/images/projects/portfolio-basics.png",
     alt: "Portfolio website preview",
   },
 };
@@ -58,16 +62,16 @@ export default function ProjectsHUD() {
       className="relative min-h-[100svh] md:min-h-screen py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start"
     >
       <SectionPanel title="Projects">
-        {/* Moved subtitle INSIDE since SectionPanel has no `subtitle` prop */}
         <p className="mb-8 text-sm md:text-base text-white/70">
           A collection of recent work—data, models, and apps.
         </p>
 
-        {/* Borderless, responsive tile grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+        {/* Masonry: responsive columns like the reference */}
+        <div className="columns-1 sm:columns-2 xl:columns-3 gap-6 [column-fill:_balance]">
           {projects.map((p, idx) => {
-            const img = IMAGE_BY_TITLE[p.title] ?? {
-              src: "/images/portfolio-basics-avatar.png",
+            const mapped = IMAGE_BY_TITLE[p.title];
+            const img = mapped ?? {
+              src: "/images/projects/portfolio-basics.png",
               alt: `${p.title} preview`,
             };
             const keyword =
@@ -76,37 +80,43 @@ export default function ProjectsHUD() {
                 ? "machine-learning"
                 : p.tech?.includes("R")
                 ? "statistics"
-                : p.tech?.includes("SQLite") || p.tech?.includes("SQL")
+                : p.tech?.some((t) => /sql|sqlite/i.test(t))
                 ? "data-pipeline"
                 : "project");
 
             const primaryHref = p.links?.[0]?.href;
 
             return (
-              <article key={`${p.title}-${idx}`} className="group">
-                {/* Image tile (borderless). Slight zoom on hover */}
+              <article
+                key={`${p.title}-${idx}`}
+                className="
+                  mb-6 inline-block w-full break-inside-avoid
+                "
+              >
+                {/* Tile (no cropping): object-contain, natural height */}
                 <motion.a
                   href={primaryHref ?? "#"}
                   target={primaryHref ? "_blank" : undefined}
                   rel={primaryHref ? "noreferrer" : undefined}
-                  className="block relative overflow-hidden rounded-2xl bg-black/40"
-                  initial={{ scale: 1 }}
-                  whileHover={{ scale: 1.01 }}
-                  transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                  className="block overflow-hidden rounded-2xl bg-black/40 ring-1 ring-white/5"
+                  initial={{ y: 0 }}
+                  whileHover={{ y: -2 }}
+                  transition={{ type: "spring", stiffness: 220, damping: 18 }}
                 >
-                  <div className="relative aspect-[16/10]">
+                  <div className="relative w-full">
                     <Image
                       src={img.src}
                       alt={img.alt}
-                      fill
-                      sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 100vw"
-                      className="object-cover transition-transform duration-300 ease-out group-hover:scale-105 select-none"
+                      width={1600}
+                      height={1000}
+                      sizes="(min-width:1280px) 33vw, (min-width:640px) 50vw, 100vw"
+                      className="w-full h-auto object-contain select-none"
                       priority={idx < 2}
                     />
                   </div>
                 </motion.a>
 
-                {/* Subheading row: Title (left), Footnote keyword (right) */}
+                {/* Subheading row: Title (left) + keyword (right) */}
                 <div className="mt-3 flex items-baseline justify-between gap-3">
                   <h3 className="text-base md:text-lg font-medium tracking-tight">
                     {p.title}
@@ -119,7 +129,7 @@ export default function ProjectsHUD() {
                   </span>
                 </div>
 
-                {/* Optional: tiny tech badges row (kept subtle) */}
+                {/* Optional subtle tech badges */}
                 {Array.isArray(p.tech) && p.tech.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-2">
                     {p.tech.slice(0, 4).map((t) => (
