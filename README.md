@@ -42,6 +42,6 @@ Through this project, I reinforce my ability to:
 
 * Transform raw code and data into interactive user experiences.  
 * Develop maintainable, reusable systems for analytics storytelling.  
-* Stand out to recruiters and collaborators by merging **business impact** with **a strong creative identity**.
+* Express my technical abilities by merging **business impact** with **a strong creative identity**.
 
 ---
