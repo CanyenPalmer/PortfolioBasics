@@ -45,30 +45,30 @@ const KEYWORD_BY_TITLE: Record<string, string> = {
   "PortfolioBasics (This Site)": "frontend",
 };
 
-// vertical offsets to break any row feel (margins → no overlap)
+// larger vertical offsets to ensure nothing lines up
 const OFFSET_Y = [
   "md:mt-0",
-  "md:mt-6",
-  "md:mt-12",
-  "md:mt-16",
   "md:mt-8",
+  "md:mt-16",
+  "md:mt-12",
   "md:mt-20",
+  "md:mt-24",
 ];
 
-// tiny horizontal side drifts using margins (no transforms = no clipping)
+// stronger left/right hugging with extra margin drift (no transforms)
 const DRIFT_SIDE = [
-  "md:ml-0 md:mr-auto", // hug left
-  "md:ml-auto md:mr-0", // hug right
-  "md:ml-2 md:mr-auto",
-  "md:ml-auto md:mr-2",
+  "md:ml-0 md:mr-auto",
+  "md:ml-auto md:mr-0",
   "md:ml-4 md:mr-auto",
   "md:ml-auto md:mr-4",
+  "md:ml-8 md:mr-auto",
+  "md:ml-auto md:mr-8",
 ];
 
 export default function ProjectsHUD() {
   const all = ((profile as any)?.projects ?? []) as ReadonlyArray<Project>;
 
-  // Feature: Logistic Regression (reduced size vs prior version)
+  // Feature: Logistic Regression (reduced size from last version)
   const featureIdx = all.findIndex((p) =>
     p.title.toLowerCase().includes("logistic regression")
   );
@@ -90,9 +90,9 @@ export default function ProjectsHUD() {
           Projects
         </h2>
 
-        {/* =============== FEATURE (reduced; left-biased, no tilt) =============== */}
+        {/* =============== FEATURE (slightly smaller; straight; left-biased) =============== */}
         {feature && (
-          <article className="mb-12 md:w-[92%] md:ml-0 md:mr-auto">
+          <article className="mb-16 md:w-[88%] md:ml-0 md:mr-auto">
             <a
               href={feature.links?.[0]?.href ?? "#"}
               target={feature.links?.[0]?.href ? "_blank" : undefined}
@@ -139,8 +139,8 @@ export default function ProjectsHUD() {
           </article>
         )}
 
-        {/* ====================== COLLAGE (1–2 across) ====================== */}
-        <div className="columns-1 md:columns-2 gap-12 [column-fill:_balance]">
+        {/* ====================== COLLAGE (1–2 across; more separation) ====================== */}
+        <div className="columns-1 md:columns-2 gap-16 [column-fill:_balance]">
           {rest.map((p, idx) => {
             const img = IMAGE_BY_TITLE[p.title] ?? {
               src: "/images/portfolio-basics-avatar.png",
@@ -164,13 +164,13 @@ export default function ProjectsHUD() {
               <article
                 key={`${p.title}-${idx}`}
                 className={[
-                  // narrower than the column so it doesn’t feel centered
-                  "mb-12 inline-block w-[92%] break-inside-avoid",
+                  // narrower than column + bigger spacing to avoid center crowding
+                  "mb-16 inline-block w-[86%] break-inside-avoid",
                   oy,
                   side,
                 ].join(" ")}
               >
-                {/* Pure image; no borders/frames/tilt */}
+                {/* Pure image; straight; borderless */}
                 <a
                   href={href ?? "#"}
                   target={href ? "_blank" : undefined}
@@ -191,7 +191,7 @@ export default function ProjectsHUD() {
                 </a>
 
                 {/* Title (left) + keyword (right) */}
-                <div className="mt-3 flex items-baseline justify-between gap-3">
+                <div className="mt-4 flex items-baseline justify-between gap-3">
                   <h3 className="text-base md:text-lg font-medium tracking-tight">
                     {p.title}
                   </h3>
