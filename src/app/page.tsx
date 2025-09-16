@@ -21,7 +21,7 @@ export default function Page() {
       <VscodeTopBar
         signature="Canyen Palmer"
         resumeHref="/Canyen_Palmer_Resume.pdf"
-        linkedinHref="https://www.linkedin.com/in/canyen-palmer/"
+        linkedinHref="https://www.linkedin.com/in/canyen-palmer-b0b6762a0"
         githubHref="https://github.com/CanyenPalmer"
       />
 
