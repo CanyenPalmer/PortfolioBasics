@@ -55,19 +55,20 @@ export default function ProjectsHUD() {
       aria-label="Projects"
       className="relative w-full py-20 md:py-28 scroll-mt-24 md:scroll-mt-28"
     >
-      {/* Minimal header (no frames, no neon) */}
+      {/* Minimal header */}
       <div className="mx-auto max-w-6xl px-6">
         <h2 className="text-2xl md:text-3xl font-semibold tracking-tight mb-8">
           Projects
         </h2>
 
-        {/* Masonry layout (like your reference) */}
-        <div className="columns-1 sm:columns-2 lg:columns-3 gap-6 [column-fill:_balance]">
+        {/* Collage grid: max 2 per row, with intentional stagger */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {projects.map((p, idx) => {
             const img = IMAGE_BY_TITLE[p.title] ?? {
               src: "/images/portfolio-basics-avatar.png",
               alt: `${p.title} preview`,
             };
+
             const keyword =
               KEYWORD_BY_TITLE[p.title] ??
               (p.tech?.some((t) => /scikit-learn|xgboost|lightgbm/i.test(t))
@@ -80,10 +81,29 @@ export default function ProjectsHUD() {
 
             const href = p.links?.[0]?.href;
 
+            // Make Logistic Regression feature-sized (≈2×): span both columns on md+
+            const isFeature =
+              p.title.toLowerCase().includes("logistic regression");
+
+            // Gentle collage offsets so rows don’t align perfectly
+            const stagger =
+              idx % 4 === 1
+                ? "md:mt-8"
+                : idx % 4 === 2
+                ? "md:mt-16"
+                : idx % 6 === 5
+                ? "md:-mt-6"
+                : "";
+
             return (
               <article
                 key={`${p.title}-${idx}`}
-                className="mb-6 inline-block w-full break-inside-avoid"
+                className={[
+                  "w-full break-inside-avoid",
+                  "inline-block", // ensures height sizing plays nice
+                  isFeature ? "md:col-span-2" : "",
+                  stagger,
+                ].join(" ")}
               >
                 <motion.a
                   href={href ?? "#"}
@@ -94,11 +114,14 @@ export default function ProjectsHUD() {
                   whileHover={{ y: -2 }}
                   transition={{ type: "spring", stiffness: 220, damping: 18 }}
                 >
-                  {/* No cropping: full image shown */}
+                  {/* No cropping: scale naturally; feature tile appears ~2× by spanning two columns */}
                   <img
                     src={img.src}
                     alt={img.alt}
-                    className="w-full h-auto object-contain select-none"
+                    className={[
+                      "w-full h-auto object-contain select-none",
+                      isFeature ? "md:p-2" : "", // tiny breathing room on feature
+                    ].join(" ")}
                     loading={idx < 2 ? "eager" : "lazy"}
                     decoding="async"
                     onError={(e) => {
@@ -118,7 +141,7 @@ export default function ProjectsHUD() {
                   </span>
                 </div>
 
-                {/* Subtle tech badges (optional) */}
+                {/* Subtle tech badges */}
                 {Array.isArray(p.tech) && p.tech.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-2">
                     {p.tech.slice(0, 4).map((t) => (
