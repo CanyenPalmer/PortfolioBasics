@@ -6,22 +6,12 @@ import { motion } from "framer-motion";
 import SectionPanel from "@/components/ui/SectionPanel";
 import { profile } from "@/content/profile";
 
-/**
- * ProjectsHUD — collection-style, borderless, image-first showcase grid.
- * - Image tile (no border), slight zoom on hover
- * - Subheading row below: Title (left) + one-word footnote (right)
- * - Pulls data from profile.projects WITHOUT modifying profile.tsx
- * - Uses a local title->image and title->keyword map so we don't touch profile
- */
-
 type Project = {
   title: string;
   tech?: string[];
   links?: { label?: string; href: string }[];
 };
 
-// Map project titles -> image paths in /public/images
-// (kept here so we don't change profile.tsx)
 const IMAGE_BY_TITLE: Record<string, { src: string; alt: string }> = {
   "CGM Patient Analytics": {
     src: "/images/cgm-patient-avatar.png",
@@ -47,12 +37,8 @@ const IMAGE_BY_TITLE: Record<string, { src: string; alt: string }> = {
     src: "/images/portfolio-basics-avatar.png",
     alt: "Portfolio website preview",
   },
-  // Fallbacks / other images in your /public/images folder:
-  // "Smith": { src: "/images/smith-avatar.png", alt: "Smith preview" },
-  // "Waterman": { src: "/images/waterman-avatar.png", alt: "Waterman preview" },
 };
 
-// Map project titles -> one-word footnote (category keyword)
 const KEYWORD_BY_TITLE: Record<string, string> = {
   "CGM Patient Analytics": "predictive-analysis",
   "Logistic Regression & Tree-Based ML": "machine-learning",
@@ -71,10 +57,12 @@ export default function ProjectsHUD() {
       aria-label="Projects"
       className="relative min-h-[100svh] md:min-h-screen py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start"
     >
-      <SectionPanel
-        title="Projects"
-        subtitle="A collection of recent work—data, models, and apps."
-      >
+      <SectionPanel title="Projects">
+        {/* Moved subtitle INSIDE since SectionPanel has no `subtitle` prop */}
+        <p className="mb-8 text-sm md:text-base text-white/70">
+          A collection of recent work—data, models, and apps.
+        </p>
+
         {/* Borderless, responsive tile grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
           {projects.map((p, idx) => {
@@ -84,7 +72,6 @@ export default function ProjectsHUD() {
             };
             const keyword =
               KEYWORD_BY_TITLE[p.title] ??
-              // secondary fallback: infer from tech if present
               (p.tech?.includes("scikit-learn")
                 ? "machine-learning"
                 : p.tech?.includes("R")
@@ -93,7 +80,6 @@ export default function ProjectsHUD() {
                 ? "data-pipeline"
                 : "project");
 
-            // Prefer the first link as the click-through (e.g., GitHub)
             const primaryHref = p.links?.[0]?.href;
 
             return (
