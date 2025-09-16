@@ -47,6 +47,7 @@ const KEYWORD_BY_TITLE: Record<string, string> = {
   "PortfolioBasics (This Site)": "frontend",
 };
 
+// Predictable heights via aspect-ratio wrappers (prevents overlaps)
 const ASPECT: Record<string, string> = {
   "CGM Patient Analytics": "3 / 4",
   "MyCaddy — Physics Shot Calculator": "3 / 4",
@@ -68,7 +69,6 @@ const LAYOUT = {
       "Logistic Regression & Tree-Based ML": { left: "36%", top: 880, width: "56%" },
       "Python 101": { left: "3%", top: 1080, width: "28%" },
     } as Record<string, { left: string; top: number; width: string }>,
-    // ⬇ stays low; ⬅ moved further left (closer to LR bottom-right edge)
     note: { left: "55%", top: 1380, width: "34%" },
   },
   lg: {
@@ -81,7 +81,6 @@ const LAYOUT = {
       "Logistic Regression & Tree-Based ML": { left: "32%", top: 820, width: "54%" },
       "Python 101": { left: "5%", top: 1080, width: "24%" },
     } as Record<string, { left: string; top: number; width: string }>,
-    // ⬇ stays low; ⬅ moved further left
     note: { left: "54%", top: 1320, width: "34%" },
   },
 };
@@ -122,7 +121,8 @@ function ProjectTile({
   const aspect = ASPECT[p.title] ?? "3 / 4";
 
   return (
-    <article className="absolute" style={{ left, top, width }} aria-label={p.title}>
+    // ⬅️ ensure tiles render above the note layer
+    <article className="absolute z-10" style={{ left, top, width }} aria-label={p.title}>
       <Link
         href={`/projects/${slug}?via=projects`}
         className="block"
@@ -191,8 +191,9 @@ function BlurbAndNote({
   width: string;
 }) {
   return (
+    // ⬅️ note sits beneath tiles and ignores pointer events
     <div
-      className="absolute hidden md:block pointer-events-none"
+      className="absolute hidden md:block pointer-events-none z-0"
       style={{ left, top, width }}
     >
       {/* Blurb */}
@@ -342,5 +343,4 @@ export default function ProjectsHUD() {
     </section>
   );
 }
-
 
