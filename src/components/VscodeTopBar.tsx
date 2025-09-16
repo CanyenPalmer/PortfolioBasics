@@ -96,10 +96,8 @@ export default function VscodeTopBar({
       const tRect = testimonials.getBoundingClientRect();
       const vh = window.innerHeight;
 
-      // When any part of ABOUT is within ~90% viewport height, we can consider it "entered".
-      const aboutEntered = aRect.top <= vh * 0.9;
-      // Keep visible until TESTIMONIALS has fully scrolled past the top by a small margin.
-      const beforeTestimonialsEnd = tRect.bottom >= 40; // 40px tolerance to avoid flicker at the boundary
+      const aboutEntered = aRect.top <= vh * 0.9; // enter as about nears
+      const beforeTestimonialsEnd = tRect.bottom >= 40; // leave right after testimonials
 
       setVisible(aboutEntered && beforeTestimonialsEnd);
     };
@@ -119,39 +117,55 @@ export default function VscodeTopBar({
     };
   }, []);
 
-  /* -------- Active tab: intersection observer with generous rootMargin to prevent flicker -------- */
+  /* -------- Active tab: choose section whose midpoint is closest to viewport center -------- */
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const targets = SECTION_IDS
+    const sections = SECTION_IDS
       .map((id) => document.getElementById(id))
       .filter(Boolean) as HTMLElement[];
 
-    if (targets.length === 0) return;
+    if (sections.length === 0) return;
 
-    const onIntersect: IntersectionObserverCallback = (entries) => {
-      // pick the highest ratio entry as active
+    const pickActive = () => {
+      const viewportCenter = window.innerHeight / 2;
+
       let bestId: string | null = null;
-      let bestRatio = 0;
-      for (const entry of entries) {
-        if (entry.isIntersecting && entry.intersectionRatio >= bestRatio) {
-          bestRatio = entry.intersectionRatio;
-          bestId = (entry.target as HTMLElement).id;
+      let bestDist = Infinity;
+
+      for (const el of sections) {
+        const rect = el.getBoundingClientRect();
+        const mid = rect.top + rect.height / 2;
+        const dist = Math.abs(mid - viewportCenter);
+
+        // Only consider sections that are at least partially in/near view
+        // (with a forgiving margin so active doesn't drop at edges)
+        const inRange =
+          rect.bottom > -window.innerHeight * 0.15 &&
+          rect.top < window.innerHeight * 1.15;
+
+        if (inRange && dist < bestDist) {
+          bestDist = dist;
+          bestId = el.id;
         }
       }
+
       if (bestId) setActive(bestId);
     };
 
-    const observer = new IntersectionObserver(onIntersect, {
-      root: null,
-      // Expand viewport top/bottom so a section counts as "in view" earlier and longer.
-      // This prevents the active tab from dropping out between sections.
-      rootMargin: "30% 0px 30% 0px",
-      threshold: [0, 0.1, 0.25, 0.5, 0.75, 1],
-    });
+    const onScroll = () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(pickActive);
+    };
 
-    targets.forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
+    pickActive(); // initial
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
   }, []);
 
   return (
