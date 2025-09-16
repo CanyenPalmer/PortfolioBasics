@@ -50,52 +50,58 @@ const KEYWORD_BY_TITLE: Record<string, string> = {
 // Predictable heights via aspect-ratio wrappers (prevents overlaps)
 const ASPECT: Record<string, string> = {
   "CGM Patient Analytics": "3 / 4",                   // tall
-  "MyCaddy — Physics Shot Calculator": "3 / 4",       // tall (bigger now)
-  "PortfolioBasics (This Site)": "3 / 4",             // tall (bigger now)
+  "MyCaddy — Physics Shot Calculator": "3 / 4",       // tall (bigger)
+  "PortfolioBasics (This Site)": "3 / 4",             // tall (bigger)
   "Real Estate Conditions Comparison (R)": "3 / 4",   // tall
   "Logistic Regression & Tree-Based ML": "16 / 9",    // wide
   "Python 101": "2 / 3",                              // very tall
 };
 
 /**
- * Custom collage layout (no overlap). You can tweak width/top/left here.
- * I scaled MyCaddy & Portfolio up and pushed LR down a bit to guarantee clearance.
+ * Custom collage layout (no overlap). Tweaked per your notes:
+ *  - More gap between MyCaddy and Portfolio
+ *  - Portfolio lowered a bit toward LR
+ *  - Python pulled up closer to Real Estate
  */
 const LAYOUT = {
   md: {
-    containerHeight: 1750, // px (raised to avoid bottom clipping)
+    containerHeight: 1750,
     items: {
       "CGM Patient Analytics": { left: "2%",  top: 0,   width: "28%" },
-      // MyCaddy bigger: 24% -> 27%
-      "MyCaddy — Physics Shot Calculator":   { left: "36%", top: 0,   width: "27%" },
-      // Portfolio bigger: 30% -> 33%, slight left shift to cluster
-      "PortfolioBasics (This Site)":         { left: "61%", top: 0,   width: "33%" },
 
-      // More clearance below CGM
+      // MyCaddy a bit larger but give more gap to Portfolio
+      "MyCaddy — Physics Shot Calculator": { left: "36%", top: 0,   width: "26%" },
+
+      // Portfolio larger, shifted right and lowered slightly to sit nearer LR
+      "PortfolioBasics (This Site)":       { left: "66%", top: 60,  width: "31%" },
+
+      // RE stays; leaves air above Python
       "Real Estate Conditions Comparison (R)": { left: "2%",  top: 450, width: "28%" },
 
-      // Drop LR lower to avoid any chance of touching MyCaddy/Portfolio
+      // LR unchanged; sits under MyCaddy/Portfolio with comfortable spacing
       "Logistic Regression & Tree-Based ML":   { left: "36%", top: 720, width: "56%" },
 
-      "Python 101": { left: "2%", top: 1150, width: "28%" },
+      // Python raised closer to RE (was 1150)
+      "Python 101": { left: "2%", top: 1040, width: "28%" },
     } as Record<string, { left: string; top: number; width: string }>,
   },
   lg: {
-    containerHeight: 1600, // px (raised slightly)
+    containerHeight: 1600,
     items: {
       "CGM Patient Analytics": { left: "4%",  top: 0,   width: "24%" },
-      // MyCaddy bigger: 22% -> 24%
-      "MyCaddy — Physics Shot Calculator":   { left: "32%", top: 0,   width: "24%" },
-      // Portfolio bigger: 28% -> 30%, keep clustered
-      "PortfolioBasics (This Site)":         { left: "54%", top: 0,   width: "30%" },
 
-      // More space before LR
+      // MyCaddy a bit larger; extra horizontal gap to Portfolio
+      "MyCaddy — Physics Shot Calculator": { left: "32%", top: 0,   width: "23%" },
+
+      // Portfolio larger, moved right and lowered a touch toward LR
+      "PortfolioBasics (This Site)":       { left: "59%", top: 80,  width: "29%" },
+
       "Real Estate Conditions Comparison (R)": { left: "4%",  top: 500, width: "24%" },
 
-      // Push LR down a notch for guaranteed separation
       "Logistic Regression & Tree-Based ML":   { left: "32%", top: 700, width: "54%" },
 
-      "Python 101": { left: "4%", top: 1120, width: "24%" },
+      // Python raised closer to RE (was 1120)
+      "Python 101": { left: "4%", top: 1000, width: "24%" },
     } as Record<string, { left: string; top: number; width: string }>,
   },
 };
@@ -146,7 +152,7 @@ function ProjectTile({
           window.sessionStorage.setItem("cameFromProjects", "1")
         }
       >
-        {/* Aspect-ratio wrapper gives deterministic heights -> prevents overlaps */}
+        {/* Aspect-ratio wrapper => deterministic heights, no overlaps */}
         <div style={{ aspectRatio: aspect }} className="w-full bg-transparent">
           <img
             src={img.src}
