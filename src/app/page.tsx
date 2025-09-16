@@ -18,7 +18,12 @@ export default function Page() {
   return (
     // Desktop gets scroll-snap for that page-by-page feel; mobile scrolls naturally
     <main className="relative md:snap-y md:snap-mandatory">
-      <VscodeTopBar />
+      <VscodeTopBar
+        signature="Canyen Palmer"
+        resumeHref="/Canyen_Palmer_Resume.pdf"
+        linkedinHref="https://www.linkedin.com/in/your-handle"
+        githubHref="https://github.com/your-handle"
+      />
 
       {/* HERO — wrapper keeps props; now sized like a page */}
       <section
