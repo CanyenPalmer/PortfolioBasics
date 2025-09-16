@@ -47,38 +47,190 @@ const KEYWORD_BY_TITLE: Record<string, string> = {
   "PortfolioBasics (This Site)": "frontend",
 };
 
-// vertical offsets to avoid row alignment
-const OFFSET_Y = [
-  "md:mt-0",
-  "md:mt-8",
-  "md:mt-16",
-  "md:mt-12",
-  "md:mt-20",
-  "md:mt-24",
+/**
+ * Custom collage layout based on your sketch.
+ * Tweak these numbers to nudge positions/sizes.
+ * - width: percentage of collage width
+ * - left: percentage from left
+ * - top: pixels from the top
+ * - containerHeight: ensures nothing is cut off
+ */
+const LAYOUT = {
+  md: {
+    containerHeight: 1500, // px
+    items: {
+      "CGM Patient Analytics": { left: "2%", top: 0, width: "28%" },
+      "MyCaddy — Physics Shot Calculator": { left: "36%", top: 0, width: "22%" },
+      "PortfolioBasics (This Site)": { left: "62%", top: 0, width: "30%" },
+
+      "Real Estate Conditions Comparison (R)": { left: "2%", top: 360, width: "28%" },
+      "Logistic Regression & Tree-Based ML": { left: "36%", top: 520, width: "56%" },
+
+      "Python 101": { left: "2%", top: 980, width: "28%" },
+    } as Record<string, { left: string; top: number; width: string }>,
+  },
+  lg: {
+    containerHeight: 1400, // px
+    items: {
+      "CGM Patient Analytics": { left: "4%", top: 0, width: "24%" },
+      "MyCaddy — Physics Shot Calculator": { left: "32%", top: 0, width: "18%" },
+      "PortfolioBasics (This Site)": { left: "52%", top: 0, width: "28%" },
+
+      "Real Estate Conditions Comparison (R)": { left: "4%", top: 360, width: "24%" },
+      "Logistic Regression & Tree-Based ML": { left: "32%", top: 500, width: "54%" },
+
+      "Python 101": { left: "4%", top: 950, width: "24%" },
+    } as Record<string, { left: string; top: number; width: string }>,
+  },
+};
+
+// The order we’ll render tiles (helps with alt text and focus order)
+const TILE_ORDER = [
+  "CGM Patient Analytics",
+  "MyCaddy — Physics Shot Calculator",
+  "PortfolioBasics (This Site)",
+  "Real Estate Conditions Comparison (R)",
+  "Logistic Regression & Tree-Based ML",
+  "Python 101",
 ];
 
-// stronger left/right hugging with extra margin drift
-const DRIFT_SIDE = [
-  "md:ml-0 md:mr-auto",
-  "md:ml-auto md:mr-0",
-  "md:ml-4 md:mr-auto",
-  "md:ml-auto md:mr-4",
-  "md:ml-8 md:mr-auto",
-  "md:ml-auto md:mr-8",
-];
+function keywordFor(title: string, tech?: string[]) {
+  if (KEYWORD_BY_TITLE[title]) return KEYWORD_BY_TITLE[title];
+  if (tech?.some((t) => /scikit-learn|xgboost|lightgbm/i.test(t))) return "machine-learning";
+  if (tech?.some((t) => /\bR\b/i.test(t))) return "statistics";
+  if (tech?.some((t) => /sql|sqlite|postgres/i.test(t))) return "data-pipeline";
+  return "project";
+}
+
+function ProjectTile({
+  p,
+  left,
+  top,
+  width,
+}: {
+  p: Project;
+  left: string;
+  top: number;
+  width: string;
+}) {
+  const img = IMAGE_BY_TITLE[p.title] ?? {
+    src: "/images/portfolio-basics-avatar.png",
+    alt: `${p.title} preview`,
+  };
+  const slug = slugify(p.title);
+
+  return (
+    <article
+      className="absolute select-none"
+      style={{ left, top, width }}
+      aria-label={p.title}
+    >
+      <Link
+        href={`/projects/${slug}?via=projects`}
+        className="block"
+        onClick={() =>
+          typeof window !== "undefined" &&
+          window.sessionStorage.setItem("cameFromProjects", "1")
+        }
+      >
+        <img
+          src={img.src}
+          alt={img.alt}
+          className="w-full h-auto object-contain"
+          loading="lazy"
+          decoding="async"
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).src = "/images/portfolio-basics-avatar.png";
+          }}
+        />
+      </Link>
+
+      <div className="mt-3 flex items-baseline justify-between gap-3">
+        <h3 className="text-base md:text-lg font-medium tracking-tight">
+          <Link
+            href={`/projects/${slug}?via=projects`}
+            className="hover:underline"
+            onClick={() =>
+              typeof window !== "undefined" &&
+              window.sessionStorage.setItem("cameFromProjects", "1")
+            }
+          >
+            {p.title}
+          </Link>
+        </h3>
+        <span className="text-[11px] md:text-xs uppercase tracking-wide text-white/60">
+          {keywordFor(p.title, p.tech)}
+        </span>
+      </div>
+
+      {Array.isArray(p.tech) && p.tech.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {p.tech.slice(0, 4).map((t) => (
+            <span
+              key={t}
+              className="text-[10px] md:text-[11px] px-2 py-0.5 rounded-full bg-white/5 text-white/70"
+            >
+              {t}
+            </span>
+          ))}
+        </div>
+      )}
+    </article>
+  );
+}
 
 export default function ProjectsHUD() {
-  const all = ((profile as any)?.projects ?? []) as ReadonlyArray<Project>;
+  const projects = ((profile as any)?.projects ?? []) as ReadonlyArray<Project>;
 
-  // Feature: Logistic Regression (slightly smaller)
-  const featureIdx = all.findIndex((p) =>
-    p.title.toLowerCase().includes("logistic regression")
+  // Mobile-first: simple stacked list (no special layout)
+  const mobile = (
+    <div className="md:hidden space-y-10">
+      {TILE_ORDER.map((title) => {
+        const p = projects.find((x) => x.title === title);
+        if (!p) return null;
+        const img = IMAGE_BY_TITLE[p.title] ?? {
+          src: "/images/portfolio-basics-avatar.png",
+          alt: `${p.title} preview`,
+        };
+        const slug = slugify(p.title);
+        return (
+          <article key={title}>
+            <Link
+              href={`/projects/${slug}?via=projects`}
+              className="block"
+              onClick={() =>
+                typeof window !== "undefined" &&
+                window.sessionStorage.setItem("cameFromProjects", "1")
+              }
+            >
+              <img src={img.src} alt={img.alt} className="w-full h-auto object-contain" />
+            </Link>
+            <div className="mt-3 flex items-baseline justify-between gap-3">
+              <h3 className="text-lg font-medium tracking-tight">
+                <Link
+                  href={`/projects/${slug}?via=projects`}
+                  className="hover:underline"
+                  onClick={() =>
+                    typeof window !== "undefined" &&
+                    window.sessionStorage.setItem("cameFromProjects", "1")
+                  }
+                >
+                  {p.title}
+                </Link>
+              </h3>
+              <span className="text-xs uppercase tracking-wide text-white/60">
+                {keywordFor(p.title, p.tech)}
+              </span>
+            </div>
+          </article>
+        );
+      })}
+    </div>
   );
-  const feature = featureIdx >= 0 ? all[featureIdx] : null;
-  const rest =
-    featureIdx >= 0
-      ? [...all.slice(0, featureIdx), ...all.slice(featureIdx + 1)]
-      : all;
+
+  // md+ collage
+  const md = LAYOUT.md;
+  const lg = LAYOUT.lg;
 
   return (
     <section
@@ -87,156 +239,51 @@ export default function ProjectsHUD() {
       className="relative w-full py-20 md:py-28 scroll-mt-24 md:scroll-mt-28"
     >
       <div className="mx-auto max-w-7xl px-6">
-        {/* Minimal header */}
         <h2 className="text-2xl md:text-3xl font-semibold tracking-tight mb-8">
           Projects
         </h2>
 
-        {/* =============== FEATURE (internal link ONLY) =============== */}
-        {feature && (
-          <article className="mb-16 md:w-[88%] md:ml-0 md:mr-auto">
-            <Link
-              href={`/projects/${slugify(feature.title)}?via=projects`}
-              className="block"
-              onClick={() =>
-                typeof window !== "undefined" &&
-                window.sessionStorage.setItem("cameFromProjects", "1")
-              }
-            >
-              <img
-                src={
-                  IMAGE_BY_TITLE[feature.title]?.src ??
-                  "/images/portfolio-basics-avatar.png"
-                }
-                alt={
-                  IMAGE_BY_TITLE[feature.title]?.alt ??
-                  `${feature.title} preview`
-                }
-                className="w-full h-auto object-contain select-none"
-                loading="eager"
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).src =
-                    "/images/portfolio-basics-avatar.png";
-                }}
-              />
-            </Link>
-            <div className="mt-4 flex items-baseline justify-between gap-3">
-              <h3 className="text-lg md:text-xl font-semibold tracking-tight">
-                <Link
-                  href={`/projects/${slugify(feature.title)}?via=projects`}
-                  className="hover:underline"
-                  onClick={() =>
-                    typeof window !== "undefined" &&
-                    window.sessionStorage.setItem("cameFromProjects", "1")
-                  }
-                >
-                  {feature.title}
-                </Link>
-              </h3>
-              <span className="text-[11px] md:text-xs uppercase tracking-wide text-white/60">
-                {KEYWORD_BY_TITLE[feature.title] ?? "project"}
-              </span>
-            </div>
-            {Array.isArray(feature.tech) && feature.tech.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-2">
-                {feature.tech.slice(0, 5).map((t) => (
-                  <span
-                    key={t}
-                    className="text-[10px] md:text-[11px] px-2 py-0.5 rounded-full bg-white/5 text-white/70"
-                  >
-                    {t}
-                  </span>
-                ))}
-              </div>
-            )}
-          </article>
-        )}
+        {/* Mobile stacked */}
+        {mobile}
 
-        {/* ====================== COLLAGE (1–2 across; internal links ONLY) ====================== */}
-        <div className="columns-1 md:columns-2 gap-16 [column-fill:_balance]">
-          {rest.map((p, idx) => {
-            const img = IMAGE_BY_TITLE[p.title] ?? {
-              src: "/images/portfolio-basics-avatar.png",
-              alt: `${p.title} preview`,
-            };
-            // NOTE: We keep p.links for metadata but we DO NOT use it for navigation here.
-            const oy = OFFSET_Y[idx % OFFSET_Y.length];
-            const side = DRIFT_SIDE[idx % DRIFT_SIDE.length];
-            const slug = slugify(p.title);
-            const keyword =
-              KEYWORD_BY_TITLE[p.title] ??
-              (p.tech?.some((t) => /scikit-learn|xgboost|lightgbm/i.test(t))
-                ? "machine-learning"
-                : p.tech?.some((t) => /\bR\b/i.test(t))
-                ? "statistics"
-                : p.tech?.some((t) => /sql|sqlite|postgres/i.test(t))
-                ? "data-pipeline"
-                : "project");
-
+        {/* md+ collage */}
+        <div
+          className="relative hidden md:block lg:hidden"
+          style={{ height: md.containerHeight }}
+        >
+          {TILE_ORDER.map((title) => {
+            const p = projects.find((x) => x.title === title);
+            if (!p) return null;
+            const pos = md.items[title];
             return (
-              <article
-                key={`${p.title}-${idx}`}
-                className={[
-                  "mb-16 inline-block w-[86%] break-inside-avoid",
-                  oy,
-                  side,
-                ].join(" ")}
-              >
-                {/* Image → internal detail route */}
-                <Link
-                  href={`/projects/${slug}?via=projects`}
-                  className="block"
-                  onClick={() =>
-                    typeof window !== "undefined" &&
-                    window.sessionStorage.setItem("cameFromProjects", "1")
-                  }
-                >
-                  <img
-                    src={img.src}
-                    alt={img.alt}
-                    className="w-full h-auto object-contain select-none"
-                    loading="lazy"
-                    decoding="async"
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).src =
-                        "/images/portfolio-basics-avatar.png";
-                    }}
-                  />
-                </Link>
+              <ProjectTile
+                key={`md-${title}`}
+                p={p}
+                left={pos.left}
+                top={pos.top}
+                width={pos.width}
+              />
+            );
+          })}
+        </div>
 
-                {/* Title (left) + keyword (right) */}
-                <div className="mt-4 flex items-baseline justify-between gap-3">
-                  <h3 className="text-base md:text-lg font-medium tracking-tight">
-                    <Link
-                      href={`/projects/${slug}?via=projects`}
-                      className="hover:underline"
-                      onClick={() =>
-                        typeof window !== "undefined" &&
-                        window.sessionStorage.setItem("cameFromProjects", "1")
-                      }
-                    >
-                      {p.title}
-                    </Link>
-                  </h3>
-                  <span className="text-[11px] md:text-xs uppercase tracking-wide text-white/60">
-                    {keyword}
-                  </span>
-                </div>
-
-                {/* Subtle tech badges */}
-                {Array.isArray(p.tech) && p.tech.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {p.tech.slice(0, 4).map((t) => (
-                      <span
-                        key={t}
-                        className="text-[10px] md:text-[11px] px-2 py-0.5 rounded-full bg-white/5 text-white/70"
-                      >
-                        {t}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </article>
+        {/* lg collage */}
+        <div
+          className="relative hidden lg:block"
+          style={{ height: lg.containerHeight }}
+        >
+          {TILE_ORDER.map((title) => {
+            const p = projects.find((x) => x.title === title);
+            if (!p) return null;
+            const pos = lg.items[title];
+            return (
+              <ProjectTile
+                key={`lg-${title}`}
+                p={p}
+                left={pos.left}
+                top={pos.top}
+                width={pos.width}
+              />
             );
           })}
         </div>
