@@ -88,7 +88,7 @@ export default async function ProjectPage({ params }: { params: { slug: string }
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
             {/* Left: sticky hero image */}
-            <aside className={["lg:col-span-4", "lg:col-span-5", leftCols].join(" ")}>
+            <aside className={leftCols}>
               <div className="lg:sticky lg:top-24">
                 <img
                   src={hero.src}
@@ -99,7 +99,7 @@ export default async function ProjectPage({ params }: { params: { slug: string }
             </aside>
 
             {/* Middle+Right: README content */}
-            <main className={["lg:col-span-8", "lg:col-span-7", rightCols].join(" ")}>
+            <main className={rightCols}>
               {/* Tech chips (subtle) */}
               {project.tech && project.tech.length > 0 && (
                 <div className="mb-6 flex flex-wrap gap-2">
@@ -153,21 +153,27 @@ export default async function ProjectPage({ params }: { params: { slug: string }
                           li: ({ node, ...props }) => (
                             <li className="my-1 leading-relaxed" {...props} />
                           ),
-                          code: ({ inline, className, children, ...props }) =>
-                            inline ? (
+                          // Avoid TS error: don't destructure `inline`; detect inline by content
+                          code: (props) => {
+                            const { children, className, ...rest } = props as {
+                              children: React.ReactNode;
+                              className?: string;
+                            };
+                            const text = String(children ?? "");
+                            const isInline = !/\n/.test(text);
+                            return isInline ? (
                               <code
                                 className="bg-white/10 px-1.5 py-0.5 rounded text-white/90"
-                                {...props}
+                                {...rest}
                               >
                                 {children}
                               </code>
                             ) : (
                               <pre className="bg-white/10 rounded p-3 overflow-x-auto my-4">
-                                <code className="text-white/90" {...props}>
-                                  {children}
-                                </code>
+                                <code className="text-white/90">{children}</code>
                               </pre>
-                            ),
+                            );
+                          },
                           blockquote: ({ node, ...props }) => (
                             <blockquote
                               className="border-l-2 border-white/20 pl-4 my-3 text-white/80"
