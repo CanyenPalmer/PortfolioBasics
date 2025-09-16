@@ -59,9 +59,9 @@ const ASPECT: Record<string, string> = {
 
 /**
  * Custom collage layout (no overlap). Tweaked per your notes:
- *  - More gap between MyCaddy and Portfolio
- *  - Portfolio lowered a bit toward LR
- *  - Python pulled up closer to Real Estate
+ *  - Lower MyCaddy, Portfolio, and Logistic Regression a bit
+ *  - Keep the added spacing between MyCaddy and Portfolio
+ *  - Python remains closer to Real Estate (from previous step)
  */
 const LAYOUT = {
   md: {
@@ -69,19 +69,17 @@ const LAYOUT = {
     items: {
       "CGM Patient Analytics": { left: "2%",  top: 0,   width: "28%" },
 
-      // MyCaddy a bit larger but give more gap to Portfolio
-      "MyCaddy — Physics Shot Calculator": { left: "36%", top: 0,   width: "26%" },
+      // LOWERED: top 0 -> 60
+      "MyCaddy — Physics Shot Calculator": { left: "36%", top: 60,  width: "26%" },
 
-      // Portfolio larger, shifted right and lowered slightly to sit nearer LR
-      "PortfolioBasics (This Site)":       { left: "66%", top: 60,  width: "31%" },
+      // LOWERED: top 60 -> 140 (and still shifted right for gap)
+      "PortfolioBasics (This Site)":       { left: "66%", top: 140, width: "31%" },
 
-      // RE stays; leaves air above Python
       "Real Estate Conditions Comparison (R)": { left: "2%",  top: 450, width: "28%" },
 
-      // LR unchanged; sits under MyCaddy/Portfolio with comfortable spacing
-      "Logistic Regression & Tree-Based ML":   { left: "36%", top: 720, width: "56%" },
+      // LOWERED: top 720 -> 800
+      "Logistic Regression & Tree-Based ML":   { left: "36%", top: 800, width: "56%" },
 
-      // Python raised closer to RE (was 1150)
       "Python 101": { left: "2%", top: 1040, width: "28%" },
     } as Record<string, { left: string; top: number; width: string }>,
   },
@@ -90,17 +88,17 @@ const LAYOUT = {
     items: {
       "CGM Patient Analytics": { left: "4%",  top: 0,   width: "24%" },
 
-      // MyCaddy a bit larger; extra horizontal gap to Portfolio
-      "MyCaddy — Physics Shot Calculator": { left: "32%", top: 0,   width: "23%" },
+      // LOWERED: top 0 -> 50
+      "MyCaddy — Physics Shot Calculator": { left: "32%", top: 50,  width: "23%" },
 
-      // Portfolio larger, moved right and lowered a touch toward LR
-      "PortfolioBasics (This Site)":       { left: "59%", top: 80,  width: "29%" },
+      // LOWERED: top 80 -> 140 (keeps nice gap to MyCaddy and closer to LR)
+      "PortfolioBasics (This Site)":       { left: "59%", top: 140, width: "29%" },
 
       "Real Estate Conditions Comparison (R)": { left: "4%",  top: 500, width: "24%" },
 
-      "Logistic Regression & Tree-Based ML":   { left: "32%", top: 700, width: "54%" },
+      // LOWERED: top 700 -> 760
+      "Logistic Regression & Tree-Based ML":   { left: "32%", top: 760, width: "54%" },
 
-      // Python raised closer to RE (was 1120)
       "Python 101": { left: "4%", top: 1000, width: "24%" },
     } as Record<string, { left: string; top: number; width: string }>,
   },
