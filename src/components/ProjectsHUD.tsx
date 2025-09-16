@@ -58,54 +58,33 @@ const ASPECT: Record<string, string> = {
 };
 
 /**
- * Custom collage layout (no overlap). Tweaked per your notes:
- *  - Lower MyCaddy, PortfolioBasics, Logistic Regression further
- *  - Add a bit more spacing among the left-column trio (CGM, RE, Python)
+ * Custom collage layout (no overlap). Tuned from our last pass.
+ * Raised container heights slightly to fit the blurb + note block.
  */
 const LAYOUT = {
   md: {
-    containerHeight: 1800,
+    containerHeight: 1950,
     items: {
-      // Slightly nudge right to give breathing room from page edge
       "CGM Patient Analytics": { left: "3%",  top: 0,    width: "28%" },
-
-      // LOWERED more: 60 -> 110
       "MyCaddy — Physics Shot Calculator": { left: "36%", top: 110,  width: "26%" },
-
-      // LOWERED more: 140 -> 200
       "PortfolioBasics (This Site)":       { left: "66%", top: 200,  width: "31%" },
-
-      // LEFT trio spaced a touch more: 450 -> 480
       "Real Estate Conditions Comparison (R)": { left: "3%",  top: 480, width: "28%" },
-
-      // LOWERED more: 800 -> 880
       "Logistic Regression & Tree-Based ML":   { left: "36%", top: 880, width: "56%" },
-
-      // LEFT trio spaced a touch more: 1040 -> 1080
       "Python 101": { left: "3%", top: 1080, width: "28%" },
     } as Record<string, { left: string; top: number; width: string }>,
+    note: { left: "62%", top: 1280, width: "33%" }, // under LR, right of Python 101
   },
   lg: {
-    containerHeight: 1650,
+    containerHeight: 1750,
     items: {
-      // Slightly nudge right
       "CGM Patient Analytics": { left: "5%",  top: 0,    width: "24%" },
-
-      // LOWERED more: 50 -> 80
       "MyCaddy — Physics Shot Calculator": { left: "32%", top: 80,   width: "23%" },
-
-      // LOWERED more: 140 -> 180
       "PortfolioBasics (This Site)":       { left: "59%", top: 180,  width: "29%" },
-
-      // LEFT trio spaced a touch more: 500 -> 530
       "Real Estate Conditions Comparison (R)": { left: "5%",  top: 530, width: "24%" },
-
-      // LOWERED more: 760 -> 820
       "Logistic Regression & Tree-Based ML":   { left: "32%", top: 820, width: "54%" },
-
-      // LEFT trio spaced a touch more: 1000 -> 1080
       "Python 101": { left: "5%", top: 1080, width: "24%" },
     } as Record<string, { left: string; top: number; width: string }>,
+    note: { left: "60%", top: 1220, width: "33%" }, // under LR, right of Python 101
   },
 };
 
@@ -204,10 +183,44 @@ function ProjectTile({
   );
 }
 
+function BlurbAndNote({
+  left,
+  top,
+  width,
+}: {
+  left: string;
+  top: number;
+  width: string;
+}) {
+  return (
+    <div className="absolute" style={{ left, top, width }}>
+      {/* Blurb (on top) */}
+      <p className="text-[13px] leading-snug text-white/80 mb-3">
+        I carry projects from messy data to maintainable tools—analyses, models, and apps that are
+        rigorous, documented, and usable.
+      </p>
+
+      {/* Note block (two skinny columns like the reference) */}
+      <div className="grid grid-cols-[auto,1fr] gap-x-4 gap-y-1">
+        <div className="text-[11px] uppercase tracking-wide text-white/60 pt-1">
+          Showcase Highlights
+        </div>
+        <ul className="list-disc list-outside pl-4 text-[13px] leading-relaxed text-white/80 space-y-1">
+          <li><strong>96.2% accuracy (AUC 93.8%)</strong> on employee-retention models</li>
+          <li><strong>$317k patient responsibility</strong> surfaced; CSV → Python → Excel export</li>
+          <li><strong>2.3k-home pricing model (R)</strong> — 60+ features, RMSE-driven selection</li>
+          <li><strong>Physics-based golf yardage</strong> calculator (wind, temp, lie)</li>
+          <li><strong>Next.js portfolio</strong> with README-driven project pages</li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
 export default function ProjectsHUD() {
   const projects = ((profile as any)?.projects ?? []) as ReadonlyArray<Project>;
 
-  // Mobile: simple stack
+  // Mobile: simple stack (note/blurb hidden on mobile by design)
   const mobile = (
     <div className="md:hidden space-y-10">
       {TILE_ORDER.map((title) => {
@@ -289,6 +302,7 @@ export default function ProjectsHUD() {
               />
             );
           })}
+          <BlurbAndNote left={md.note.left} top={md.note.top} width={md.note.width} />
         </div>
 
         {/* lg collage */}
@@ -307,6 +321,7 @@ export default function ProjectsHUD() {
               />
             );
           })}
+          <BlurbAndNote left={lg.note.left} top={lg.note.top} width={lg.note.width} />
         </div>
       </div>
     </section>
