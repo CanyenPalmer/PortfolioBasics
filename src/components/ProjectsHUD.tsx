@@ -46,24 +46,34 @@ const KEYWORD_BY_TITLE: Record<string, string> = {
   "PortfolioBasics (This Site)": "frontend",
 };
 
-// small, tasteful angle variety (straightens on hover)
-const ROTATE_CLASSES = [
-  "md:-rotate-[0.6deg]",
-  "md:rotate-[0.6deg]",
-  "md:-rotate-[1deg]",
+/** Small, tasteful angle variety (straightens on hover) */
+const ROTATE = [
+  "md:-rotate-[1.2deg]",
   "md:rotate-[0.8deg]",
+  "md:-rotate-[0.6deg]",
+  "md:rotate-[1deg]",
   "md:-rotate-[0.4deg]",
-  "md:rotate-[0.4deg]",
+  "md:rotate-[0.6deg]",
 ];
 
-// vertical offsets to break alignment (masonry already helps; this exaggerates it)
-const OFFSET_CLASSES = [
+/** Vertical offsets (to break any hint of rows) */
+const OFFSET_Y = [
   "md:mt-0",
-  "md:mt-6",
-  "md:mt-12",
-  "md:-mt-4",
-  "md:mt-10",
+  "md:mt-8",
   "md:mt-16",
+  "md:-mt-6",
+  "md:mt-12",
+  "md:mt-20",
+];
+
+/** Horizontal drifts; gentle so we never hit the page walls */
+const DRIFT_X = [
+  "md:translate-x-[-4%]",
+  "md:translate-x-[3%]",
+  "md:translate-x-[-2%]",
+  "md:translate-x-[5%]",
+  "md:translate-x-[-5%]",
+  "md:translate-x-[2%]",
 ];
 
 export default function ProjectsHUD() {
@@ -81,8 +91,11 @@ export default function ProjectsHUD() {
           Projects
         </h2>
 
-        {/* TRUE collage: CSS columns (1–2 only) + break-inside-avoid */}
-        <div className="columns-1 md:columns-2 gap-8 [column-fill:_balance]">
+        {/* Collage container:
+            - 1 column on mobile, 2 columns on md+
+            - columns prevent hard rows; our offsets/rotations add scatter
+         */}
+        <div className="columns-1 md:columns-2 gap-10 [column-fill:_balance]">
           {projects.map((p, idx) => {
             const img = IMAGE_BY_TITLE[p.title] ?? {
               src: "/images/portfolio-basics-avatar.png",
@@ -100,16 +113,19 @@ export default function ProjectsHUD() {
                 ? "data-pipeline"
                 : "project");
 
-            const isFeature = p.title.toLowerCase().includes("logistic regression");
-            const rotate = ROTATE_CLASSES[idx % ROTATE_CLASSES.length];
-            const offset = OFFSET_CLASSES[idx % OFFSET_CLASSES.length];
+            const isFeature =
+              p.title.toLowerCase().includes("logistic regression");
+
+            const rotate = ROTATE[idx % ROTATE.length];
+            const offsetY = OFFSET_Y[idx % OFFSET_Y.length];
+            const driftX = DRIFT_X[idx % DRIFT_X.length];
 
             return (
               <article
                 key={`${p.title}-${idx}`}
                 className={[
-                  "mb-8 inline-block w-full break-inside-avoid",
-                  offset,
+                  "mb-10 inline-block w-full break-inside-avoid",
+                  offsetY,
                 ].join(" ")}
               >
                 <motion.a
@@ -117,23 +133,31 @@ export default function ProjectsHUD() {
                   target={href ? "_blank" : undefined}
                   rel={href ? "noreferrer" : undefined}
                   className={[
-                    "block rounded-xl bg-[#111418] ring-1 ring-white/5 overflow-hidden",
+                    // PURE IMAGE — no bg, no ring, no border
+                    "block overflow-visible",
                     rotate,
-                    // a bit more padding on feature to visually enlarge & give breathing room
-                    isFeature ? "p-3 md:p-4" : "p-2",
+                    driftX,
+                    // gentle breathing room so drifts never touch walls
+                    "px-0 md:px-1",
                   ].join(" ")}
                   initial={{ y: 0, rotate: 0 }}
-                  whileHover={{ y: -4, rotate: 0 }}
+                  whileHover={{ y: -6, rotate: 0 }}
                   transition={{ type: "spring", stiffness: 240, damping: 20 }}
                 >
-                  {/* No cropping: natural size; feature gets a mild scale bump */}
+                  {/* No cropping: natural size; feature gets a larger scale */}
                   <img
                     src={img.src}
                     alt={img.alt}
                     className={[
                       "w-full h-auto object-contain select-none",
-                      isFeature ? "md:scale-110" : "",
+                      isFeature ? "md:scale-[1.6] origin-center" : "md:scale-100",
                     ].join(" ")}
+                    style={{
+                      // Make sure even the scaled feature doesn't bust the page walls.
+                      maxWidth: isFeature ? "92%" : "100%",
+                      marginLeft: isFeature ? "4%" : "0",
+                      marginRight: isFeature ? "4%" : "0",
+                    }}
                     loading={idx < 2 ? "eager" : "lazy"}
                     decoding="async"
                     onError={(e) => {
@@ -143,7 +167,7 @@ export default function ProjectsHUD() {
                   />
                 </motion.a>
 
-                {/* Title (left) + keyword (right) */}
+                {/* Title (left) + keyword (right) — keep minimal */}
                 <div className="mt-3 flex items-baseline justify-between gap-3">
                   <h3 className="text-base md:text-lg font-medium tracking-tight">
                     {p.title}
@@ -153,13 +177,13 @@ export default function ProjectsHUD() {
                   </span>
                 </div>
 
-                {/* Subtle tech badges */}
+                {/* Tech badges (optional + subtle) */}
                 {Array.isArray(p.tech) && p.tech.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-2">
                     {p.tech.slice(0, 4).map((t) => (
                       <span
                         key={t}
-                        className="text-[10px] md:text-[11px] px-2 py-0.5 rounded-full bg-white/5 text-white/70 ring-1 ring-white/10"
+                        className="text-[10px] md:text-[11px] px-2 py-0.5 rounded-full bg-white/5 text-white/70"
                       >
                         {t}
                       </span>
