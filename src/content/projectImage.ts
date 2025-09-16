@@ -3,7 +3,7 @@ export const IMAGE_BY_SLUG: Record<string, { src: string; alt: string }> = {
     src: "/images/cgm-patient-avatar.png",
     alt: "CGM Patient Analytics preview",
   },
-  "logistic-regression-tree-based-ml": {
+  "logistic-regression-and-tree-based-ml": {
     src: "/images/logistic-regression-avatar.png",
     alt: "Logistic Regression & Tree-Based ML preview",
   },
@@ -26,5 +26,10 @@ export const IMAGE_BY_SLUG: Record<string, { src: string; alt: string }> = {
 };
 
 export function imageForSlug(slug: string) {
-  return IMAGE_BY_SLUG[slug] ?? { src: "/images/portfolio-basics-avatar.png", alt: "Project preview" };
+  return (
+    IMAGE_BY_SLUG[slug] ?? {
+      src: "/images/portfolio-basics-avatar.png",
+      alt: "Project preview",
+    }
+  );
 }
