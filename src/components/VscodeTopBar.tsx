@@ -5,17 +5,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 
-/**
- * VscodeTopBar — translucent, fixed header that:
- *  - shows ONLY across: about → experience → projects → education → testimonials
- *  - fades in when entering "about", fades out after leaving "testimonials"
- *  - removes the left color dots; shows just signature, tabs, and contact links
- *
- * Props:
- *  - signature (required)
- *  - resumeHref / linkedinHref / githubHref (optional)
- */
-
 type Props = {
   signature: string;
   resumeHref?: string;
@@ -31,7 +20,7 @@ const SECTION_IDS = [
   "testimonials",
 ] as const;
 
-/* ——— Inline icons (no external deps) ——— */
+/* --- Inline icons --- */
 function IconGithub(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true" {...props}>
@@ -83,7 +72,7 @@ export default function VscodeTopBar({
     []
   );
 
-  /* -------- Visibility band: show between #about top and #testimonials bottom -------- */
+  /* --- Visibility band (unchanged from your working version) --- */
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -96,8 +85,8 @@ export default function VscodeTopBar({
       const tRect = testimonials.getBoundingClientRect();
       const vh = window.innerHeight;
 
-      const aboutEntered = aRect.top <= vh * 0.9; // enter as about nears
-      const beforeTestimonialsEnd = tRect.bottom >= 40; // leave right after testimonials
+      const aboutEntered = aRect.top <= vh * 0.9;
+      const beforeTestimonialsEnd = tRect.bottom >= 40;
 
       setVisible(aboutEntered && beforeTestimonialsEnd);
     };
@@ -107,7 +96,7 @@ export default function VscodeTopBar({
       rafRef.current = requestAnimationFrame(computeVisible);
     };
 
-    computeVisible(); // initial
+    computeVisible();
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll);
     return () => {
@@ -117,7 +106,7 @@ export default function VscodeTopBar({
     };
   }, []);
 
-  /* -------- Active tab: choose section whose midpoint is closest to viewport center -------- */
+  /* --- Active tab based on section midpoint (stable) --- */
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -129,7 +118,6 @@ export default function VscodeTopBar({
 
     const pickActive = () => {
       const viewportCenter = window.innerHeight / 2;
-
       let bestId: string | null = null;
       let bestDist = Infinity;
 
@@ -138,13 +126,7 @@ export default function VscodeTopBar({
         const mid = rect.top + rect.height / 2;
         const dist = Math.abs(mid - viewportCenter);
 
-        // Only consider sections that are at least partially in/near view
-        // (with a forgiving margin so active doesn't drop at edges)
-        const inRange =
-          rect.bottom > -window.innerHeight * 0.15 &&
-          rect.top < window.innerHeight * 1.15;
-
-        if (inRange && dist < bestDist) {
+        if (dist < bestDist) {
           bestDist = dist;
           bestId = el.id;
         }
@@ -158,7 +140,7 @@ export default function VscodeTopBar({
       rafRef.current = requestAnimationFrame(pickActive);
     };
 
-    pickActive(); // initial
+    pickActive();
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll);
     return () => {
@@ -187,21 +169,19 @@ export default function VscodeTopBar({
                 flex items-center justify-between
                 rounded-xl
                 border border-white/10
-                bg-black/35  /* translucent glass */
+                bg-black/35
                 backdrop-blur-md
                 shadow-[0_2px_20px_rgba(0,0,0,0.35)]
                 ring-1 ring-white/[0.02]
                 px-3 sm:px-4 py-2
               "
             >
-              {/* Signature (no traffic-light dots) */}
               <div className="flex items-center gap-2 min-w-0">
                 <span className="truncate text-sm font-semibold text-white/95">
                   {signature}
                 </span>
               </div>
 
-              {/* Tabs */}
               <ul className="hidden md:flex items-center gap-2">
                 {tabs.map((t) => {
                   const isActive = active === t.id;
@@ -222,7 +202,6 @@ export default function VscodeTopBar({
                 })}
               </ul>
 
-              {/* Contact links (inline SVGs) */}
               <div className="flex items-center gap-2 sm:gap-3">
                 {resumeHref && (
                   <Link
