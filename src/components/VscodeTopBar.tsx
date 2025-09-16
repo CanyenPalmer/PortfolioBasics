@@ -5,6 +5,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 
+/**
+ * VscodeTopBar — translucent, fixed header that:
+ *  - visible across: about → experience → projects → education → testimonials
+ *  - fades in when entering About, fades out after Testimonials
+ *  - no color dots; just signature, tabs, and contact links
+ */
+
 type Props = {
   signature: string;
   resumeHref?: string;
@@ -20,7 +27,7 @@ const SECTION_IDS = [
   "testimonials",
 ] as const;
 
-/* --- Inline icons --- */
+/* Inline icons (no external deps) */
 function IconGithub(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true" {...props}>
@@ -72,41 +79,34 @@ export default function VscodeTopBar({
     []
   );
 
-  /* --- Visibility band (unchanged from your working version) --- */
+  /* ---------- VISIBILITY: show if ANY tracked section is in view ---------- */
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const about = document.getElementById("about");
-    const testimonials = document.getElementById("testimonials");
-    if (!about || !testimonials) return;
+    const targets = SECTION_IDS
+      .map((id) => document.getElementById(id))
+      .filter(Boolean) as HTMLElement[];
 
-    const computeVisible = () => {
-      const aRect = about.getBoundingClientRect();
-      const tRect = testimonials.getBoundingClientRect();
-      const vh = window.innerHeight;
+    if (targets.length === 0) return;
 
-      const aboutEntered = aRect.top <= vh * 0.9;
-      const beforeTestimonialsEnd = tRect.bottom >= 40;
-
-      setVisible(aboutEntered && beforeTestimonialsEnd);
+    const onIntersect: IntersectionObserverCallback = (entries) => {
+      // If any observed section is intersecting at least a bit -> header visible
+      const anyVisible = entries.some((e) => e.isIntersecting && e.intersectionRatio > 0);
+      setVisible(anyVisible);
     };
 
-    const onScroll = () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      rafRef.current = requestAnimationFrame(computeVisible);
-    };
+    const observer = new IntersectionObserver(onIntersect, {
+      root: null,
+      // Small threshold makes it turn on as soon as About touches the viewport,
+      // and stay on through the band until nothing is intersecting (after Testimonials).
+      threshold: [0.01],
+    });
 
-    computeVisible();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-    };
+    targets.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
   }, []);
 
-  /* --- Active tab based on section midpoint (stable) --- */
+  /* ---------- ACTIVE TAB: closest section midpoint to viewport center ---------- */
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -126,7 +126,12 @@ export default function VscodeTopBar({
         const mid = rect.top + rect.height / 2;
         const dist = Math.abs(mid - viewportCenter);
 
-        if (dist < bestDist) {
+        // Consider sections near the viewport (forgiveness at edges)
+        const inRange =
+          rect.bottom > -window.innerHeight * 0.15 &&
+          rect.top < window.innerHeight * 1.15;
+
+        if (inRange && dist < bestDist) {
           bestDist = dist;
           bestId = el.id;
         }
@@ -140,7 +145,7 @@ export default function VscodeTopBar({
       rafRef.current = requestAnimationFrame(pickActive);
     };
 
-    pickActive();
+    pickActive(); // initial
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll);
     return () => {
@@ -169,19 +174,21 @@ export default function VscodeTopBar({
                 flex items-center justify-between
                 rounded-xl
                 border border-white/10
-                bg-black/35
+                bg-black/35  /* translucent glass */
                 backdrop-blur-md
                 shadow-[0_2px_20px_rgba(0,0,0,0.35)]
                 ring-1 ring-white/[0.02]
                 px-3 sm:px-4 py-2
               "
             >
+              {/* Signature */}
               <div className="flex items-center gap-2 min-w-0">
                 <span className="truncate text-sm font-semibold text-white/95">
                   {signature}
                 </span>
               </div>
 
+              {/* Tabs */}
               <ul className="hidden md:flex items-center gap-2">
                 {tabs.map((t) => {
                   const isActive = active === t.id;
@@ -202,6 +209,7 @@ export default function VscodeTopBar({
                 })}
               </ul>
 
+              {/* Contact links */}
               <div className="flex items-center gap-2 sm:gap-3">
                 {resumeHref && (
                   <Link
