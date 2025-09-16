@@ -1,10 +1,8 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
-import { motion } from "framer-motion";
-import SectionPanel from "@/components/ui/SectionPanel";
 import { profile } from "@/content/profile";
+import { motion } from "framer-motion";
 
 type Project = {
   title: string;
@@ -12,35 +10,15 @@ type Project = {
   links?: { label?: string; href: string }[];
 };
 
-//
-// 🔧 Map project titles → image files you’ve placed in /public/images/projects/*
-// Update the paths below to match your actual filenames.
-//
-const IMAGE_BY_TITLE: Record<string, { src: string; alt: string }> = {
-  "CGM Patient Analytics": {
-    src: "/images/projects/cgm-patient.png",
-    alt: "CGM Patient Analytics preview",
-  },
-  "Logistic Regression & Tree-Based ML": {
-    src: "/images/projects/logistic-regression.png",
-    alt: "Logistic & Tree-Based ML preview",
-  },
-  "Real Estate GLM (R)": {
-    src: "/images/projects/real-estate-glm.png",
-    alt: "Real Estate GLM preview",
-  },
-  "Python 101": {
-    src: "/images/projects/python-101.png",
-    alt: "Python 101 preview",
-  },
-  "MyCaddy": {
-    src: "/images/projects/mycaddy.png",
-    alt: "MyCaddy app preview",
-  },
-  "Portfolio (This Site)": {
-    src: "/images/projects/portfolio-basics.png",
-    alt: "Portfolio website preview",
-  },
+// If you already have specific filenames, map them here.
+// Otherwise we’ll auto-generate a slug filename and fall back cleanly.
+const EXPLICIT_IMAGES: Record<string, string> = {
+  "CGM Patient Analytics": "/images/projects/cgm-patient.png",
+  "Logistic Regression & Tree-Based ML": "/images/projects/logistic-regression.png",
+  "Real Estate GLM (R)": "/images/projects/real-estate-glm.png",
+  "Python 101": "/images/projects/python-101.png",
+  "MyCaddy": "/images/projects/mycaddy.png",
+  "Portfolio (This Site)": "/images/projects/portfolio-basics.png",
 };
 
 const KEYWORD_BY_TITLE: Record<string, string> = {
@@ -52,6 +30,21 @@ const KEYWORD_BY_TITLE: Record<string, string> = {
   "Portfolio (This Site)": "frontend",
 };
 
+function slugifyTitle(t: string) {
+  return t
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+/**
+ * ProjectsHUD — minimal, masonry collection (no neon, no frames).
+ * - Clean header: just "Projects"
+ * - Masonry via CSS columns
+ * - Images are NOT cropped (object-contain; natural height)
+ * - Uses <img> with onError fallback to avoid Next/Image config issues
+ */
 export default function ProjectsHUD() {
   const projects = ((profile as any)?.projects ?? []) as ReadonlyArray<Project>;
 
@@ -59,77 +52,79 @@ export default function ProjectsHUD() {
     <section
       id="projects"
       aria-label="Projects"
-      className="relative min-h-[100svh] md:min-h-screen py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start"
+      className="relative w-full py-20 md:py-28 scroll-mt-24 md:scroll-mt-28"
     >
-      <SectionPanel title="Projects">
-        <p className="mb-8 text-sm md:text-base text-white/70">
-          A collection of recent work—data, models, and apps.
-        </p>
+      {/* Minimal header (no VSCode frame, no neon) */}
+      <div className="mx-auto max-w-6xl px-6">
+        <h2 className="text-2xl md:text-3xl font-semibold tracking-tight mb-8">
+          Projects
+        </h2>
 
-        {/* Masonry: responsive columns like the reference */}
-        <div className="columns-1 sm:columns-2 xl:columns-3 gap-6 [column-fill:_balance]">
+        {/* Masonry columns like your reference */}
+        <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-6 [column-fill:_balance]">
           {projects.map((p, idx) => {
-            const mapped = IMAGE_BY_TITLE[p.title];
-            const img = mapped ?? {
-              src: "/images/projects/portfolio-basics.png",
-              alt: `${p.title} preview`,
-            };
+            // Determine image src:
+            // 1) explicit mapping if provided
+            // 2) else /images/projects/<slug>.png
+            const slug = slugifyTitle(p.title);
+            const src =
+              EXPLICIT_IMAGES[p.title] ?? `/images/projects/${slug}.png`;
+
             const keyword =
               KEYWORD_BY_TITLE[p.title] ??
-              (p.tech?.includes("scikit-learn")
+              (p.tech?.some((t) => /scikit-learn|xgboost|lightgbm/i.test(t))
                 ? "machine-learning"
-                : p.tech?.includes("R")
+                : p.tech?.some((t) => /\bR\b/i.test(t))
                 ? "statistics"
-                : p.tech?.some((t) => /sql|sqlite/i.test(t))
+                : p.tech?.some((t) => /sql|sqlite|postgres/i.test(t))
                 ? "data-pipeline"
                 : "project");
 
-            const primaryHref = p.links?.[0]?.href;
+            const href = p.links?.[0]?.href;
 
             return (
               <article
                 key={`${p.title}-${idx}`}
-                className="
-                  mb-6 inline-block w-full break-inside-avoid
-                "
+                className="mb-6 inline-block w-full break-inside-avoid"
               >
-                {/* Tile (no cropping): object-contain, natural height */}
                 <motion.a
-                  href={primaryHref ?? "#"}
-                  target={primaryHref ? "_blank" : undefined}
-                  rel={primaryHref ? "noreferrer" : undefined}
-                  className="block overflow-hidden rounded-2xl bg-black/40 ring-1 ring-white/5"
+                  href={href ?? "#"}
+                  target={href ? "_blank" : undefined}
+                  rel={href ? "noreferrer" : undefined}
+                  className="block overflow-hidden rounded-xl bg-[#111418] ring-1 ring-white/5"
                   initial={{ y: 0 }}
                   whileHover={{ y: -2 }}
                   transition={{ type: "spring", stiffness: 220, damping: 18 }}
                 >
-                  <div className="relative w-full">
-                    <Image
-                      src={img.src}
-                      alt={img.alt}
-                      width={1600}
-                      height={1000}
-                      sizes="(min-width:1280px) 33vw, (min-width:640px) 50vw, 100vw"
-                      className="w-full h-auto object-contain select-none"
-                      priority={idx < 2}
-                    />
-                  </div>
+                  {/* Image: no cropping, scales down if needed */}
+                  <img
+                    src={src}
+                    alt={`${p.title} preview`}
+                    className="w-full h-auto object-contain select-none"
+                    onError={(e) => {
+                      // fallback if file not found
+                      (e.currentTarget as HTMLImageElement).src =
+                        "/images/projects/fallback.png";
+                    }}
+                    loading={idx < 2 ? "eager" : "lazy"}
+                    decoding="async"
+                  />
                 </motion.a>
 
-                {/* Subheading row: Title (left) + keyword (right) */}
+                {/* Title (left) + one-word footnote (right) */}
                 <div className="mt-3 flex items-baseline justify-between gap-3">
                   <h3 className="text-base md:text-lg font-medium tracking-tight">
                     {p.title}
                   </h3>
                   <span
-                    className="text-[11px] md:text-xs uppercase tracking-wide text-cyan-300/90"
+                    className="text-[11px] md:text-xs uppercase tracking-wide text-white/60"
                     title={keyword}
                   >
                     {keyword}
                   </span>
                 </div>
 
-                {/* Optional subtle tech badges */}
+                {/* (Optional) tiny tech badges; subtle only */}
                 {Array.isArray(p.tech) && p.tech.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-2">
                     {p.tech.slice(0, 4).map((t) => (
@@ -146,7 +141,7 @@ export default function ProjectsHUD() {
             );
           })}
         </div>
-      </SectionPanel>
+      </div>
     </section>
   );
 }
