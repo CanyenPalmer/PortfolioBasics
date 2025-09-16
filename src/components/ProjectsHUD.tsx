@@ -45,24 +45,30 @@ const KEYWORD_BY_TITLE: Record<string, string> = {
   "PortfolioBasics (This Site)": "frontend",
 };
 
-// gentle angle options (small enough to avoid clipping neighbors)
-const ROTATE = [
-  "md:-rotate-[0.4deg]",
-  "md:rotate-[0.4deg]",
-  "md:-rotate-[0.6deg]",
-  "md:rotate-[0.6deg]",
+// vertical offsets to break any row feel (margins → no overlap)
+const OFFSET_Y = [
+  "md:mt-0",
+  "md:mt-6",
+  "md:mt-12",
+  "md:mt-16",
+  "md:mt-8",
+  "md:mt-20",
 ];
 
-// vertical offsets to break rows (margins affect layout → no overlap)
-const OFFSET_Y = ["md:mt-0", "md:mt-6", "md:mt-12", "md:mt-16", "md:mt-8"];
-
-// small horizontal breathing via margins (no translate → no overlap)
-const DRIFT_X = ["md:ml-0", "md:ml-2", "md:mr-2", "md:ml-4", "md:mr-4"];
+// tiny horizontal side drifts using margins (no transforms = no clipping)
+const DRIFT_SIDE = [
+  "md:ml-0 md:mr-auto", // hug left
+  "md:ml-auto md:mr-0", // hug right
+  "md:ml-2 md:mr-auto",
+  "md:ml-auto md:mr-2",
+  "md:ml-4 md:mr-auto",
+  "md:ml-auto md:mr-4",
+];
 
 export default function ProjectsHUD() {
   const all = ((profile as any)?.projects ?? []) as ReadonlyArray<Project>;
 
-  // Pull out the feature (Logistic Regression) so we can show it full-width
+  // Feature: Logistic Regression (reduced size vs prior version)
   const featureIdx = all.findIndex((p) =>
     p.title.toLowerCase().includes("logistic regression")
   );
@@ -78,15 +84,15 @@ export default function ProjectsHUD() {
       aria-label="Projects"
       className="relative w-full py-20 md:py-28 scroll-mt-24 md:scroll-mt-28"
     >
-      <div className="mx-auto max-w-6xl px-6">
+      <div className="mx-auto max-w-7xl px-6">
         {/* Minimal header */}
         <h2 className="text-2xl md:text-3xl font-semibold tracking-tight mb-8">
           Projects
         </h2>
 
-        {/* ===================== FEATURE (full width) ===================== */}
+        {/* =============== FEATURE (reduced; left-biased, no tilt) =============== */}
         {feature && (
-          <article className="mb-12">
+          <article className="mb-12 md:w-[92%] md:ml-0 md:mr-auto">
             <a
               href={feature.links?.[0]?.href ?? "#"}
               target={feature.links?.[0]?.href ? "_blank" : undefined}
@@ -103,7 +109,6 @@ export default function ProjectsHUD() {
                   `${feature.title} preview`
                 }
                 className="w-full h-auto object-contain select-none"
-                // full width + generous vertical space gives it clear primacy
                 loading="eager"
                 onError={(e) => {
                   (e.currentTarget as HTMLImageElement).src =
@@ -134,8 +139,8 @@ export default function ProjectsHUD() {
           </article>
         )}
 
-        {/* ================ COLLAGE (1–2 across, scattered) ================ */}
-        <div className="columns-1 md:columns-2 gap-8 [column-fill:_balance]">
+        {/* ====================== COLLAGE (1–2 across) ====================== */}
+        <div className="columns-1 md:columns-2 gap-12 [column-fill:_balance]">
           {rest.map((p, idx) => {
             const img = IMAGE_BY_TITLE[p.title] ?? {
               src: "/images/portfolio-basics-avatar.png",
@@ -152,26 +157,25 @@ export default function ProjectsHUD() {
                 ? "data-pipeline"
                 : "project");
 
-            // choose scatter classes deterministically by index
-            const rotate = ROTATE[idx % ROTATE.length];
             const oy = OFFSET_Y[idx % OFFSET_Y.length];
-            const dx = DRIFT_X[idx % DRIFT_X.length];
+            const side = DRIFT_SIDE[idx % DRIFT_SIDE.length];
 
             return (
               <article
                 key={`${p.title}-${idx}`}
                 className={[
-                  "mb-10 inline-block w-full break-inside-avoid",
+                  // narrower than the column so it doesn’t feel centered
+                  "mb-12 inline-block w-[92%] break-inside-avoid",
                   oy,
-                  dx,
+                  side,
                 ].join(" ")}
               >
-                {/* PURE IMAGE — no borders/rings/backgrounds */}
+                {/* Pure image; no borders/frames/tilt */}
                 <a
                   href={href ?? "#"}
                   target={href ? "_blank" : undefined}
                   rel={href ? "noreferrer" : undefined}
-                  className={["block", rotate].join(" ")}
+                  className="block"
                 >
                   <img
                     src={img.src}
