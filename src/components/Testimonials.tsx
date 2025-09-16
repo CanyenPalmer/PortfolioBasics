@@ -25,15 +25,15 @@ type Testimonial = {
  *
  * Desktop (lg+):
  *   TL — Text (C. Smith / MyCaddy)
- *   TR — Avatar (smith-avatar.png)  [transparent, free; no bg]
- *   BL — Avatar (waterman-avatar.png) [transparent, free; no bg]
+ *   TR — Avatar (smith-avatar.png)   [transparent, free; no bg]
+ *   BL — Avatar (waterman-avatar.png)[transparent, free; no bg]
  *   BR — Text (G. Waterman / Best-Bet)
  *
  * Tablet: two rows (text + avatar for pair 1; avatar + text for pair 2)
  * Mobile: each pair stacks (text above avatar) for readability
  */
 
-export default function Testimonials() {
+function TestimonialsComponent() {
   const items = (profile.testimonials ?? []) as ReadonlyArray<Testimonial>;
   if (!Array.isArray(items) || items.length === 0) return null;
 
@@ -106,6 +106,16 @@ export default function Testimonials() {
       </div>
     </section>
   );
+}
+
+/* Named export expected by your app and re-exported by components/Testimonials/index.ts */
+export function Testimonials() {
+  return <TestimonialsComponent />;
+}
+
+/* Default export for `import Testimonials from ...` */
+export default function DefaultExportedTestimonials() {
+  return <TestimonialsComponent />;
 }
 
 /* -------------------- Subcomponents -------------------- */
