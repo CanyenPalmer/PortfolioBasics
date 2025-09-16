@@ -1,7 +1,9 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { profile } from "@/content/profile";
+import { slugify } from "@/lib/slug";
 
 type Project = {
   title: string;
@@ -45,7 +47,7 @@ const KEYWORD_BY_TITLE: Record<string, string> = {
   "PortfolioBasics (This Site)": "frontend",
 };
 
-// larger vertical offsets to ensure nothing lines up
+// vertical offsets to avoid row alignment
 const OFFSET_Y = [
   "md:mt-0",
   "md:mt-8",
@@ -55,7 +57,7 @@ const OFFSET_Y = [
   "md:mt-24",
 ];
 
-// stronger left/right hugging with extra margin drift (no transforms)
+// stronger left/right hugging with extra margin drift
 const DRIFT_SIDE = [
   "md:ml-0 md:mr-auto",
   "md:ml-auto md:mr-0",
@@ -68,7 +70,7 @@ const DRIFT_SIDE = [
 export default function ProjectsHUD() {
   const all = ((profile as any)?.projects ?? []) as ReadonlyArray<Project>;
 
-  // Feature: Logistic Regression (reduced size from last version)
+  // Feature: Logistic Regression (slightly smaller)
   const featureIdx = all.findIndex((p) =>
     p.title.toLowerCase().includes("logistic regression")
   );
@@ -90,14 +92,16 @@ export default function ProjectsHUD() {
           Projects
         </h2>
 
-        {/* =============== FEATURE (slightly smaller; straight; left-biased) =============== */}
+        {/* =============== FEATURE (internal link ONLY) =============== */}
         {feature && (
           <article className="mb-16 md:w-[88%] md:ml-0 md:mr-auto">
-            <a
-              href={feature.links?.[0]?.href ?? "#"}
-              target={feature.links?.[0]?.href ? "_blank" : undefined}
-              rel={feature.links?.[0]?.href ? "noreferrer" : undefined}
+            <Link
+              href={`/projects/${slugify(feature.title)}?via=projects`}
               className="block"
+              onClick={() =>
+                typeof window !== "undefined" &&
+                window.sessionStorage.setItem("cameFromProjects", "1")
+              }
             >
               <img
                 src={
@@ -115,10 +119,19 @@ export default function ProjectsHUD() {
                     "/images/portfolio-basics-avatar.png";
                 }}
               />
-            </a>
+            </Link>
             <div className="mt-4 flex items-baseline justify-between gap-3">
               <h3 className="text-lg md:text-xl font-semibold tracking-tight">
-                {feature.title}
+                <Link
+                  href={`/projects/${slugify(feature.title)}?via=projects`}
+                  className="hover:underline"
+                  onClick={() =>
+                    typeof window !== "undefined" &&
+                    window.sessionStorage.setItem("cameFromProjects", "1")
+                  }
+                >
+                  {feature.title}
+                </Link>
               </h3>
               <span className="text-[11px] md:text-xs uppercase tracking-wide text-white/60">
                 {KEYWORD_BY_TITLE[feature.title] ?? "project"}
@@ -139,14 +152,17 @@ export default function ProjectsHUD() {
           </article>
         )}
 
-        {/* ====================== COLLAGE (1–2 across; more separation) ====================== */}
+        {/* ====================== COLLAGE (1–2 across; internal links ONLY) ====================== */}
         <div className="columns-1 md:columns-2 gap-16 [column-fill:_balance]">
           {rest.map((p, idx) => {
             const img = IMAGE_BY_TITLE[p.title] ?? {
               src: "/images/portfolio-basics-avatar.png",
               alt: `${p.title} preview`,
             };
-            const href = p.links?.[0]?.href;
+            // NOTE: We keep p.links for metadata but we DO NOT use it for navigation here.
+            const oy = OFFSET_Y[idx % OFFSET_Y.length];
+            const side = DRIFT_SIDE[idx % DRIFT_SIDE.length];
+            const slug = slugify(p.title);
             const keyword =
               KEYWORD_BY_TITLE[p.title] ??
               (p.tech?.some((t) => /scikit-learn|xgboost|lightgbm/i.test(t))
@@ -157,25 +173,23 @@ export default function ProjectsHUD() {
                 ? "data-pipeline"
                 : "project");
 
-            const oy = OFFSET_Y[idx % OFFSET_Y.length];
-            const side = DRIFT_SIDE[idx % DRIFT_SIDE.length];
-
             return (
               <article
                 key={`${p.title}-${idx}`}
                 className={[
-                  // narrower than column + bigger spacing to avoid center crowding
                   "mb-16 inline-block w-[86%] break-inside-avoid",
                   oy,
                   side,
                 ].join(" ")}
               >
-                {/* Pure image; straight; borderless */}
-                <a
-                  href={href ?? "#"}
-                  target={href ? "_blank" : undefined}
-                  rel={href ? "noreferrer" : undefined}
+                {/* Image → internal detail route */}
+                <Link
+                  href={`/projects/${slug}?via=projects`}
                   className="block"
+                  onClick={() =>
+                    typeof window !== "undefined" &&
+                    window.sessionStorage.setItem("cameFromProjects", "1")
+                  }
                 >
                   <img
                     src={img.src}
@@ -188,12 +202,21 @@ export default function ProjectsHUD() {
                         "/images/portfolio-basics-avatar.png";
                     }}
                   />
-                </a>
+                </Link>
 
                 {/* Title (left) + keyword (right) */}
                 <div className="mt-4 flex items-baseline justify-between gap-3">
                   <h3 className="text-base md:text-lg font-medium tracking-tight">
-                    {p.title}
+                    <Link
+                      href={`/projects/${slug}?via=projects`}
+                      className="hover:underline"
+                      onClick={() =>
+                        typeof window !== "undefined" &&
+                        window.sessionStorage.setItem("cameFromProjects", "1")
+                      }
+                    >
+                      {p.title}
+                    </Link>
                   </h3>
                   <span className="text-[11px] md:text-xs uppercase tracking-wide text-white/60">
                     {keyword}
