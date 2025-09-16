@@ -1,110 +1,208 @@
-// src/components/VscodeTopBar.tsx
 "use client";
 
 import * as React from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-
-type VscodeTopBarProps = {
-  resumeHref?: string;
-  githubHref?: string;
-  linkedinHref?: string;
-  signature?: string;
-};
+import { AnimatePresence, motion } from "framer-motion";
+import { Github, Linkedin, FileText } from "lucide-react";
 
 /**
- * VSCode-style top bar — linear single row with centered tabs
+ * VscodeTopBar — translucent, fixed header that:
+ *  - shows ONLY on sections: about, experience, projects, education, testimonials
+ *  - fades in entering "about" and fades out after "testimonials"
+ *  - removes the left color dots; shows just signature, tabs, and contact links
  *
- * Layout (desktop):
- * [ ● ● ●  / Name ]    [ About | Experience | Projects | Education | Testimonials | Contact ]    [ Resume | GitHub | LinkedIn ]
+ * Props preserved from your current layout usage:
+ *  - signature: string
+ *  - resumeHref: string
+ *  - linkedinHref: string
+ *  - githubHref: string
  */
+
+type Props = {
+  signature: string;
+  resumeHref?: string;
+  linkedinHref?: string;
+  githubHref?: string;
+};
+
+const SECTION_IDS = [
+  "about",
+  "experience",
+  "projects",
+  "education",
+  "testimonials",
+] as const;
+
 export default function VscodeTopBar({
+  signature,
   resumeHref = "/Canyen_Palmer_Resume.pdf",
-  githubHref = "https://github.com/your-handle",
   linkedinHref = "https://www.linkedin.com/in/your-handle",
-  signature = "Canyen Palmer",
-}: VscodeTopBarProps) {
-  const tabs: { label: string; href: string }[] = [
-    { label: "About", href: "#about" },
-    { label: "Experience", href: "#experience" },
-    { label: "Projects", href: "#projects" },
-    { label: "Education", href: "#education" },
-    { label: "Testimonials", href: "#testimonials" },
-    { label: "Contact", href: "#contact" },
-  ];
+  githubHref = "https://github.com/your-handle",
+}: Props) {
+  const [visible, setVisible] = useState(false);
+  const [active, setActive] = useState<string | null>(null);
+
+  // Map for quick anchor generation
+  const tabs = useMemo(
+    () =>
+      SECTION_IDS.map((id) => ({
+        id,
+        label: id[0].toUpperCase() + id.slice(1),
+        href: `#${id}`,
+      })),
+    []
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const targets = SECTION_IDS
+      .map((id) => document.getElementById(id))
+      .filter(Boolean) as HTMLElement[];
+
+    if (targets.length === 0) return;
+
+    // Show the bar if ANY of our target sections is intersecting the viewport
+    const onIntersect: IntersectionObserverCallback = (entries) => {
+      let anyVisible = false;
+      let current: string | null = null;
+
+      for (const entry of entries) {
+        const id = entry.target.id;
+        if (entry.isIntersecting) {
+          anyVisible = true;
+          // Use the largest intersection ratio as "active"
+          if (!current || entry.intersectionRatio > 0.35) {
+            current = id;
+          }
+        }
+      }
+
+      // If *none* of the watched sections are in view, hide the bar
+      // This naturally hides it during the Hero and after Testimonials.
+      setVisible((prev) => (prev !== anyVisible ? anyVisible : prev));
+      if (current) setActive(current);
+    };
+
+    const observer = new IntersectionObserver(onIntersect, {
+      root: null,
+      // A bit of threshold so it fades in as the section actually arrives
+      threshold: [0.12, 0.25, 0.4, 0.6, 0.8],
+    });
+
+    targets.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <header
-      role="banner"
-      className="sticky top-0 z-50 border-b border-white/10 bg-[#0b1016]/70 backdrop-blur-sm"
-    >
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Flex container with three zones */}
-        <div className="relative flex h-14 items-center justify-between">
-          {/* LEFT: Dots + brand */}
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="flex items-center gap-1.5" aria-hidden="true">
-              <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#ff5f56]" />
-              <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#ffbd2e]" />
-              <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#27c93f]" />
-            </div>
-            <div className="whitespace-nowrap text-sm sm:text-base tracking-tight text-white/90">
-              <span className="text-white/60 mr-1">/</span>
-              <span className="hidden xs:inline">{signature} – Portfolio</span>
-              <span className="xs:hidden">{signature}</span>
-            </div>
-          </div>
-
-          {/* CENTER: Tabs — absolute centered group */}
-          <nav
-            aria-label="Main"
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+    <AnimatePresence>
+      {visible && (
+        <motion.header
+          key="vscode-topbar"
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.28, ease: "easeOut" }}
+          className={`
+            fixed inset-x-0 top-0 z-50
+            mx-auto
+            w-full
+          `}
+          aria-label="Site navigation"
+        >
+          <div
+            className={`
+              mx-auto max-w-7xl
+              px-3 sm:px-5
+            `}
           >
-            <ul className="flex items-center gap-5 md:gap-6 text-sm whitespace-nowrap">
-              {tabs.map((t) => (
-                <li key={t.href} className="shrink-0">
+            <nav
+              className={`
+                mt-3
+                flex items-center justify-between
+                rounded-xl
+                border border-white/10
+                bg-black/35   /* clear/translucent so content shows through */
+                backdrop-blur-md
+                shadow-[0_2px_20px_rgba(0,0,0,0.35)]
+                ring-1 ring-white/[0.02]
+                px-3 sm:px-4 py-2
+              `}
+            >
+              {/* Signature (no traffic-light dots) */}
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="truncate text-sm font-semibold text-white/95">
+                  {signature}
+                </span>
+              </div>
+
+              {/* Tabs */}
+              <ul className="hidden md:flex items-center gap-2">
+                {tabs.map((t) => {
+                  const isActive = active === t.id;
+                  return (
+                    <li key={t.id}>
+                      <a
+                        href={t.href}
+                        className={`
+                          rounded-md px-3 py-1.5 text-sm
+                          transition-colors
+                          ${
+                            isActive
+                              ? "text-cyan-200 bg-white/5"
+                              : "text-white/80 hover:text-cyan-200 hover:bg-white/5"
+                          }
+                        `}
+                      >
+                        {t.label}
+                      </a>
+                    </li>
+                  );
+                })}
+              </ul>
+
+              {/* Contact links */}
+              <div className="flex items-center gap-2 sm:gap-3">
+                {resumeHref && (
                   <Link
-                    href={t.href}
-                    className="text-white/80 hover:text-white transition-colors inline-block py-1 border-b-2 border-transparent hover:border-white/30"
+                    href={resumeHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-md p-1.5 text-white/85 hover:text-cyan-200 hover:bg-white/5 transition-colors"
+                    aria-label="Resume"
                   >
-                    {t.label}
+                    <FileText size={18} strokeWidth={1.75} />
                   </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-
-          {/* RIGHT: Action buttons */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <a
-              href={resumeHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center rounded-md border border-white/15 px-3 py-1.5 text-sm text-white/90 hover:text-white hover:border-white/30 transition-colors"
-            >
-              Resume
-            </a>
-            <a
-              href={githubHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center rounded-md border border-white/15 px-3 py-1.5 text-sm text-white/90 hover:text-white hover:border-white/30 transition-colors"
-            >
-              GitHub
-            </a>
-            <a
-              href={linkedinHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center rounded-md border border-white/15 px-3 py-1.5 text-sm text-white/90 hover:text-white hover:border-white/30 transition-colors"
-            >
-              LinkedIn
-            </a>
+                )}
+                {linkedinHref && (
+                  <Link
+                    href={linkedinHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-md p-1.5 text-white/85 hover:text-cyan-200 hover:bg-white/5 transition-colors"
+                    aria-label="LinkedIn"
+                  >
+                    <Linkedin size={18} strokeWidth={1.75} />
+                  </Link>
+                )}
+                {githubHref && (
+                  <Link
+                    href={githubHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-md p-1.5 text-white/85 hover:text-cyan-200 hover:bg-white/5 transition-colors"
+                    aria-label="GitHub"
+                  >
+                    <Github size={18} strokeWidth={1.75} />
+                  </Link>
+                )}
+              </div>
+            </nav>
           </div>
-        </div>
-      </div>
-
-      {/* Divider glow */}
-      <div className="h-px w-full bg-gradient-to-r from-transparent via-white/15 to-transparent" />
-    </header>
+        </motion.header>
+      )}
+    </AnimatePresence>
   );
 }
+
