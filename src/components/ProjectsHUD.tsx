@@ -47,39 +47,52 @@ const KEYWORD_BY_TITLE: Record<string, string> = {
   "PortfolioBasics (This Site)": "frontend",
 };
 
+// Visual shape control so heights are predictable (prevents overlaps)
+const ASPECT: Record<string, string> = {
+  "CGM Patient Analytics": "3 / 4",                   // tall
+  "MyCaddy — Physics Shot Calculator": "3 / 4",       // tall (bigger now)
+  "PortfolioBasics (This Site)": "3 / 4",             // tall
+  "Real Estate Conditions Comparison (R)": "3 / 4",   // tall
+  "Logistic Regression & Tree-Based ML": "16 / 9",    // wide
+  "Python 101": "2 / 3",                              // very tall
+};
+
 /**
- * Custom collage layout based on your sketch.
- * Tweak these numbers to nudge positions/sizes.
- * - width: percentage of collage width
- * - left: percentage from left
- * - top: pixels from the top
- * - containerHeight: ensures nothing is cut off
+ * Custom collage layout (no overlap). Tweak these to nudge spacing/sizes.
+ * containerHeight ensures nothing gets cut off.
  */
 const LAYOUT = {
   md: {
-    containerHeight: 1500, // px
+    containerHeight: 1600, // px
     items: {
-      "CGM Patient Analytics": { left: "2%", top: 0, width: "28%" },
-      "MyCaddy — Physics Shot Calculator": { left: "36%", top: 0, width: "22%" },
-      "PortfolioBasics (This Site)": { left: "62%", top: 0, width: "30%" },
+      "CGM Patient Analytics": { left: "2%",  top: 0,   width: "28%" },
+      // MyCaddy bigger than before (22% -> 24%)
+      "MyCaddy — Physics Shot Calculator":   { left: "36%", top: 0,   width: "24%" },
+      "PortfolioBasics (This Site)":         { left: "64%", top: 0,   width: "30%" },
 
-      "Real Estate Conditions Comparison (R)": { left: "2%", top: 360, width: "28%" },
-      "Logistic Regression & Tree-Based ML": { left: "36%", top: 520, width: "56%" },
+      // Give CGM plenty of clearance before RE
+      "Real Estate Conditions Comparison (R)": { left: "2%",  top: 420, width: "28%" },
 
-      "Python 101": { left: "2%", top: 980, width: "28%" },
+      // Push LR a bit lower to ensure clearance beneath MyCaddy/Portfolio
+      "Logistic Regression & Tree-Based ML":   { left: "36%", top: 620, width: "56%" },
+
+      "Python 101": { left: "2%", top: 1080, width: "28%" },
     } as Record<string, { left: string; top: number; width: string }>,
   },
   lg: {
-    containerHeight: 1400, // px
+    containerHeight: 1500, // px
     items: {
-      "CGM Patient Analytics": { left: "4%", top: 0, width: "24%" },
-      "MyCaddy — Physics Shot Calculator": { left: "32%", top: 0, width: "18%" },
-      "PortfolioBasics (This Site)": { left: "52%", top: 0, width: "28%" },
+      "CGM Patient Analytics": { left: "4%",  top: 0,   width: "24%" },
+      // MyCaddy bigger (18% -> 22%)
+      "MyCaddy — Physics Shot Calculator":   { left: "32%", top: 0,   width: "22%" },
+      "PortfolioBasics (This Site)":         { left: "54%", top: 0,   width: "28%" },
 
-      "Real Estate Conditions Comparison (R)": { left: "4%", top: 360, width: "24%" },
-      "Logistic Regression & Tree-Based ML": { left: "32%", top: 500, width: "54%" },
+      "Real Estate Conditions Comparison (R)": { left: "4%",  top: 460, width: "24%" },
 
-      "Python 101": { left: "4%", top: 950, width: "24%" },
+      // Lower LR to sit comfortably below top row
+      "Logistic Regression & Tree-Based ML":   { left: "32%", top: 640, width: "54%" },
+
+      "Python 101": { left: "4%", top: 1060, width: "24%" },
     } as Record<string, { left: string; top: number; width: string }>,
   },
 };
@@ -118,13 +131,10 @@ function ProjectTile({
     alt: `${p.title} preview`,
   };
   const slug = slugify(p.title);
+  const aspect = ASPECT[p.title] ?? "3 / 4";
 
   return (
-    <article
-      className="absolute select-none"
-      style={{ left, top, width }}
-      aria-label={p.title}
-    >
+    <article className="absolute" style={{ left, top, width }} aria-label={p.title}>
       <Link
         href={`/projects/${slug}?via=projects`}
         className="block"
@@ -133,16 +143,19 @@ function ProjectTile({
           window.sessionStorage.setItem("cameFromProjects", "1")
         }
       >
-        <img
-          src={img.src}
-          alt={img.alt}
-          className="w-full h-auto object-contain"
-          loading="lazy"
-          decoding="async"
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).src = "/images/portfolio-basics-avatar.png";
-          }}
-        />
+        {/* Aspect-ratio wrapper guarantees predictable height -> no overlaps */}
+        <div style={{ aspectRatio: aspect }} className="w-full bg-transparent">
+          <img
+            src={img.src}
+            alt={img.alt}
+            className="w-full h-full object-contain select-none"
+            loading="lazy"
+            decoding="async"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).src = "/images/portfolio-basics-avatar.png";
+            }}
+          />
+        </div>
       </Link>
 
       <div className="mt-3 flex items-baseline justify-between gap-3">
@@ -193,6 +206,7 @@ export default function ProjectsHUD() {
           alt: `${p.title} preview`,
         };
         const slug = slugify(p.title);
+        const aspect = ASPECT[p.title] ?? "3 / 4";
         return (
           <article key={title}>
             <Link
@@ -203,7 +217,9 @@ export default function ProjectsHUD() {
                 window.sessionStorage.setItem("cameFromProjects", "1")
               }
             >
-              <img src={img.src} alt={img.alt} className="w-full h-auto object-contain" />
+              <div style={{ aspectRatio: aspect }} className="w-full">
+                <img src={img.src} alt={img.alt} className="w-full h-full object-contain" />
+              </div>
             </Link>
             <div className="mt-3 flex items-baseline justify-between gap-3">
               <h3 className="text-lg font-medium tracking-tight">
@@ -219,7 +235,7 @@ export default function ProjectsHUD() {
                 </Link>
               </h3>
               <span className="text-xs uppercase tracking-wide text-white/60">
-                {keywordFor(p.title, p.tech)}
+                {KEYWORD_BY_TITLE[p.title] ?? "project"}
               </span>
             </div>
           </article>
@@ -228,7 +244,6 @@ export default function ProjectsHUD() {
     </div>
   );
 
-  // md+ collage
   const md = LAYOUT.md;
   const lg = LAYOUT.lg;
 
