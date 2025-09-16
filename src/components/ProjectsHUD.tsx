@@ -47,57 +47,60 @@ const KEYWORD_BY_TITLE: Record<string, string> = {
   "PortfolioBasics (This Site)": "frontend",
 };
 
-// Visual shape control so heights are predictable (prevents overlaps)
+// Predictable heights via aspect-ratio wrappers (prevents overlaps)
 const ASPECT: Record<string, string> = {
   "CGM Patient Analytics": "3 / 4",                   // tall
   "MyCaddy — Physics Shot Calculator": "3 / 4",       // tall (bigger now)
-  "PortfolioBasics (This Site)": "3 / 4",             // tall
+  "PortfolioBasics (This Site)": "3 / 4",             // tall (bigger now)
   "Real Estate Conditions Comparison (R)": "3 / 4",   // tall
   "Logistic Regression & Tree-Based ML": "16 / 9",    // wide
   "Python 101": "2 / 3",                              // very tall
 };
 
 /**
- * Custom collage layout (no overlap). Tweak these to nudge spacing/sizes.
- * containerHeight ensures nothing gets cut off.
+ * Custom collage layout (no overlap). You can tweak width/top/left here.
+ * I scaled MyCaddy & Portfolio up and pushed LR down a bit to guarantee clearance.
  */
 const LAYOUT = {
   md: {
-    containerHeight: 1600, // px
+    containerHeight: 1750, // px (raised to avoid bottom clipping)
     items: {
       "CGM Patient Analytics": { left: "2%",  top: 0,   width: "28%" },
-      // MyCaddy bigger than before (22% -> 24%)
-      "MyCaddy — Physics Shot Calculator":   { left: "36%", top: 0,   width: "24%" },
-      "PortfolioBasics (This Site)":         { left: "64%", top: 0,   width: "30%" },
+      // MyCaddy bigger: 24% -> 27%
+      "MyCaddy — Physics Shot Calculator":   { left: "36%", top: 0,   width: "27%" },
+      // Portfolio bigger: 30% -> 33%, slight left shift to cluster
+      "PortfolioBasics (This Site)":         { left: "61%", top: 0,   width: "33%" },
 
-      // Give CGM plenty of clearance before RE
-      "Real Estate Conditions Comparison (R)": { left: "2%",  top: 420, width: "28%" },
+      // More clearance below CGM
+      "Real Estate Conditions Comparison (R)": { left: "2%",  top: 450, width: "28%" },
 
-      // Push LR a bit lower to ensure clearance beneath MyCaddy/Portfolio
-      "Logistic Regression & Tree-Based ML":   { left: "36%", top: 620, width: "56%" },
+      // Drop LR lower to avoid any chance of touching MyCaddy/Portfolio
+      "Logistic Regression & Tree-Based ML":   { left: "36%", top: 720, width: "56%" },
 
-      "Python 101": { left: "2%", top: 1080, width: "28%" },
+      "Python 101": { left: "2%", top: 1150, width: "28%" },
     } as Record<string, { left: string; top: number; width: string }>,
   },
   lg: {
-    containerHeight: 1500, // px
+    containerHeight: 1600, // px (raised slightly)
     items: {
       "CGM Patient Analytics": { left: "4%",  top: 0,   width: "24%" },
-      // MyCaddy bigger (18% -> 22%)
-      "MyCaddy — Physics Shot Calculator":   { left: "32%", top: 0,   width: "22%" },
-      "PortfolioBasics (This Site)":         { left: "54%", top: 0,   width: "28%" },
+      // MyCaddy bigger: 22% -> 24%
+      "MyCaddy — Physics Shot Calculator":   { left: "32%", top: 0,   width: "24%" },
+      // Portfolio bigger: 28% -> 30%, keep clustered
+      "PortfolioBasics (This Site)":         { left: "54%", top: 0,   width: "30%" },
 
-      "Real Estate Conditions Comparison (R)": { left: "4%",  top: 460, width: "24%" },
+      // More space before LR
+      "Real Estate Conditions Comparison (R)": { left: "4%",  top: 500, width: "24%" },
 
-      // Lower LR to sit comfortably below top row
-      "Logistic Regression & Tree-Based ML":   { left: "32%", top: 640, width: "54%" },
+      // Push LR down a notch for guaranteed separation
+      "Logistic Regression & Tree-Based ML":   { left: "32%", top: 700, width: "54%" },
 
-      "Python 101": { left: "4%", top: 1060, width: "24%" },
+      "Python 101": { left: "4%", top: 1120, width: "24%" },
     } as Record<string, { left: string; top: number; width: string }>,
   },
 };
 
-// The order we’ll render tiles (helps with alt text and focus order)
+// Visual order (helps focus order + matching to image map)
 const TILE_ORDER = [
   "CGM Patient Analytics",
   "MyCaddy — Physics Shot Calculator",
@@ -143,7 +146,7 @@ function ProjectTile({
           window.sessionStorage.setItem("cameFromProjects", "1")
         }
       >
-        {/* Aspect-ratio wrapper guarantees predictable height -> no overlaps */}
+        {/* Aspect-ratio wrapper gives deterministic heights -> prevents overlaps */}
         <div style={{ aspectRatio: aspect }} className="w-full bg-transparent">
           <img
             src={img.src}
@@ -195,7 +198,7 @@ function ProjectTile({
 export default function ProjectsHUD() {
   const projects = ((profile as any)?.projects ?? []) as ReadonlyArray<Project>;
 
-  // Mobile-first: simple stacked list (no special layout)
+  // Mobile: simple stack
   const mobile = (
     <div className="md:hidden space-y-10">
       {TILE_ORDER.map((title) => {
@@ -262,10 +265,7 @@ export default function ProjectsHUD() {
         {mobile}
 
         {/* md+ collage */}
-        <div
-          className="relative hidden md:block lg:hidden"
-          style={{ height: md.containerHeight }}
-        >
+        <div className="relative hidden md:block lg:hidden" style={{ height: md.containerHeight }}>
           {TILE_ORDER.map((title) => {
             const p = projects.find((x) => x.title === title);
             if (!p) return null;
@@ -283,10 +283,7 @@ export default function ProjectsHUD() {
         </div>
 
         {/* lg collage */}
-        <div
-          className="relative hidden lg:block"
-          style={{ height: lg.containerHeight }}
-        >
+        <div className="relative hidden lg:block" style={{ height: lg.containerHeight }}>
           {TILE_ORDER.map((title) => {
             const p = projects.find((x) => x.title === title);
             if (!p) return null;
