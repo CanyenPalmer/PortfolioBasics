@@ -260,9 +260,29 @@ function ProjectsHeader() {
   );
 }
 
-/** Left vertical rail that scrolls bottom→top with rotated “Scroll to Explore” */
+/** Left vertical rail — rotated text, seamless loop, full section height */
 function LeftRail({ height }: { height?: number | null }) {
   const [paused, setPaused] = React.useState(false);
+  const colRef = React.useRef<HTMLDivElement | null>(null);
+  const [segment, setSegment] = React.useState<number | null>(null);
+
+  React.useEffect(() => {
+    if (!colRef.current) return;
+    const el = colRef.current;
+    const ro = new ResizeObserver(() => {
+      const h = el.getBoundingClientRect().height;
+      if (h && h > 0) setSegment(Math.ceil(h));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const marqueeStyle: React.CSSProperties & { [key: string]: any } = {
+    animation: "marquee-up 40s linear infinite",
+    animationPlayState: paused ? "paused" : "running",
+    "--marquee-segment": segment ? `${segment}px` : "50%",
+  };
+
   return (
     <div className="hidden md:block h-full">
       <div className="sticky top-28">
@@ -276,16 +296,14 @@ function LeftRail({ height }: { height?: number | null }) {
           <div className="pointer-events-none absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-[#16202e] to-transparent" />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[#16202e] to-transparent" />
 
-          {/* Marquee content (duplicated for seamless loop) */}
-          <div
-            className="marqueeUp"
-            style={{
-              animation: "marquee-up 40s linear infinite",
-              animationPlayState: paused ? "paused" : "running",
-            }}
-          >
-            <RailColumn />
-            <RailColumn />
+          {/* Marquee content (dup for seamless loop) */}
+          <div className="marqueeUp" style={marqueeStyle}>
+            {/* First segment (measured) */}
+            <div ref={colRef}>
+              <RailColumn minHeight={height ?? undefined} />
+            </div>
+            {/* Duplicate segment */}
+            <RailColumn minHeight={height ?? undefined} />
           </div>
 
           <style jsx>{`
@@ -294,7 +312,7 @@ function LeftRail({ height }: { height?: number | null }) {
                 transform: translateY(0);
               }
               100% {
-                transform: translateY(-50%);
+                transform: translateY(calc(-1 * var(--marquee-segment)));
               }
             }
           `}</style>
@@ -304,11 +322,31 @@ function LeftRail({ height }: { height?: number | null }) {
   );
 }
 
-function RailColumn() {
-  // 10 lines is plenty to fill tall viewports; adjust spacing with gap below
-  const lines = new Array(10).fill("Scroll to Explore");
+function RailColumn({ minHeight }: { minHeight?: number }) {
+  const wrapRef = React.useRef<HTMLDivElement | null>(null);
+  const [count, setCount] = React.useState(16); // start modest, grow as needed
+
+  // After render, if the column isn't tall enough to cover the rail, add more lines.
+  React.useEffect(() => {
+    if (!wrapRef.current || !minHeight) return;
+    const el = wrapRef.current;
+    const measureAndGrow = () => {
+      const h = el.getBoundingClientRect().height;
+      if (h < minHeight) {
+        const perLine = h / Math.max(1, count);
+        const needed = Math.ceil((minHeight + 80) / Math.max(8, perLine)); // pad a bit
+        if (needed > count && needed < 400) setCount(needed);
+      }
+    };
+    measureAndGrow();
+    const ro = new ResizeObserver(measureAndGrow);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [minHeight, count]);
+
+  const lines = new Array(count).fill("Scroll to Explore");
   return (
-    <div className="flex flex-col items-center gap-6 py-6">
+    <div ref={wrapRef} className="flex flex-col items-center gap-6 py-6">
       {lines.map((txt, i) => (
         <span
           key={`${txt}-${i}`}
@@ -330,8 +368,7 @@ export default function ProjectsHUD() {
 
   React.useEffect(() => {
     if (!rightColRef.current) return;
-    // Keep the rail synced to the right column height
-    const ro = new (window as any).ResizeObserver((entries: any[]) => {
+    const ro = new ResizeObserver((entries) => {
       const cr = entries[0]?.contentRect;
       if (cr && typeof cr.height === "number") setRailHeight(Math.ceil(cr.height));
     });
@@ -464,4 +501,3 @@ export default function ProjectsHUD() {
     </section>
   );
 }
-
