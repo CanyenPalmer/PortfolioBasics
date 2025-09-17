@@ -214,11 +214,11 @@ export default function Education() {
         {/* Wrapper lets us position the blurb without shrinking the collection */}
         <div className="relative">
           {/* Blurb: top-left at lg+, does NOT consume grid width */}
-          <div className="hidden lg:block absolute left-0 top-0 w-[20%]">
+          <div className="hidden lg:block absolute left-0 top-0 w-[20%] -ml-4">
             <p
               className={`${plusJakarta.className} text-lg sm:text-xl font-light text-gray-400 tracking-wide lowercase max-w-md`}
             >
-              my educational journey reflects a mix of foundational trainings, professional certifications, and advanced graduate studies
+              My educational journey reflects a mix of foundational trainings, professional certifications, and advanced graduate studies
             </p>
           </div>
 
