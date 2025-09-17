@@ -260,45 +260,61 @@ function ProjectsHeader() {
   );
 }
 
-/** LEFT RAIL — zero overlap: fixed row height + measured segment loop */
+/** LEFT RAIL — single moving column (no duplicate segments), fixed row height, RAF loop, smooth fade */
 function LeftRail({ height }: { height?: number | null }) {
   const [paused, setPaused] = React.useState(false);
 
   const FADE = 96;         // fade so letters dissolve before edges
   const ROW_H = 40;        // fixed row height -> no intra-line collision
-  const DURATION_S = 110;  // calm speed
+  const SPEED = 12;        // px/sec (calm)
 
-  // Compute how many rows we need in a single segment
-  const [rows, setRows] = React.useState(60);
+  // Rows: fill ~1.6x the rail height so the fade always has content.
+  const [rows, setRows] = React.useState(120);
   React.useEffect(() => {
     if (!height) return;
-    // Fill ~1.4x viewport height so we always have content through fades
-    const target = Math.min(500, Math.max(40, Math.ceil((height / ROW_H) * 1.4)));
+    const target = Math.min(600, Math.max(60, Math.ceil((height / ROW_H) * 1.6)));
     setRows(target);
   }, [height]);
 
-  // Build one segment and measure its exact pixel height
-  const segRef = React.useRef<HTMLDivElement | null>(null);
-  const [segH, setSegH] = React.useState(0);
+  // Refs for animation
+  const innerRef = React.useRef<HTMLDivElement | null>(null);
+  const yRef = React.useRef(0);
+  const lastTsRef = React.useRef<number | null>(null);
+  const segHRef = React.useRef(0);
+
+  // Measure total column height
   React.useEffect(() => {
-    if (!segRef.current) return;
-    const el = segRef.current;
+    if (!innerRef.current) return;
     const measure = () => {
-      const h = Math.ceil(el.getBoundingClientRect().height);
-      if (h > 0) setSegH(h);
+      const h = Math.ceil(innerRef.current!.getBoundingClientRect().height);
+      segHRef.current = h;
     };
     measure();
     const ro = new ResizeObserver(measure);
-    ro.observe(el);
+    ro.observe(innerRef.current);
     return () => ro.disconnect();
-  }, [rows, ROW_H]);
+  }, [rows]);
 
-  const trackStyle: React.CSSProperties & { [key: string]: any } = {
-    animation: segH ? `rail-marquee ${DURATION_S}s linear infinite` : "none",
-    animationPlayState: paused ? "paused" : "running",
-    willChange: "transform",
-    "--segH": `${segH}px`,
-  };
+  // RAF loop (single column). We move upward; when we've scrolled >= 1 row, wrap by +row*floor(n).
+  React.useEffect(() => {
+    let raf = 0;
+    const tick = (ts: number) => {
+      const last = lastTsRef.current ?? ts;
+      lastTsRef.current = ts;
+      if (!paused && innerRef.current) {
+        const dt = (ts - last) / 1000; // seconds
+        let y = yRef.current - SPEED * dt; // move up
+        // Wrap by whole rows so there is never sub-pixel overlap
+        const wrap = Math.floor(-y / ROW_H);
+        if (wrap > 0) y += wrap * ROW_H;
+        yRef.current = y;
+        innerRef.current.style.transform = `translateY(${y.toFixed(2)}px)`;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [paused]);
 
   return (
     <div className="hidden md:block h-full">
@@ -313,7 +329,7 @@ function LeftRail({ height }: { height?: number | null }) {
           onMouseEnter={() => setPaused(true)}
           onMouseLeave={() => setPaused(false)}
         >
-          {/* Subtle gradient vignettes (fallback/polish) */}
+          {/* Top/Bottom gradient vignettes (fallback polish) */}
           <div
             className="pointer-events-none absolute inset-x-0 top-0"
             style={{ height: FADE, backgroundImage: "linear-gradient(to bottom, #16202e, transparent)" }}
@@ -323,39 +339,26 @@ function LeftRail({ height }: { height?: number | null }) {
             style={{ height: FADE, backgroundImage: "linear-gradient(to top, #16202e, transparent)" }}
           />
 
-          {/* Absolutely positioned track so it never affects layout */}
-          <div className="absolute left-0 right-0 top-0">
-            <div className="will-change-transform" style={trackStyle}>
-              {/* Segment A (measured) */}
-              <div ref={segRef}>
-                <RailSegment rows={rows} rowH={ROW_H} />
-              </div>
-              {/* Segment B (identical, stacked after A) */}
-              <RailSegment rows={rows} rowH={ROW_H} />
+          {/* Single moving column, absolutely positioned so it never affects layout */}
+          <div className="absolute inset-0">
+            <div ref={innerRef} className="will-change-transform">
+              <RailColumn rows={rows} rowH={ROW_H} />
             </div>
           </div>
-
-          <style jsx>{`
-            @keyframes rail-marquee {
-              0% { transform: translateY(0); }
-              100% { transform: translateY(calc(-1 * var(--segH))); }
-            }
-          `}</style>
         </div>
       </div>
     </div>
   );
 }
 
-function RailSegment({ rows, rowH }: { rows: number; rowH: number }) {
-  // Each line occupies a fixed-height row; no collisions possible.
-  const arr = new Array(rows).fill("Scroll to Explore");
+function RailColumn({ rows, rowH }: { rows: number; rowH: number }) {
+  const lines = new Array(rows).fill("Scroll to Explore");
   return (
     <div
       className="box-border flex flex-col items-center"
-      style={{ paddingTop: rowH, paddingBottom: rowH }}
+      style={{ paddingTop: rowH, paddingBottom: rowH, gap: 0 }}
     >
-      {arr.map((txt, i) => (
+      {lines.map((txt, i) => (
         <div
           key={`${txt}-${i}`}
           className="flex items-center justify-center"
@@ -514,4 +517,3 @@ export default function ProjectsHUD() {
     </section>
   );
 }
-
