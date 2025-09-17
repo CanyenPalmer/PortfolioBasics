@@ -260,46 +260,21 @@ function ProjectsHeader() {
   );
 }
 
-/** Left vertical rail — NO OVERLAP, fixed row height, measured segment loop, calm speed */
+/** Left vertical rail — NO OVERLAP (fixed row height + phase-shifted duplicate), smooth fade, bounded, slow */
 function LeftRail({ height }: { height?: number | null }) {
   const [paused, setPaused] = React.useState(false);
 
-  const FADE = 96;        // px fade at top & bottom so letters dissolve early
-  const ROW_H = 28;       // px per line (fixed row height kills intra-line collisions)
-  const DURATION_S = 100; // seconds per loop (calm speed)
+  const FADE = 96;         // px fade at top & bottom
+  const ROW_H = 36;        // px per row (taller so labels never collide)
+  const DURATION_S = 110;  // seconds per loop (calm)
 
-  // Decide how many lines we need per segment to exceed the rail height comfortably.
-  const [lines, setLines] = React.useState<number>(60);
+  // Pick a safe line count so each segment comfortably fills the rail height.
+  const [lines, setLines] = React.useState<number>(64);
   React.useEffect(() => {
     if (!height) return;
-    // Fill ~1.6x the rail so the fade always has content; clamp to avoid extremes.
-    const target = Math.min(400, Math.max(48, Math.ceil((height / ROW_H) * 1.6)));
+    const target = Math.min(500, Math.max(48, Math.ceil((height / ROW_H) * 1.6)));
     setLines(target);
   }, [height]);
-
-  // Measure one segment's exact height and animate exactly -that amount (two identical segments => perfect loop).
-  const segRef = React.useRef<HTMLDivElement | null>(null);
-  const [segH, setSegH] = React.useState<number>(0);
-  React.useEffect(() => {
-    if (!segRef.current) return;
-    const el = segRef.current;
-    const measure = () => {
-      const h = Math.ceil(el.getBoundingClientRect().height);
-      if (h > 0) setSegH(h);
-    };
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [lines]);
-
-  const trackStyle: React.CSSProperties & { [key: string]: any } = {
-    animation: segH ? `rail-marquee ${DURATION_S}s linear infinite` : "none",
-    animationPlayState: paused ? "paused" : "running",
-    willChange: "transform",
-    // exact distance to move (prevents seam overlap)
-    "--segH": `${segH}px`,
-  };
 
   return (
     <div className="hidden md:block h-full">
@@ -314,7 +289,7 @@ function LeftRail({ height }: { height?: number | null }) {
           onMouseEnter={() => setPaused(true)}
           onMouseLeave={() => setPaused(false)}
         >
-          {/* Subtle vignettes (polish + fallback) */}
+          {/* Fallback vignettes for extra polish */}
           <div
             className="pointer-events-none absolute inset-x-0 top-0"
             style={{ height: FADE, backgroundImage: "linear-gradient(to bottom, #16202e, transparent)" }}
@@ -324,25 +299,25 @@ function LeftRail({ height }: { height?: number | null }) {
             style={{ height: FADE, backgroundImage: "linear-gradient(to top, #16202e, transparent)" }}
           />
 
-          {/* Absolutely positioned track so it cannot affect layout */}
-          <div className="absolute inset-0">
-            <div className="w-full h-full relative">
-              {/* Moving content (two identical segments) */}
-              <div className="absolute inset-0" style={trackStyle}>
-                {/* Segment A (measured) */}
-                <div ref={segRef}>
-                  <RailSegment lines={lines} rowH={ROW_H} />
-                </div>
-                {/* Segment B (duplicate) */}
-                <RailSegment lines={lines} rowH={ROW_H} />
-              </div>
-            </div>
+          {/* Absolutely positioned track so it never affects page layout */}
+          <div
+            className="absolute inset-0 will-change-transform"
+            style={{
+              height: "200%",
+              animation: `rail-marquee ${DURATION_S}s linear infinite`,
+              animationPlayState: paused ? "paused" : "running",
+            }}
+          >
+            {/* Segment A */}
+            <RailSegment lines={lines} rowH={ROW_H} />
+            {/* Segment B (phase-shifted by half a row to prevent identical lines from stacking at seam) */}
+            <RailSegment lines={lines} rowH={ROW_H} offsetHalfRow />
           </div>
 
           <style jsx>{`
             @keyframes rail-marquee {
               0% { transform: translateY(0); }
-              100% { transform: translateY(calc(-1 * var(--segH))); }
+              100% { transform: translateY(-100%); }
             }
           `}</style>
         </div>
@@ -351,11 +326,26 @@ function LeftRail({ height }: { height?: number | null }) {
   );
 }
 
-function RailSegment({ lines, rowH }: { lines: number; rowH: number }) {
-  // Fixed-height rows to guarantee no intra-segment overlap
+function RailSegment({
+  lines,
+  rowH,
+  offsetHalfRow = false,
+}: {
+  lines: number;
+  rowH: number;
+  offsetHalfRow?: boolean;
+}) {
   const arr = new Array(lines).fill("Scroll to Explore");
   return (
-    <div className="flex flex-col items-center">
+    <div
+      className="box-border h-1/2 flex flex-col items-center overflow-hidden"
+      style={{
+        paddingTop: rowH,   // start inside the fade
+        paddingBottom: rowH // end inside the fade
+      }}
+    >
+      {/* half-row offset so duplicate segment never lines up pixel-for-pixel with the first */}
+      <div style={{ height: offsetHalfRow ? rowH / 2 : 0 }} />
       {arr.map((txt, i) => (
         <div
           key={`${txt}-${i}`}
