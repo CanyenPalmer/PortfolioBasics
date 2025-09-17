@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { motion } from "framer-motion";
+import NameStamp from "@/components/NameStamp";
 
 type Props = {
   headline?: string;
@@ -24,7 +25,12 @@ export default function Hero({ headline, subheadline, typer }: Props) {
           transition={{ duration: 0.6 }}
           className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-white"
         >
-          {headline}
+          <NameStamp
+            text={headline ?? "Canyen Palmer"}
+            className="text-4xl sm:text-5xl md:text-6xl font-extrabold"
+            variant="hero"
+            rearmOnExit={true}
+          />
         </motion.h1>
 
         {subheadline && (
