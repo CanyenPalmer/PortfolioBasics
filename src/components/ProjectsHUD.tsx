@@ -260,27 +260,59 @@ function ProjectsHeader() {
   );
 }
 
-/** Left vertical rail — rotated text, seamless loop, full section height */
+/** Left vertical rail — rotated text, seamless loop, full section height, with fade masks */
 function LeftRail({ height }: { height?: number | null }) {
   const [paused, setPaused] = React.useState(false);
-  const colRef = React.useRef<HTMLDivElement | null>(null);
-  const [segment, setSegment] = React.useState<number | null>(null);
 
+  // Shared line count for BOTH segments (prevents seam mismatch/overlap)
+  const [linesCount, setLinesCount] = React.useState(24);
+  const segRef = React.useRef<HTMLDivElement | null>(null);
+
+  // Measure segment height and make sure it's taller than the rail (so loop is seamless).
   React.useEffect(() => {
-    if (!colRef.current) return;
-    const el = colRef.current;
-    const ro = new ResizeObserver(() => {
-      const h = el.getBoundingClientRect().height;
-      if (h && h > 0) setSegment(Math.ceil(h));
-    });
+    if (!segRef.current || !height) return;
+    const el = segRef.current;
+
+    const ensureCoverage = () => {
+      const segH = el.getBoundingClientRect().height;
+      if (segH < height + 64) {
+        // Estimate per-line height from current content
+        const per = segH / Math.max(1, linesCount);
+        const needed = Math.ceil((height + 96) / Math.max(8, per)); // add buffer
+        if (needed > linesCount && needed < 600) {
+          setLinesCount(needed);
+        }
+      }
+    };
+
+    // Run now & on resize of the segment
+    ensureCoverage();
+    const ro = new ResizeObserver(ensureCoverage);
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [height, linesCount]);
+
+  // Compute segment height (after it stabilizes) and pass to CSS variable so animation distance is exact
+  const [segmentPx, setSegmentPx] = React.useState<number | null>(null);
+  React.useEffect(() => {
+    if (!segRef.current) return;
+    const el = segRef.current;
+    const update = () => {
+      const segH = Math.ceil(el.getBoundingClientRect().height);
+      if (segH > 0) setSegmentPx(segH);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [linesCount]);
 
   const marqueeStyle: React.CSSProperties & { [key: string]: any } = {
     animation: "marquee-up 40s linear infinite",
     animationPlayState: paused ? "paused" : "running",
-    "--marquee-segment": segment ? `${segment}px` : "50%",
+    willChange: "transform",
+    // exact distance to avoid overlap at loop
+    "--marquee-segment": segmentPx ? `${segmentPx}px` : "50%",
   };
 
   return (
@@ -288,22 +320,29 @@ function LeftRail({ height }: { height?: number | null }) {
       <div className="sticky top-28">
         <div
           className="relative w-16 overflow-hidden"
-          style={{ height: height ? `${height}px` : "100%" }}
+          style={{
+            height: height ? `${height}px` : "100%",
+            // Smooth fade at top/bottom using mask (plus gradient overlays as fallback)
+            WebkitMaskImage:
+              "linear-gradient(to bottom, transparent 0px, black 28px, black calc(100% - 28px), transparent 100%)",
+            maskImage:
+              "linear-gradient(to bottom, transparent 0px, black 28px, black calc(100% - 28px), transparent 100%)",
+          }}
           onMouseEnter={() => setPaused(true)}
           onMouseLeave={() => setPaused(false)}
         >
-          {/* Top/Bottom fade vignettes */}
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-[#16202e] to-transparent" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[#16202e] to-transparent" />
+          {/* Top/Bottom gradient vignettes (fallback / extra polish) */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-[#16202e] to-transparent" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#16202e] to-transparent" />
 
-          {/* Marquee content (dup for seamless loop) */}
+          {/* Marquee content (two identical segments for a seamless loop) */}
           <div className="marqueeUp" style={marqueeStyle}>
             {/* First segment (measured) */}
-            <div ref={colRef}>
-              <RailColumn minHeight={height ?? undefined} />
+            <div ref={segRef}>
+              <RailColumn linesCount={linesCount} />
             </div>
             {/* Duplicate segment */}
-            <RailColumn minHeight={height ?? undefined} />
+            <RailColumn linesCount={linesCount} />
           </div>
 
           <style jsx>{`
@@ -322,31 +361,10 @@ function LeftRail({ height }: { height?: number | null }) {
   );
 }
 
-function RailColumn({ minHeight }: { minHeight?: number }) {
-  const wrapRef = React.useRef<HTMLDivElement | null>(null);
-  const [count, setCount] = React.useState(16); // start modest, grow as needed
-
-  // After render, if the column isn't tall enough to cover the rail, add more lines.
-  React.useEffect(() => {
-    if (!wrapRef.current || !minHeight) return;
-    const el = wrapRef.current;
-    const measureAndGrow = () => {
-      const h = el.getBoundingClientRect().height;
-      if (h < minHeight) {
-        const perLine = h / Math.max(1, count);
-        const needed = Math.ceil((minHeight + 80) / Math.max(8, perLine)); // pad a bit
-        if (needed > count && needed < 400) setCount(needed);
-      }
-    };
-    measureAndGrow();
-    const ro = new ResizeObserver(measureAndGrow);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [minHeight, count]);
-
-  const lines = new Array(count).fill("Scroll to Explore");
+function RailColumn({ linesCount }: { linesCount: number }) {
+  const lines = new Array(linesCount).fill("Scroll to Explore");
   return (
-    <div ref={wrapRef} className="flex flex-col items-center gap-6 py-6">
+    <div className="flex flex-col items-center gap-6 py-6">
       {lines.map((txt, i) => (
         <span
           key={`${txt}-${i}`}
