@@ -223,7 +223,7 @@ export default function Education() {
           </div>
 
           {/* Collection: full original size; shifted right visually at lg+ */}
-          <div className="transform lg:translate-x-[20%] will-change-transform">
+          <div className="transform lg:translate-x-[22%] will-change-transform">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-0 overflow-hidden">
               {items.map((edu, i) => (
                 <div
