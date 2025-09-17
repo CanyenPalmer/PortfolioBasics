@@ -21,7 +21,7 @@ export const profile = {
       {
         id: 1,
         key: "power",
-        title: "Welcome to my About Me section!",
+        title: "Welcome to My Website!",
         img: "/about/pose-1-power.webp",
         alt: "Canyen in a confident power pose with neon seam accents",
         body: (
