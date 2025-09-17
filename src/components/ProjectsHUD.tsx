@@ -62,30 +62,26 @@ const LAYOUT = {
   md: {
     containerHeight: 1950,
     items: {
-      // widened +2% to give more room under each image
-      "CGM Patient Analytics": { left: "3%", top: 0, width: "30%" },
-      "MyCaddy — Physics Shot Calculator": { left: "36%", top: 110, width: "28%" },
-      // widened +2%, stays within right edge (66% + 33% = 99%)
-      "PortfolioBasics (This Site)": { left: "66%", top: 200, width: "33%" },
-      "Real Estate Conditions Comparison (R)": { left: "3%", top: 480, width: "30%" },
-      // unchanged (already wide)
-      "Logistic Regression & Tree-Based ML": { left: "36%", top: 880, width: "56%" },
-      "Python 101": { left: "3%", top: 1080, width: "30%" },
+      // widened to give titles/subheaders more room; row sums stay <= 100%
+      "CGM Patient Analytics": { left: "3%", top: 0, width: "34%" },
+      "MyCaddy — Physics Shot Calculator": { left: "36%", top: 110, width: "30%" },
+      "PortfolioBasics (This Site)": { left: "66%", top: 200, width: "34%" }, // 66 + 34 = 100
+      "Real Estate Conditions Comparison (R)": { left: "3%", top: 480, width: "34%" },
+      "Logistic Regression & Tree-Based ML": { left: "36%", top: 880, width: "56%" }, // unchanged
+      "Python 101": { left: "3%", top: 1080, width: "34%" },
     } as Record<string, { left: string; top: number; width: string }>,
     note: { left: "55%", top: 1380, width: "34%" },
   },
   lg: {
     containerHeight: 1750,
     items: {
-      // widened +2%
-      "CGM Patient Analytics": { left: "5%", top: 0, width: "26%" },
-      "MyCaddy — Physics Shot Calculator": { left: "32%", top: 80, width: "25%" },
-      // widened +2% (59% + 31% = 90%)
-      "PortfolioBasics (This Site)": { left: "59%", top: 180, width: "31%" },
-      "Real Estate Conditions Comparison (R)": { left: "5%", top: 530, width: "26%" },
-      // unchanged (already wide)
-      "Logistic Regression & Tree-Based ML": { left: "32%", top: 820, width: "54%" },
-      "Python 101": { left: "5%", top: 1080, width: "26%" },
+      // widened on lg as well; all edges safe
+      "CGM Patient Analytics": { left: "5%", top: 0, width: "30%" },
+      "MyCaddy — Physics Shot Calculator": { left: "32%", top: 80, width: "27%" },
+      "PortfolioBasics (This Site)": { left: "59%", top: 180, width: "34%" }, // 59 + 34 = 93
+      "Real Estate Conditions Comparison (R)": { left: "5%", top: 530, width: "30%" },
+      "Logistic Regression & Tree-Based ML": { left: "32%", top: 820, width: "54%" }, // unchanged
+      "Python 101": { left: "5%", top: 1080, width: "30%" },
     } as Record<string, { left: string; top: number; width: string }>,
     note: { left: "54%", top: 1320, width: "34%" },
   },
