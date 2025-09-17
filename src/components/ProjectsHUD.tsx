@@ -4,6 +4,13 @@ import * as React from "react";
 import Link from "next/link";
 import { profile } from "@/content/profile";
 import { slugify } from "@/lib/slug";
+import { Oswald, Plus_Jakarta_Sans } from "next/font/google";
+
+const oswald = Oswald({ subsets: ["latin"], weight: ["400", "500", "700"] });
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+});
 
 type Project = {
   title: string;
@@ -233,6 +240,87 @@ function BlurbAndNote({
   );
 }
 
+/** Header block: “Palmer” (small + underline) + big condensed “PROJECTS” + subheader */
+function ProjectsHeader() {
+  return (
+    <div className="mb-8 md:mb-10">
+      <div className={`${oswald.className} leading-none tracking-tight`}>
+        <div className="inline-block">
+          <div className="text-xl md:text-2xl font-medium text-white/90">Palmer</div>
+          <div className="h-[2px] bg-white/25 mt-1" />
+        </div>
+        <h2 className="mt-3 uppercase font-bold text-white/90 tracking-tight text-[12vw] md:text-[9vw] lg:text-[8vw]">
+          Projects
+        </h2>
+      </div>
+      <div className={`${plusJakarta.className} mt-3 text-sm md:text-base text-white/70`}>
+        Models • Apps • Analyses
+      </div>
+    </div>
+  );
+}
+
+/** Left vertical rail that scrolls bottom→top with “Scroll to Explore” */
+function LeftRail() {
+  const [paused, setPaused] = React.useState(false);
+  return (
+    <div className="hidden md:block">
+      <div className="sticky top-28">
+        <div
+          className="relative w-16 overflow-hidden"
+          style={{ height: "calc(100vh - 8rem)" }}
+          onMouseEnter={() => setPaused(true)}
+          onMouseLeave={() => setPaused(false)}
+        >
+          {/* Top/Bottom fade vignettes */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-[#16202e] to-transparent" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[#16202e] to-transparent" />
+
+          {/* Marquee content (duplicated for seamless loop) */}
+          <div
+            className="marqueeUp"
+            style={{
+              animation: "marquee-up 40s linear infinite",
+              animationPlayState: paused ? "paused" : "running",
+            }}
+          >
+            <RailColumn />
+            <RailColumn />
+          </div>
+
+          <style jsx>{`
+            @keyframes marquee-up {
+              0% {
+                transform: translateY(0);
+              }
+              100% {
+                transform: translateY(-50%);
+              }
+            }
+          `}</style>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RailColumn() {
+  // 10 lines is plenty to fill tall viewports; adjust spacing with gap below
+  const lines = new Array(10).fill("Scroll to Explore");
+  return (
+    <div className="flex flex-col items-center gap-6 py-6">
+      {lines.map((txt, i) => (
+        <span
+          key={`${txt}-${i}`}
+          className={`${plusJakarta.className} text-[11px] tracking-[0.18em] text-white/40`}
+        >
+          {txt}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export default function ProjectsHUD() {
   const projects = ((profile as any)?.projects ?? []) as ReadonlyArray<Project>;
 
@@ -299,49 +387,63 @@ export default function ProjectsHUD() {
       className="relative w-full py-20 md:py-28 scroll-mt-24 md:scroll-mt-28 bg-[#16202e]"
     >
       <div className="mx-auto max-w-7xl px-6">
-        <h2 className="text-2xl md:text-3xl font-semibold tracking-tight mb-8">
-          Projects
-        </h2>
+        {/* New distinct header */}
+        <ProjectsHeader />
 
-        {/* Mobile stacked */}
-        {mobile}
+        {/* Two-column layout on md+: left rail + right content; mobile shows content full-width */}
+        <div className="md:grid md:grid-cols-[64px,1fr] md:gap-6">
+          {/* Left vertical scroller (hidden on mobile) */}
+          <LeftRail />
 
-        {/* md collage */}
-        <div className="relative hidden md:block lg:hidden" style={{ height: md.containerHeight }}>
-          {TILE_ORDER.map((title) => {
-            const p = projects.find((x) => x.title === title);
-            if (!p) return null;
-            const pos = md.items[title];
-            return (
-              <ProjectTile
-                key={`md-${title}`}
-                p={p}
-                left={pos.left}
-                top={pos.top}
-                width={pos.width}
-              />
-            );
-          })}
-          <BlurbAndNote left={md.note.left} top={md.note.top} width={md.note.width} />
-        </div>
+          {/* Right column: unchanged gallery & note */}
+          <div>
+            {/* Mobile stacked */}
+            {mobile}
 
-        {/* lg collage */}
-        <div className="relative hidden lg:block" style={{ height: lg.containerHeight }}>
-          {TILE_ORDER.map((title) => {
-            const p = projects.find((x) => x.title === title);
-            if (!p) return null;
-            const pos = lg.items[title];
-            return (
-              <ProjectTile
-                key={`lg-${title}`}
-                p={p}
-                left={pos.left}
-                top={pos.top}
-                width={pos.width}
-              />
-            );
-          })}
-          <BlurbAndNote left={lg.note.left} top={lg.note.top} width={lg.note.width} />
+            {/* md collage */}
+            <div
+              className="relative hidden md:block lg:hidden"
+              style={{ height: md.containerHeight }}
+            >
+              {TILE_ORDER.map((title) => {
+                const p = projects.find((x) => x.title === title);
+                if (!p) return null;
+                const pos = md.items[title];
+                return (
+                  <ProjectTile
+                    key={`md-${title}`}
+                    p={p}
+                    left={pos.left}
+                    top={pos.top}
+                    width={pos.width}
+                  />
+                );
+              })}
+              <BlurbAndNote left={md.note.left} top={md.note.top} width={md.note.width} />
+            </div>
+
+            {/* lg collage */}
+            <div
+              className="relative hidden lg:block"
+              style={{ height: lg.containerHeight }}
+            >
+              {TILE_ORDER.map((title) => {
+                const p = projects.find((x) => x.title === title);
+                if (!p) return null;
+                const pos = lg.items[title];
+                return (
+                  <ProjectTile
+                    key={`lg-${title}`}
+                    p={p}
+                    left={pos.left}
+                    top={pos.top}
+                    width={pos.width}
+                  />
+                );
+              })}
+              <BlurbAndNote left={lg.note.left} top={lg.note.top} width={lg.note.width} />
+            </div>
+          </div>
         </div>
       </div>
     </section>
