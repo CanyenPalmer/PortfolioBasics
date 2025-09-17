@@ -4,6 +4,16 @@ import * as React from "react";
 import Link from "next/link";
 import { profile } from "@/content/profile";
 import { slugify } from "@/lib/slug";
+import { Playfair_Display, Outfit } from "next/font/google";
+
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  weight: ["400", "700", "900"],
+});
+const outfit = Outfit({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+});
 
 type RawEdu = {
   institution?: string;
@@ -14,13 +24,13 @@ type RawEdu = {
   period?: string;
   location?: string;
 
-  // Text fields that might vary by name
+  // Text fields
   summary?: string;
   description?: string;
   overview?: string;
   about?: string;
 
-  // Arrays that might vary by name
+  // Lists
   coursework?: string[];
   classes?: string[];
   courses?: string[];
@@ -54,19 +64,11 @@ type Edu = {
   sub: string;
   years?: string;
   location?: string;
-
-  // Text blocks
   summary?: string;
-
-  // Lists
   coursework?: string[];
   highlights?: string[];
   extraBullets?: string[];
-
-  // Links
   links?: { label: string; href: string }[];
-
-  // Media
   heroSrc: string;
   heroAlt: string;
 };
@@ -106,6 +108,7 @@ function mergeUnique(...lists: Array<unknown>): string[] | undefined {
   return out.size ? Array.from(out) : undefined;
 }
 
+/** Normalizer that tolerates different key names in profile.education */
 function normalize(raw: RawEdu): Edu {
   const title = firstNonEmptyString(raw.institution, raw.school) ?? "";
   const sub = firstNonEmptyString(raw.degree, raw.program) ?? "";
@@ -117,7 +120,6 @@ function normalize(raw: RawEdu): Edu {
     raw.hero?.alt ??
     (title && sub ? `${title} — ${sub}` : title || "Education");
 
-  // Summary/overview—prefer explicit summary, else description/overview/about
   const summary = firstNonEmptyString(
     raw.summary,
     raw.description,
@@ -125,7 +127,6 @@ function normalize(raw: RawEdu): Edu {
     raw.about
   );
 
-  // Coursework across many possible keys
   const coursework =
     mergeUnique(
       raw.coursework,
@@ -136,7 +137,6 @@ function normalize(raw: RawEdu): Edu {
       raw.keyCourses
     ) ?? undefined;
 
-  // Highlights across variants
   const highlights =
     mergeUnique(
       raw.highlights,
@@ -147,12 +147,10 @@ function normalize(raw: RawEdu): Edu {
       raw.milestones
     ) ?? undefined;
 
-  // Extra details bullets across variants
   const extraBullets =
     mergeUnique(raw.details, raw.notes, raw.bullets, raw.keyPoints, raw.outcomes) ??
     undefined;
 
-  // Links across variants
   const links =
     (Array.isArray(raw.links) && raw.links) ||
     (Array.isArray(raw.ctaLinks) && raw.ctaLinks) ||
@@ -172,6 +170,23 @@ function normalize(raw: RawEdu): Edu {
     heroSrc,
     heroAlt,
   };
+}
+
+/** Section header used on the detail page */
+function EducationHeader() {
+  return (
+    <div className="mb-10 md:mb-14">
+      <div className={`${playfair.className} leading-none tracking-tight`}>
+        <h2 className="text-[12vw] sm:text-7xl md:text-8xl lg:text-9xl font-bold">
+          EDUCATION
+        </h2>
+      </div>
+      <div className="mt-2 h-[2px] w-full bg-white/20" />
+      <div className={`${outfit.className} mt-3 text-sm md:text-base text-white/85`}>
+        Diplomas • Degrees • Certifications
+      </div>
+    </div>
+  );
 }
 
 export default function EducationDetail({
@@ -201,6 +216,9 @@ export default function EducationDetail({
   return (
     <section className="relative min-h-screen py-14 md:py-20 bg-[#0d131d] text-white">
       <div className="max-w-6xl mx-auto px-6">
+        {/* Oversized header to match the section */}
+        <EducationHeader />
+
         {/* Back link */}
         <div className="mb-6">
           <Link href="/#education" className="text-white/80 hover:underline">
@@ -208,7 +226,7 @@ export default function EducationDetail({
           </Link>
         </div>
 
-        {/* Header */}
+        {/* Institution header */}
         <div className="mb-6">
           <h1 className="text-2xl md:text-3xl font-semibold leading-tight">
             {edu.title}
