@@ -4,6 +4,7 @@
 import React from "react";
 import SkillsBelt from "@/components/SkillsBelt";
 import { Outfit } from "next/font/google";
+import NameStamp from "@/components/NameStamp";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -112,7 +113,12 @@ export default function Hero({ headline, subheadline, typer }: Props) {
         {/* Copy */}
         <div className="space-y-5">
           <h1 className="text-6xl md:text-7xl font-bold leading-[1.05]">
-            {headline}
+            <NameStamp
+              text={headline ?? "Canyen Palmer"}
+              className="text-6xl md:text-7xl font-bold"
+              variant="hero"
+              rearmOnExit={true}
+            />
           </h1>
 
           {/* SkillsBelt — scaled visually, still capped */}
@@ -145,12 +151,11 @@ export default function Hero({ headline, subheadline, typer }: Props) {
       {/* Glitch animation (only on hovered nav item) */}
       <style jsx>{`
         .nav-glitch {
-          /* keep default muted color until hovered */
           color: rgba(255, 255, 255, 0.7);
         }
         .nav-glitch:hover {
           animation: nav-glitch 1.5s linear infinite;
-          color: #ffffff; /* force white during glitch */
+          color: #ffffff;
         }
         @keyframes nav-glitch {
           0% { text-shadow: none; transform: translateZ(0); }
@@ -158,8 +163,8 @@ export default function Hero({ headline, subheadline, typer }: Props) {
           10% { text-shadow: -1px 0 rgba(255,0,0,0.35), 1px 0 rgba(0,255,255,0.35); transform: translate(-0.5px, 0.2px); }
           15% { text-shadow: 1px 0 rgba(255,0,0,0.4), -1px 0 rgba(0,255,255,0.4); transform: translate(0.4px, -0.2px); }
           20% { text-shadow: none; transform: translateZ(0); }
-          33% { text-shadow: none; transform: none; } /* active window ~0.5s */
-          100% { text-shadow: none; transform: none; } /* idle remainder ~1s */
+          33% { text-shadow: none; transform: none; }
+          100% { text-shadow: none; transform: none; }
         }
         @media (prefers-reduced-motion: reduce) {
           .nav-glitch:hover { animation: none !important; text-decoration: underline; }
