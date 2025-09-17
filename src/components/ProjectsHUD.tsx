@@ -125,17 +125,17 @@ function ProjectTile({
     <article className="absolute z-10" style={{ left, top, width }} aria-label={p.title}>
       <Link
         href={`/projects/${slug}?via=projects`}
-        className="block"
+        className="block group"
         onClick={() =>
           typeof window !== "undefined" &&
           window.sessionStorage.setItem("cameFromProjects", "1")
         }
       >
-        <div style={{ aspectRatio: aspect }} className="w-full bg-transparent">
+        <div style={{ aspectRatio: aspect }} className="w-full overflow-hidden">
           <img
             src={img.src}
             alt={img.alt}
-            className="w-full h-full object-contain select-none"
+            className="w-full h-full object-contain select-none transition-transform duration-300 ease-out group-hover:scale-[1.03] will-change-transform"
             loading="lazy"
             decoding="async"
             onError={(e) => {
@@ -252,14 +252,18 @@ export default function ProjectsHUD() {
           <article key={title}>
             <Link
               href={`/projects/${slug}?via=projects`}
-              className="block"
+              className="block group"
               onClick={() =>
                 typeof window !== "undefined" &&
                 window.sessionStorage.setItem("cameFromProjects", "1")
               }
             >
-              <div style={{ aspectRatio: aspect }} className="w-full">
-                <img src={img.src} alt={img.alt} className="w-full h-full object-contain" />
+              <div style={{ aspectRatio: aspect }} className="w-full overflow-hidden">
+                <img
+                  src={img.src}
+                  alt={img.alt}
+                  className="w-full h-full object-contain transition-transform duration-300 ease-out group-hover:scale-[1.03] will-change-transform"
+                />
               </div>
             </Link>
             <div className="mt-3 flex items-baseline justify-between gap-3">
@@ -343,4 +347,3 @@ export default function ProjectsHUD() {
     </section>
   );
 }
-
