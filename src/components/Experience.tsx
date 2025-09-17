@@ -15,7 +15,7 @@ export default function Experience() {
     <section
       id="experience"
       aria-label="Experience"
-      className="relative bg-[#0e1622] min-h-[100svh] md:min-h-screen py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start"
+      className="relative bg-[#0d131d] min-h-[100svh] md:min-h-screen py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start"
     >
       <SectionPanel title="Experience" className="mx-auto max-w-7xl">
         <div className="space-y-10">
