@@ -254,7 +254,7 @@ function ProjectsHeader() {
         </h2>
       </div>
       <div className={`${plusJakarta.className} mt-3 text-sm md:text-base text-white/70`}>
-        Models • Apps • Analyses
+        Select a project to view the full details
       </div>
     </div>
   );
