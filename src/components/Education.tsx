@@ -4,6 +4,16 @@ import * as React from "react";
 import Link from "next/link";
 import { profile } from "@/content/profile";
 import { slugify } from "@/lib/slug";
+import { Playfair_Display, Outfit } from "next/font/google";
+
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  weight: ["400", "700", "900"],
+});
+const outfit = Outfit({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+});
 
 type RawEdu = {
   institution?: string;
@@ -15,22 +25,26 @@ type RawEdu = {
   location?: string;
   summary?: string;
   description?: string;
-  coursework?: string[];   // preferred, but we’ll be flexible on the detail page
+  coursework?: string[];
   highlights?: string[];
   links?: { label: string; href: string }[];
   hero?: { src: string; alt: string };
   logo?: { src: string; alt: string };
-  gpa?: string | number;
 };
 
 type Edu = {
-  title: string;
-  sub: string;
+  title: string;     // Institution / School
+  sub: string;       // Degree / Program
   years?: string;
   location?: string;
-  heroSrc: string;
+  summary?: string;
+  description?: string;
+  coursework?: string[];
+  highlights?: string[];
+  links?: { label: string; href: string }[];
+  heroSrc: string;   // resolved from provided hero or filename mapping
   heroAlt: string;
-  slug: string;
+  slug: string;      // slugify(title + sub)
 };
 
 function resolveHeroFromTitle(title: string): string {
@@ -49,32 +63,64 @@ function normalizeEdu(e: RawEdu): Edu {
   const heroSrc = e.hero?.src ?? resolveHeroFromTitle(title);
   const heroAlt =
     e.hero?.alt ?? (title && sub ? `${title} — ${sub}` : title || "Education");
+
   return {
     title,
     sub,
     years,
     location: e.location,
+    summary: e.summary ?? e.description,
+    description: e.description ?? e.summary,
+    coursework: Array.isArray(e.coursework) ? e.coursework : undefined,
+    highlights: Array.isArray(e.highlights) ? e.highlights : undefined,
+    links: Array.isArray(e.links) ? e.links : undefined,
     heroSrc,
     heroAlt,
     slug: slugify(`${title} ${sub}`),
   };
 }
 
+/** Section header: Oversized serif wordmark + underline + subheader */
+function EducationHeader() {
+  return (
+    <div className="mb-12 md:mb-16">
+      <div className={`${playfair.className} leading-none tracking-tight`}>
+        <h2 className="text-[12vw] sm:text-7xl md:text-8xl lg:text-9xl font-bold">
+          EDUCATION
+        </h2>
+      </div>
+      <div className="mt-2 h-[2px] w-full bg-white/20" />
+      <div className={`${outfit.className} mt-3 text-sm md:text-base text-white/85`}>
+        Diplomas • Degrees • Certifications
+      </div>
+    </div>
+  );
+}
+
 /** Single tall tower with hover-pan image that follows the cursor. */
-function Tower({ idx, edu }: { idx: number; edu: Edu }) {
+function Tower({
+  idx,
+  edu,
+}: {
+  idx: number;
+  edu: Edu;
+}) {
   const imgRef = React.useRef<HTMLImageElement | null>(null);
-  const rafRef = React.useRef<number | null>(null);
+  const frameRef = React.useRef<number | null>(null);
 
   const onMouseMove = (e: React.MouseEvent) => {
     const el = e.currentTarget as HTMLDivElement;
     const rect = el.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width;
-    const y = (e.clientY - rect.top) / rect.height;
+    const x = (e.clientX - rect.left) / rect.width;  // 0..1
+    const y = (e.clientY - rect.top) / rect.height;  // 0..1
+
+    // Translate image subtly toward the cursor (max ~8px)
     const max = 8;
     const tx = (x - 0.5) * max * 2;
     const ty = (y - 0.5) * max * 2;
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    rafRef.current = requestAnimationFrame(() => {
+
+    if (frameRef.current) cancelAnimationFrame(frameRef.current);
+    frameRef.current = requestAnimationFrame(() => {
       if (imgRef.current) {
         imgRef.current.style.transform = `scale(1.05) translate(${tx.toFixed(
           1
@@ -84,7 +130,7 @@ function Tower({ idx, edu }: { idx: number; edu: Edu }) {
   };
 
   const onMouseLeave = () => {
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    if (frameRef.current) cancelAnimationFrame(frameRef.current);
     if (imgRef.current) {
       imgRef.current.style.transform = "scale(1.02) translate(0px, 0px)";
     }
@@ -123,10 +169,10 @@ function Tower({ idx, edu }: { idx: number; edu: Edu }) {
           ({idx + 1})
         </div>
 
-        {/* Bottom gradient for legibility */}
+        {/* Bottom gradient for text legibility */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 to-transparent" />
 
-        {/* Caption */}
+        {/* Caption at bottom-left */}
         <div className="absolute left-4 bottom-3 right-4">
           <div className="text-sm md:text-base font-semibold leading-tight">
             {edu.title}
@@ -158,12 +204,16 @@ export default function Education() {
       aria-label="Education"
     >
       <div className="max-w-6xl mx-auto px-6">
-        <h2 className="text-4xl font-bold mb-12 text-center">Education</h2>
+        {/* New oversized header */}
+        <EducationHeader />
 
-        {/* Four tall towers together as one clean block; remove translucent backgrounds so the section stays SOLID */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-0 overflow-hidden rounded-2xl">
+        {/* Four tall towers that sit together as one clean block */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-0 rounded-2xl overflow-hidden ring-1 ring-white/10">
           {items.map((edu, i) => (
-            <div key={`${edu.slug}-${i}`} className="relative">
+            <div
+              key={`${edu.slug}-${i}`}
+              className="bg-white/5 ring-1 ring-white/10 relative"
+            >
               <Tower idx={i} edu={edu} />
             </div>
           ))}
