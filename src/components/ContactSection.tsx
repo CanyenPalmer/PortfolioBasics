@@ -25,8 +25,8 @@ export default function ContactSection() {
           {/* Left */}
           <div className="space-y-6">
             <p className="max-w-sm text-2xl font-semibold leading-tight text-white/95">
-              I'd love to get in touch! Feel free to <span className="text-cyan-300">contact</span> or{" "}
-              <span className="text-cyan-300">connect</span> with me through the links.
+              I'd love to get in touch through my links! Currently open to <span className="text-cyan-300">freelance</span> or{" "}
+              <span className="text-cyan-300">full-time</span> work.
             </p>
 
             <div className="space-y-1">
