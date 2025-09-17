@@ -16,11 +16,22 @@ type RawEdu = {
   location?: string;
   summary?: string;
   description?: string;
+  about?: string;
+  overview?: string;
+  notes?: string;
+  details?: string;
   coursework?: string[];
+  courses?: string[];
+  classes?: string[];
+  modules?: string[];
   highlights?: string[];
+  achievements?: string[];
+  awards?: string[];
+  certificates?: string[];
   links?: { label: string; href: string }[];
   hero?: { src: string; alt: string };
   logo?: { src: string; alt: string };
+  gpa?: string | number;
 };
 
 function resolveHeroFromTitle(title: string): string {
@@ -34,10 +45,8 @@ function resolveHeroFromTitle(title: string): string {
 
 export default function EducationDetail({
   params,
-  searchParams,
 }: {
   params: { slug: string };
-  searchParams?: Record<string, string | string[] | undefined>;
 }) {
   const raw = ((profile as any)?.education ?? []) as RawEdu[];
 
@@ -47,20 +56,47 @@ export default function EducationDetail({
       const sub = (e.degree ?? e.program ?? "").toString();
       const years = (e.years ?? e.period)?.toString();
       const slug = slugify(`${title} ${sub}`);
+
+      // Flexible text mapping for “Overview”
+      const overviewText =
+        e.summary ??
+        e.description ??
+        e.overview ??
+        e.about ??
+        e.details ??
+        e.notes ??
+        "";
+
+      // Flexible array mapping for coursework/highlights
+      const coursework =
+        e.coursework ??
+        e.courses ??
+        e.classes ??
+        e.modules ??
+        [];
+
+      const highlights =
+        e.highlights ??
+        e.achievements ??
+        e.awards ??
+        e.certificates ??
+        [];
+
       const heroSrc = e.hero?.src ?? resolveHeroFromTitle(title);
       const heroAlt =
         e.hero?.alt ?? (title && sub ? `${title} — ${sub}` : title || "Education");
+
       return {
         slug,
         title,
         sub,
         years,
         location: e.location,
-        summary: e.summary ?? e.description,
-        description: e.description ?? e.summary,
-        coursework: Array.isArray(e.coursework) ? e.coursework : undefined,
-        highlights: Array.isArray(e.highlights) ? e.highlights : undefined,
-        links: Array.isArray(e.links) ? e.links : undefined,
+        gpa: e.gpa,
+        overviewText,
+        coursework: Array.isArray(coursework) ? coursework : [],
+        highlights: Array.isArray(highlights) ? highlights : [],
+        links: Array.isArray(e.links) ? e.links : [],
         heroSrc,
         heroAlt,
       };
@@ -85,102 +121,103 @@ export default function EducationDetail({
 
   return (
     <section className="relative py-14 md:py-20 bg-[#0d131d] text-white">
-      <div className="max-w-5xl mx-auto px-6">
+      <div className="max-w-6xl mx-auto px-6">
+
         {/* Back link */}
         <div className="mb-6">
-          <Link
-            href={typeof window !== "undefined" && window.sessionStorage.getItem("cameFromEducation") ? "/#education" : "/#education"}
-            className="text-white/80 hover:underline"
-          >
+          <Link href="/#education" className="text-white/80 hover:underline">
             ← Back to Education
           </Link>
         </div>
 
-        {/* Hero */}
-        <div className="relative rounded-2xl overflow-hidden ring-1 ring-white/10">
-          <div className="relative w-full" style={{ aspectRatio: "16 / 9" }}>
-            <img
-              src={edu.heroSrc}
-              alt={edu.heroAlt}
-              className="absolute inset-0 w-full h-full object-cover"
-              loading="eager"
-              decoding="async"
-            />
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/60 to-transparent" />
-            {/* Top-left number text (matches gallery order) */}
-            <div className="absolute left-4 top-4 text-base md:text-lg font-medium text-white/80 drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)]">
-              ({idx + 1})
+        {/* Header: number + title */}
+        <div className="mb-6 flex items-baseline gap-3">
+          <div className="text-base md:text-lg font-medium text-white/80">
+            ({idx + 1})
+          </div>
+          <h1 className="text-xl md:text-3xl font-semibold">
+            {edu.title}
+            {edu.sub ? <span className="block md:inline md:ml-2 text-white/85">— {edu.sub}</span> : null}
+          </h1>
+        </div>
+
+        {/* Two-column layout: image (1/3–1/2) + details */}
+        <div className="grid lg:grid-cols-12 gap-8">
+          {/* Image column */}
+          <div className="lg:col-span-5 xl:col-span-4">
+            <div className="rounded-2xl overflow-hidden ring-1 ring-white/10 bg-black/20">
+              <div className="relative w-full" style={{ aspectRatio: "4 / 5" }}>
+                <img
+                  src={edu.heroSrc}
+                  alt={edu.heroAlt}
+                  className="absolute inset-0 w-full h-full object-contain"
+                  loading="eager"
+                  decoding="async"
+                />
+              </div>
             </div>
-            {/* Title block */}
-            <div className="absolute left-5 bottom-4 right-5">
-              <h1 className="text-xl md:text-2xl font-semibold leading-tight">
-                {edu.title}
-              </h1>
-              {edu.sub ? (
-                <div className="text-sm md:text-base text-white/85 leading-tight">
-                  {edu.sub}
-                </div>
-              ) : null}
+            {/* Meta chips */}
+            <div className="mt-4 flex flex-wrap gap-2 text-sm">
               {edu.years ? (
-                <div className="text-[12px] md:text-sm text-white/65 leading-tight">
-                  {edu.years}
-                </div>
+                <span className="px-2 py-0.5 rounded-full bg-white/10">{edu.years}</span>
+              ) : null}
+              {edu.location ? (
+                <span className="px-2 py-0.5 rounded-full bg-white/10">{edu.location}</span>
+              ) : null}
+              {edu.gpa ? (
+                <span className="px-2 py-0.5 rounded-full bg-white/10">GPA: {edu.gpa}</span>
               ) : null}
             </div>
           </div>
-        </div>
 
-        {/* Body */}
-        <div className="mt-8 space-y-8">
-          {edu.summary ? (
-            <div>
-              <h2 className="text-lg font-semibold mb-2">Overview</h2>
-              <p className="text-white/85 leading-relaxed">{edu.summary}</p>
-            </div>
-          ) : null}
-
-          {Array.isArray(edu.coursework) && edu.coursework.length > 0 ? (
-            <div>
-              <h2 className="text-lg font-semibold mb-2">Coursework</h2>
-              <ul className="list-disc list-inside text-white/85 space-y-1">
-                {edu.coursework.map((c) => (
-                  <li key={c}>{c}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-
-          {Array.isArray(edu.highlights) && edu.highlights.length > 0 ? (
-            <div>
-              <h2 className="text-lg font-semibold mb-2">Highlights</h2>
-              <ul className="list-disc list-inside text-white/85 space-y-1">
-                {edu.highlights.map((h) => (
-                  <li key={h}>{h}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-
-          {Array.isArray(edu.links) && edu.links.length > 0 ? (
-            <div>
-              <h2 className="text-lg font-semibold mb-2">Links</h2>
-              <div className="flex flex-wrap gap-2">
-                {edu.links.map((l) => (
-                  <a
-                    key={l.href}
-                    href={l.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3 py-1 rounded-full bg-white/10 hover:bg-white/15 transition-colors text-sm"
-                  >
-                    {l.label ?? "Open"}
-                  </a>
-                ))}
+          {/* Details column */}
+          <div className="lg:col-span-7 xl:col-span-8">
+            {/* Overview */}
+            {edu.overviewText ? (
+              <div className="mb-8">
+                <h2 className="text-lg md:text-xl font-semibold mb-2">Overview</h2>
+                <p className="text-white/85 leading-relaxed">
+                  {edu.overviewText}
+                </p>
               </div>
-            </div>
-          ) : null}
-        </div>
-      </div>
-    </section>
-  );
-}
+            ) : null}
+
+            {/* Coursework */}
+            {edu.coursework.length > 0 ? (
+              <div className="mb-8">
+                <h2 className="text-lg md:text-xl font-semibold mb-2">Coursework</h2>
+                <ul className="list-disc list-inside text-white/85 space-y-1">
+                  {edu.coursework.map((c) => (
+                    <li key={c}>{c}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            {/* Highlights */}
+            {edu.highlights.length > 0 ? (
+              <div className="mb-8">
+                <h2 className="text-lg md:text-xl font-semibold mb-2">Highlights</h2>
+                <ul className="list-disc list-inside text-white/85 space-y-1">
+                  {edu.highlights.map((h) => (
+                    <li key={h}>{h}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            {/* Links */}
+            {edu.links.length > 0 ? (
+              <div className="mb-2">
+                <h2 className="text-lg md:text-xl font-semibold mb-2">Links</h2>
+                <div className="flex flex-wrap gap-2">
+                  {edu.links.map((l) => (
+                    <a
+                      key={l.href}
+                      href={l.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1 rounded-full bg-white/10 hover:bg-white/15 transition-colors text-sm"
+                    >
+                      {l.label ?? "Open"}
+                    </a
