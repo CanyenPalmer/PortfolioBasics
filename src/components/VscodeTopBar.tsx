@@ -4,6 +4,7 @@ import * as React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
+import NameStamp from "@/components/NameStamp";
 
 /**
  * VscodeTopBar — translucent, fixed header that:
@@ -90,15 +91,12 @@ export default function VscodeTopBar({
     if (targets.length === 0) return;
 
     const onIntersect: IntersectionObserverCallback = (entries) => {
-      // If any observed section is intersecting at least a bit -> header visible
       const anyVisible = entries.some((e) => e.isIntersecting && e.intersectionRatio > 0);
       setVisible(anyVisible);
     };
 
     const observer = new IntersectionObserver(onIntersect, {
       root: null,
-      // Small threshold makes it turn on as soon as About touches the viewport,
-      // and stay on through the band until nothing is intersecting (after Testimonials).
       threshold: [0.01],
     });
 
@@ -126,7 +124,6 @@ export default function VscodeTopBar({
         const mid = rect.top + rect.height / 2;
         const dist = Math.abs(mid - viewportCenter);
 
-        // Consider sections near the viewport (forgiveness at edges)
         const inRange =
           rect.bottom > -window.innerHeight * 0.15 &&
           rect.top < window.innerHeight * 1.15;
@@ -145,7 +142,7 @@ export default function VscodeTopBar({
       rafRef.current = requestAnimationFrame(pickActive);
     };
 
-    pickActive(); // initial
+    pickActive();
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll);
     return () => {
@@ -174,7 +171,7 @@ export default function VscodeTopBar({
                 flex items-center justify-between
                 rounded-xl
                 border border-white/10
-                bg-black/35  /* translucent glass */
+                bg-black/35
                 backdrop-blur-md
                 shadow-[0_2px_20px_rgba(0,0,0,0.35)]
                 ring-1 ring-white/[0.02]
@@ -184,7 +181,12 @@ export default function VscodeTopBar({
               {/* Signature */}
               <div className="flex items-center gap-2 min-w-0">
                 <span className="truncate text-sm font-semibold text-white/95">
-                  {signature}
+                  <NameStamp
+                    text={signature}
+                    className="text-sm font-semibold"
+                    variant="bar"         /* calmer timeline for the bar */
+                    rearmOnExit={false}   /* don't replay on minor scrolls */
+                  />
                 </span>
               </div>
 
