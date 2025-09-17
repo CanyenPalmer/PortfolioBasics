@@ -39,7 +39,7 @@ function TestimonialsComponent() {
       <section
         id="testimonials"
         aria-label="Testimonials"
-        className="relative bg-[#0d131d] min-h-[100svh] md:min-h-screen py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start"
+        className="relative bg-[#0b1016] min-h-[100svh] md:min-h-screen py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start"
       >
         <div className="container mx-auto px-6 max-w-7xl">
           <h2 className="mb-8 text-2xl font-semibold tracking-wide text-cyan-200">
