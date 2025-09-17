@@ -265,7 +265,7 @@ function LeftRail({ height }: { height?: number | null }) {
   const [paused, setPaused] = React.useState(false);
 
   // ⬇️ Only change: start top fade sooner so text is fully invisible before clipping
-  const TOP_FADE = 200;    // was 96 — start fade earlier at the top
+  const TOP_FADE = 250;    // was 96 — start fade earlier at the top
   const BOTTOM_FADE = 96;  // unchanged
   const SPEED = 22;        // px/sec scroll speed
 
