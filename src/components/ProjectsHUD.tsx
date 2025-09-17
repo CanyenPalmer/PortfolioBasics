@@ -260,26 +260,23 @@ function ProjectsHeader() {
   );
 }
 
-/** LEFT RAIL — no overlap:
- *  - measure label width and use it as the row height (rotated text fits exactly)
- *  - single moving column, RAF loop wraps by whole rows (no double-draw)
- *  - large mask fade so entries/exits are smooth
- */
+/** LEFT RAIL — single moving column, measured row height, **earlier top fade** */
 function LeftRail({ height }: { height?: number | null }) {
   const [paused, setPaused] = React.useState(false);
 
-  const FADE = 96;   // px fade at top/bottom
-  const SPEED = 12;  // px/sec scroll speed
+  // ⬇️ Only change: start top fade sooner so text is fully invisible before clipping
+  const TOP_FADE = 140;    // was 96 — start fade earlier at the top
+  const BOTTOM_FADE = 96;  // unchanged
+  const SPEED = 12;        // px/sec scroll speed
 
-  // Measure the *unrotated* label width, which equals the needed row height once rotated 90°
+  // Measure the *unrotated* label width, used as row height once rotated 90°
   const measureRef = React.useRef<HTMLSpanElement | null>(null);
   const [rowH, setRowH] = React.useState<number>(0);
   React.useEffect(() => {
     if (!measureRef.current) return;
     const measure = () => {
       const w = Math.ceil(measureRef.current!.getBoundingClientRect().width);
-      // a bit of breathing room
-      setRowH(w + 8);
+      setRowH(w + 8); // small breathing room
     };
     measure();
     const ro = new ResizeObserver(measure);
@@ -287,7 +284,7 @@ function LeftRail({ height }: { height?: number | null }) {
     return () => ro.disconnect();
   }, []);
 
-  // Decide how many rows we need based on the rail height and measured row height
+  // Rows needed for the given rail height
   const [rows, setRows] = React.useState<number>(80);
   React.useEffect(() => {
     if (!height || !rowH) return;
@@ -295,7 +292,7 @@ function LeftRail({ height }: { height?: number | null }) {
     setRows(target);
   }, [height, rowH]);
 
-  // RAF loop: translateY upward; when we move more than one full row, wrap by that many rows
+  // RAF loop: translateY upward; wrap by whole rows
   const innerRef = React.useRef<HTMLDivElement | null>(null);
   const yRef = React.useRef(0);
   const lastRef = React.useRef<number | null>(null);
@@ -308,7 +305,7 @@ function LeftRail({ height }: { height?: number | null }) {
         const dt = (ts - last) / 1000;
         let y = yRef.current - SPEED * dt;
         const wrapRows = Math.floor(-y / rowH);
-        if (wrapRows > 0) y += wrapRows * rowH; // wrap by *whole* rows only
+        if (wrapRows > 0) y += wrapRows * rowH;
         yRef.current = y;
         innerRef.current.style.transform = `translateY(${y.toFixed(2)}px)`;
       }
@@ -325,13 +322,21 @@ function LeftRail({ height }: { height?: number | null }) {
           className="relative w-16 overflow-hidden"
           style={{
             height: height ? `${height}px` : "100%",
-            WebkitMaskImage: `linear-gradient(to bottom, transparent 0px, black ${FADE}px, black calc(100% - ${FADE}px), transparent 100%)`,
-            maskImage: `linear-gradient(to bottom, transparent 0px, black ${FADE}px, black calc(100% - ${FADE}px), transparent 100%)`,
+            WebkitMaskImage: `linear-gradient(to bottom,
+              transparent 0px,
+              black ${TOP_FADE}px,
+              black calc(100% - ${BOTTOM_FADE}px),
+              transparent 100%)`,
+            maskImage: `linear-gradient(to bottom,
+              transparent 0px,
+              black ${TOP_FADE}px,
+              black calc(100% - ${BOTTOM_FADE}px),
+              transparent 100%)`,
           }}
           onMouseEnter={() => setPaused(true)}
           onMouseLeave={() => setPaused(false)}
         >
-          {/* Hidden measurer (unrotated) so we get accurate row height */}
+          {/* hidden measurer */}
           <span
             ref={measureRef}
             className={`${plusJakarta.className} text-[11px] tracking-[0.18em] absolute opacity-0 pointer-events-none whitespace-nowrap`}
@@ -339,17 +344,17 @@ function LeftRail({ height }: { height?: number | null }) {
             Scroll to Explore
           </span>
 
-          {/* Vignettes (visual polish + fallback) */}
+          {/* vignettes for fallback polish */}
           <div
             className="pointer-events-none absolute inset-x-0 top-0"
-            style={{ height: FADE, backgroundImage: "linear-gradient(to bottom, #16202e, transparent)" }}
+            style={{ height: TOP_FADE, backgroundImage: "linear-gradient(to bottom, #16202e, transparent)" }}
           />
           <div
             className="pointer-events-none absolute inset-x-0 bottom-0"
-            style={{ height: FADE, backgroundImage: "linear-gradient(to top, #16202e, transparent)" }}
+            style={{ height: BOTTOM_FADE, backgroundImage: "linear-gradient(to top, #16202e, transparent)" }}
           />
 
-          {/* Single moving column, absolutely positioned (never affects layout) */}
+          {/* moving column */}
           <div className="absolute inset-0">
             <div ref={innerRef} className="will-change-transform">
               <RailColumn rows={rows} rowH={rowH || 40} />
