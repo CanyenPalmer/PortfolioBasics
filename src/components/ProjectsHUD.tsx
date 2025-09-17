@@ -260,45 +260,48 @@ function ProjectsHeader() {
   );
 }
 
-/** Left vertical rail — rotated text, seamless loop, full section height, with fade masks */
+/** Left vertical rail — rotated text, seamless loop, full section height, with extended fade & no seam overlap */
 function LeftRail({ height }: { height?: number | null }) {
   const [paused, setPaused] = React.useState(false);
 
-  // Shared line count for BOTH segments (prevents seam mismatch/overlap)
+  // Larger fade so letters disappear well before borders
+  const FADE = 72; // px (adjust to taste 56–96)
+
+  // Shared line count for both segments (prevents seam mismatch)
   const [linesCount, setLinesCount] = React.useState(24);
   const segRef = React.useRef<HTMLDivElement | null>(null);
 
-  // Measure segment height and make sure it's taller than the rail (so loop is seamless).
+  // Make sure a single segment is taller than the rail + buffer (so loop is seamless)
   React.useEffect(() => {
     if (!segRef.current || !height) return;
     const el = segRef.current;
 
     const ensureCoverage = () => {
       const segH = el.getBoundingClientRect().height;
-      if (segH < height + 64) {
-        // Estimate per-line height from current content
+      if (segH < height + FADE * 2) {
+        // Estimate per-line height
         const per = segH / Math.max(1, linesCount);
-        const needed = Math.ceil((height + 96) / Math.max(8, per)); // add buffer
-        if (needed > linesCount && needed < 600) {
+        const needed = Math.ceil((height + FADE * 3) / Math.max(8, per)); // generous buffer
+        if (needed > linesCount && needed < 800) {
           setLinesCount(needed);
         }
       }
     };
 
-    // Run now & on resize of the segment
     ensureCoverage();
     const ro = new ResizeObserver(ensureCoverage);
     ro.observe(el);
     return () => ro.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [height, linesCount]);
 
-  // Compute segment height (after it stabilizes) and pass to CSS variable so animation distance is exact
+  // Measure the first segment's exact height (including internal padding + spacer) to avoid overlap at the seam
   const [segmentPx, setSegmentPx] = React.useState<number | null>(null);
   React.useEffect(() => {
     if (!segRef.current) return;
     const el = segRef.current;
     const update = () => {
-      const segH = Math.ceil(el.getBoundingClientRect().height);
+      const segH = Math.round(el.getBoundingClientRect().height);
       if (segH > 0) setSegmentPx(segH);
     };
     update();
@@ -307,11 +310,13 @@ function LeftRail({ height }: { height?: number | null }) {
     return () => ro.disconnect();
   }, [linesCount]);
 
+  const marqueeKey = segmentPx ?? 0; // restart animation when segment settles
+
   const marqueeStyle: React.CSSProperties & { [key: string]: any } = {
     animation: "marquee-up 40s linear infinite",
     animationPlayState: paused ? "paused" : "running",
     willChange: "transform",
-    // exact distance to avoid overlap at loop
+    // exact distance to avoid any double-draw at the loop
     "--marquee-segment": segmentPx ? `${segmentPx}px` : "50%",
   };
 
@@ -322,27 +327,31 @@ function LeftRail({ height }: { height?: number | null }) {
           className="relative w-16 overflow-hidden"
           style={{
             height: height ? `${height}px` : "100%",
-            // Smooth fade at top/bottom using mask (plus gradient overlays as fallback)
-            WebkitMaskImage:
-              "linear-gradient(to bottom, transparent 0px, black 28px, black calc(100% - 28px), transparent 100%)",
-            maskImage:
-              "linear-gradient(to bottom, transparent 0px, black 28px, black calc(100% - 28px), transparent 100%)",
+            // Smooth fade at top/bottom via mask (plus gradient overlays below for extra polish/fallback)
+            WebkitMaskImage: `linear-gradient(to bottom, transparent 0px, black ${FADE}px, black calc(100% - ${FADE}px), transparent 100%)`,
+            maskImage: `linear-gradient(to bottom, transparent 0px, black ${FADE}px, black calc(100% - ${FADE}px), transparent 100%)`,
           }}
           onMouseEnter={() => setPaused(true)}
           onMouseLeave={() => setPaused(false)}
         >
-          {/* Top/Bottom gradient vignettes (fallback / extra polish) */}
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-[#16202e] to-transparent" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#16202e] to-transparent" />
+          {/* Top/Bottom gradient vignettes (fallback & subtle glow) */}
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0"
+            style={{ height: FADE, backgroundImage: "linear-gradient(to bottom, #16202e, transparent)" }}
+          />
+          <div
+            className="pointer-events-none absolute inset-x-0 bottom-0"
+            style={{ height: FADE, backgroundImage: "linear-gradient(to top, #16202e, transparent)" }}
+          />
 
-          {/* Marquee content (two identical segments for a seamless loop) */}
-          <div className="marqueeUp" style={marqueeStyle}>
+          {/* Marquee content: two identical segments for a perfect loop */}
+          <div key={marqueeKey} className="marqueeUp" style={marqueeStyle}>
             {/* First segment (measured) */}
             <div ref={segRef}>
-              <RailColumn linesCount={linesCount} />
+              <RailColumn linesCount={linesCount} fadePad={FADE} spacerPx={FADE} />
             </div>
             {/* Duplicate segment */}
-            <RailColumn linesCount={linesCount} />
+            <RailColumn linesCount={linesCount} fadePad={FADE} spacerPx={FADE} />
           </div>
 
           <style jsx>{`
@@ -361,10 +370,24 @@ function LeftRail({ height }: { height?: number | null }) {
   );
 }
 
-function RailColumn({ linesCount }: { linesCount: number }) {
+function RailColumn({
+  linesCount,
+  fadePad,
+  spacerPx,
+}: {
+  linesCount: number;
+  fadePad: number;
+  spacerPx: number;
+}) {
   const lines = new Array(linesCount).fill("Scroll to Explore");
   return (
-    <div className="flex flex-col items-center gap-6 py-6">
+    <div
+      className="flex flex-col items-center gap-6"
+      style={{
+        paddingTop: fadePad, // start inside the fade so it eases in
+        paddingBottom: fadePad, // end inside the fade so it eases out
+      }}
+    >
       {lines.map((txt, i) => (
         <span
           key={`${txt}-${i}`}
@@ -373,6 +396,9 @@ function RailColumn({ linesCount }: { linesCount: number }) {
           {txt}
         </span>
       ))}
+      {/* Spacer ensures the very end of this segment is hidden in the fade,
+          so when the loop restarts there's no visible double-up/overlap */}
+      <div style={{ height: spacerPx }} />
     </div>
   );
 }
