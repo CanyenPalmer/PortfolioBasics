@@ -84,7 +84,7 @@ export default function Hero({ headline, subheadline, typer }: Props) {
               <GitHubIcon className="w-[18px] h-[18px]" />
             </a>
             <a
-              href="https://www.linkedin.com/in/canyenpalmer/"
+              href="https://www.linkedin.com/in/canyen-palmer-b0b6762a0"
               target="_blank"
               rel="noreferrer"
               aria-label="LinkedIn"
