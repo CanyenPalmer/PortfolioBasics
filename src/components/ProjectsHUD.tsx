@@ -260,15 +260,15 @@ function ProjectsHeader() {
   );
 }
 
-/** Left vertical rail that scrolls bottom→top with “Scroll to Explore” */
-function LeftRail() {
+/** Left vertical rail that scrolls bottom→top with rotated “Scroll to Explore” */
+function LeftRail({ height }: { height?: number | null }) {
   const [paused, setPaused] = React.useState(false);
   return (
-    <div className="hidden md:block">
+    <div className="hidden md:block h-full">
       <div className="sticky top-28">
         <div
           className="relative w-16 overflow-hidden"
-          style={{ height: "calc(100vh - 8rem)" }}
+          style={{ height: height ? `${height}px` : "100%" }}
           onMouseEnter={() => setPaused(true)}
           onMouseLeave={() => setPaused(false)}
         >
@@ -312,7 +312,7 @@ function RailColumn() {
       {lines.map((txt, i) => (
         <span
           key={`${txt}-${i}`}
-          className={`${plusJakarta.className} text-[11px] tracking-[0.18em] text-white/40`}
+          className={`${plusJakarta.className} inline-block rotate-90 origin-center whitespace-nowrap text-[11px] tracking-[0.18em] text-white/40`}
         >
           {txt}
         </span>
@@ -323,6 +323,21 @@ function RailColumn() {
 
 export default function ProjectsHUD() {
   const projects = ((profile as any)?.projects ?? []) as ReadonlyArray<Project>;
+
+  // Measure the right column height so the left rail can span the full section height
+  const rightColRef = React.useRef<HTMLDivElement>(null);
+  const [railHeight, setRailHeight] = React.useState<number | null>(null);
+
+  React.useEffect(() => {
+    if (!rightColRef.current) return;
+    // Keep the rail synced to the right column height
+    const ro = new (window as any).ResizeObserver((entries: any[]) => {
+      const cr = entries[0]?.contentRect;
+      if (cr && typeof cr.height === "number") setRailHeight(Math.ceil(cr.height));
+    });
+    ro.observe(rightColRef.current);
+    return () => ro.disconnect();
+  }, []);
 
   // Mobile: simple stack (note hidden on mobile)
   const mobile = (
@@ -393,10 +408,10 @@ export default function ProjectsHUD() {
         {/* Two-column layout on md+: left rail + right content; mobile shows content full-width */}
         <div className="md:grid md:grid-cols-[64px,1fr] md:gap-6">
           {/* Left vertical scroller (hidden on mobile) */}
-          <LeftRail />
+          <LeftRail height={railHeight} />
 
           {/* Right column: unchanged gallery & note */}
-          <div>
+          <div ref={rightColRef}>
             {/* Mobile stacked */}
             {mobile}
 
@@ -449,3 +464,4 @@ export default function ProjectsHUD() {
     </section>
   );
 }
+
