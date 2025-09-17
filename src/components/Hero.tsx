@@ -52,4 +52,3 @@ export default function Hero({ headline, subheadline, typer }: Props) {
     </section>
   );
 }
-
