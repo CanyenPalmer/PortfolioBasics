@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { profile } from "@/content/profile";
 import { slugify } from "@/lib/slug";
-import { Playfair_Display, Outfit } from "next/font/google";
+import { Playfair_Display, Outfit, Plus_Jakarta_Sans } from "next/font/google";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -13,6 +13,10 @@ const playfair = Playfair_Display({
 const outfit = Outfit({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
+});
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["200", "300", "400", "500"], // for light style
 });
 
 type RawEdu = {
@@ -204,19 +208,40 @@ export default function Education() {
       aria-label="Education"
     >
       <div className="max-w-6xl mx-auto px-6">
-        {/* New oversized header */}
+        {/* Header — unchanged */}
         <EducationHeader />
 
-        {/* Four tall towers that sit together as one clean block */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-0 rounded-2xl overflow-hidden ring-1 ring-white/10">
-          {items.map((edu, i) => (
-            <div
-              key={`${edu.slug}-${i}`}
-              className="bg-white/5 ring-1 ring-white/10 relative"
+        {/* 5-col layout at lg+: [free | blurb | collection x2 | free]
+            Mobile/tablet: blurb stacks above, collection full-width. */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-0 items-start">
+          {/* col-1: free space */}
+          <div className="hidden lg:block" />
+
+          {/* col-2: blurb (Subtle Hero-Text Style) */}
+          <div className="mb-6 lg:mb-0">
+            <p
+              className={`${plusJakarta.className} text-lg sm:text-xl font-light text-gray-400 tracking-wide lowercase max-w-md`}
             >
-              <Tower idx={i} edu={edu} />
+              my educational journey reflects a mix of foundational trainings, professional certifications, and advanced graduate studies
+            </p>
+          </div>
+
+          {/* col-3-4: collection (internals/sizes unchanged; borderless) */}
+          <div className="lg:col-span-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-0 overflow-hidden">
+              {items.map((edu, i) => (
+                <div
+                  key={`${edu.slug}-${i}`}
+                  className="bg-white/5 relative"
+                >
+                  <Tower idx={i} edu={edu} />
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
+
+          {/* col-5: free space */}
+          <div className="hidden lg:block" />
         </div>
       </div>
     </section>
