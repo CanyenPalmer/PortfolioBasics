@@ -26,7 +26,7 @@ export default function Education() {
     <section
       id="education"
       aria-label="Education"
-      className="relative bg-[#0b1016] py-16 md:py-20"
+      className="relative bg-[#0d131d] py-16 md:py-20"
     >
       <div className="mx-auto w-full max-w-5xl px-6">
         {/* Section header */}
