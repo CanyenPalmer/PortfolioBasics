@@ -7,10 +7,10 @@ import { AnimatePresence, motion } from "framer-motion";
 import NameStamp from "@/components/NameStamp";
 
 /**
- * VscodeTopBar — translucent, fixed header that:
+ * VscodeTopBar — minimal floating header that:
  *  - visible across: about → experience → projects → education → testimonials
  *  - fades in when entering About, fades out after Testimonials
- *  - borderless + minimal, just signature, tabs, and contact links
+ *  - no background bar; only text + icons, each with backdrop-blur
  */
 
 type Props = {
@@ -20,7 +20,7 @@ type Props = {
   githubHref?: string;
 };
 
-// Controls VISIBILITY (unchanged range: about → testimonials)
+// Controls VISIBILITY
 const VISIBLE_SECTION_IDS = [
   "about",
   "experience",
@@ -92,7 +92,7 @@ export default function VscodeTopBar({
     []
   );
 
-  /* ---------- VISIBILITY: show if ANY tracked section is in view ---------- */
+  /* ---------- VISIBILITY ---------- */
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -103,28 +103,27 @@ export default function VscodeTopBar({
     if (targets.length === 0) return;
 
     const onIntersect: IntersectionObserverCallback = (entries) => {
+      // Visible if any tracked section is intersecting
       const anyVisible = entries.some((e) => e.isIntersecting);
       setVisible(anyVisible);
     };
 
     const observer = new IntersectionObserver(onIntersect, {
       root: null,
-      threshold: [0, 0.1, 0.25, 0.5, 0.75, 1], // multiple checkpoints for stability
+      threshold: [0.05, 0.15, 0.25, 0.5, 0.75, 1], // stable thresholds
     });
 
     targets.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
   }, []);
 
-  /* ---------- ACTIVE TAB: closest section midpoint to viewport center ---------- */
+  /* ---------- ACTIVE TAB ---------- */
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const sections = VISIBLE_SECTION_IDS
-      .map((id) => document.getElementById(id))
-      .filter(Boolean) as HTMLElement[];
-
-    if (sections.length === 0) return;
+    const sections = NAV_SECTION_IDS.map((id) => document.getElementById(id)).filter(
+      Boolean
+    ) as HTMLElement[];
 
     const pickActive = () => {
       const viewportCenter = window.innerHeight / 2;
@@ -136,11 +135,7 @@ export default function VscodeTopBar({
         const mid = rect.top + rect.height / 2;
         const dist = Math.abs(mid - viewportCenter);
 
-        const inRange =
-          rect.bottom > -window.innerHeight * 0.2 &&
-          rect.top < window.innerHeight * 1.2;
-
-        if (inRange && dist < bestDist) {
+        if (dist < bestDist) {
           bestDist = dist;
           bestId = el.id;
         }
@@ -154,7 +149,7 @@ export default function VscodeTopBar({
       rafRef.current = requestAnimationFrame(pickActive);
     };
 
-    pickActive(); // initial
+    pickActive();
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll);
     return () => {
@@ -177,16 +172,9 @@ export default function VscodeTopBar({
           aria-label="Site navigation"
         >
           <div className="mx-auto max-w-7xl px-3 sm:px-5">
-            <nav
-              className="
-                mt-3
-                flex items-center justify-between
-                bg-black/35 backdrop-blur-md
-                px-3 sm:px-4 py-2
-              "
-            >
+            <nav className="mt-3 flex items-center justify-between">
               {/* Signature */}
-              <div className="flex items-center gap-2 min-w-0">
+              <div className="flex items-center gap-2 min-w-0 backdrop-blur-md">
                 <span className="truncate text-sm font-semibold text-white/95">
                   <NameStamp
                     text={signature}
@@ -198,14 +186,14 @@ export default function VscodeTopBar({
               </div>
 
               {/* Tabs */}
-              <ul className="hidden md:flex items-center gap-2">
+              <ul className="hidden md:flex items-center gap-2 backdrop-blur-md">
                 {tabs.map((t) => {
                   const isActive = active === t.id;
                   return (
                     <li key={t.id}>
                       <a
                         href={t.href}
-                        className={`rounded-md px-3 py-1.5 text-sm transition-colors ${
+                        className={`px-3 py-1.5 text-sm transition-colors ${
                           isActive
                             ? "text-cyan-200"
                             : "text-white/80 hover:text-cyan-200"
@@ -219,13 +207,13 @@ export default function VscodeTopBar({
               </ul>
 
               {/* Contact links */}
-              <div className="flex items-center gap-2 sm:gap-3">
+              <div className="flex items-center gap-2 sm:gap-3 backdrop-blur-md">
                 {resumeHref && (
                   <Link
                     href={resumeHref}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="rounded-md p-1.5 text-white/85 hover:text-cyan-200 transition-colors"
+                    className="p-1.5 text-white/85 hover:text-cyan-200 transition-colors"
                     aria-label="Resume"
                   >
                     <IconFileText style={{ width: 18, height: 18 }} />
@@ -236,7 +224,7 @@ export default function VscodeTopBar({
                     href={linkedinHref}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="rounded-md p-1.5 text-white/85 hover:text-cyan-200 transition-colors"
+                    className="p-1.5 text-white/85 hover:text-cyan-200 transition-colors"
                     aria-label="LinkedIn"
                   >
                     <IconLinkedIn style={{ width: 18, height: 18 }} />
@@ -247,7 +235,7 @@ export default function VscodeTopBar({
                     href={githubHref}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="rounded-md p-1.5 text-white/85 hover:text-cyan-200 transition-colors"
+                    className="p-1.5 text-white/85 hover:text-cyan-200 transition-colors"
                     aria-label="GitHub"
                   >
                     <IconGithub style={{ width: 18, height: 18 }} />
