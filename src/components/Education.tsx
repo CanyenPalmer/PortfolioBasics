@@ -204,21 +204,17 @@ export default function Education() {
   return (
     <section
       id="education"
-      className="relative py-20 bg-[#0d131d] text-white"
+      className="relative py-20 bg-[#0d131d] text-white overflow-x-hidden"
       aria-label="Education"
     >
       <div className="max-w-6xl mx-auto px-6">
         {/* Header — unchanged */}
         <EducationHeader />
 
-        {/* 5-col layout at lg+: [free | blurb | collection x2 | free]
-            Mobile/tablet: blurb stacks above, collection full-width. */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-0 items-start">
-          {/* col-1: free space */}
-          <div className="hidden lg:block" />
-
-          {/* col-2: blurb (Subtle Hero-Text Style) */}
-          <div className="mb-6 lg:mb-0">
+        {/* Wrapper lets us position the blurb without shrinking the collection */}
+        <div className="relative">
+          {/* Blurb: top-left at lg+, does NOT consume grid width */}
+          <div className="hidden lg:block absolute left-0 top-0 w-[20%]">
             <p
               className={`${plusJakarta.className} text-lg sm:text-xl font-light text-gray-400 tracking-wide lowercase max-w-md`}
             >
@@ -226,8 +222,8 @@ export default function Education() {
             </p>
           </div>
 
-          {/* col-3-4: collection (internals/sizes unchanged; borderless) */}
-          <div className="lg:col-span-2">
+          {/* Collection: full original size; shifted right visually at lg+ */}
+          <div className="transform lg:translate-x-[20%] will-change-transform">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-0 overflow-hidden">
               {items.map((edu, i) => (
                 <div
@@ -240,8 +236,8 @@ export default function Education() {
             </div>
           </div>
 
-          {/* col-5: free space */}
-          <div className="hidden lg:block" />
+          {/* Optional right spacer look at lg+ (visual 1/5), not consuming width */}
+          <div className="hidden lg:block absolute right-0 top-0 w-[20%] h-px" />
         </div>
       </div>
     </section>
