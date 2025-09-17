@@ -267,7 +267,7 @@ function LeftRail({ height }: { height?: number | null }) {
   // ⬇️ Only change: start top fade sooner so text is fully invisible before clipping
   const TOP_FADE = 200;    // was 96 — start fade earlier at the top
   const BOTTOM_FADE = 96;  // unchanged
-  const SPEED = 12;        // px/sec scroll speed
+  const SPEED = 22;        // px/sec scroll speed
 
   // Measure the *unrotated* label width, used as row height once rotated 90°
   const measureRef = React.useRef<HTMLSpanElement | null>(null);
