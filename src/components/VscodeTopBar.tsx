@@ -20,12 +20,24 @@ type Props = {
   githubHref?: string;
 };
 
-const SECTION_IDS = [
+// Sections that CONTROL VISIBILITY (unchanged)
+const VISIBLE_SECTION_IDS = [
   "about",
   "experience",
   "projects",
   "education",
   "testimonials",
+] as const;
+
+// Sections that appear as TABS for NAVIGATION (added home + contact)
+const NAV_SECTION_IDS = [
+  "home",
+  "about",
+  "experience",
+  "projects",
+  "education",
+  "testimonials",
+  "contact",
 ] as const;
 
 /* Inline icons (no external deps) */
@@ -70,9 +82,10 @@ export default function VscodeTopBar({
   const [active, setActive] = useState<string | null>(null);
   const rafRef = useRef<number | null>(null);
 
+  // TABS use NAV_SECTION_IDS (now includes Home + Contact)
   const tabs = useMemo(
     () =>
-      SECTION_IDS.map((id) => ({
+      NAV_SECTION_IDS.map((id) => ({
         id,
         label: id[0].toUpperCase() + id.slice(1),
         href: `#${id}`,
@@ -80,11 +93,12 @@ export default function VscodeTopBar({
     []
   );
 
-  /* ---------- VISIBILITY: show if ANY tracked section is in view ---------- */
+  /* ---------- VISIBILITY: show if ANY tracked (visible) section is in view ---------- */
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const targets = SECTION_IDS
+    // Only observe the visible band (About → Testimonials)
+    const targets = VISIBLE_SECTION_IDS
       .map((id) => document.getElementById(id))
       .filter(Boolean) as HTMLElement[];
 
@@ -108,7 +122,8 @@ export default function VscodeTopBar({
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const sections = SECTION_IDS
+    // Active tracking only over the visible band (About → Testimonials)
+    const sections = VISIBLE_SECTION_IDS
       .map((id) => document.getElementById(id))
       .filter(Boolean) as HTMLElement[];
 
@@ -142,7 +157,7 @@ export default function VscodeTopBar({
       rafRef.current = requestAnimationFrame(pickActive);
     };
 
-    pickActive();
+    pickActive(); // initial
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll);
     return () => {
@@ -171,7 +186,7 @@ export default function VscodeTopBar({
                 flex items-center justify-between
                 rounded-xl
                 border border-white/10
-                bg-black/35
+                bg-black/35  /* translucent glass */
                 backdrop-blur-md
                 shadow-[0_2px_20px_rgba(0,0,0,0.35)]
                 ring-1 ring-white/[0.02]
@@ -190,10 +205,10 @@ export default function VscodeTopBar({
                 </span>
               </div>
 
-              {/* Tabs */}
+              {/* Tabs (now include Home + Contact) */}
               <ul className="hidden md:flex items-center gap-2">
                 {tabs.map((t) => {
-                  const isActive = active === t.id;
+                  const isActive = active === t.id; // active only hits visible band
                   return (
                     <li key={t.id}>
                       <a
@@ -254,3 +269,4 @@ export default function VscodeTopBar({
     </AnimatePresence>
   );
 }
+
