@@ -292,7 +292,7 @@ export default function ProjectsHUD() {
     <section
       id="projects"
       aria-label="Projects"
-      className="relative w-full py-20 md:py-28 scroll-mt-24 md:scroll-mt-28"
+      className="relative w-full py-20 md:py-28 scroll-mt-24 md:scroll-mt-28 bg-[#16202e]"
     >
       <div className="mx-auto max-w-7xl px-6">
         <h2 className="text-2xl md:text-3xl font-semibold tracking-tight mb-8">
