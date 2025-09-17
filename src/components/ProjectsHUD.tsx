@@ -260,53 +260,55 @@ function ProjectsHeader() {
   );
 }
 
-/** LEFT RAIL — single moving column (no duplicate segments), fixed row height, RAF loop, smooth fade */
+/** LEFT RAIL — no overlap:
+ *  - measure label width and use it as the row height (rotated text fits exactly)
+ *  - single moving column, RAF loop wraps by whole rows (no double-draw)
+ *  - large mask fade so entries/exits are smooth
+ */
 function LeftRail({ height }: { height?: number | null }) {
   const [paused, setPaused] = React.useState(false);
 
-  const FADE = 96;         // fade so letters dissolve before edges
-  const ROW_H = 40;        // fixed row height -> no intra-line collision
-  const SPEED = 12;        // px/sec (calm)
+  const FADE = 96;   // px fade at top/bottom
+  const SPEED = 12;  // px/sec scroll speed
 
-  // Rows: fill ~1.6x the rail height so the fade always has content.
-  const [rows, setRows] = React.useState(120);
+  // Measure the *unrotated* label width, which equals the needed row height once rotated 90°
+  const measureRef = React.useRef<HTMLSpanElement | null>(null);
+  const [rowH, setRowH] = React.useState<number>(0);
   React.useEffect(() => {
-    if (!height) return;
-    const target = Math.min(600, Math.max(60, Math.ceil((height / ROW_H) * 1.6)));
-    setRows(target);
-  }, [height]);
-
-  // Refs for animation
-  const innerRef = React.useRef<HTMLDivElement | null>(null);
-  const yRef = React.useRef(0);
-  const lastTsRef = React.useRef<number | null>(null);
-  const segHRef = React.useRef(0);
-
-  // Measure total column height
-  React.useEffect(() => {
-    if (!innerRef.current) return;
+    if (!measureRef.current) return;
     const measure = () => {
-      const h = Math.ceil(innerRef.current!.getBoundingClientRect().height);
-      segHRef.current = h;
+      const w = Math.ceil(measureRef.current!.getBoundingClientRect().width);
+      // a bit of breathing room
+      setRowH(w + 8);
     };
     measure();
     const ro = new ResizeObserver(measure);
-    ro.observe(innerRef.current);
+    ro.observe(measureRef.current);
     return () => ro.disconnect();
-  }, [rows]);
+  }, []);
 
-  // RAF loop (single column). We move upward; when we've scrolled >= 1 row, wrap by +row*floor(n).
+  // Decide how many rows we need based on the rail height and measured row height
+  const [rows, setRows] = React.useState<number>(80);
+  React.useEffect(() => {
+    if (!height || !rowH) return;
+    const target = Math.min(600, Math.max(40, Math.ceil((height / rowH) * 1.6)));
+    setRows(target);
+  }, [height, rowH]);
+
+  // RAF loop: translateY upward; when we move more than one full row, wrap by that many rows
+  const innerRef = React.useRef<HTMLDivElement | null>(null);
+  const yRef = React.useRef(0);
+  const lastRef = React.useRef<number | null>(null);
   React.useEffect(() => {
     let raf = 0;
     const tick = (ts: number) => {
-      const last = lastTsRef.current ?? ts;
-      lastTsRef.current = ts;
-      if (!paused && innerRef.current) {
-        const dt = (ts - last) / 1000; // seconds
-        let y = yRef.current - SPEED * dt; // move up
-        // Wrap by whole rows so there is never sub-pixel overlap
-        const wrap = Math.floor(-y / ROW_H);
-        if (wrap > 0) y += wrap * ROW_H;
+      const last = lastRef.current ?? ts;
+      lastRef.current = ts;
+      if (!paused && innerRef.current && rowH > 0) {
+        const dt = (ts - last) / 1000;
+        let y = yRef.current - SPEED * dt;
+        const wrapRows = Math.floor(-y / rowH);
+        if (wrapRows > 0) y += wrapRows * rowH; // wrap by *whole* rows only
         yRef.current = y;
         innerRef.current.style.transform = `translateY(${y.toFixed(2)}px)`;
       }
@@ -314,7 +316,7 @@ function LeftRail({ height }: { height?: number | null }) {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [paused]);
+  }, [paused, rowH]);
 
   return (
     <div className="hidden md:block h-full">
@@ -329,7 +331,15 @@ function LeftRail({ height }: { height?: number | null }) {
           onMouseEnter={() => setPaused(true)}
           onMouseLeave={() => setPaused(false)}
         >
-          {/* Top/Bottom gradient vignettes (fallback polish) */}
+          {/* Hidden measurer (unrotated) so we get accurate row height */}
+          <span
+            ref={measureRef}
+            className={`${plusJakarta.className} text-[11px] tracking-[0.18em] absolute opacity-0 pointer-events-none whitespace-nowrap`}
+          >
+            Scroll to Explore
+          </span>
+
+          {/* Vignettes (visual polish + fallback) */}
           <div
             className="pointer-events-none absolute inset-x-0 top-0"
             style={{ height: FADE, backgroundImage: "linear-gradient(to bottom, #16202e, transparent)" }}
@@ -339,10 +349,10 @@ function LeftRail({ height }: { height?: number | null }) {
             style={{ height: FADE, backgroundImage: "linear-gradient(to top, #16202e, transparent)" }}
           />
 
-          {/* Single moving column, absolutely positioned so it never affects layout */}
+          {/* Single moving column, absolutely positioned (never affects layout) */}
           <div className="absolute inset-0">
             <div ref={innerRef} className="will-change-transform">
-              <RailColumn rows={rows} rowH={ROW_H} />
+              <RailColumn rows={rows} rowH={rowH || 40} />
             </div>
           </div>
         </div>
@@ -356,12 +366,12 @@ function RailColumn({ rows, rowH }: { rows: number; rowH: number }) {
   return (
     <div
       className="box-border flex flex-col items-center"
-      style={{ paddingTop: rowH, paddingBottom: rowH, gap: 0 }}
+      style={{ paddingTop: rowH, paddingBottom: rowH }}
     >
       {lines.map((txt, i) => (
         <div
           key={`${txt}-${i}`}
-          className="flex items-center justify-center"
+          className="flex items-center justify-center overflow-hidden"
           style={{ height: rowH, width: "100%" }}
         >
           <span
@@ -455,7 +465,7 @@ export default function ProjectsHUD() {
       className="relative w-full py-20 md:py-28 scroll-mt-24 md:scroll-mt-28 bg-[#16202e]"
     >
       <div className="mx-auto max-w-7xl px-6">
-        {/* New distinct header */}
+        {/* Header */}
         <ProjectsHeader />
 
         {/* Two-column layout on md+: left rail + right content; mobile shows content full-width */}
@@ -491,10 +501,7 @@ export default function ProjectsHUD() {
             </div>
 
             {/* lg collage */}
-            <div
-              className="relative hidden lg:block"
-              style={{ height: lg.containerHeight }}
-            >
+            <div className="relative hidden lg:block" style={{ height: lg.containerHeight }}>
               {TILE_ORDER.map((title) => {
                 const p = projects.find((x) => x.title === title);
                 if (!p) return null;
