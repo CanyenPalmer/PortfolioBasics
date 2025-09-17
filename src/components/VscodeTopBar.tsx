@@ -10,7 +10,7 @@ import NameStamp from "@/components/NameStamp";
  * VscodeTopBar — translucent, fixed header that:
  *  - visible across: about → experience → projects → education → testimonials
  *  - fades in when entering About, fades out after Testimonials
- *  - no color dots; just signature, tabs, and contact links
+ *  - borderless + minimal, just signature, tabs, and contact links
  */
 
 type Props = {
@@ -20,7 +20,7 @@ type Props = {
   githubHref?: string;
 };
 
-// Sections that CONTROL VISIBILITY (unchanged)
+// Controls VISIBILITY (unchanged range: about → testimonials)
 const VISIBLE_SECTION_IDS = [
   "about",
   "experience",
@@ -29,7 +29,7 @@ const VISIBLE_SECTION_IDS = [
   "testimonials",
 ] as const;
 
-// Sections that appear as TABS for NAVIGATION (added home + contact)
+// Tabs for NAVIGATION (includes Home + Contact)
 const NAV_SECTION_IDS = [
   "home",
   "about",
@@ -40,7 +40,7 @@ const NAV_SECTION_IDS = [
   "contact",
 ] as const;
 
-/* Inline icons (no external deps) */
+/* Inline icons */
 function IconGithub(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true" {...props}>
@@ -82,7 +82,6 @@ export default function VscodeTopBar({
   const [active, setActive] = useState<string | null>(null);
   const rafRef = useRef<number | null>(null);
 
-  // TABS use NAV_SECTION_IDS (now includes Home + Contact)
   const tabs = useMemo(
     () =>
       NAV_SECTION_IDS.map((id) => ({
@@ -93,11 +92,10 @@ export default function VscodeTopBar({
     []
   );
 
-  /* ---------- VISIBILITY: show if ANY tracked (visible) section is in view ---------- */
+  /* ---------- VISIBILITY: show if ANY tracked section is in view ---------- */
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // Only observe the visible band (About → Testimonials)
     const targets = VISIBLE_SECTION_IDS
       .map((id) => document.getElementById(id))
       .filter(Boolean) as HTMLElement[];
@@ -105,13 +103,13 @@ export default function VscodeTopBar({
     if (targets.length === 0) return;
 
     const onIntersect: IntersectionObserverCallback = (entries) => {
-      const anyVisible = entries.some((e) => e.isIntersecting && e.intersectionRatio > 0);
+      const anyVisible = entries.some((e) => e.isIntersecting);
       setVisible(anyVisible);
     };
 
     const observer = new IntersectionObserver(onIntersect, {
       root: null,
-      threshold: [0.01],
+      threshold: [0, 0.1, 0.25, 0.5, 0.75, 1], // multiple checkpoints for stability
     });
 
     targets.forEach((el) => observer.observe(el));
@@ -122,7 +120,6 @@ export default function VscodeTopBar({
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // Active tracking only over the visible band (About → Testimonials)
     const sections = VISIBLE_SECTION_IDS
       .map((id) => document.getElementById(id))
       .filter(Boolean) as HTMLElement[];
@@ -140,8 +137,8 @@ export default function VscodeTopBar({
         const dist = Math.abs(mid - viewportCenter);
 
         const inRange =
-          rect.bottom > -window.innerHeight * 0.15 &&
-          rect.top < window.innerHeight * 1.15;
+          rect.bottom > -window.innerHeight * 0.2 &&
+          rect.top < window.innerHeight * 1.2;
 
         if (inRange && dist < bestDist) {
           bestDist = dist;
@@ -184,12 +181,7 @@ export default function VscodeTopBar({
               className="
                 mt-3
                 flex items-center justify-between
-                rounded-xl
-                border border-white/10
-                bg-black/35  /* translucent glass */
-                backdrop-blur-md
-                shadow-[0_2px_20px_rgba(0,0,0,0.35)]
-                ring-1 ring-white/[0.02]
+                bg-black/35 backdrop-blur-md
                 px-3 sm:px-4 py-2
               "
             >
@@ -199,24 +191,24 @@ export default function VscodeTopBar({
                   <NameStamp
                     text={signature}
                     className="text-sm font-semibold"
-                    variant="bar"         /* calmer timeline for the bar */
-                    rearmOnExit={false}   /* don't replay on minor scrolls */
+                    variant="bar"
+                    rearmOnExit={false}
                   />
                 </span>
               </div>
 
-              {/* Tabs (now include Home + Contact) */}
+              {/* Tabs */}
               <ul className="hidden md:flex items-center gap-2">
                 {tabs.map((t) => {
-                  const isActive = active === t.id; // active only hits visible band
+                  const isActive = active === t.id;
                   return (
                     <li key={t.id}>
                       <a
                         href={t.href}
                         className={`rounded-md px-3 py-1.5 text-sm transition-colors ${
                           isActive
-                            ? "text-cyan-200 bg-white/5"
-                            : "text-white/80 hover:text-cyan-200 hover:bg-white/5"
+                            ? "text-cyan-200"
+                            : "text-white/80 hover:text-cyan-200"
                         }`}
                       >
                         {t.label}
@@ -233,7 +225,7 @@ export default function VscodeTopBar({
                     href={resumeHref}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="rounded-md p-1.5 text-white/85 hover:text-cyan-200 hover:bg-white/5 transition-colors"
+                    className="rounded-md p-1.5 text-white/85 hover:text-cyan-200 transition-colors"
                     aria-label="Resume"
                   >
                     <IconFileText style={{ width: 18, height: 18 }} />
@@ -244,7 +236,7 @@ export default function VscodeTopBar({
                     href={linkedinHref}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="rounded-md p-1.5 text-white/85 hover:text-cyan-200 hover:bg-white/5 transition-colors"
+                    className="rounded-md p-1.5 text-white/85 hover:text-cyan-200 transition-colors"
                     aria-label="LinkedIn"
                   >
                     <IconLinkedIn style={{ width: 18, height: 18 }} />
@@ -255,7 +247,7 @@ export default function VscodeTopBar({
                     href={githubHref}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="rounded-md p-1.5 text-white/85 hover:text-cyan-200 hover:bg-white/5 transition-colors"
+                    className="rounded-md p-1.5 text-white/85 hover:text-cyan-200 transition-colors"
                     aria-label="GitHub"
                   >
                     <IconGithub style={{ width: 18, height: 18 }} />
@@ -269,4 +261,3 @@ export default function VscodeTopBar({
     </AnimatePresence>
   );
 }
-
