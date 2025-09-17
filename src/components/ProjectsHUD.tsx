@@ -260,22 +260,21 @@ function ProjectsHeader() {
   );
 }
 
-/** Left vertical rail — rotated text, smooth fade, no-overlap, full section height, slow speed */
+/** Left vertical rail — rotated text, smooth fade, no overlap, bounded layout, slow speed */
 function LeftRail({ height }: { height?: number | null }) {
   const [paused, setPaused] = React.useState(false);
 
-  // Larger fade so letters disappear well before the boundaries
+  // Fade so letters dissolve well before the bounds
   const FADE = 96; // px
-  const DURATION_S = 80; // reasonable speed (slower)
+  const DURATION_S = 100; // slower, readable
 
-  // Determine a shared number of lines (identical for both segments) based on rail height.
-  // This avoids measuring/reflow loops and guarantees both segments have equal height.
-  const [linesCount, setLinesCount] = React.useState(48);
+  // Calculate a shared line count to fill >100% of the rail height (ensures continuous content)
+  const [linesCount, setLinesCount] = React.useState(60);
   React.useEffect(() => {
     if (!height) return;
-    // Approx per-line footprint (rotated text with gap). Tweak if needed.
-    const approxPerLine = 28; // px
-    const target = Math.max(48, Math.ceil((height / approxPerLine) * 1.5));
+    const approxPerLine = 28; // px ~ rotated word + gap
+    // Fill a bit beyond 100% to avoid sparse areas
+    const target = Math.max(48, Math.ceil((height / approxPerLine) * 1.6));
     setLinesCount(target);
   }, [height]);
 
@@ -292,7 +291,7 @@ function LeftRail({ height }: { height?: number | null }) {
           onMouseEnter={() => setPaused(true)}
           onMouseLeave={() => setPaused(false)}
         >
-          {/* Top/Bottom gradient vignettes (fallback / subtle glow) */}
+          {/* Subtle vignettes (visual polish + fallback) */}
           <div
             className="pointer-events-none absolute inset-x-0 top-0"
             style={{ height: FADE, backgroundImage: "linear-gradient(to bottom, #16202e, transparent)" }}
@@ -302,13 +301,14 @@ function LeftRail({ height }: { height?: number | null }) {
             style={{ height: FADE, backgroundImage: "linear-gradient(to top, #16202e, transparent)" }}
           />
 
-          {/* Track: two identical segments stacked = 200% height; animate -50% for a perfect loop */}
+          {/* Absolute track so it never affects layout; height 200% with two identical segments.
+              We animate -100% for a perfect loop (no seam/overlap). */}
           <div
-            className="will-change-transform"
+            className="absolute inset-0 will-change-transform"
             style={{
+              height: "200%",
               animation: `rail-marquee ${DURATION_S}s linear infinite`,
               animationPlayState: paused ? "paused" : "running",
-              height: "200%",
             }}
           >
             <RailSegment linesCount={linesCount} fadePad={FADE} />
@@ -321,7 +321,7 @@ function LeftRail({ height }: { height?: number | null }) {
                 transform: translateY(0);
               }
               100% {
-                transform: translateY(-50%);
+                transform: translateY(-100%);
               }
             }
           `}</style>
@@ -332,23 +332,20 @@ function LeftRail({ height }: { height?: number | null }) {
 }
 
 function RailSegment({ linesCount, fadePad }: { linesCount: number; fadePad: number }) {
-  // Identical content & spacing in both segments so their heights match exactly
   const lines = new Array(linesCount).fill("Scroll to Explore");
   return (
     <div
-      className="flex flex-col items-center"
+      className="box-border h-1/2 flex flex-col items-center"
       style={{
         paddingTop: fadePad,
         paddingBottom: fadePad,
-        gap: 24, // px between lines (24 == 1.5 * 16; pairs well with text size)
-        height: "50%", // each segment = half of track (ensures exact -50% loop)
-        boxSizing: "border-box",
+        gap: 28, // generous spacing to guarantee no intra-line overlap
       }}
     >
       {lines.map((txt, i) => (
         <span
           key={`${txt}-${i}`}
-          className={`${plusJakarta.className} inline-block rotate-90 origin-center whitespace-nowrap text-[11px] tracking-[0.18em] text-white/40`}
+          className={`${plusJakarta.className} inline-block rotate-90 origin-center whitespace-nowrap text-[11px] tracking-[0.18em] text-white/40 select-none`}
         >
           {txt}
         </span>
