@@ -260,23 +260,46 @@ function ProjectsHeader() {
   );
 }
 
-/** Left vertical rail — rotated text, smooth fade, no overlap, bounded layout, slow speed */
+/** Left vertical rail — NO OVERLAP, fixed row height, measured segment loop, calm speed */
 function LeftRail({ height }: { height?: number | null }) {
   const [paused, setPaused] = React.useState(false);
 
-  // Fade so letters dissolve well before the bounds
-  const FADE = 96; // px
-  const DURATION_S = 100; // slower, readable
+  const FADE = 96;        // px fade at top & bottom so letters dissolve early
+  const ROW_H = 28;       // px per line (fixed row height kills intra-line collisions)
+  const DURATION_S = 100; // seconds per loop (calm speed)
 
-  // Calculate a shared line count to fill >100% of the rail height (ensures continuous content)
-  const [linesCount, setLinesCount] = React.useState(60);
+  // Decide how many lines we need per segment to exceed the rail height comfortably.
+  const [lines, setLines] = React.useState<number>(60);
   React.useEffect(() => {
     if (!height) return;
-    const approxPerLine = 28; // px ~ rotated word + gap
-    // Fill a bit beyond 100% to avoid sparse areas
-    const target = Math.max(48, Math.ceil((height / approxPerLine) * 1.6));
-    setLinesCount(target);
+    // Fill ~1.6x the rail so the fade always has content; clamp to avoid extremes.
+    const target = Math.min(400, Math.max(48, Math.ceil((height / ROW_H) * 1.6)));
+    setLines(target);
   }, [height]);
+
+  // Measure one segment's exact height and animate exactly -that amount (two identical segments => perfect loop).
+  const segRef = React.useRef<HTMLDivElement | null>(null);
+  const [segH, setSegH] = React.useState<number>(0);
+  React.useEffect(() => {
+    if (!segRef.current) return;
+    const el = segRef.current;
+    const measure = () => {
+      const h = Math.ceil(el.getBoundingClientRect().height);
+      if (h > 0) setSegH(h);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [lines]);
+
+  const trackStyle: React.CSSProperties & { [key: string]: any } = {
+    animation: segH ? `rail-marquee ${DURATION_S}s linear infinite` : "none",
+    animationPlayState: paused ? "paused" : "running",
+    willChange: "transform",
+    // exact distance to move (prevents seam overlap)
+    "--segH": `${segH}px`,
+  };
 
   return (
     <div className="hidden md:block h-full">
@@ -291,7 +314,7 @@ function LeftRail({ height }: { height?: number | null }) {
           onMouseEnter={() => setPaused(true)}
           onMouseLeave={() => setPaused(false)}
         >
-          {/* Subtle vignettes (visual polish + fallback) */}
+          {/* Subtle vignettes (polish + fallback) */}
           <div
             className="pointer-events-none absolute inset-x-0 top-0"
             style={{ height: FADE, backgroundImage: "linear-gradient(to bottom, #16202e, transparent)" }}
@@ -301,28 +324,25 @@ function LeftRail({ height }: { height?: number | null }) {
             style={{ height: FADE, backgroundImage: "linear-gradient(to top, #16202e, transparent)" }}
           />
 
-          {/* Absolute track so it never affects layout; height 200% with two identical segments.
-              We animate -100% for a perfect loop (no seam/overlap). */}
-          <div
-            className="absolute inset-0 will-change-transform"
-            style={{
-              height: "200%",
-              animation: `rail-marquee ${DURATION_S}s linear infinite`,
-              animationPlayState: paused ? "paused" : "running",
-            }}
-          >
-            <RailSegment linesCount={linesCount} fadePad={FADE} />
-            <RailSegment linesCount={linesCount} fadePad={FADE} />
+          {/* Absolutely positioned track so it cannot affect layout */}
+          <div className="absolute inset-0">
+            <div className="w-full h-full relative">
+              {/* Moving content (two identical segments) */}
+              <div className="absolute inset-0" style={trackStyle}>
+                {/* Segment A (measured) */}
+                <div ref={segRef}>
+                  <RailSegment lines={lines} rowH={ROW_H} />
+                </div>
+                {/* Segment B (duplicate) */}
+                <RailSegment lines={lines} rowH={ROW_H} />
+              </div>
+            </div>
           </div>
 
           <style jsx>{`
             @keyframes rail-marquee {
-              0% {
-                transform: translateY(0);
-              }
-              100% {
-                transform: translateY(-100%);
-              }
+              0% { transform: translateY(0); }
+              100% { transform: translateY(calc(-1 * var(--segH))); }
             }
           `}</style>
         </div>
@@ -331,24 +351,23 @@ function LeftRail({ height }: { height?: number | null }) {
   );
 }
 
-function RailSegment({ linesCount, fadePad }: { linesCount: number; fadePad: number }) {
-  const lines = new Array(linesCount).fill("Scroll to Explore");
+function RailSegment({ lines, rowH }: { lines: number; rowH: number }) {
+  // Fixed-height rows to guarantee no intra-segment overlap
+  const arr = new Array(lines).fill("Scroll to Explore");
   return (
-    <div
-      className="box-border h-1/2 flex flex-col items-center"
-      style={{
-        paddingTop: fadePad,
-        paddingBottom: fadePad,
-        gap: 28, // generous spacing to guarantee no intra-line overlap
-      }}
-    >
-      {lines.map((txt, i) => (
-        <span
+    <div className="flex flex-col items-center">
+      {arr.map((txt, i) => (
+        <div
           key={`${txt}-${i}`}
-          className={`${plusJakarta.className} inline-block rotate-90 origin-center whitespace-nowrap text-[11px] tracking-[0.18em] text-white/40 select-none`}
+          className="flex items-center justify-center"
+          style={{ height: rowH, width: "100%" }}
         >
-          {txt}
-        </span>
+          <span
+            className={`${plusJakarta.className} inline-block rotate-90 origin-center whitespace-nowrap text-[11px] tracking-[0.18em] text-white/40 select-none`}
+          >
+            {txt}
+          </span>
+        </div>
       ))}
     </div>
   );
