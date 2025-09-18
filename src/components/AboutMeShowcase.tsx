@@ -49,13 +49,14 @@ export default function AboutMeShowcase() {
   });
   const scale = useTransform([x, y], ([dx, dy]) => {
     const dist = Math.hypot(Number(dx), Number(dy));
-    return 1 + Math.min(dist / 1200, 0.025);
+    return 1 + Math.min(dist / 1200, 0.025); // up to +2.5%
   });
 
   const active = poses[index];
   const nextIdx = (index + 1) % count;
   const upcoming = poses[nextIdx];
 
+  // Ensure card is visible on mount / when idle
   React.useEffect(() => {
     if (!isExiting) controls.set({ x: 0, y: 0, rotate: 0, opacity: 1 });
   }, [controls, isExiting]);
@@ -75,6 +76,7 @@ export default function AboutMeShowcase() {
     setIsExiting(true);
     const target = computeExit(vx, vy);
 
+    // smoother, less “snappy” exit
     await controls.start({
       x: target.x,
       y: target.y,
@@ -83,7 +85,10 @@ export default function AboutMeShowcase() {
       transition: { type: "spring", stiffness: 260, damping: 28, mass: 0.8 },
     });
 
+    // Swap to next image AFTER exit
     setIndex(nextIdx);
+
+    // Reset instantly for next cycle
     controls.set({ x: 0, y: 0, rotate: 0, opacity: 1 });
     x.set(0);
     y.set(0);
@@ -99,8 +104,10 @@ export default function AboutMeShowcase() {
     if (dist > SWIPE_DIST || speed > SWIPE_SPEED) {
       const ex = speed > 1 ? vx : dx;
       const ey = speed > 1 ? vy : dy;
+      // always advance forward
       void animateOutThenAdvance(ex, ey);
     } else {
+      // buttery snap-back
       controls.start({
         x: 0,
         y: 0,
@@ -112,31 +119,43 @@ export default function AboutMeShowcase() {
 
   return (
     <div className="grid gap-10 md:grid-cols-2 items-center">
-      {/* LEFT: image-only interaction area (bigger to match hero presence) */}
+      {/* LEFT: image-only interaction area (sizes unchanged) */}
       <div
         ref={areaRef}
         className="relative h-[560px] md:h-[680px] lg:h-[740px] select-none"
         aria-label="About images"
         onDragStart={(e) => e.preventDefault()}
       >
-        {/* Underlay: only while exiting, show the next image beneath */}
-        {isExiting && upcoming?.img && (
-          <div className="absolute inset-0" style={{ zIndex: 1 }}>
-            <Image
-              key={`under-${nextIdx}`}
-              src={upcoming.img}
-              alt={
-                typeof upcoming.title === "string"
-                  ? (upcoming.title as string)
-                  : upcoming.alt ?? "About image"
-              }
-              fill
-              className="object-contain pointer-events-none select-none drop-shadow-md"
-              sizes="(max-width: 768px) 90vw, 40vw"
-              draggable={false}
-              priority={false}
-            />
-          </div>
+        {/* Underlay: shows the next card — fades in smoothly during exit */}
+        {upcoming?.img && (
+          <motion.div
+            className="absolute inset-0 flex items-center justify-center"
+            style={{ zIndex: 1 }}
+            initial={false}
+            animate={{ opacity: isExiting ? 1 : 0 }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
+            aria-hidden="true"
+          >
+            {/* Card frame (same border/rounded as active) */}
+            <div className="relative h-full w-full p-3">
+              <div className="relative h-full w-full rounded-xl ring-1 ring-white/80 bg-white/5 overflow-hidden">
+                <Image
+                  key={`under-${nextIdx}`}
+                  src={upcoming.img}
+                  alt={
+                    typeof upcoming.title === "string"
+                      ? (upcoming.title as string)
+                      : upcoming.alt ?? "About image"
+                  }
+                  fill
+                  className="object-contain pointer-events-none select-none drop-shadow-md"
+                  sizes="(max-width: 768px) 90vw, 40vw"
+                  draggable={false}
+                  priority={false}
+                />
+              </div>
+            </div>
+          </motion.div>
         )}
 
         {/* ACTIVE CARD — persistent element that follows your cursor closely */}
@@ -151,46 +170,68 @@ export default function AboutMeShowcase() {
             willChange: "transform",
             touchAction: "none" as unknown as React.CSSProperties["touchAction"],
           }}
-          drag
+          drag // free-axis
           dragElastic={0.06}
           dragMomentum={false}
-          whileTap={{ cursor: "grabbing" }}
+          // Subtle pre-drag lift (happens as soon as pointer goes down)
+          whileTap={{ y: -6, scale: 1.035, boxShadow: "0 14px 36px rgba(0,0,0,0.35)" }}
           onDragEnd={handleDragEnd}
           animate={controls}
           aria-label="About image (drag to change)"
           onDragStart={(e) => e.preventDefault()}
         >
-          {active?.img && (
-            <Image
-              key={active.img}
-              src={active.img}
-              alt={
-                typeof active.title === "string"
-                  ? (active.title as string)
-                  : active.alt ?? "About image"
-              }
-              fill
-              className="object-contain pointer-events-none select-none drop-shadow-md"
-              sizes="(max-width: 768px) 90vw, 40vw"
-              draggable={false}
-              priority
-            />
-          )}
+          {/* Card frame (border + rounded edges) */}
+          <div className="relative h-full w-full p-3">
+            <div className="relative h-full w-full rounded-xl ring-1 ring-white/80 bg-white/5 overflow-hidden">
+              {active?.img && (
+                <Image
+                  key={active.img} // swap content without remounting the motion wrapper
+                  src={active.img}
+                  alt={
+                    typeof active.title === "string"
+                      ? (active.title as string)
+                      : active.alt ?? "About image"
+                  }
+                  fill
+                  className="object-contain pointer-events-none select-none drop-shadow-md"
+                  sizes="(max-width: 768px) 90vw, 40vw"
+                  draggable={false}
+                  priority
+                />
+              )}
+            </div>
+          </div>
         </motion.div>
       </div>
 
-      {/* RIGHT: text panel (larger type + a touch more breathing room) */}
-      <div className="space-y-5 md:space-y-6">
-        {active?.title && (
-          <h3 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight text-white">
-            {active.title}
-          </h3>
-        )}
-        <div className="prose prose-invert prose-lg md:prose-xl max-w-none text-white/85">
-          {active?.body}
-        </div>
-      </div>
+      {/* RIGHT: details — fade out during card exit, glitch in for new content */}
+      <motion.div
+        className="space-y-5 md:space-y-6"
+        initial={false}
+        animate={{ opacity: isExiting ? 0 : 1 }}
+        transition={{ duration: 0.25 }}
+      >
+        {/* Key on index so the new content runs the “glitch in” when it appears */}
+        <motion.div
+          key={index}
+          initial={{ opacity: 0, x: 0 }}
+          animate={{
+            opacity: 1,
+            x: [0, -2, 2, -1, 0],
+            skewX: [0, 6, -6, 2, 0],
+          }}
+          transition={{ duration: 0.55, times: [0, 0.15, 0.35, 0.5, 1], ease: "easeOut" }}
+        >
+          {active?.title && (
+            <h3 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight text-white">
+              {active.title}
+            </h3>
+          )}
+          <div className="prose prose-invert prose-lg md:prose-xl max-w-none text-white/85">
+            {active?.body}
+          </div>
+        </motion.div>
+      </motion.div>
     </div>
   );
 }
-
