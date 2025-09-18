@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
+import TransitionLink from "@/components/TransitionLink";
 import { profile } from "@/content/profile";
 import { slugify } from "@/lib/slug";
 import { Oswald, Plus_Jakarta_Sans } from "next/font/google";
@@ -130,7 +130,7 @@ function ProjectTile({
   return (
     // ⬅️ ensure tiles render above the note layer
     <article className="absolute z-10" style={{ left, top, width }} aria-label={p.title}>
-      <Link
+      <TransitionLink
         href={`/projects/${slug}?via=projects`}
         className="block group"
         onClick={() =>
@@ -151,11 +151,11 @@ function ProjectTile({
             }}
           />
         </div>
-      </Link>
+      </TransitionLink>
 
       <div className="mt-3 flex items-baseline justify-between gap-3">
         <h3 className="text-base md:text-lg font-medium tracking-tight">
-          <Link
+          <TransitionLink
             href={`/projects/${slug}?via=projects`}
             className="hover:underline"
             onClick={() =>
@@ -164,7 +164,7 @@ function ProjectTile({
             }
           >
             {p.title}
-          </Link>
+          </TransitionLink>
         </h3>
         <span className="text-[11px] md:text-xs uppercase tracking-wide text-white/60">
           {keywordFor(p.title, p.tech)}
@@ -421,7 +421,7 @@ export default function ProjectsHUD() {
         const aspect = ASPECT[p.title] ?? "3 / 4";
         return (
           <article key={title}>
-            <Link
+            <TransitionLink
               href={`/projects/${slug}?via=projects`}
               className="block group"
               onClick={() =>
@@ -436,10 +436,10 @@ export default function ProjectsHUD() {
                   className="w-full h-full object-contain transition-transform duration-300 ease-out group-hover:scale-[1.03] will-change-transform"
                 />
               </div>
-            </Link>
+            </TransitionLink>
             <div className="mt-3 flex items-baseline justify-between gap-3">
               <h3 className="text-lg font-medium tracking-tight">
-                <Link
+                <TransitionLink
                   href={`/projects/${slug}?via=projects`}
                   className="hover:underline"
                   onClick={() =>
@@ -448,7 +448,7 @@ export default function ProjectsHUD() {
                   }
                 >
                   {p.title}
-                </Link>
+                </TransitionLink>
               </h3>
               <span className="text-xs uppercase tracking-wide text-white/60">
                 {KEYWORD_BY_TITLE[p.title] ?? "project"}
