@@ -23,11 +23,10 @@ type Testimonial = {
 /**
  * Testimonials — Clean 2×2 (No Cards, No Frames)
  *
- * THIS REV:
- * - Fix overlapping by isolating and clipping the left rail (no bleed into content).
- * - Remove any visible scrollbar placeholders strictly within this section (scoped style).
- * - Keep the seamless top→bottom banner loop (A + A track, -50% → 0%).
- * - No global styles, and no changes affecting other sections/pages.
+ * THIS REV (only your requests):
+ * - Fix banner overlap: simplified to a clean A+A track (two copies only), no inner stacks.
+ * - Remove/Hide any internal scrollbars & placeholders within this section ONLY (scoped styles).
+ * - No changes anywhere else on the site.
  */
 
 function TestimonialsComponent() {
@@ -37,27 +36,28 @@ function TestimonialsComponent() {
   const t0 = items[0];
   const t1 = items[1];
 
-  // Scoped scrollbar hiding ONLY for this section
-  // (prevents “placeholder bars” without affecting the rest of the site)
+  // Scoped scrollbar hiding ONLY for this section (does not affect other pages/sections)
   const ScrollbarHider = () => (
     <style jsx>{`
-      /* Scoped to the testimonials section only */
-      #testimonials {
-        overscroll-behavior: contain;
+      /* Scope strictly to this section */
+      #testimonials,
+      #testimonials * {
+        scrollbar-width: none; /* Firefox - hide scrollbar */
       }
-      /* Hide any scrollbars that might appear within this section only */
-      #testimonials {
-        scrollbar-width: none; /* Firefox */
-      }
-      #testimonials::-webkit-scrollbar {
-        width: 0;
-        height: 0;
-        background: transparent;
-      }
+      #testimonials::-webkit-scrollbar,
       #testimonials *::-webkit-scrollbar {
-        width: 0;
-        height: 0;
-        background: transparent;
+        width: 0 !important;
+        height: 0 !important;
+        background: transparent !important;
+      }
+      #testimonials::-webkit-scrollbar-thumb,
+      #testimonials *::-webkit-scrollbar-thumb {
+        background: transparent !important;
+        border: none !important;
+      }
+      #testimonials::-webkit-scrollbar-track,
+      #testimonials *::-webkit-scrollbar-track {
+        background: transparent !important;
       }
     `}</style>
   );
@@ -127,11 +127,11 @@ export default function DefaultExportedTestimonials() {
 /* -------------------- Left Rail Banner -------------------- */
 
 /**
- * Rail isolation:
- *  - `isolate` creates a new stacking context so the banner cannot overlap neighboring grid content.
- *  - `overflow-hidden` and fixed width ensure no horizontal leak.
- * Seamless loop:
- *  - Track is 200% tall (A + A). Animate from -50% → 0% (DOWN) for a continuous fill.
+ * BannerRail — isolated, clipped rail with seamless top→bottom loop.
+ * Overlap fix:
+ *   - Use exactly TWO copies (A + A) stacked vertically in a 200% track.
+ *   - Animate y from -50% → 0% (downward). No inner sub-stacks, no chance to double-render.
+ *   - Rail is overflow-hidden, fixed width, and isolated (no bleed into content).
  */
 function BannerRail() {
   const reduceMotion = useReducedMotion();
@@ -139,13 +139,13 @@ function BannerRail() {
   return (
     <div
       className={[
-        "relative isolate",          // prevent overlap outside this cell
+        "relative isolate",                 // separate stacking context
         "pointer-events-none",
         "hidden sm:block",
         "h-full",
         "z-10",
-        "overflow-hidden",           // clip banner content to rail bounds
-        "w-[64px] md:w-[80px] max-w-[80px]", // strict rail width
+        "overflow-hidden",                  // clip to rail
+        "w-[64px] md:w-[80px] max-w-[80px]" // fixed width rail
       ].join(" ")}
       aria-hidden="true"
       style={{
@@ -155,7 +155,7 @@ function BannerRail() {
           "linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 8%, rgba(0,0,0,1) 92%, rgba(0,0,0,0) 100%)",
       }}
     >
-      {/* Track: 200% height; animate -50% → 0% to move DOWN and keep full */}
+      {/* Track: 200% height; animate DOWN (-50% → 0%) */}
       <motion.div
         initial={{ y: "-50%" }}
         animate={reduceMotion ? { y: "-50%" } : { y: "0%" }}
@@ -168,33 +168,24 @@ function BannerRail() {
                 repeat: Infinity,
               }
         }
-        className="absolute left-0 right-0 top-0 h-[200%] will-change-transform"
+        className="absolute inset-x-0 top-0 h-[200%] will-change-transform"
         style={{ translateZ: 0 }}
       >
-        <BannerStack /> {/* A */}
-        <BannerStack /> {/* A */}
+        {/* A */}
+        <div className="flex h-1/2 items-center justify-center">
+          <BannerLine />
+        </div>
+        {/* A */}
+        <div className="flex h-1/2 items-center justify-center">
+          <BannerLine />
+        </div>
       </motion.div>
     </div>
   );
 }
 
-function BannerStack() {
-  return (
-    <div className="flex h-1/2 flex-col items-center justify-start">
-      {/* Enough repetitions to ensure dense fill even on tall viewports */}
-      <BannerText />
-      <div className="h-10" />
-      <BannerText />
-      <div className="h-10" />
-      <BannerText />
-      <div className="h-10" />
-      <BannerText />
-    </div>
-  );
-}
-
-function BannerText() {
-  // Single unbroken line; nowrap + keep-all prevent wrapping/stacking.
+/** Single continuous line. No stacking, no wrap. */
+function BannerLine() {
   const line =
     "TESTIMONIALS\u00A0·\u00A0VOICES\u00A0·\u00A0REVIEWS\u00A0·\u00A0TESTIMONIALS\u00A0·\u00A0VOICES\u00A0·\u00A0REVIEWS";
 
@@ -210,10 +201,10 @@ function BannerText() {
         "opacity-85",
         "[writing-mode:vertical-rl]",
         "[text-orientation:mixed]",
-        "leading-[1.04]",
-        "text-[32px] md:text-[40px]",
         "whitespace-nowrap",
         "break-keep",
+        "leading-[1.04]",
+        "text-[32px] md:text-[40px]",
         "tracking-[0.05em]",
       ].join(" ")}
       style={{ letterSpacing: "0.02em", wordBreak: "keep-all" }}
