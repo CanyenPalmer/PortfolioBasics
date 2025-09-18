@@ -4,6 +4,12 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTransitionOverlay } from "@/providers/TransitionProvider";
+import { Playfair_Display } from "next/font/google";
+
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  weight: ["700", "900"],
+});
 
 export default function TransitionOverlay() {
   const { isActive, mode, prefersReduced } = useTransitionOverlay();
@@ -14,7 +20,7 @@ export default function TransitionOverlay() {
         <motion.div
           key="overlay-root"
           id="mach-overlay-live"
-          // 👇 Start fully opaque for MACH so there's no 1-frame reveal when we drop the SSR cover
+          // Keep fully opaque on MACH mount so there's no 1-frame peek when we drop SSR cover
           initial={{ opacity: mode === "mach" ? 1 : 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -56,10 +62,45 @@ export default function TransitionOverlay() {
 }
 
 function MachContent({ reduced }: { reduced: boolean }) {
+  const [glitch, setGlitch] = React.useState(false);
+
+  // Trigger a 1s glitch shortly after the overlay mounts (disabled for reduced motion)
+  React.useEffect(() => {
+    if (reduced) return;
+    const startDelay = 350; // ms (lets the overlay settle before glitching)
+    const duration = 1000;  // ms
+    const t1 = window.setTimeout(() => {
+      setGlitch(true);
+      const t2 = window.setTimeout(() => setGlitch(false), duration);
+      return () => window.clearTimeout(t2);
+    }, startDelay);
+    return () => window.clearTimeout(t1);
+  }, [reduced]);
+
   return (
     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
       <div className="text-center px-6">
-        <h1 className="text-3xl md:text-5xl font-semibold tracking-tight">Canyen&nbsp;Palmer</h1>
+        {/* Elegant title with glitch layers */}
+        <div className={`relative inline-block ${playfair.className}`}>
+          <h1 className="text-3xl md:text-5xl font-semibold tracking-tight">
+            <span className="mach-title-base">Canyen&nbsp;Palmer</span>
+
+            {/* glitch layers (only visible while glitch=true) */}
+            <span
+              aria-hidden="true"
+              className={`mach-title-layer mach-title-r ${glitch ? "on" : ""}`}
+            >
+              Canyen&nbsp;Palmer
+            </span>
+            <span
+              aria-hidden="true"
+              className={`mach-title-layer mach-title-c ${glitch ? "on" : ""}`}
+            >
+              Canyen&nbsp;Palmer
+            </span>
+          </h1>
+        </div>
+
         <p className="mt-2 text-white/70 text-sm md:text-base">Turning data into decisions.</p>
 
         {!reduced && (
@@ -70,6 +111,60 @@ function MachContent({ reduced }: { reduced: boolean }) {
             className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-300/20 w-48 h-48 md:w-64 md:h-64"
           />
         )}
+
+        {/* Scoped styles for the glitch effect (local to this component) */}
+        <style jsx>{`
+          .mach-title-base {
+            position: relative;
+          }
+          .mach-title-layer {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            pointer-events: none;
+            mix-blend-mode: screen;
+          }
+          .mach-title-layer.on {
+            opacity: 1;
+          }
+          .mach-title-r.on {
+            color: #ff4d4d;
+            animation: glitchR 1s steps(12, end) both;
+          }
+          .mach-title-c.on {
+            color: #00ffff;
+            animation: glitchC 1s steps(12, end) both;
+          }
+
+          @keyframes glitchR {
+            0%   { transform: translate(0px, 0px); clip-path: inset(0 0 80% 0); }
+            10%  { transform: translate(1px, -1px); clip-path: inset(10% 0 55% 0); }
+            20%  { transform: translate(-1px, 1px); clip-path: inset(30% 0 40% 0); }
+            30%  { transform: translate(1px, 0px); clip-path: inset(20% 0 60% 0); }
+            40%  { transform: translate(-2px, 1px); clip-path: inset(5% 0 70% 0); }
+            50%  { transform: translate(2px, -1px); clip-path: inset(35% 0 30% 0); }
+            60%  { transform: translate(-1px, 2px); clip-path: inset(15% 0 60% 0); }
+            70%  { transform: translate(0px, -1px); clip-path: inset(0 0 80% 0); }
+            80%  { transform: translate(1px, 1px); clip-path: inset(25% 0 50% 0); }
+            90%  { transform: translate(-1px, 0px); clip-path: inset(10% 0 65% 0); }
+            100% { transform: translate(0px, 0px); clip-path: inset(0 0 80% 0); }
+          }
+
+          @keyframes glitchC {
+            0%   { transform: translate(0px, 0px); clip-path: inset(70% 0 0 0); }
+            10%  { transform: translate(-1px, 1px); clip-path: inset(45% 0 10% 0); }
+            20%  { transform: translate(1px, -1px); clip-path: inset(60% 0 5% 0); }
+            30%  { transform: translate(-1px, 0px); clip-path: inset(40% 0 20% 0); }
+            40%  { transform: translate(2px, -1px); clip-path: inset(65% 0 0 0); }
+            50%  { transform: translate(-2px, 1px); clip-path: inset(30% 0 25% 0); }
+            60%  { transform: translate(1px, -2px); clip-path: inset(50% 0 10% 0); }
+            70%  { transform: translate(0px, 1px); clip-path: inset(70% 0 0 0); }
+            80%  { transform: translate(-1px, -1px); clip-path: inset(35% 0 20% 0); }
+            90%  { transform: translate(1px, 0px); clip-path: inset(55% 0 5% 0); }
+            100% { transform: translate(0px, 0px); clip-path: inset(70% 0 0 0); }
+          }
+        `}</style>
       </div>
     </div>
   );
