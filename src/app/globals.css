@@ -78,3 +78,13 @@ main {
 .prose-invert {
   color: #d1d5db; /* Tailwind's gray-300 */
 }
+
+/* ---------- SSR Boot Overlay Handoff ---------- */
+/* Hide the app until the client overlay takes over */
+html.mach-booting body {
+  overflow: hidden;
+}
+/* Keep only the boot overlay visible before hydration */
+html.mach-booting body > *:not(#boot-overlay) {
+  visibility: hidden !important;
+}
