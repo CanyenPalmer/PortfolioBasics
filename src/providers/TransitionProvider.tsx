@@ -66,7 +66,11 @@ export default function TransitionProvider({ children }: { children: React.React
     setActive(true);
 
     // Now that the client overlay is active, remove the SSR boot layer
-    dropBoot();
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        dropBoot();
+      });
+    });
 
     const dur = prefersReduced ? 150 : 1900; // ms (your longer, smoother timing)
     const tt = setTimeout(() => {
