@@ -16,7 +16,7 @@ export default function TransitionOverlay() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: prefersReduced ? 0.08 : 0.18, ease: "easeOut" }}
+          transition={{ duration: prefersReduced ? 0.12 : 0.24, ease: "easeOut" }}
           className="fixed inset-0 z-[9999] pointer-events-none"
           aria-hidden="true"
         >
@@ -39,7 +39,7 @@ export default function TransitionOverlay() {
             <motion.div
               initial={{ x: "-110%" }}
               animate={{ x: ["-110%", "10%", "120%"] }}
-              transition={{ duration: mode === "mach" ? 1.0 : 0.5, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: mode === "mach" ? 1.2 : 0.6, ease: [0.22, 1, 0.36, 1] }}
               className="absolute inset-y-0 w-[38%] bg-[linear-gradient(90deg,transparent,rgba(0,255,255,0.18),transparent)]"
             />
           )}
@@ -64,7 +64,7 @@ function MachContent({ reduced }: { reduced: boolean }) {
           <motion.div
             initial={{ scale: 0.85, opacity: 0 }}
             animate={{ scale: [0.85, 1.06, 1], opacity: [0, 0.35, 0] }}
-            transition={{ duration: 0.5, times: [0, 0.6, 1], ease: "easeOut", delay: 0.9 }}
+            transition={{ duration: 0.6, times: [0, 0.6, 1], ease: "easeOut", delay: 1.0 }}
             className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-300/20 w-48 h-48 md:w-64 md:h-64"
           />
         )}
@@ -85,7 +85,7 @@ function NavContent({ reduced }: { reduced: boolean }) {
           <motion.div
             initial={{ scale: 0.7, opacity: 0 }}
             animate={{ scale: [0.7, 1.05, 1.2], opacity: [0, 0.25, 0] }}
-            transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1], times: [0, 0.6, 1], delay: 0.1 }}
+            transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1], times: [0, 0.6, 1], delay: 0.1 }}
             className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-300/15 w-40 h-40 md:w-56 md:h-56"
           />
         )}
