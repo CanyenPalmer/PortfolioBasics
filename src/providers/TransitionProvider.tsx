@@ -61,20 +61,28 @@ export default function TransitionProvider({ children }: { children: React.React
       return;
     }
 
-    // Start the client overlay immediately on hydration (no initial delay)
+    // Start the client overlay immediately on hydration
     setMode("mach");
     setActive(true);
 
-    // Now that the client overlay is active, remove the SSR boot layer
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        try{
-          document.documentElement.classList.remove("mach-booting");
-          const boot = document.getElementById("boot-overlay");
-          if (boot) boot.parentElement?.removeChild(boot);
-        } catch {}
-      });
-    });
+    // Wait until the hydrated overlay is actually in the DOM.
+    // Then give it one frame to paint on top, and only then drop the SSR boot cover.
+    const start = performance.now();
+    const waitForOverlay = () => {
+      const el = document.getElementById("mach-overlay-live");
+      if (el) {
+        requestAnimationFrame(() => {
+          dropBoot();
+        });
+      } else if (performance.now() - start < 2000) {
+        requestAnimationFrame(waitForOverlay);
+      } else {
+        // Fallback safety: don't block indefinitely if something unusual happens
+        dropBoot();
+      }
+    };
+    requestAnimationFrame(waitForOverlay);
+
 
     const dur = prefersReduced ? 150 : 1900; // ms (your longer, smoother timing)
     const tt = setTimeout(() => {
