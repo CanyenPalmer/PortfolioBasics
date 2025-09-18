@@ -68,7 +68,11 @@ export default function TransitionProvider({ children }: { children: React.React
     // Now that the client overlay is active, remove the SSR boot layer
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        dropBoot();
+        try{
+          document.documentElement.classList.remove("mach-booting");
+          const boot = document.getElementById("boot-overlay");
+          if (boot) boot.parentElement?.removeChild(boot);
+        } catch {}
       });
     });
 
