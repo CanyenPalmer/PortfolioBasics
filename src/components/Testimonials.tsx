@@ -23,10 +23,10 @@ type Testimonial = {
 /**
  * Testimonials — Clean 2×2 (No Cards, No Frames)
  *
- * THIS REV — ONLY WHAT YOU ASKED:
- * - Removed the tiny gap by stacking exactly TWO identical lines back-to-back with no spacing.
- * - Unified both runs to the SAME gray font (no gradient/opacity variance).
- * - Scoped fixes to this section to eliminate any visible scrollbars/placeholder chrome without touching the rest of the site.
+ * THIS REV — ONLY YOUR REQUESTS:
+ * - Seamless loop now includes a “node” spacer at the seam (line ends with " ·").
+ * - Both runs are identical gray (no gradient/opacity shift).
+ * - Hide ALL scrollbars site-wide (Firefox + WebKit/Chromium) via a scoped global style here.
  */
 
 function TestimonialsComponent() {
@@ -36,27 +36,24 @@ function TestimonialsComponent() {
   const t0 = items[0];
   const t1 = items[1];
 
-  // Scoped scrollbar placeholder hider — affects ONLY this section
-  const ScrollbarHider = () => (
-    <style jsx>{`
-      /* Scope strictly to the testimonials section */
-      #testimonials,
-      #testimonials * {
-        scrollbar-width: none; /* Firefox */
+  // GLOBAL scrollbar hider (applies across the whole app)
+  const GlobalScrollbarHider = () => (
+    <style jsx global>{`
+      /* Hide scrollbar chrome everywhere */
+      * {
+        scrollbar-width: none !important; /* Firefox */
+        -ms-overflow-style: none !important; /* IE/Edge legacy */
       }
-      #testimonials::-webkit-scrollbar,
-      #testimonials *::-webkit-scrollbar {
+      *::-webkit-scrollbar {
         width: 0 !important;
         height: 0 !important;
         background: transparent !important;
       }
-      #testimonials::-webkit-scrollbar-thumb,
-      #testimonials *::-webkit-scrollbar-thumb {
+      *::-webkit-scrollbar-thumb {
         background: transparent !important;
         border: none !important;
       }
-      #testimonials::-webkit-scrollbar-track,
-      #testimonials *::-webkit-scrollbar-track {
+      *::-webkit-scrollbar-track {
         background: transparent !important;
       }
     `}</style>
@@ -69,15 +66,14 @@ function TestimonialsComponent() {
         aria-label="Testimonials"
         className="relative bg-[#0b1016] min-h-[100svh] md:min-h-screen py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start w-full overflow-x-hidden"
       >
-        <ScrollbarHider />
+        <GlobalScrollbarHider />
         <div className="container mx-auto px-6 max-w-7xl overflow-x-hidden">
-          {/* Keep semantic heading for SR; visually hidden since banner is the visual title */}
+          {/* Semantic heading for SR; visually hidden since banner is the visual title */}
           <h2 className="sr-only">Testimonials</h2>
 
           {/* 2-col layout with left rail banner */}
           <div className="grid grid-cols-[64px,1fr] gap-6 md:grid-cols-[80px,1fr] overflow-x-hidden">
             <BannerRail />
-
             <div className="space-y-20">
               {/* Pair 1 — C. Smith / MyCaddy (text left, avatar right) */}
               <SinglePair t={t0} reverse={false} />
@@ -94,19 +90,17 @@ function TestimonialsComponent() {
       aria-label="Testimonials"
       className="relative bg-[#0b1016] min-h-[100svh] md:min-h-screen py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start w-full overflow-x-hidden"
     >
-      <ScrollbarHider />
+      <GlobalScrollbarHider />
       <div className="container mx-auto px-6 max-w-7xl overflow-x-hidden">
-        {/* Keep semantic heading for SR; visually hidden since banner is the visual title */}
+        {/* Semantic heading for SR; visually hidden since banner is the visual title */}
         <h2 className="sr-only">Testimonials</h2>
 
         {/* 2-col layout with left rail banner */}
         <div className="grid grid-cols-[64px,1fr] gap-6 md:grid-cols-[80px,1fr] overflow-x-hidden">
           <BannerRail />
-
           <div className="space-y-20">
             {/* Pair 1 — C. Smith / MyCaddy (text left, avatar right) */}
             <SinglePair t={t0} reverse={false} />
-
             {/* Pair 2 — G. Waterman / Best-Bet (avatar left, text right) */}
             <SinglePair t={t1} reverse />
           </div>
@@ -129,7 +123,8 @@ export default function DefaultExportedTestimonials() {
 /**
  * BannerRail — isolated, clipped rail with seamless top→bottom loop.
  * - EXACTLY TWO copies (A + A) of one continuous line, back-to-back, no spacing → no gap.
- * - Uniform gray text (no gradient), same weight on both copies.
+ * - Line now ENDS with a dot node " · " so the seam matches the between-word spacing.
+ * - Uniform gray text across both runs for a seamless cycle.
  * - Fixed width + overflow hidden + isolate prevent any overlap or horizontal leak.
  */
 function BannerRail() {
@@ -170,7 +165,7 @@ function BannerRail() {
         className="absolute inset-x-0 top-0 will-change-transform"
         style={{ translateZ: 0 }}
       >
-        {/* A (no wrappers, no spacing) */}
+        {/* A */}
         <BannerLine />
         {/* A (immediately after; no gap) */}
         <BannerLine />
@@ -179,30 +174,35 @@ function BannerRail() {
   );
 }
 
-/** Single continuous line. No stacking, no wrap, uniform gray. */
+/** Single continuous line. No stacking, no wrap, uniform gray, with a trailing node. */
 function BannerLine() {
+  // Add a trailing node " · " so the seam matches inter-word spacing.
   const line =
-    "TESTIMONIALS\u00A0·\u00A0VOICES\u00A0·\u00A0REVIEWS\u00A0·\u00A0TESTIMONIALS\u00A0·\u00A0VOICES\u00A0·\u00A0REVIEWS";
+    "TESTIMONIALS\u00A0·\u00A0VOICES\u00A0·\u00A0REVIEWS\u00A0·";
 
   return (
     <div
       className={[
         "select-none",
-        "font-medium",            // unified weight (no bold on first copy)
+        "font-medium",            // unified weight
         "text-white/70",         // uniform gray tone across copies
         "[writing-mode:vertical-rl]",
         "[text-orientation:mixed]",
         "whitespace-nowrap",
         "break-keep",
-        "leading-none",          // zero extra line space
+        "leading-none",
         "text-[32px] md:text-[40px]",
         "tracking-[0.05em]",
-        "m-0",                   // ensure no default margins
+        "m-0",
         "p-0",
       ].join(" ")}
       style={{ letterSpacing: "0.02em", wordBreak: "keep-all" }}
     >
-      <span className="inline-block">{line}</span>
+      <span className="inline-block">
+        {line}
+        {"TESTIMONIALS\u00A0·\u00A0VOICES\u00A0·\u00A0REVIEWS\u00A0·"}
+        {"TESTIMONIALS\u00A0·\u00A0VOICES\u00A0·\u00A0REVIEWS\u00A0·"}
+      </span>
     </div>
   );
 }
