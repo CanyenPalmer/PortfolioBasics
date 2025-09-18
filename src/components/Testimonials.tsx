@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { profile } from "@/content/profile";
 
 type Testimonial = {
@@ -22,9 +22,13 @@ type Testimonial = {
 
 /**
  * Testimonials — Clean 2×2 (No Cards, No Frames)
- * 
- * Fix: Use flexbox alignment so text blocks are vertically centered
- * with their avatar neighbor. This keeps details level with avatar heads.
+ *
+ * Change implemented per request:
+ * - Replaced small "Testimonials" title with a **borderless vertical banner**
+ *   pinned to the left edge of the section.
+ * - Banner subtly scrolls downward on a seamless loop and soft-fades at top/bottom.
+ * - The original H2 is preserved for accessibility but visually hidden.
+ * - Testimonial content and logic remain unchanged.
  */
 
 function TestimonialsComponent() {
@@ -42,10 +46,18 @@ function TestimonialsComponent() {
         className="relative bg-[#0b1016] min-h-[100svh] md:min-h-screen py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start"
       >
         <div className="container mx-auto px-6 max-w-7xl">
-          <h2 className="mb-8 text-2xl font-semibold tracking-wide text-cyan-200">
-            Testimonials
-          </h2>
-          <SinglePair t={t0} reverse={false} />
+          {/* Keep semantic heading for SR; visually hidden since banner replaces visual title */}
+          <h2 className="sr-only">Testimonials</h2>
+
+          {/* 2-col layout with left rail banner */}
+          <div className="grid grid-cols-[64px,1fr] gap-6 md:grid-cols-[80px,1fr]">
+            <BannerRail />
+
+            <div className="space-y-20">
+              {/* Pair 1 — C. Smith / MyCaddy (text left, avatar right) */}
+              <SinglePair t={t0} reverse={false} />
+            </div>
+          </div>
         </div>
       </section>
     );
@@ -58,16 +70,20 @@ function TestimonialsComponent() {
       className="relative bg-[#0b1016] min-h-[100svh] md:min-h-screen py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start"
     >
       <div className="container mx-auto px-6 max-w-7xl">
-        <h2 className="mb-12 text-2xl font-semibold tracking-wide text-cyan-200">
-          Testimonials
-        </h2>
+        {/* Keep semantic heading for SR; visually hidden since banner replaces visual title */}
+        <h2 className="sr-only">Testimonials</h2>
 
-        <div className="space-y-20">
-          {/* Pair 1 — C. Smith / MyCaddy (text left, avatar right) */}
-          <SinglePair t={t0} reverse={false} />
+        {/* 2-col layout with left rail banner */}
+        <div className="grid grid-cols-[64px,1fr] gap-6 md:grid-cols-[80px,1fr]">
+          <BannerRail />
 
-          {/* Pair 2 — G. Waterman / Best-Bet (avatar left, text right) */}
-          <SinglePair t={t1} reverse />
+          <div className="space-y-20">
+            {/* Pair 1 — C. Smith / MyCaddy (text left, avatar right) */}
+            <SinglePair t={t0} reverse={false} />
+
+            {/* Pair 2 — G. Waterman / Best-Bet (avatar left, text right) */}
+            <SinglePair t={t1} reverse />
+          </div>
         </div>
       </div>
     </section>
@@ -80,6 +96,112 @@ export function Testimonials() {
 
 export default function DefaultExportedTestimonials() {
   return <TestimonialsComponent />;
+}
+
+/* -------------------- Left Rail Banner -------------------- */
+
+function BannerRail() {
+  const reduceMotion = useReducedMotion();
+
+  /**
+   * Viewport clip with soft top/bottom fades using CSS mask.
+   * Sticky so it stays pinned as content scrolls.
+   */
+  return (
+    <div
+      className={[
+        "relative",
+        "pointer-events-none",
+        "hidden sm:block", // hide on very small screens to avoid crowding; content remains unchanged
+        "sticky",
+        "top-24 md:top-28", // aligns with section padding so the rail sits under your VS-Code bar area
+        "h-[calc(100vh-6rem)] md:h-[calc(100vh-7rem)]", // viewport height minus top offset for a neat fit
+        "z-10",
+      ].join(" ")}
+      aria-hidden="true"
+      style={{
+        WebkitMaskImage:
+          "linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 12%, rgba(0,0,0,1) 88%, rgba(0,0,0,0) 100%)",
+        maskImage:
+          "linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 12%, rgba(0,0,0,1) 88%, rgba(0,0,0,0) 100%)",
+      }}
+    >
+      {/* Track is exactly 2× the content (A + A) so we can loop from 0% to -50% seamlessly */}
+      <motion.div
+        initial={{ y: 0 }}
+        animate={
+          reduceMotion
+            ? { y: 0 }
+            : {
+                y: "-50%",
+              }
+        }
+        transition={
+          reduceMotion
+            ? undefined
+            : {
+                duration: 40, // subtle/ambient speed; tweak if desired
+                ease: "linear",
+                repeat: Infinity,
+              }
+        }
+        className="absolute inset-0 will-change-transform"
+        style={{ translateZ: 0 }}
+      >
+        {/* Duplicate stack A */}
+        <BannerStack />
+
+        {/* Duplicate stack A (again) */}
+        <BannerStack />
+      </motion.div>
+    </div>
+  );
+}
+
+function BannerStack() {
+  return (
+    <div className="flex h-[200%] flex-col items-center justify-start">
+      {/* The inner column with vertical writing; sized to 100% height so two stacks = 200% */}
+      <div className="flex h-1/2 flex-col items-center justify-start">
+        <BannerText />
+      </div>
+      <div className="flex h-1/2 flex-col items-center justify-start">
+        <BannerText />
+      </div>
+    </div>
+  );
+}
+
+function BannerText() {
+  return (
+    <div
+      className={[
+        "select-none",
+        "font-semibold",
+        "tracking-[0.1em]",
+        "text-transparent",
+        "bg-clip-text",
+        "bg-gradient-to-b",
+        "from-cyan-200/90 via-white/60 to-white/20",
+        "opacity-80",
+        // Vertical typesetting (cleaner than rotate)
+        "[writing-mode:vertical-rl]",
+        "[text-orientation:mixed]",
+      ].join(" ")}
+      style={{ letterSpacing: "0.08em" }}
+    >
+      {/* Primary label */}
+      <span className="block text-[32px] md:text-[40px] leading-[1]">TESTIMONIALS</span>
+
+      {/* Optional subcopy for texture; keep light so it doesn’t distract */}
+      <span className="mt-6 block text-xs font-mono uppercase tracking-[0.2em] opacity-70">
+        voices / reviews
+      </span>
+
+      {/* Spacer to create comfortable repeat distance */}
+      <span className="block h-24 md:h-28" />
+    </div>
+  );
 }
 
 /* -------------------- Subcomponents -------------------- */
