@@ -23,10 +23,10 @@ type Testimonial = {
 /**
  * Testimonials — Clean 2×2 (No Cards, No Frames)
  *
- * Changes (only what was requested in this step):
- * - Banner text repeats with dot spacers, travels top→bottom across the full section, and fades smoothly.
- * - Removed residual right-side white bar by clipping horizontal overflow at the section.
- * - Kept the larger, tall/narrow/blocky text sizing from previous fix.
+ * Changes (only requested fixes):
+ * - Banner: seamless, always-filled loop top→bottom (A + A track, -50% → 0%).
+ * - Removed residual right-side white bar by clamping horizontal overflow inside this section.
+ * - All other content/logic unchanged.
  */
 
 function TestimonialsComponent() {
@@ -41,14 +41,14 @@ function TestimonialsComponent() {
       <section
         id="testimonials"
         aria-label="Testimonials"
-        className="relative bg-[#0b1016] min-h-[100svh] md:min-h-screen py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start overflow-x-hidden"
+        className="relative bg-[#0b1016] min-h-[100svh] md:min-h-screen py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start overflow-x-hidden w-full"
       >
-        <div className="container mx-auto px-6 max-w-7xl">
-          {/* Semantic heading for SR; visually hidden since banner is the visual title */}
+        <div className="container mx-auto px-6 max-w-7xl overflow-x-hidden">
+          {/* Keep semantic heading for SR; visually hidden since banner replaces the visual title */}
           <h2 className="sr-only">Testimonials</h2>
 
           {/* 2-col layout with left rail banner */}
-          <div className="grid grid-cols-[64px,1fr] gap-6 md:grid-cols-[80px,1fr]">
+          <div className="grid grid-cols-[64px,1fr] gap-6 md:grid-cols-[80px,1fr] overflow-x-hidden">
             <BannerRail />
 
             <div className="space-y-20">
@@ -65,14 +65,14 @@ function TestimonialsComponent() {
     <section
       id="testimonials"
       aria-label="Testimonials"
-      className="relative bg-[#0b1016] min-h-[100svh] md:min-h-screen py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start overflow-x-hidden"
+      className="relative bg-[#0b1016] min-h-[100svh] md:min-h-screen py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start overflow-x-hidden w-full"
     >
-      <div className="container mx-auto px-6 max-w-7xl">
-        {/* Semantic heading for SR; visually hidden since banner is the visual title */}
+      <div className="container mx-auto px-6 max-w-7xl overflow-x-hidden">
+        {/* Keep semantic heading for SR; visually hidden since banner replaces the visual title */}
         <h2 className="sr-only">Testimonials</h2>
 
         {/* 2-col layout with left rail banner */}
-        <div className="grid grid-cols-[64px,1fr] gap-6 md:grid-cols-[80px,1fr]">
+        <div className="grid grid-cols-[64px,1fr] gap-6 md:grid-cols-[80px,1fr] overflow-x-hidden">
           <BannerRail />
 
           <div className="space-y-20">
@@ -99,11 +99,11 @@ export default function DefaultExportedTestimonials() {
 /* -------------------- Left Rail Banner -------------------- */
 
 /**
- * Implementation notes for THIS revision:
- * - Made the rail span the full column height (not sticky) so the banner travels from the section top to bottom.
- * - overflow-hidden keeps it from creating internal or page scrollbars.
- * - A smooth mask fades the text at the top and just before the bottom to avoid a hard edge.
- * - Animation runs top→bottom and loops; the jump happens fully out of view, hidden by the mask.
+ * Rail now runs a continuous loop with duplicated content:
+ *  - Track contains two identical vertical stacks (A + A).
+ *  - We animate y from -50% → 0% (DOWNWARD), which keeps the rail full at all times.
+ *  - The mask at top/bottom makes the enter/exit soft and hides the loop seam.
+ *  - overflow-hidden prevents any scrollbars.
  */
 function BannerRail() {
   const reduceMotion = useReducedMotion();
@@ -114,55 +114,57 @@ function BannerRail() {
         "relative",
         "pointer-events-none",
         "hidden sm:block",
-        "h-full",           // span full section column height
+        "h-full",
         "z-10",
-        "overflow-hidden",  // no internal/page scrollbars
+        "overflow-hidden",
       ].join(" ")}
       aria-hidden="true"
       style={{
         WebkitMaskImage:
-          "linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 6%, rgba(0,0,0,1) 94%, rgba(0,0,0,0) 100%)",
+          "linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 8%, rgba(0,0,0,1) 92%, rgba(0,0,0,0) 100%)",
         maskImage:
-          "linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 6%, rgba(0,0,0,1) 94%, rgba(0,0,0,0) 100%)",
+          "linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 8%, rgba(0,0,0,1) 92%, rgba(0,0,0,0) 100%)",
       }}
     >
+      {/* Track: exactly 200% height so A + A fills the rail; animate -50% → 0% to move down seamlessly */}
       <motion.div
-        initial={{ y: "-8%" }} // start slightly above the masked region
-        animate={
-          reduceMotion
-            ? { y: 0 }
-            : { y: "108%" } // glide to just below the bottom mask edge
-        }
+        initial={{ y: "-50%" }}
+        animate={reduceMotion ? { y: "-50%" } : { y: "0%" }}
         transition={
           reduceMotion
             ? undefined
             : {
-                duration: 42,  // slow/ambient
+                duration: 40, // ambient speed
                 ease: "linear",
                 repeat: Infinity,
-                repeatType: "loop",
               }
         }
-        className="absolute inset-0 will-change-transform"
+        className="absolute left-0 right-0 top-0 h-[200%] will-change-transform"
         style={{ translateZ: 0 }}
       >
-        {/* Single tall stack; the loop resets off-screen thanks to the mask */}
-        <div className="flex min-h-[200%] flex-col items-center justify-start">
-          <BannerText />
-          <div className="h-40" />
-          <BannerText />
-          <div className="h-40" />
-          <BannerText />
-          <div className="h-40" />
-          <BannerText />
-        </div>
+        <BannerStack /> {/* A */}
+        <BannerStack /> {/* A */}
       </motion.div>
     </div>
   );
 }
 
+function BannerStack() {
+  return (
+    <div className="flex h-1/2 flex-col items-center justify-start">
+      {/* Enough repetitions to ensure dense fill even on tall viewports */}
+      <BannerText />
+      <div className="h-10" />
+      <BannerText />
+      <div className="h-10" />
+      <BannerText />
+      <div className="h-10" />
+      <BannerText />
+    </div>
+  );
+}
+
 function BannerText() {
-  // Repeated label with dot spacers; vertical writing keeps the tall/narrow look.
   const line =
     "TESTIMONIALS · VOICES · REVIEWS · TESTIMONIALS · VOICES · REVIEWS · TESTIMONIALS · VOICES · REVIEWS";
 
@@ -301,7 +303,7 @@ function AvatarFree({
           width={1000}
           height={1400}
           sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 100vw"
-        className="mx-auto h-auto w-full select-none"
+          className="mx-auto h-auto w-full select-none"
           priority={false}
         />
       </div>
