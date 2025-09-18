@@ -54,7 +54,6 @@ export default function AboutMeShowcase() {
 
   const active = poses[index];
   const nextIdx = (index + 1) % count;
-  const upcoming = poses[nextIdx];
 
   // Ensure card is visible on mount / when idle
   React.useEffect(() => {
@@ -76,7 +75,7 @@ export default function AboutMeShowcase() {
     setIsExiting(true);
     const target = computeExit(vx, vy);
 
-    // smoother, less “snappy” exit
+    // exit with fade (keeping your preferred feel), but no underlay is shown → no flicker
     await controls.start({
       x: target.x,
       y: target.y,
@@ -85,7 +84,7 @@ export default function AboutMeShowcase() {
       transition: { type: "spring", stiffness: 260, damping: 28, mass: 0.8 },
     });
 
-    // Swap to next image AFTER exit
+    // Swap to next AFTER exit to avoid any peek-through
     setIndex(nextIdx);
 
     // Reset instantly for next cycle
@@ -104,10 +103,8 @@ export default function AboutMeShowcase() {
     if (dist > SWIPE_DIST || speed > SWIPE_SPEED) {
       const ex = speed > 1 ? vx : dx;
       const ey = speed > 1 ? vy : dy;
-      // always advance forward
       void animateOutThenAdvance(ex, ey);
     } else {
-      // buttery snap-back
       controls.start({
         x: 0,
         y: 0,
@@ -126,38 +123,6 @@ export default function AboutMeShowcase() {
         aria-label="About images"
         onDragStart={(e) => e.preventDefault()}
       >
-        {/* Underlay: shows the next card — fades in smoothly during exit */}
-        {upcoming?.img && (
-          <motion.div
-            className="absolute inset-0 flex items-center justify-center"
-            style={{ zIndex: 1 }}
-            initial={false}
-            animate={{ opacity: isExiting ? 1 : 0 }}
-            transition={{ duration: 0.35, ease: "easeOut" }}
-            aria-hidden="true"
-          >
-            {/* Card frame (same border/rounded as active) */}
-            <div className="relative h-full w-full p-3">
-              <div className="relative h-full w-full rounded-xl ring-1 ring-white/80 bg-white/5 overflow-hidden">
-                <Image
-                  key={`under-${nextIdx}`}
-                  src={upcoming.img}
-                  alt={
-                    typeof upcoming.title === "string"
-                      ? (upcoming.title as string)
-                      : upcoming.alt ?? "About image"
-                  }
-                  fill
-                  className="object-contain pointer-events-none select-none drop-shadow-md"
-                  sizes="(max-width: 768px) 90vw, 40vw"
-                  draggable={false}
-                  priority={false}
-                />
-              </div>
-            </div>
-          </motion.div>
-        )}
-
         {/* ACTIVE CARD — persistent element that follows your cursor closely */}
         <motion.div
           className="absolute inset-0 cursor-grab"
@@ -180,9 +145,9 @@ export default function AboutMeShowcase() {
           aria-label="About image (drag to change)"
           onDragStart={(e) => e.preventDefault()}
         >
-          {/* Card frame (border + rounded edges) */}
+          {/* Card frame (true white border around all 4 sides + rounded edges) */}
           <div className="relative h-full w-full p-3">
-            <div className="relative h-full w-full rounded-xl ring-1 ring-white/80 bg-white/5 overflow-hidden">
+            <div className="relative h-full w-full rounded-xl border border-white bg-transparent overflow-hidden">
               {active?.img && (
                 <Image
                   key={active.img} // swap content without remounting the motion wrapper
@@ -193,7 +158,7 @@ export default function AboutMeShowcase() {
                       : active.alt ?? "About image"
                   }
                   fill
-                  className="object-contain pointer-events-none select-none drop-shadow-md"
+                  className="object-contain pointer-events-none select-none"
                   sizes="(max-width: 768px) 90vw, 40vw"
                   draggable={false}
                   priority
@@ -204,34 +169,117 @@ export default function AboutMeShowcase() {
         </motion.div>
       </div>
 
-      {/* RIGHT: details — fade out during card exit, glitch in for new content */}
+      {/* RIGHT: details — fade out during card exit, then GLITCH IN (like your hero) */}
       <motion.div
         className="space-y-5 md:space-y-6"
         initial={false}
         animate={{ opacity: isExiting ? 0 : 1 }}
         transition={{ duration: 0.25 }}
       >
-        {/* Key on index so the new content runs the “glitch in” when it appears */}
-        <motion.div
-          key={index}
-          initial={{ opacity: 0, x: 0 }}
-          animate={{
-            opacity: 1,
-            x: [0, -2, 2, -1, 0],
-            skewX: [0, 6, -6, 2, 0],
-          }}
-          transition={{ duration: 0.55, times: [0, 0.15, 0.35, 0.5, 1], ease: "easeOut" }}
-        >
+        {/* Key on index so the new content re-runs the glitch each time */}
+        <div key={index}>
           {active?.title && (
-            <h3 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight text-white">
-              {active.title}
-            </h3>
+            <GlitchBlock>
+              <h3 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight text-white">
+                {active.title}
+              </h3>
+            </GlitchBlock>
           )}
-          <div className="prose prose-invert prose-lg md:prose-xl max-w-none text-white/85">
-            {active?.body}
-          </div>
-        </motion.div>
+          <GlitchBlock delay={80}>
+            <div className="prose prose-invert prose-lg md:prose-xl max-w-none text-white/85">
+              {active?.body}
+            </div>
+          </GlitchBlock>
+        </div>
       </motion.div>
     </div>
   );
+}
+
+/* -------------------- Glitch text (hero-style scramble) -------------------- */
+/**
+ * GlitchBlock quickly cycles characters + font stacks, then locks in.
+ * - No slide/shake; purely a text scramble → resolve, matching your hero vibe.
+ */
+function GlitchBlock({
+  children,
+  duration = 600,
+  delay = 0,
+}: {
+  children: React.ReactNode;
+  duration?: number;
+  delay?: number;
+}) {
+  const [phase, setPhase] = React.useState<"glitch" | "final">("glitch");
+  const [display, setDisplay] = React.useState<string | null>(null);
+  const [fontClass, setFontClass] = React.useState<string>("font-sans");
+
+  React.useEffect(() => {
+    let start = performance.now() + delay;
+    let raf = 0;
+
+    const elText =
+      typeof children === "string"
+        ? children
+        : // Try to extract text from a simple child node like <h3>Text</h3>
+          (extractText(children) ?? "");
+
+    const glyphs =
+      "!<>-_\\/[]{}—=+*^?#__________◼︎◻︎◆◇▪︎▫︎•○◘◙░▒▓█@#$%&()ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+    const fonts = ["font-sans", "font-serif", "font-mono"];
+
+    const tick = (t: number) => {
+      if (t < start) {
+        raf = requestAnimationFrame(tick);
+        return;
+      }
+      const elapsed = t - start;
+      if (elapsed >= duration) {
+        setDisplay(elText);
+        setFontClass("font-sans"); // lock to your normal face at the end
+        setPhase("final");
+        return;
+      }
+
+      // Mix of real + random chars proportional to progress
+      const p = elapsed / duration;
+      const keep = Math.floor(p * elText.length);
+      const rand = Array.from({ length: elText.length - keep }, () => {
+        const idx = Math.floor(Math.random() * glyphs.length);
+        return glyphs[idx];
+      }).join("");
+
+      setDisplay(elText.slice(0, keep) + rand);
+
+      // Cycle fonts a bit
+      setFontClass(fonts[Math.floor((elapsed / 90) % fonts.length)]);
+
+      raf = requestAnimationFrame(tick);
+    };
+
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+    // Re-run when children change (new content)
+  }, [children, duration, delay]);
+
+  return (
+    <span className={phase === "glitch" ? fontClass : "font-sans"}>
+      {display ?? children}
+    </span>
+  );
+}
+
+function extractText(node: React.ReactNode): string | null {
+  if (typeof node === "string") return node;
+  if (typeof node === "number") return String(node);
+  if (!node || typeof node !== "object") return null;
+  // @ts-ignore
+  const props = node.props as { children?: React.ReactNode };
+  if (!props || props.children == null) return null;
+  if (typeof props.children === "string") return props.children;
+  if (Array.isArray(props.children)) {
+    return props.children.map(extractText).filter(Boolean).join(" ");
+  }
+  return extractText(props.children);
 }
