@@ -43,23 +43,39 @@ export default function TransitionProvider({ children }: { children: React.React
     setPrefersReduced(getPrefersReducedMotion());
   }, []);
 
-  // MACH loader: run once per session
+  // MACH loader: run once per session and remove SSR boot overlay/class
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (sessionStorage.getItem("machLoaded")) return; // already played this session
 
-    const t = setTimeout(() => {
-      setMode("mach");
-      setActive(true);
-      const dur = prefersReduced ? 150 : 1900; // ms
-      const tt = setTimeout(() => {
-        setActive(false);
-        setMode("idle");
-        sessionStorage.setItem("machLoaded", "1");
-      }, dur);
-      return () => clearTimeout(tt);
-    }, 30);
-    return () => clearTimeout(t);
+    const dropBoot = () => {
+      try {
+        document.documentElement.classList.remove("mach-booting");
+        const boot = document.getElementById("boot-overlay");
+        if (boot) boot.parentElement?.removeChild(boot);
+      } catch {}
+    };
+
+    // If we've already played this session, just drop the boot overlay immediately.
+    if (sessionStorage.getItem("machLoaded")) {
+      dropBoot();
+      return;
+    }
+
+    // Start the client overlay immediately on hydration (no initial delay)
+    setMode("mach");
+    setActive(true);
+
+    // Now that the client overlay is active, remove the SSR boot layer
+    dropBoot();
+
+    const dur = prefersReduced ? 150 : 1900; // ms (your longer, smoother timing)
+    const tt = setTimeout(() => {
+      setActive(false);
+      setMode("idle");
+      sessionStorage.setItem("machLoaded", "1");
+    }, dur);
+
+    return () => clearTimeout(tt);
   }, [prefersReduced]);
 
   // Track previous pathname for nav completion
