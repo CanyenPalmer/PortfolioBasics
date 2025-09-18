@@ -1,6 +1,8 @@
 // src/app/layout.tsx
 import "./globals.css";
 import type { Metadata } from "next";
+import TransitionProvider from "@/providers/TransitionProvider";
+import TransitionOverlay from "@/components/TransitionOverlay";
 
 export const metadata: Metadata = {
   title: "Canyen Palmer",
@@ -15,9 +17,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-[#0b1016] text-white antialiased">
-        {children}
+        <TransitionProvider>
+          {children}
+          <TransitionOverlay />
+        </TransitionProvider>
       </body>
     </html>
   );
 }
-
