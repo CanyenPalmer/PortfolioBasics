@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
+import TransitionLink from "@/components/TransitionLink";
 import { profile } from "@/content/profile";
 import { slugify } from "@/lib/slug";
 import { Playfair_Display, Outfit, Plus_Jakarta_Sans } from "next/font/google";
@@ -141,7 +141,7 @@ function Tower({
   };
 
   return (
-    <Link
+    <TransitionLink
       href={`/education/${edu.slug}?via=education`}
       className="group block focus:outline-none focus:ring-2 focus:ring-white/40 focus:ring-offset-2 focus:ring-offset-transparent"
       onClick={() => {
@@ -193,7 +193,7 @@ function Tower({
           ) : null}
         </div>
       </div>
-    </Link>
+    </TransitionLink>
   );
 }
 
