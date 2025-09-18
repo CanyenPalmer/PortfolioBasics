@@ -21,24 +21,27 @@ type Pose = {
   alt?: string;
 };
 
-const SWIPE_DIST = 80;
-const SWIPE_SPEED = 550;
-const EXIT_RADIUS = 560;
+const SWIPE_DIST = 80;     // px
+const SWIPE_SPEED = 550;   // px/s
+const EXIT_RADIUS = 560;   // px
 
 export default function AboutMeShowcase() {
   const poses = (profile as any)?.about?.poses as ReadonlyArray<Pose> | undefined;
   const count = poses?.length ?? 0;
   if (!poses || count === 0) return null;
 
+  // Keep a single motion card; swap content after exit finishes
   const [index, setIndex] = React.useState(0);
   const [isExiting, setIsExiting] = React.useState(false);
 
   const areaRef = React.useRef<HTMLDivElement | null>(null);
   const controls = useAnimationControls();
 
+  // Motion values
   const x = useMotionValue(0);
   const y = useMotionValue(0);
 
+  // Subtle, responsive tilt & scale based on drag distance (feels more “attached” to cursor)
   const rotate = useTransform([x, y], ([dx, dy]) => {
     const maxTilt = 6;
     const t = (dx as number) / 25 + (dy as number) / 60;
@@ -46,12 +49,13 @@ export default function AboutMeShowcase() {
   });
   const scale = useTransform([x, y], ([dx, dy]) => {
     const dist = Math.hypot(Number(dx), Number(dy));
-    return 1 + Math.min(dist / 1200, 0.025);
+    return 1 + Math.min(dist / 1200, 0.025); // up to +2.5%
   });
 
   const active = poses[index];
   const nextIdx = (index + 1) % count;
 
+  // Ensure card is visible on mount / when idle
   React.useEffect(() => {
     if (!isExiting) controls.set({ x: 0, y: 0, rotate: 0, opacity: 1 });
   }, [controls, isExiting]);
@@ -60,13 +64,18 @@ export default function AboutMeShowcase() {
     const mag = Math.hypot(vx, vy) || 1;
     const ux = vx / mag;
     const uy = vy / mag;
-    return { x: ux * EXIT_RADIUS, y: uy * EXIT_RADIUS, rotate: ux * 8 + uy * 4 };
+    return {
+      x: ux * EXIT_RADIUS,
+      y: uy * EXIT_RADIUS,
+      rotate: ux * 8 + uy * 4,
+    };
   }
 
   async function animateOutThenAdvance(vx: number, vy: number) {
     setIsExiting(true);
     const target = computeExit(vx, vy);
 
+    // exit with fade (keeping your preferred feel)
     await controls.start({
       x: target.x,
       y: target.y,
@@ -75,8 +84,10 @@ export default function AboutMeShowcase() {
       transition: { type: "spring", stiffness: 260, damping: 28, mass: 0.8 },
     });
 
+    // Swap to next AFTER exit to avoid any peek-through
     setIndex(nextIdx);
 
+    // Reset instantly for next cycle
     controls.set({ x: 0, y: 0, rotate: 0, opacity: 1 });
     x.set(0);
     y.set(0);
@@ -105,14 +116,14 @@ export default function AboutMeShowcase() {
 
   return (
     <div className="grid gap-10 md:grid-cols-2 items-center">
-      {/* LEFT: card container */}
+      {/* LEFT: image-only interaction area (sizes unchanged) */}
       <div
         ref={areaRef}
         className="relative h-[560px] md:h-[680px] lg:h-[740px] select-none"
         aria-label="About images"
         onDragStart={(e) => e.preventDefault()}
       >
-        {/* ACTIVE CARD */}
+        {/* ACTIVE CARD — persistent element that follows your cursor closely */}
         <motion.div
           className="absolute inset-0 cursor-grab"
           style={{
@@ -124,52 +135,63 @@ export default function AboutMeShowcase() {
             willChange: "transform",
             touchAction: "none" as unknown as React.CSSProperties["touchAction"],
           }}
-          drag
+          drag // free-axis
           dragElastic={0.06}
           dragMomentum={false}
+          // Subtle pre-drag lift (happens as soon as pointer goes down)
           whileTap={{ y: -6, scale: 1.035, boxShadow: "0 14px 36px rgba(0,0,0,0.35)" }}
           onDragEnd={handleDragEnd}
           animate={controls}
           aria-label="About image (drag to change)"
           onDragStart={(e) => e.preventDefault()}
         >
-          {/* Card frame with true white border + solid background */}
+          {/* Card frame — THICK white border + WHITE fill on all 4 sides */}
           <div className="relative h-full w-full p-3">
-            <div className="relative h-full w-full rounded-xl border-2 border-white bg-[#0b1016] overflow-hidden">
-              {active?.img && (
-                <Image
-                  key={active.img}
-                  src={active.img}
-                  alt={
-                    typeof active.title === "string"
-                      ? (active.title as string)
-                      : active.alt ?? "About image"
-                  }
-                  fill
-                  className="object-contain pointer-events-none select-none"
-                  sizes="(max-width: 768px) 90vw, 40vw"
-                  draggable={false}
-                  priority
-                />
-              )}
+            <div className="relative h-full w-full rounded-2xl border-[6px] border-white bg-white overflow-hidden">
+              {/* Inner inset to guarantee visible white fill around the image */}
+              <div className="absolute inset-0 p-6 md:p-8 lg:p-10">
+                <div className="relative h-full w-full">
+                  {active?.img && (
+                    <Image
+                      key={active.img} // swap content without remounting the motion wrapper
+                      src={active.img}
+                      alt={
+                        typeof active.title === "string"
+                          ? (active.title as string)
+                          : active.alt ?? "About image"
+                      }
+                      fill
+                      className="object-contain pointer-events-none select-none"
+                      sizes="(max-width: 768px) 90vw, 40vw"
+                      draggable={false}
+                      priority
+                    />
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </motion.div>
       </div>
 
-      {/* RIGHT: details */}
+      {/* RIGHT: details — fade out during card exit; glitch text stays inside this column */}
       <motion.div
         className="space-y-5 md:space-y-6"
         initial={false}
         animate={{ opacity: isExiting ? 0 : 1 }}
         transition={{ duration: 0.25 }}
       >
+        {/* Key on index so the new content re-runs the glitch each time */}
         <div key={index}>
           {active?.title && (
             <GlitchBlock>
-              <h3 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight text-white">
-                {active.title}
-              </h3>
+              <div className="inline-block max-w-full align-top">
+                <h3 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight text-white">
+                  {active.title}
+                </h3>
+                {/* Separator bar under the header */}
+                <div className="mt-3 h-[2px] w-20 md:w-28 bg-white/70 rounded-full" />
+              </div>
             </GlitchBlock>
           )}
           <GlitchBlock delay={80}>
@@ -183,7 +205,12 @@ export default function AboutMeShowcase() {
   );
 }
 
-/* -------------------- Glitch text -------------------- */
+/* -------------------- Glitch text (constrained to details column) -------------------- */
+/**
+ * GlitchBlock quickly cycles characters, then swaps to real children.
+ * - Renders inside an inline-block wrapper, preventing overflow outside the details column.
+ * - No layout “escape”: whitespace wraps, long words break within the column.
+ */
 function GlitchBlock({
   children,
   duration = 600,
@@ -236,9 +263,13 @@ function GlitchBlock({
   }, [children, duration, delay]);
 
   if (phase === "glitch") {
-    return <span>{display}</span>;
+    return (
+      <span className="inline-block max-w-full whitespace-pre-wrap break-words align-top">
+        {display}
+      </span>
+    );
   }
-  // When done, render the actual children → correct layout
+  // When done, render the actual children → preserves intended layout exactly
   return <>{children}</>;
 }
 
