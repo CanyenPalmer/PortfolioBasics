@@ -43,21 +43,19 @@ export default function AboutMeShowcase() {
 
   // Subtle, responsive tilt & scale based on drag distance (feels more “attached” to cursor)
   const rotate = useTransform([x, y], ([dx, dy]) => {
-    // tilt a bit relative to direction; clamp for sanity
     const maxTilt = 6;
     const t = (dx as number) / 25 + (dy as number) / 60;
     return Math.max(-maxTilt, Math.min(maxTilt, t));
   });
   const scale = useTransform([x, y], ([dx, dy]) => {
     const dist = Math.hypot(Number(dx), Number(dy));
-    return 1 + Math.min(dist / 1200, 0.025); // up to +2.5%
+    return 1 + Math.min(dist / 1200, 0.025);
   });
 
   const active = poses[index];
   const nextIdx = (index + 1) % count;
   const upcoming = poses[nextIdx];
 
-  // Ensure card is visible on mount / when idle
   React.useEffect(() => {
     if (!isExiting) controls.set({ x: 0, y: 0, rotate: 0, opacity: 1 });
   }, [controls, isExiting]);
@@ -77,7 +75,6 @@ export default function AboutMeShowcase() {
     setIsExiting(true);
     const target = computeExit(vx, vy);
 
-    // smoother, less “snappy” exit
     await controls.start({
       x: target.x,
       y: target.y,
@@ -86,10 +83,7 @@ export default function AboutMeShowcase() {
       transition: { type: "spring", stiffness: 260, damping: 28, mass: 0.8 },
     });
 
-    // Swap to next image AFTER exit
     setIndex(nextIdx);
-
-    // Reset instantly for next cycle
     controls.set({ x: 0, y: 0, rotate: 0, opacity: 1 });
     x.set(0);
     y.set(0);
@@ -105,10 +99,8 @@ export default function AboutMeShowcase() {
     if (dist > SWIPE_DIST || speed > SWIPE_SPEED) {
       const ex = speed > 1 ? vx : dx;
       const ey = speed > 1 ? vy : dy;
-      // always advance forward
       void animateOutThenAdvance(ex, ey);
     } else {
-      // buttery snap-back
       controls.start({
         x: 0,
         y: 0,
@@ -120,10 +112,10 @@ export default function AboutMeShowcase() {
 
   return (
     <div className="grid gap-10 md:grid-cols-2 items-center">
-      {/* LEFT: image-only interaction area */}
+      {/* LEFT: image-only interaction area (bigger to match hero presence) */}
       <div
         ref={areaRef}
-        className="relative h-[420px] md:h-[520px] select-none"
+        className="relative h-[560px] md:h-[680px] lg:h-[740px] select-none"
         aria-label="About images"
         onDragStart={(e) => e.preventDefault()}
       >
@@ -159,10 +151,9 @@ export default function AboutMeShowcase() {
             willChange: "transform",
             touchAction: "none" as unknown as React.CSSProperties["touchAction"],
           }}
-          drag // free-axis
-          dragElastic={0.06}     // very light rubber banding → feels “attached”
-          dragMomentum={false}   // we control the end behavior
-          // No dragConstraints → direct, responsive tracking
+          drag
+          dragElastic={0.06}
+          dragMomentum={false}
           whileTap={{ cursor: "grabbing" }}
           onDragEnd={handleDragEnd}
           animate={controls}
@@ -171,7 +162,7 @@ export default function AboutMeShowcase() {
         >
           {active?.img && (
             <Image
-              key={active.img} // swap content without remounting the motion wrapper
+              key={active.img}
               src={active.img}
               alt={
                 typeof active.title === "string"
@@ -188,14 +179,14 @@ export default function AboutMeShowcase() {
         </motion.div>
       </div>
 
-      {/* RIGHT: text panel */}
-      <div className="space-y-4">
+      {/* RIGHT: text panel (larger type + a touch more breathing room) */}
+      <div className="space-y-5 md:space-y-6">
         {active?.title && (
-          <h3 className="text-2xl font-semibold tracking-tight text-white">
+          <h3 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight text-white">
             {active.title}
           </h3>
         )}
-        <div className="prose prose-invert max-w-none text-white/85">
+        <div className="prose prose-invert prose-lg md:prose-xl max-w-none text-white/85">
           {active?.body}
         </div>
       </div>
