@@ -25,7 +25,7 @@ type Pose = {
 
 const SWIPE_DIST = 80;     // px
 const SWIPE_SPEED = 550;   // px/s
-const EXIT_RADIUS = 560;   // px
+the EXIT_RADIUS = 560;   // px
 
 export default function AboutMeShowcase() {
   const poses = (profile as any)?.about?.poses as ReadonlyArray<Pose> | undefined;
@@ -44,7 +44,7 @@ export default function AboutMeShowcase() {
   // Scroll direction (for details column slide: up vs down)
   const scrollDir = useScrollDirection(); // "down" | "up"
 
-  // Glitch trigger: now ONLY increments on deck flip (not on section entry)
+  // Glitch trigger: increments ONLY on deck flip (not on section entry)
   const [glitchTrigger, setGlitchTrigger] = React.useState(0);
 
   const controls = useAnimationControls();
@@ -131,24 +131,24 @@ export default function AboutMeShowcase() {
     } while (false);
   };
 
-  // Variants for section entry/exit
+  // Variants for section entry/exit (slower + larger offsets)
   const easeLux = [0.22, 1, 0.36, 1] as const;
 
   const cardsVariants = {
-    hidden: prefersReduced ? { opacity: 0 } : { opacity: 0, x: -28 },
+    hidden: prefersReduced ? { opacity: 0 } : { opacity: 0, x: -36 },
     visible: prefersReduced
-      ? { opacity: 1, transition: { duration: 0.28 } }
-      : { opacity: 1, x: 0, transition: { duration: 0.68, ease: easeLux } },
+      ? { opacity: 1, transition: { duration: 0.38 } }
+      : { opacity: 1, x: 0, transition: { duration: 1.10, ease: easeLux } },
   } as const;
 
   const detailsVariants = {
     hidden: (dir: "down" | "up") =>
       prefersReduced
         ? { opacity: 0 }
-        : { opacity: 0, y: dir === "down" ? 32 : -32 },
+        : { opacity: 0, y: dir === "down" ? 40 : -40 },
     visible: prefersReduced
-      ? { opacity: 1, transition: { duration: 0.28 } }
-      : { opacity: 1, y: 0, transition: { duration: 0.68, ease: easeLux } },
+      ? { opacity: 1, transition: { duration: 0.38 } }
+      : { opacity: 1, y: 0, transition: { duration: 1.10, ease: easeLux } },
   } as const;
 
   return (
@@ -240,25 +240,23 @@ export default function AboutMeShowcase() {
           animate={{ opacity: isExiting ? 0 : 1 }}
           transition={{ duration: 0.25 }}
         >
-          {/* Key on index only; glitch controlled by `trigger` prop (deck flips only) */}
-          <div key={`${index}`}>
-            {active?.title && (
-              <GlitchBlock trigger={glitchTrigger}>
-                <div className="inline-block max-w-full align-top">
-                  <h3 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight text-white">
-                    {active.title}
-                  </h3>
-                  {/* Separator bar under the header */}
-                  <div className="mt-3 h-[2px] w-20 md:w-28 bg-white/70 rounded-full" />
-                </div>
-              </GlitchBlock>
-            )}
-            <GlitchBlock delay={80} trigger={glitchTrigger}>
-              <div className="prose prose-invert prose-lg md:prose-xl max-w-none text-white/85">
-                {active?.body}
+          {/* ⬇️ REMOVED index-based key so GlitchBlock stays mounted and can detect trigger changes */}
+          {active?.title && (
+            <GlitchBlock trigger={glitchTrigger}>
+              <div className="inline-block max-w-full align-top">
+                <h3 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight text-white">
+                  {active.title}
+                </h3>
+                {/* Separator bar under the header */}
+                <div className="mt-3 h-[2px] w-20 md:w-28 bg-white/70 rounded-full" />
               </div>
             </GlitchBlock>
-          </div>
+          )}
+          <GlitchBlock delay={80} trigger={glitchTrigger}>
+            <div className="prose prose-invert prose-lg md:prose-xl max-w-none text-white/85">
+              {active?.body}
+            </div>
+          </GlitchBlock>
         </motion.div>
       </motion.div>
     </div>
@@ -309,7 +307,8 @@ function GlitchBlock({
       typeof children === "string" ? children : (extractText(children) ?? "");
 
     // Cleaner, anime-ish charset (A–Z, 0–9, katakana-like)
-    const glyphs = "アイウエオカキクケコサシスセソタチツテトナニヌネノﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓヤユヨラリルレロワヲンABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    const glyphs =
+      "アイウエオカキクケコサシスセソタチツテトナニヌネノﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓヤユヨラリルレロワヲンABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
     const tick = (t: number) => {
       if (t < start) {
