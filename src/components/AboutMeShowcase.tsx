@@ -10,6 +10,7 @@ import {
   useTransform,
   PanInfo,
   useInView,
+  useReducedMotion,
 } from "framer-motion";
 import { profile } from "@/content/profile";
 
@@ -37,13 +38,14 @@ export default function AboutMeShowcase() {
 
   const areaRef = React.useRef<HTMLDivElement | null>(null);
   const rootRef = React.useRef<HTMLDivElement | null>(null);
-  const inView = useInView(rootRef, { amount: 0.25, margin: "-20% 0% -20% 0%" });
+  const inView = useInView(rootRef, { amount: 0.45, margin: "-20% 0% -20% 0%" });
+  const prefersReduced = useReducedMotion();
 
-  // trigger value to restart glitches whenever section enters view
+  // Scroll direction (for details column slide: up vs down)
+  const scrollDir = useScrollDirection(); // "down" | "up"
+
+  // Glitch trigger: now ONLY increments on deck flip (not on section entry)
   const [glitchTrigger, setGlitchTrigger] = React.useState(0);
-  React.useEffect(() => {
-    if (inView) setGlitchTrigger((t) => t + 1);
-  }, [inView]);
 
   const controls = useAnimationControls();
 
@@ -97,6 +99,9 @@ export default function AboutMeShowcase() {
     // Swap to next image AFTER exit
     setIndex(nextIdx);
 
+    // 🔔 Glitch ONLY on deck flip: increment trigger now that a new detail block is coming in
+    setGlitchTrigger((t) => t + 1);
+
     // Reset instantly for next cycle
     controls.set({ x: 0, y: 0, rotate: 0, opacity: 1 });
     x.set(0);
@@ -126,100 +131,135 @@ export default function AboutMeShowcase() {
     } while (false);
   };
 
+  // Variants for section entry/exit
+  const easeLux = [0.22, 1, 0.36, 1] as const;
+
+  const cardsVariants = {
+    hidden: prefersReduced ? { opacity: 0 } : { opacity: 0, x: -28 },
+    visible: prefersReduced
+      ? { opacity: 1, transition: { duration: 0.28 } }
+      : { opacity: 1, x: 0, transition: { duration: 0.68, ease: easeLux } },
+  } as const;
+
+  const detailsVariants = {
+    hidden: (dir: "down" | "up") =>
+      prefersReduced
+        ? { opacity: 0 }
+        : { opacity: 0, y: dir === "down" ? 32 : -32 },
+    visible: prefersReduced
+      ? { opacity: 1, transition: { duration: 0.28 } }
+      : { opacity: 1, y: 0, transition: { duration: 0.68, ease: easeLux } },
+  } as const;
+
   return (
     <div ref={rootRef} className="grid gap-10 md:grid-cols-2 items-center">
       {/* LEFT: image-only interaction area (sizes unchanged) */}
-      <div
-        ref={areaRef}
+      <motion.div
+        variants={cardsVariants}
+        initial="hidden"
+        animate={inView ? "visible" : "hidden"}
         className="relative h-[560px] md:h-[680px] lg:h-[740px] select-none"
         aria-label="About images"
-        onDragStart={(e) => e.preventDefault()}
       >
-        {/* ACTIVE CARD — persistent element that follows your cursor closely */}
-        <motion.div
-          className="absolute inset-0 cursor-grab"
-          style={{
-            zIndex: 2,
-            x,
-            y,
-            rotate,
-            scale,
-            willChange: "transform",
-            touchAction: "none" as unknown as React.CSSProperties["touchAction"],
-          }}
-          drag // free-axis
-          dragElastic={0.06}
-          dragMomentum={false}
-          // Subtle pre-drag lift (happens as soon as pointer goes down)
-          whileTap={{ y: -6, scale: 1.035, boxShadow: "0 14px 36px rgba(0,0,0,0.35)" }}
-          onDragEnd={handleDragEnd}
-          animate={controls}
-          aria-label="About image (drag to change)"
+        <div
+          ref={areaRef}
           onDragStart={(e) => e.preventDefault()}
+          className="absolute inset-0"
         >
-          {/* Card frame — THICK white border + WHITE fill on all 4 sides */}
-          <div className="relative h-full w-full p-3">
-            <div className="relative h-full w-full rounded-2xl border-[6px] border-white bg-white overflow-hidden">
-              {/* Playing-card indices */}
-              <div className="absolute top-3 left-3 z-10 text-black/80 text-xl font-semibold select-none">
-                [{index + 1}]
-              </div>
-              <div className="absolute bottom-3 right-3 z-10 text-black/80 text-xl font-semibold rotate-180 select-none">
-                [{index + 1}]
-              </div>
+          {/* ACTIVE CARD — persistent element that follows your cursor closely */}
+          <motion.div
+            className="absolute inset-0 cursor-grab"
+            style={{
+              zIndex: 2,
+              x,
+              y,
+              rotate,
+              scale,
+              willChange: "transform",
+              touchAction: "none" as unknown as React.CSSProperties["touchAction"],
+            }}
+            drag // free-axis
+            dragElastic={0.06}
+            dragMomentum={false}
+            // Subtle pre-drag lift (happens as soon as pointer goes down)
+            whileTap={{ y: -6, scale: 1.035, boxShadow: "0 14px 36px rgba(0,0,0,0.35)" }}
+            onDragEnd={handleDragEnd}
+            animate={controls}
+            aria-label="About image (drag to change)"
+            onDragStart={(e) => e.preventDefault()}
+          >
+            {/* Card frame — THICK white border + WHITE fill on all 4 sides */}
+            <div className="relative h-full w-full p-3">
+              <div className="relative h-full w-full rounded-2xl border-[6px] border-white bg-white overflow-hidden">
+                {/* Playing-card indices */}
+                <div className="absolute top-3 left-3 z-10 text-black/80 text-xl font-semibold select-none">
+                  [{index + 1}]
+                </div>
+                <div className="absolute bottom-3 right-3 z-10 text-black/80 text-xl font-semibold rotate-180 select-none">
+                  [{index + 1}]
+                </div>
 
-              {/* Inner inset to guarantee visible white fill around the image */}
-              <div className="absolute inset-0 p-6 md:p-8 lg:p-10">
-                <div className="relative h-full w-full">
-                  {active?.img && (
-                    <Image
-                      key={active.img} // swap content without remounting the motion wrapper
-                      src={active.img}
-                      alt={
-                        typeof active.title === "string"
-                          ? (active.title as string)
-                          : active.alt ?? "About image"
-                      }
-                      fill
-                      className="object-contain pointer-events-none select-none"
-                      sizes="(max-width: 768px) 90vw, 40vw"
-                      draggable={false}
-                      priority
-                    />
-                  )}
+                {/* Inner inset to guarantee visible white fill around the image */}
+                <div className="absolute inset-0 p-6 md:p-8 lg:p-10">
+                  <div className="relative h-full w-full">
+                    {active?.img && (
+                      <Image
+                        key={active.img} // swap content without remounting the motion wrapper
+                        src={active.img}
+                        alt={
+                          typeof active.title === "string"
+                            ? (active.title as string)
+                            : active.alt ?? "About image"
+                        }
+                        fill
+                        className="object-contain pointer-events-none select-none"
+                        sizes="(max-width: 768px) 90vw, 40vw"
+                        draggable={false}
+                        priority
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </motion.div>
-      </div>
+          </motion.div>
+        </div>
+      </motion.div>
 
-      {/* RIGHT: details — fade out during card exit; glitch text stays inside this column */}
+      {/* RIGHT: details — slide/fade on section entry; glitch only on deck flip */}
       <motion.div
+        variants={detailsVariants}
+        custom={scrollDir}
+        initial="hidden"
+        animate={inView ? "visible" : "hidden"}
         className="space-y-5 md:space-y-6"
-        initial={false}
-        animate={{ opacity: isExiting ? 0 : 1 }}
-        transition={{ duration: 0.25 }}
       >
-        {/* Key on both index and glitchTrigger so it re-glitches on re-entering view */}
-        <div key={`${index}-${glitchTrigger}`}>
-          {active?.title && (
-            <GlitchBlock trigger={glitchTrigger}>
-              <div className="inline-block max-w-full align-top">
-                <h3 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight text-white">
-                  {active.title}
-                </h3>
-                {/* Separator bar under the header */}
-                <div className="mt-3 h-[2px] w-20 md:w-28 bg-white/70 rounded-full" />
+        {/* Inner wrapper: preserve your existing fade during card exit */}
+        <motion.div
+          initial={false}
+          animate={{ opacity: isExiting ? 0 : 1 }}
+          transition={{ duration: 0.25 }}
+        >
+          {/* Key on index only; glitch controlled by `trigger` prop (deck flips only) */}
+          <div key={`${index}`}>
+            {active?.title && (
+              <GlitchBlock trigger={glitchTrigger}>
+                <div className="inline-block max-w-full align-top">
+                  <h3 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight text-white">
+                    {active.title}
+                  </h3>
+                  {/* Separator bar under the header */}
+                  <div className="mt-3 h-[2px] w-20 md:w-28 bg-white/70 rounded-full" />
+                </div>
+              </GlitchBlock>
+            )}
+            <GlitchBlock delay={80} trigger={glitchTrigger}>
+              <div className="prose prose-invert prose-lg md:prose-xl max-w-none text-white/85">
+                {active?.body}
               </div>
             </GlitchBlock>
-          )}
-          <GlitchBlock delay={80} trigger={glitchTrigger}>
-            <div className="prose prose-invert prose-lg md:prose-xl max-w-none text-white/85">
-              {active?.body}
-            </div>
-          </GlitchBlock>
-        </div>
+          </div>
+        </motion.div>
       </motion.div>
     </div>
   );
@@ -228,8 +268,9 @@ export default function AboutMeShowcase() {
 /* -------------------- Glitch text (constrained to details column) -------------------- */
 /**
  * GlitchBlock quickly cycles characters, then swaps to real children.
- * - Renders inside an inline-block wrapper, preventing overflow outside the details column.
- * - Accepts a `trigger` number to re-run the glitch when section re-enters view.
+ * - Glitches ONLY when `trigger` changes (deck flip). On initial mount, it shows final text.
+ * - Accepts `delay` for stagger between title/body.
+ * - Skips motion for users preferring reduced motion.
  */
 function GlitchBlock({
   children,
@@ -242,22 +283,33 @@ function GlitchBlock({
   delay?: number;
   trigger?: number;
 }) {
-  const [phase, setPhase] = React.useState<"glitch" | "final">("glitch");
+  const prefersReduced = useReducedMotion();
+  const [phase, setPhase] = React.useState<"glitch" | "final">("final");
   const [display, setDisplay] = React.useState<string>("");
+  const lastTriggerRef = React.useRef<number>(trigger);
 
   React.useEffect(() => {
+    // If trigger hasn't changed OR user prefers reduced motion → render final immediately
+    if (prefersReduced || trigger === lastTriggerRef.current) {
+      const text =
+        typeof children === "string" ? children : (extractText(children) ?? "");
+      setDisplay(text);
+      setPhase("final");
+      return;
+    }
+
+    // Record new trigger and run the glitch once
+    lastTriggerRef.current = trigger;
     setPhase("glitch");
     setDisplay("");
     let start = performance.now() + delay;
     let raf = 0;
 
     const elText =
-      typeof children === "string"
-        ? children
-        : (extractText(children) ?? "");
+      typeof children === "string" ? children : (extractText(children) ?? "");
 
-    const glyphs =
-      "!<>-_\\/[]{}—=+*^?#◼︎◆◇▪︎▫︎•○◘◙░▒▓█@#$%&()ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    // Cleaner, anime-ish charset (A–Z, 0–9, katakana-like)
+    const glyphs = "アイウエオカキクケコサシスセソタチツテトナニヌネノﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓヤユヨラリルレロワヲンABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
     const tick = (t: number) => {
       if (t < start) {
@@ -284,16 +336,16 @@ function GlitchBlock({
 
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [children, duration, delay, trigger]);
+  }, [children, duration, delay, trigger, prefersReduced]);
 
   if (phase === "glitch") {
     return (
-      <span className="inline-block max-w-full whitespace-pre-wrap break-words align-top">
+      <span className="inline-block max-w-full whitespace-pre-wrap break-words align-top" aria-hidden>
         {display}
       </span>
     );
   }
-  // When done, render the actual children → preserves intended layout exactly
+  // When done (or skipped), render the actual children → preserves intended layout exactly
   return <>{children}</>;
 }
 
@@ -302,11 +354,37 @@ function extractText(node: React.ReactNode): string | null {
   if (typeof node === "number") return String(node);
   if (!node || typeof node !== "object") return null;
   // @ts-ignore
-  const props = node.props as { children?: React.ReactNode };
+  const props = (node as any).props as { children?: React.ReactNode };
   if (!props || props.children == null) return null;
   if (typeof props.children === "string") return props.children;
   if (Array.isArray(props.children)) {
     return props.children.map(extractText).filter(Boolean).join(" ");
   }
   return extractText(props.children);
+}
+
+/* -------------------- tiny scroll direction hook -------------------- */
+function useScrollDirection() {
+  const [dir, setDir] = React.useState<"down" | "up">("down");
+  React.useEffect(() => {
+    let last = window.scrollY || 0;
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) return;
+      raf = window.requestAnimationFrame(() => {
+        const y = window.scrollY || 0;
+        if (Math.abs(y - last) > 2) {
+          setDir(y > last ? "down" : "up");
+          last = y;
+        }
+        raf = 0;
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
+  return dir;
 }
