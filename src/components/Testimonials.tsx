@@ -23,10 +23,10 @@ type Testimonial = {
 /**
  * Testimonials — Clean 2×2 (No Cards, No Frames)
  *
- * THIS REV (only your requests):
- * - Fix banner overlap: simplified to a clean A+A track (two copies only), no inner stacks.
- * - Remove/Hide any internal scrollbars & placeholders within this section ONLY (scoped styles).
- * - No changes anywhere else on the site.
+ * THIS REV — ONLY WHAT YOU ASKED:
+ * - Removed the tiny gap by stacking exactly TWO identical lines back-to-back with no spacing.
+ * - Unified both runs to the SAME gray font (no gradient/opacity variance).
+ * - Scoped fixes to this section to eliminate any visible scrollbars/placeholder chrome without touching the rest of the site.
  */
 
 function TestimonialsComponent() {
@@ -36,13 +36,13 @@ function TestimonialsComponent() {
   const t0 = items[0];
   const t1 = items[1];
 
-  // Scoped scrollbar hiding ONLY for this section (does not affect other pages/sections)
+  // Scoped scrollbar placeholder hider — affects ONLY this section
   const ScrollbarHider = () => (
     <style jsx>{`
-      /* Scope strictly to this section */
+      /* Scope strictly to the testimonials section */
       #testimonials,
       #testimonials * {
-        scrollbar-width: none; /* Firefox - hide scrollbar */
+        scrollbar-width: none; /* Firefox */
       }
       #testimonials::-webkit-scrollbar,
       #testimonials *::-webkit-scrollbar {
@@ -67,15 +67,15 @@ function TestimonialsComponent() {
       <section
         id="testimonials"
         aria-label="Testimonials"
-        className="relative bg-[#0b1016] min-h-[100svh] md:min-h-screen py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start w-full"
+        className="relative bg-[#0b1016] min-h-[100svh] md:min-h-screen py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start w-full overflow-x-hidden"
       >
         <ScrollbarHider />
-        <div className="container mx-auto px-6 max-w-7xl">
-          {/* Semantic heading for SR; visually hidden since banner is the visual title */}
+        <div className="container mx-auto px-6 max-w-7xl overflow-x-hidden">
+          {/* Keep semantic heading for SR; visually hidden since banner is the visual title */}
           <h2 className="sr-only">Testimonials</h2>
 
           {/* 2-col layout with left rail banner */}
-          <div className="grid grid-cols-[64px,1fr] gap-6 md:grid-cols-[80px,1fr]">
+          <div className="grid grid-cols-[64px,1fr] gap-6 md:grid-cols-[80px,1fr] overflow-x-hidden">
             <BannerRail />
 
             <div className="space-y-20">
@@ -92,15 +92,15 @@ function TestimonialsComponent() {
     <section
       id="testimonials"
       aria-label="Testimonials"
-      className="relative bg-[#0b1016] min-h-[100svh] md:min-h-screen py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start w-full"
+      className="relative bg-[#0b1016] min-h-[100svh] md:min-h-screen py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start w-full overflow-x-hidden"
     >
       <ScrollbarHider />
-      <div className="container mx-auto px-6 max-w-7xl">
-        {/* Semantic heading for SR; visually hidden since banner is the visual title */}
+      <div className="container mx-auto px-6 max-w-7xl overflow-x-hidden">
+        {/* Keep semantic heading for SR; visually hidden since banner is the visual title */}
         <h2 className="sr-only">Testimonials</h2>
 
         {/* 2-col layout with left rail banner */}
-        <div className="grid grid-cols-[64px,1fr] gap-6 md:grid-cols-[80px,1fr]">
+        <div className="grid grid-cols-[64px,1fr] gap-6 md:grid-cols-[80px,1fr] overflow-x-hidden">
           <BannerRail />
 
           <div className="space-y-20">
@@ -128,10 +128,9 @@ export default function DefaultExportedTestimonials() {
 
 /**
  * BannerRail — isolated, clipped rail with seamless top→bottom loop.
- * Overlap fix:
- *   - Use exactly TWO copies (A + A) stacked vertically in a 200% track.
- *   - Animate y from -50% → 0% (downward). No inner sub-stacks, no chance to double-render.
- *   - Rail is overflow-hidden, fixed width, and isolated (no bleed into content).
+ * - EXACTLY TWO copies (A + A) of one continuous line, back-to-back, no spacing → no gap.
+ * - Uniform gray text (no gradient), same weight on both copies.
+ * - Fixed width + overflow hidden + isolate prevent any overlap or horizontal leak.
  */
 function BannerRail() {
   const reduceMotion = useReducedMotion();
@@ -139,13 +138,13 @@ function BannerRail() {
   return (
     <div
       className={[
-        "relative isolate",                 // separate stacking context
+        "relative isolate",
         "pointer-events-none",
         "hidden sm:block",
         "h-full",
         "z-10",
-        "overflow-hidden",                  // clip to rail
-        "w-[64px] md:w-[80px] max-w-[80px]" // fixed width rail
+        "overflow-hidden",
+        "w-[64px] md:w-[80px] max-w-[80px]",
       ].join(" ")}
       aria-hidden="true"
       style={{
@@ -155,7 +154,7 @@ function BannerRail() {
           "linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 8%, rgba(0,0,0,1) 92%, rgba(0,0,0,0) 100%)",
       }}
     >
-      {/* Track: 200% height; animate DOWN (-50% → 0%) */}
+      {/* Track height is the natural height of (A + A). Animate -50% → 0% to move DOWN one-copy height. */}
       <motion.div
         initial={{ y: "-50%" }}
         animate={reduceMotion ? { y: "-50%" } : { y: "0%" }}
@@ -168,23 +167,19 @@ function BannerRail() {
                 repeat: Infinity,
               }
         }
-        className="absolute inset-x-0 top-0 h-[200%] will-change-transform"
+        className="absolute inset-x-0 top-0 will-change-transform"
         style={{ translateZ: 0 }}
       >
-        {/* A */}
-        <div className="flex h-1/2 items-center justify-center">
-          <BannerLine />
-        </div>
-        {/* A */}
-        <div className="flex h-1/2 items-center justify-center">
-          <BannerLine />
-        </div>
+        {/* A (no wrappers, no spacing) */}
+        <BannerLine />
+        {/* A (immediately after; no gap) */}
+        <BannerLine />
       </motion.div>
     </div>
   );
 }
 
-/** Single continuous line. No stacking, no wrap. */
+/** Single continuous line. No stacking, no wrap, uniform gray. */
 function BannerLine() {
   const line =
     "TESTIMONIALS\u00A0·\u00A0VOICES\u00A0·\u00A0REVIEWS\u00A0·\u00A0TESTIMONIALS\u00A0·\u00A0VOICES\u00A0·\u00A0REVIEWS";
@@ -193,19 +188,17 @@ function BannerLine() {
     <div
       className={[
         "select-none",
-        "font-semibold",
-        "text-transparent",
-        "bg-clip-text",
-        "bg-gradient-to-b",
-        "from-cyan-200/90 via-white/60 to-white/20",
-        "opacity-85",
+        "font-medium",            // unified weight (no bold on first copy)
+        "text-white/70",         // uniform gray tone across copies
         "[writing-mode:vertical-rl]",
         "[text-orientation:mixed]",
         "whitespace-nowrap",
         "break-keep",
-        "leading-[1.04]",
+        "leading-none",          // zero extra line space
         "text-[32px] md:text-[40px]",
         "tracking-[0.05em]",
+        "m-0",                   // ensure no default margins
+        "p-0",
       ].join(" ")}
       style={{ letterSpacing: "0.02em", wordBreak: "keep-all" }}
     >
@@ -225,7 +218,7 @@ function SinglePair({ t, reverse }: { t: Testimonial; reverse?: boolean }) {
       transition={{ duration: 0.45 }}
       className={`flex flex-col gap-8 md:gap-12 lg:gap-16 ${
         reverse ? "md:flex-row-reverse" : "md:flex-row"
-      } md:items-center`}
+      } md:items-center overflow-x-hidden`}
     >
       <AvatarFree
         who={t.name ?? ""}
@@ -246,7 +239,7 @@ function TextBlock({ t, className }: { t: Testimonial; className?: string }) {
   const hasAfter = (after?.length ?? 0) > 0;
 
   return (
-    <div className={["flex flex-col justify-center", className ?? ""].join(" ")}>
+    <div className={["flex flex-col justify-center overflow-x-hidden", className ?? ""].join(" ")}>
       {t.app ? (
         <div className="font-mono text-[12px] md:text-[13px] uppercase tracking-widest text-cyan-300/80">
           {t.app}
@@ -318,7 +311,7 @@ function AvatarFree({
   className?: string;
 }) {
   return (
-    <figure className={["relative", className ?? ""].join(" ")}>
+    <figure className={["relative overflow-x-hidden", className ?? ""].join(" ")}>
       <div className="relative mx-auto w-full max-w-[520px]">
         <Image
           src={src}
