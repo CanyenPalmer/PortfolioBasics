@@ -25,7 +25,7 @@ type Pose = {
 
 const SWIPE_DIST = 80;     // px
 const SWIPE_SPEED = 550;   // px/s
-the EXIT_RADIUS = 560;   // px
+const EXIT_RADIUS = 560;   // px  ← fixed
 
 export default function AboutMeShowcase() {
   const poses = (profile as any)?.about?.poses as ReadonlyArray<Pose> | undefined;
@@ -131,7 +131,7 @@ export default function AboutMeShowcase() {
     } while (false);
   };
 
-  // Variants for section entry/exit (slower + larger offsets)
+  // Variants for section entry/exit (slower + larger offsets for smooth readability)
   const easeLux = [0.22, 1, 0.36, 1] as const;
 
   const cardsVariants = {
@@ -240,7 +240,7 @@ export default function AboutMeShowcase() {
           animate={{ opacity: isExiting ? 0 : 1 }}
           transition={{ duration: 0.25 }}
         >
-          {/* ⬇️ REMOVED index-based key so GlitchBlock stays mounted and can detect trigger changes */}
+          {/* Keep components mounted so GlitchBlock sees trigger changes */}
           {active?.title && (
             <GlitchBlock trigger={glitchTrigger}>
               <div className="inline-block max-w-full align-top">
