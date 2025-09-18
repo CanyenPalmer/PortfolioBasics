@@ -145,7 +145,7 @@ export default function Hero({ headline, subheadline, typer }: Props) {
 
       {/* Scroll prompt */}
       <div className="absolute bottom-6 left-0 right-0 z-10 flex items-center justify-center">
-        <div className="text-sm text-white/50">• Scroll to Explore •</div>
+        <div className="text-base text-white/50">• Scroll to Explore •</div>
       </div>
 
       {/* Glitch animation (only on hovered nav item) */}
