@@ -23,9 +23,11 @@ type Testimonial = {
 /**
  * Testimonials — Clean 2×2 (No Cards, No Frames)
  *
- * Changes (only what you requested here):
- * - Banner line stays as a single continuous line (no stacking) using non-breaking spaces + nowrap + keep-all.
- * - Removed any chance of a right-side white scrollbar by clamping horizontal overflow and fixing the rail width.
+ * THIS REV:
+ * - Fix overlapping by isolating and clipping the left rail (no bleed into content).
+ * - Remove any visible scrollbar placeholders strictly within this section (scoped style).
+ * - Keep the seamless top→bottom banner loop (A + A track, -50% → 0%).
+ * - No global styles, and no changes affecting other sections/pages.
  */
 
 function TestimonialsComponent() {
@@ -35,19 +37,45 @@ function TestimonialsComponent() {
   const t0 = items[0];
   const t1 = items[1];
 
+  // Scoped scrollbar hiding ONLY for this section
+  // (prevents “placeholder bars” without affecting the rest of the site)
+  const ScrollbarHider = () => (
+    <style jsx>{`
+      /* Scoped to the testimonials section only */
+      #testimonials {
+        overscroll-behavior: contain;
+      }
+      /* Hide any scrollbars that might appear within this section only */
+      #testimonials {
+        scrollbar-width: none; /* Firefox */
+      }
+      #testimonials::-webkit-scrollbar {
+        width: 0;
+        height: 0;
+        background: transparent;
+      }
+      #testimonials *::-webkit-scrollbar {
+        width: 0;
+        height: 0;
+        background: transparent;
+      }
+    `}</style>
+  );
+
   if (!t1) {
     return (
       <section
         id="testimonials"
         aria-label="Testimonials"
-        className="relative bg-[#0b1016] min-h-[100svh] md:min-h-screen py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start overflow-x-hidden w-full"
+        className="relative bg-[#0b1016] min-h-[100svh] md:min-h-screen py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start w-full"
       >
-        <div className="container mx-auto px-6 max-w-7xl overflow-x-hidden">
+        <ScrollbarHider />
+        <div className="container mx-auto px-6 max-w-7xl">
           {/* Semantic heading for SR; visually hidden since banner is the visual title */}
           <h2 className="sr-only">Testimonials</h2>
 
           {/* 2-col layout with left rail banner */}
-          <div className="grid grid-cols-[64px,1fr] gap-6 md:grid-cols-[80px,1fr] overflow-x-hidden">
+          <div className="grid grid-cols-[64px,1fr] gap-6 md:grid-cols-[80px,1fr]">
             <BannerRail />
 
             <div className="space-y-20">
@@ -64,14 +92,15 @@ function TestimonialsComponent() {
     <section
       id="testimonials"
       aria-label="Testimonials"
-      className="relative bg-[#0b1016] min-h-[100svh] md:min-h-screen py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start overflow-x-hidden w-full"
+      className="relative bg-[#0b1016] min-h-[100svh] md:min-h-screen py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start w-full"
     >
-      <div className="container mx-auto px-6 max-w-7xl overflow-x-hidden">
+      <ScrollbarHider />
+      <div className="container mx-auto px-6 max-w-7xl">
         {/* Semantic heading for SR; visually hidden since banner is the visual title */}
         <h2 className="sr-only">Testimonials</h2>
 
         {/* 2-col layout with left rail banner */}
-        <div className="grid grid-cols-[64px,1fr] gap-6 md:grid-cols-[80px,1fr] overflow-x-hidden">
+        <div className="grid grid-cols-[64px,1fr] gap-6 md:grid-cols-[80px,1fr]">
           <BannerRail />
 
           <div className="space-y-20">
@@ -98,9 +127,11 @@ export default function DefaultExportedTestimonials() {
 /* -------------------- Left Rail Banner -------------------- */
 
 /**
- * Seamless loop (A + A track, -50% → 0%), always filled.
- * Rail width fixed to avoid any horizontal overflow; wrappers clamp overflow-x.
- * No changes to the rest of the section.
+ * Rail isolation:
+ *  - `isolate` creates a new stacking context so the banner cannot overlap neighboring grid content.
+ *  - `overflow-hidden` and fixed width ensure no horizontal leak.
+ * Seamless loop:
+ *  - Track is 200% tall (A + A). Animate from -50% → 0% (DOWN) for a continuous fill.
  */
 function BannerRail() {
   const reduceMotion = useReducedMotion();
@@ -108,13 +139,13 @@ function BannerRail() {
   return (
     <div
       className={[
-        "relative",
+        "relative isolate",          // prevent overlap outside this cell
         "pointer-events-none",
         "hidden sm:block",
         "h-full",
         "z-10",
-        "overflow-hidden",
-        "w-[64px] md:w-[80px] max-w-[80px]", // fixed rail width prevents any horizontal leak
+        "overflow-hidden",           // clip banner content to rail bounds
+        "w-[64px] md:w-[80px] max-w-[80px]", // strict rail width
       ].join(" ")}
       aria-hidden="true"
       style={{
@@ -163,7 +194,7 @@ function BannerStack() {
 }
 
 function BannerText() {
-  // Non-breaking spaces keep the whole line together; nowrap + keep-all prevent wrapping/stacking.
+  // Single unbroken line; nowrap + keep-all prevent wrapping/stacking.
   const line =
     "TESTIMONIALS\u00A0·\u00A0VOICES\u00A0·\u00A0REVIEWS\u00A0·\u00A0TESTIMONIALS\u00A0·\u00A0VOICES\u00A0·\u00A0REVIEWS";
 
@@ -181,8 +212,8 @@ function BannerText() {
         "[text-orientation:mixed]",
         "leading-[1.04]",
         "text-[32px] md:text-[40px]",
-        "whitespace-nowrap",    // keep entire line as one piece
-        "break-keep",          // avoid breaking at spaces/punctuation (Tailwind v3+)
+        "whitespace-nowrap",
+        "break-keep",
         "tracking-[0.05em]",
       ].join(" ")}
       style={{ letterSpacing: "0.02em", wordBreak: "keep-all" }}
@@ -203,7 +234,7 @@ function SinglePair({ t, reverse }: { t: Testimonial; reverse?: boolean }) {
       transition={{ duration: 0.45 }}
       className={`flex flex-col gap-8 md:gap-12 lg:gap-16 ${
         reverse ? "md:flex-row-reverse" : "md:flex-row"
-      } md:items-center overflow-x-hidden`} // ensure no child can leak horizontally
+      } md:items-center`}
     >
       <AvatarFree
         who={t.name ?? ""}
@@ -224,7 +255,7 @@ function TextBlock({ t, className }: { t: Testimonial; className?: string }) {
   const hasAfter = (after?.length ?? 0) > 0;
 
   return (
-    <div className={["flex flex-col justify-center overflow-x-hidden", className ?? ""].join(" ")}>
+    <div className={["flex flex-col justify-center", className ?? ""].join(" ")}>
       {t.app ? (
         <div className="font-mono text-[12px] md:text-[13px] uppercase tracking-widest text-cyan-300/80">
           {t.app}
@@ -296,7 +327,7 @@ function AvatarFree({
   className?: string;
 }) {
   return (
-    <figure className={["relative overflow-x-hidden", className ?? ""].join(" ")}>
+    <figure className={["relative", className ?? ""].join(" ")}>
       <div className="relative mx-auto w-full max-w-[520px]">
         <Image
           src={src}
