@@ -161,10 +161,10 @@ export default function AboutMeShowcase() {
           <div className="relative h-full w-full p-3">
             <div className="relative h-full w-full rounded-2xl border-[6px] border-white bg-white overflow-hidden">
               {/* Playing-card indices */}
-              <div className="absolute top-3 left-3 z-10 text-black/80 text-sm font-semibold select-none">
+              <div className="absolute top-3 left-3 z-10 text-black/80 text-xl font-semibold select-none">
                 [{index + 1}]
               </div>
-              <div className="absolute bottom-3 right-3 z-10 text-black/80 text-sm font-semibold rotate-180 select-none">
+              <div className="absolute bottom-3 right-3 z-10 text-black/80 text-xl font-semibold rotate-180 select-none">
                 [{index + 1}]
               </div>
 
