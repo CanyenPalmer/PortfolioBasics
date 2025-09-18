@@ -17,7 +17,7 @@ export default function TransitionOverlay() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: prefersReduced ? 0.12 : 0.24, ease: "easeOut" }}
-          className="fixed inset-0 z-[9999] pointer-events-none"
+          className="fixed inset-0 z-[10001] pointer-events-none"
           aria-hidden="true"
         >
           {/* Base background */}
