@@ -14,7 +14,8 @@ export default function TransitionOverlay() {
         <motion.div
           key="overlay-root"
           id="mach-overlay-live"
-          initial={{ opacity: 0 }}
+          // 👇 Start fully opaque for MACH so there's no 1-frame reveal when we drop the SSR cover
+          initial={{ opacity: mode === "mach" ? 1 : 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: prefersReduced ? 0.12 : 0.24, ease: "easeOut" }}
@@ -94,4 +95,3 @@ function NavContent({ reduced }: { reduced: boolean }) {
     </div>
   );
 }
-
