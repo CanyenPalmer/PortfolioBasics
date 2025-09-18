@@ -21,27 +21,24 @@ type Pose = {
   alt?: string;
 };
 
-const SWIPE_DIST = 80;     // px
-const SWIPE_SPEED = 550;   // px/s
-const EXIT_RADIUS = 560;   // px
+const SWIPE_DIST = 80;
+const SWIPE_SPEED = 550;
+const EXIT_RADIUS = 560;
 
 export default function AboutMeShowcase() {
   const poses = (profile as any)?.about?.poses as ReadonlyArray<Pose> | undefined;
   const count = poses?.length ?? 0;
   if (!poses || count === 0) return null;
 
-  // Keep a single motion card; swap content after exit finishes
   const [index, setIndex] = React.useState(0);
   const [isExiting, setIsExiting] = React.useState(false);
 
   const areaRef = React.useRef<HTMLDivElement | null>(null);
   const controls = useAnimationControls();
 
-  // Motion values
   const x = useMotionValue(0);
   const y = useMotionValue(0);
 
-  // Subtle, responsive tilt & scale based on drag distance (feels more “attached” to cursor)
   const rotate = useTransform([x, y], ([dx, dy]) => {
     const maxTilt = 6;
     const t = (dx as number) / 25 + (dy as number) / 60;
@@ -49,13 +46,12 @@ export default function AboutMeShowcase() {
   });
   const scale = useTransform([x, y], ([dx, dy]) => {
     const dist = Math.hypot(Number(dx), Number(dy));
-    return 1 + Math.min(dist / 1200, 0.025); // up to +2.5%
+    return 1 + Math.min(dist / 1200, 0.025);
   });
 
   const active = poses[index];
   const nextIdx = (index + 1) % count;
 
-  // Ensure card is visible on mount / when idle
   React.useEffect(() => {
     if (!isExiting) controls.set({ x: 0, y: 0, rotate: 0, opacity: 1 });
   }, [controls, isExiting]);
@@ -64,18 +60,13 @@ export default function AboutMeShowcase() {
     const mag = Math.hypot(vx, vy) || 1;
     const ux = vx / mag;
     const uy = vy / mag;
-    return {
-      x: ux * EXIT_RADIUS,
-      y: uy * EXIT_RADIUS,
-      rotate: ux * 8 + uy * 4,
-    };
+    return { x: ux * EXIT_RADIUS, y: uy * EXIT_RADIUS, rotate: ux * 8 + uy * 4 };
   }
 
   async function animateOutThenAdvance(vx: number, vy: number) {
     setIsExiting(true);
     const target = computeExit(vx, vy);
 
-    // exit with fade (keeping your preferred feel), but no underlay is shown → no flicker
     await controls.start({
       x: target.x,
       y: target.y,
@@ -84,10 +75,8 @@ export default function AboutMeShowcase() {
       transition: { type: "spring", stiffness: 260, damping: 28, mass: 0.8 },
     });
 
-    // Swap to next AFTER exit to avoid any peek-through
     setIndex(nextIdx);
 
-    // Reset instantly for next cycle
     controls.set({ x: 0, y: 0, rotate: 0, opacity: 1 });
     x.set(0);
     y.set(0);
@@ -116,14 +105,14 @@ export default function AboutMeShowcase() {
 
   return (
     <div className="grid gap-10 md:grid-cols-2 items-center">
-      {/* LEFT: image-only interaction area (sizes unchanged) */}
+      {/* LEFT: card container */}
       <div
         ref={areaRef}
         className="relative h-[560px] md:h-[680px] lg:h-[740px] select-none"
         aria-label="About images"
         onDragStart={(e) => e.preventDefault()}
       >
-        {/* ACTIVE CARD — persistent element that follows your cursor closely */}
+        {/* ACTIVE CARD */}
         <motion.div
           className="absolute inset-0 cursor-grab"
           style={{
@@ -135,22 +124,21 @@ export default function AboutMeShowcase() {
             willChange: "transform",
             touchAction: "none" as unknown as React.CSSProperties["touchAction"],
           }}
-          drag // free-axis
+          drag
           dragElastic={0.06}
           dragMomentum={false}
-          // Subtle pre-drag lift (happens as soon as pointer goes down)
           whileTap={{ y: -6, scale: 1.035, boxShadow: "0 14px 36px rgba(0,0,0,0.35)" }}
           onDragEnd={handleDragEnd}
           animate={controls}
           aria-label="About image (drag to change)"
           onDragStart={(e) => e.preventDefault()}
         >
-          {/* Card frame (true white border around all 4 sides + rounded edges) */}
+          {/* Card frame with true white border + solid background */}
           <div className="relative h-full w-full p-3">
-            <div className="relative h-full w-full rounded-xl border border-white bg-transparent overflow-hidden">
+            <div className="relative h-full w-full rounded-xl border-2 border-white bg-[#0b1016] overflow-hidden">
               {active?.img && (
                 <Image
-                  key={active.img} // swap content without remounting the motion wrapper
+                  key={active.img}
                   src={active.img}
                   alt={
                     typeof active.title === "string"
@@ -169,14 +157,13 @@ export default function AboutMeShowcase() {
         </motion.div>
       </div>
 
-      {/* RIGHT: details — fade out during card exit, then GLITCH IN (like your hero) */}
+      {/* RIGHT: details */}
       <motion.div
         className="space-y-5 md:space-y-6"
         initial={false}
         animate={{ opacity: isExiting ? 0 : 1 }}
         transition={{ duration: 0.25 }}
       >
-        {/* Key on index so the new content re-runs the glitch each time */}
         <div key={index}>
           {active?.title && (
             <GlitchBlock>
@@ -196,11 +183,7 @@ export default function AboutMeShowcase() {
   );
 }
 
-/* -------------------- Glitch text (hero-style scramble) -------------------- */
-/**
- * GlitchBlock quickly cycles characters + font stacks, then locks in.
- * - No slide/shake; purely a text scramble → resolve, matching your hero vibe.
- */
+/* -------------------- Glitch text -------------------- */
 function GlitchBlock({
   children,
   duration = 600,
@@ -211,8 +194,7 @@ function GlitchBlock({
   delay?: number;
 }) {
   const [phase, setPhase] = React.useState<"glitch" | "final">("glitch");
-  const [display, setDisplay] = React.useState<string | null>(null);
-  const [fontClass, setFontClass] = React.useState<string>("font-sans");
+  const [display, setDisplay] = React.useState<string>("");
 
   React.useEffect(() => {
     let start = performance.now() + delay;
@@ -221,13 +203,10 @@ function GlitchBlock({
     const elText =
       typeof children === "string"
         ? children
-        : // Try to extract text from a simple child node like <h3>Text</h3>
-          (extractText(children) ?? "");
+        : (extractText(children) ?? "");
 
     const glyphs =
-      "!<>-_\\/[]{}—=+*^?#__________◼︎◻︎◆◇▪︎▫︎•○◘◙░▒▓█@#$%&()ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-
-    const fonts = ["font-sans", "font-serif", "font-mono"];
+      "!<>-_\\/[]{}—=+*^?#◼︎◆◇▪︎▫︎•○◘◙░▒▓█@#$%&()ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
     const tick = (t: number) => {
       if (t < start) {
@@ -237,12 +216,10 @@ function GlitchBlock({
       const elapsed = t - start;
       if (elapsed >= duration) {
         setDisplay(elText);
-        setFontClass("font-sans"); // lock to your normal face at the end
         setPhase("final");
         return;
       }
 
-      // Mix of real + random chars proportional to progress
       const p = elapsed / duration;
       const keep = Math.floor(p * elText.length);
       const rand = Array.from({ length: elText.length - keep }, () => {
@@ -251,23 +228,18 @@ function GlitchBlock({
       }).join("");
 
       setDisplay(elText.slice(0, keep) + rand);
-
-      // Cycle fonts a bit
-      setFontClass(fonts[Math.floor((elapsed / 90) % fonts.length)]);
-
       raf = requestAnimationFrame(tick);
     };
 
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-    // Re-run when children change (new content)
   }, [children, duration, delay]);
 
-  return (
-    <span className={phase === "glitch" ? fontClass : "font-sans"}>
-      {display ?? children}
-    </span>
-  );
+  if (phase === "glitch") {
+    return <span>{display}</span>;
+  }
+  // When done, render the actual children → correct layout
+  return <>{children}</>;
 }
 
 function extractText(node: React.ReactNode): string | null {
