@@ -325,5 +325,3 @@ function pickAvatarSrc(name?: string): string {
   if (n.includes("waterman") || n.includes("g. waterman")) return "/images/waterman-avatar.png";
   return "/images/avatar.png";
 }
-
-/*ignore*/ 
