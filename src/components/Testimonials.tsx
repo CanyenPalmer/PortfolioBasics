@@ -23,10 +23,9 @@ type Testimonial = {
 /**
  * Testimonials — Clean 2×2 (No Cards, No Frames)
  *
- * Changes (only requested fixes):
- * - Banner: seamless, always-filled loop top→bottom (A + A track, -50% → 0%).
- * - Removed residual right-side white bar by clamping horizontal overflow inside this section.
- * - All other content/logic unchanged.
+ * Changes (only what you requested here):
+ * - Banner line stays as a single continuous line (no stacking) using non-breaking spaces + nowrap + keep-all.
+ * - Removed any chance of a right-side white scrollbar by clamping horizontal overflow and fixing the rail width.
  */
 
 function TestimonialsComponent() {
@@ -44,7 +43,7 @@ function TestimonialsComponent() {
         className="relative bg-[#0b1016] min-h-[100svh] md:min-h-screen py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start overflow-x-hidden w-full"
       >
         <div className="container mx-auto px-6 max-w-7xl overflow-x-hidden">
-          {/* Keep semantic heading for SR; visually hidden since banner replaces the visual title */}
+          {/* Semantic heading for SR; visually hidden since banner is the visual title */}
           <h2 className="sr-only">Testimonials</h2>
 
           {/* 2-col layout with left rail banner */}
@@ -68,7 +67,7 @@ function TestimonialsComponent() {
       className="relative bg-[#0b1016] min-h-[100svh] md:min-h-screen py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start overflow-x-hidden w-full"
     >
       <div className="container mx-auto px-6 max-w-7xl overflow-x-hidden">
-        {/* Keep semantic heading for SR; visually hidden since banner replaces the visual title */}
+        {/* Semantic heading for SR; visually hidden since banner is the visual title */}
         <h2 className="sr-only">Testimonials</h2>
 
         {/* 2-col layout with left rail banner */}
@@ -99,11 +98,9 @@ export default function DefaultExportedTestimonials() {
 /* -------------------- Left Rail Banner -------------------- */
 
 /**
- * Rail now runs a continuous loop with duplicated content:
- *  - Track contains two identical vertical stacks (A + A).
- *  - We animate y from -50% → 0% (DOWNWARD), which keeps the rail full at all times.
- *  - The mask at top/bottom makes the enter/exit soft and hides the loop seam.
- *  - overflow-hidden prevents any scrollbars.
+ * Seamless loop (A + A track, -50% → 0%), always filled.
+ * Rail width fixed to avoid any horizontal overflow; wrappers clamp overflow-x.
+ * No changes to the rest of the section.
  */
 function BannerRail() {
   const reduceMotion = useReducedMotion();
@@ -117,6 +114,7 @@ function BannerRail() {
         "h-full",
         "z-10",
         "overflow-hidden",
+        "w-[64px] md:w-[80px] max-w-[80px]", // fixed rail width prevents any horizontal leak
       ].join(" ")}
       aria-hidden="true"
       style={{
@@ -126,7 +124,7 @@ function BannerRail() {
           "linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 8%, rgba(0,0,0,1) 92%, rgba(0,0,0,0) 100%)",
       }}
     >
-      {/* Track: exactly 200% height so A + A fills the rail; animate -50% → 0% to move down seamlessly */}
+      {/* Track: 200% height; animate -50% → 0% to move DOWN and keep full */}
       <motion.div
         initial={{ y: "-50%" }}
         animate={reduceMotion ? { y: "-50%" } : { y: "0%" }}
@@ -134,7 +132,7 @@ function BannerRail() {
           reduceMotion
             ? undefined
             : {
-                duration: 40, // ambient speed
+                duration: 40,
                 ease: "linear",
                 repeat: Infinity,
               }
@@ -165,15 +163,15 @@ function BannerStack() {
 }
 
 function BannerText() {
+  // Non-breaking spaces keep the whole line together; nowrap + keep-all prevent wrapping/stacking.
   const line =
-    "TESTIMONIALS · VOICES · REVIEWS · TESTIMONIALS · VOICES · REVIEWS · TESTIMONIALS · VOICES · REVIEWS";
+    "TESTIMONIALS\u00A0·\u00A0VOICES\u00A0·\u00A0REVIEWS\u00A0·\u00A0TESTIMONIALS\u00A0·\u00A0VOICES\u00A0·\u00A0REVIEWS";
 
   return (
     <div
       className={[
         "select-none",
         "font-semibold",
-        "tracking-[0.05em]",
         "text-transparent",
         "bg-clip-text",
         "bg-gradient-to-b",
@@ -183,10 +181,13 @@ function BannerText() {
         "[text-orientation:mixed]",
         "leading-[1.04]",
         "text-[32px] md:text-[40px]",
+        "whitespace-nowrap",    // keep entire line as one piece
+        "break-keep",          // avoid breaking at spaces/punctuation (Tailwind v3+)
+        "tracking-[0.05em]",
       ].join(" ")}
-      style={{ letterSpacing: "0.02em" }}
+      style={{ letterSpacing: "0.02em", wordBreak: "keep-all" }}
     >
-      <span className="block">{line}</span>
+      <span className="inline-block">{line}</span>
     </div>
   );
 }
@@ -202,7 +203,7 @@ function SinglePair({ t, reverse }: { t: Testimonial; reverse?: boolean }) {
       transition={{ duration: 0.45 }}
       className={`flex flex-col gap-8 md:gap-12 lg:gap-16 ${
         reverse ? "md:flex-row-reverse" : "md:flex-row"
-      } md:items-center`}
+      } md:items-center overflow-x-hidden`} // ensure no child can leak horizontally
     >
       <AvatarFree
         who={t.name ?? ""}
@@ -223,7 +224,7 @@ function TextBlock({ t, className }: { t: Testimonial; className?: string }) {
   const hasAfter = (after?.length ?? 0) > 0;
 
   return (
-    <div className={["flex flex-col justify-center", className ?? ""].join(" ")}>
+    <div className={["flex flex-col justify-center overflow-x-hidden", className ?? ""].join(" ")}>
       {t.app ? (
         <div className="font-mono text-[12px] md:text-[13px] uppercase tracking-widest text-cyan-300/80">
           {t.app}
@@ -295,7 +296,7 @@ function AvatarFree({
   className?: string;
 }) {
   return (
-    <figure className={["relative", className ?? ""].join(" ")}>
+    <figure className={["relative overflow-x-hidden", className ?? ""].join(" ")}>
       <div className="relative mx-auto w-full max-w-[520px]">
         <Image
           src={src}
