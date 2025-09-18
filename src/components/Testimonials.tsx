@@ -23,26 +23,44 @@ type Testimonial = {
 /**
  * Testimonials — Clean 2×2 (No Cards, No Frames)
  *
- * THIS REV — ONLY YOUR REQUESTS:
- * - Seamless loop now includes a “node” spacer at the seam (line ends with " ·").
- * - Both runs are identical gray (no gradient/opacity shift).
- * - Hide ALL scrollbars site-wide (Firefox + WebKit/Chromium) via a scoped global style here.
+ * THIS REV — ONLY CHANGE:
+ * - Permanently hide scrollbars app-wide by injecting a global style into <head> once.
+ *   This ensures project detail pages also have invisible scrollbars.
+ *   (No other logic/styles were touched.)
  */
 
 function TestimonialsComponent() {
   const items = (profile.testimonials ?? []) as ReadonlyArray<Testimonial>;
   if (!Array.isArray(items) || items.length === 0) return null;
 
+  // Inject a global scrollbar-hider once so it persists across route changes (project detail pages too).
+  React.useEffect(() => {
+    if (typeof document === "undefined") return;
+    const STYLE_ID = "__pp_hide_scrollbars_global__";
+    if (document.getElementById(STYLE_ID)) return;
+
+    const style = document.createElement("style");
+    style.id = STYLE_ID;
+    style.textContent = `
+      /* Hide scrollbar chrome everywhere (Firefox + WebKit/Chromium + old Edge) */
+      :root, * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+      *::-webkit-scrollbar { width: 0 !important; height: 0 !important; background: transparent !important; }
+      *::-webkit-scrollbar-thumb { background: transparent !important; border: none !important; }
+      *::-webkit-scrollbar-track { background: transparent !important; }
+    `;
+    document.head.appendChild(style);
+  }, []);
+
   const t0 = items[0];
   const t1 = items[1];
 
-  // GLOBAL scrollbar hider (applies across the whole app)
+  // (Keep this local hider too so it's applied immediately on this page load)
   const GlobalScrollbarHider = () => (
     <style jsx global>{`
-      /* Hide scrollbar chrome everywhere */
+      :root,
       * {
-        scrollbar-width: none !important; /* Firefox */
-        -ms-overflow-style: none !important; /* IE/Edge legacy */
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
       }
       *::-webkit-scrollbar {
         width: 0 !important;
@@ -123,7 +141,7 @@ export default function DefaultExportedTestimonials() {
 /**
  * BannerRail — isolated, clipped rail with seamless top→bottom loop.
  * - EXACTLY TWO copies (A + A) of one continuous line, back-to-back, no spacing → no gap.
- * - Line now ENDS with a dot node " · " so the seam matches the between-word spacing.
+ * - Line ends with a dot node " · " so the seam matches inter-word spacing.
  * - Uniform gray text across both runs for a seamless cycle.
  * - Fixed width + overflow hidden + isolate prevent any overlap or horizontal leak.
  */
@@ -177,8 +195,7 @@ function BannerRail() {
 /** Single continuous line. No stacking, no wrap, uniform gray, with a trailing node. */
 function BannerLine() {
   // Add a trailing node " · " so the seam matches inter-word spacing.
-  const line =
-    "TESTIMONIALS\u00A0·\u00A0VOICES\u00A0·\u00A0REVIEWS\u00A0·";
+  const line = "TESTIMONIALS\u00A0·\u00A0VOICES\u00A0·\u00A0REVIEWS\u00A0·";
 
   return (
     <div
