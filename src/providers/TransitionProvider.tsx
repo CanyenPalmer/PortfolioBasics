@@ -51,7 +51,7 @@ export default function TransitionProvider({ children }: { children: React.React
     const t = setTimeout(() => {
       setMode("mach");
       setActive(true);
-      const dur = prefersReduced ? 120 : 1200; // ms
+      const dur = prefersReduced ? 150 : 1900; // ms
       const tt = setTimeout(() => {
         setActive(false);
         setMode("idle");
@@ -73,7 +73,7 @@ export default function TransitionProvider({ children }: { children: React.React
       const t = setTimeout(() => {
         setActive(false);
         setMode("idle");
-      }, prefersReduced ? 60 : 240);
+      }, prefersReduced ? 90 : 320);
       prevPathRef.current = pathname;
       return () => clearTimeout(t);
     }
