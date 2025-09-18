@@ -41,6 +41,53 @@ function ResumeIcon(props: React.SVGProps<SVGSVGElement>) {
 }
 
 export default function Hero({ headline, subheadline, typer }: Props) {
+  // === VHS glitch hover (nav-only) ===
+  const _glitchTimers = React.useRef<Map<HTMLElement, number>>(new Map());
+  const _glyphs =
+    "アイウエオカキクケコサシスセソタチツテトﾅﾆﾇﾈﾉABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+  function scrambleLabel(label: string) {
+    const n = Math.max(1, Math.min(label.length, Math.floor(label.length * 0.8)));
+    let out = "";
+    for (let i = 0; i < label.length; i++) {
+      if (/\s/.test(label[i])) { out += " "; continue; }
+      if (i < label.length - n) { out += label[i]; continue; }
+      const c = _glyphs[Math.floor(Math.random() * _glyphs.length)];
+      out += c;
+    }
+    return out;
+  }
+
+  function onNavHoverEnter(e: React.MouseEvent<HTMLAnchorElement>) {
+    const el = e.currentTarget as HTMLElement;
+    const label = el.getAttribute("data-label") || "";
+    el.classList.add("is-glitching");
+    // Initialize CSS var so ::before/::after have content
+    el.style.setProperty("--glitch-text", `"${label}"`);
+    // Update random overlay briefly (~300–360ms)
+    let ticks = 0;
+    const id = window.setInterval(() => {
+      ticks++;
+      el.style.setProperty("--glitch-text", `"${scrambleLabel(label)}"`);
+      if (ticks >= 8) {
+        clearInterval(id);
+        _glitchTimers.current.delete(el);
+        el.style.setProperty("--glitch-text", `"${label}"`);
+        el.classList.remove("is-glitching");
+      }
+    }, 45);
+    _glitchTimers.current.set(el, id);
+  }
+
+  function onNavHoverLeave(e: React.MouseEvent<HTMLAnchorElement>) {
+    const el = e.currentTarget as HTMLElement;
+    const label = el.getAttribute("data-label") || "";
+    const id = _glitchTimers.current.get(el);
+    if (id) { clearInterval(id); _glitchTimers.current.delete(el); }
+    el.style.setProperty("--glitch-text", `"${label}"`);
+    el.classList.remove("is-glitching");
+  }
+
   return (
     <section
       id="home"
@@ -66,8 +113,12 @@ export default function Hero({ headline, subheadline, typer }: Props) {
               <a
                 href={item.href}
                 className="focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:rounded-sm nav-glitch"
+                data-label={item.label}
+                onMouseEnter={onNavHoverEnter}
+                onMouseLeave={onNavHoverLeave}
               >
-                {item.label}
+                <span className="nav-label">{item.label}</span>
+                <span className="nav-vhs" aria-hidden="true" />
               </a>
             </li>
           ))}
@@ -148,26 +199,57 @@ export default function Hero({ headline, subheadline, typer }: Props) {
         <div className="text-base text-white/50">• Scroll to Explore •</div>
       </div>
 
-      {/* Glitch animation (only on hovered nav item) */}
-      <style jsx>{`
-        .nav-glitch {
-          color: rgba(255, 255, 255, 0.7);
+      {/* VHS glitch overlay (only on hovered nav item) */}
+      <style jsx global>{`
+        .nav-glitch { position: relative; display: inline-block; color: rgba(255,255,255,0.7); }
+        .nav-glitch .nav-label { position: relative; z-index: 1; }
+        .nav-glitch:hover { color: #fff; }
+
+        /* Overlay element uses CSS var --glitch-text for randomized content */
+        .nav-glitch .nav-vhs {
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
         }
-        .nav-glitch:hover {
-          animation: nav-glitch 1.5s linear infinite;
-          color: #ffffff;
+        .nav-glitch.is-glitching .nav-vhs::before,
+        .nav-glitch.is-glitching .nav-vhs::after {
+          content: var(--glitch-text);
+          position: absolute;
+          left: 0; top: 0;
+          white-space: nowrap;
+          will-change: transform, clip-path, opacity, text-shadow;
         }
-        @keyframes nav-glitch {
-          0% { text-shadow: none; transform: translateZ(0); }
-          5% { text-shadow: 1px 0 rgba(255,0,0,0.4), -1px 0 rgba(0,255,255,0.4); transform: translate(0.5px, 0); }
-          10% { text-shadow: -1px 0 rgba(255,0,0,0.35), 1px 0 rgba(0,255,255,0.35); transform: translate(-0.5px, 0.2px); }
-          15% { text-shadow: 1px 0 rgba(255,0,0,0.4), -1px 0 rgba(0,255,255,0.4); transform: translate(0.4px, -0.2px); }
-          20% { text-shadow: none; transform: translateZ(0); }
-          33% { text-shadow: none; transform: none; }
-          100% { text-shadow: none; transform: none; }
+        .nav-glitch.is-glitching .nav-vhs::before {
+          color: currentColor;
+          mix-blend-mode: screen;
+          text-shadow: 1px 0 rgba(0,255,255,0.6);
+          animation: vhsShiftA 280ms steps(2, end) infinite;
         }
+        .nav-glitch.is-glitching .nav-vhs::after {
+          color: currentColor;
+          mix-blend-mode: screen;
+          text-shadow: -1px 0 rgba(255,0,0,0.6);
+          animation: vhsShiftB 280ms steps(2, end) infinite;
+        }
+
+        @keyframes vhsShiftA {
+          0% { transform: translate(0,0); clip-path: inset(0 0 0 0); opacity: .85; }
+          25% { transform: translate(1px,-0.5px); clip-path: inset(0 0 60% 0); opacity: .55; }
+          50% { transform: translate(-1px,0.5px); clip-path: inset(40% 0 0 0); opacity: .7; }
+          75% { transform: translate(0.5px,0); clip-path: inset(10% 0 20% 0); opacity: .6; }
+          100% { transform: translate(0,0); clip-path: inset(0 0 0 0); opacity: .85; }
+        }
+        @keyframes vhsShiftB {
+          0% { transform: translate(0,0); clip-path: inset(0 0 0 0); opacity: .8; }
+          25% { transform: translate(-1px,0.5px); clip-path: inset(20% 0 30% 0); opacity: .5; }
+          50% { transform: translate(1px,-0.5px); clip-path: inset(0 0 50% 0); opacity: .65; }
+          75% { transform: translate(-0.5px,0); clip-path: inset(50% 0 0 0); opacity: .55; }
+          100% { transform: translate(0,0); clip-path: inset(0 0 0 0); opacity: .8; }
+        }
+
         @media (prefers-reduced-motion: reduce) {
-          .nav-glitch:hover { animation: none !important; text-decoration: underline; }
+          .nav-glitch.is-glitching .nav-vhs::before,
+          .nav-glitch.is-glitching .nav-vhs::after { animation: none !important; text-shadow: none !important; }
         }
       `}</style>
     </section>
