@@ -1,0 +1,99 @@
+// src/providers/TransitionProvider.tsx
+"use client";
+
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
+
+type Mode = "idle" | "mach" | "nav";
+
+type TransitionContextValue = {
+  mode: Mode;
+  isActive: boolean;
+  beginNav: () => void;
+  endNow: () => void;
+  prefersReduced: boolean;
+};
+
+const TransitionContext = createContext<TransitionContextValue | null>(null);
+
+export function useTransitionOverlay() {
+  const ctx = useContext(TransitionContext);
+  if (!ctx) throw new Error("useTransitionOverlay must be used within <TransitionProvider>");
+  return ctx;
+}
+
+function getPrefersReducedMotion(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  } catch {
+    return false;
+  }
+}
+
+export default function TransitionProvider({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const [mode, setMode] = useState<Mode>("idle");
+  const [isActive, setActive] = useState(false);
+  const [prefersReduced, setPrefersReduced] = useState<boolean>(false);
+  const prevPathRef = useRef<string | null>(null);
+
+  // On mount: compute motion pref
+  useEffect(() => {
+    setPrefersReduced(getPrefersReducedMotion());
+  }, []);
+
+  // MACH loader: run once per session
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (sessionStorage.getItem("machLoaded")) return; // already played this session
+
+    const t = setTimeout(() => {
+      setMode("mach");
+      setActive(true);
+      const dur = prefersReduced ? 120 : 1200; // ms
+      const tt = setTimeout(() => {
+        setActive(false);
+        setMode("idle");
+        sessionStorage.setItem("machLoaded", "1");
+      }, dur);
+      return () => clearTimeout(tt);
+    }, 30);
+    return () => clearTimeout(t);
+  }, [prefersReduced]);
+
+  // Track previous pathname for nav completion
+  useEffect(() => {
+    if (prevPathRef.current === null) {
+      prevPathRef.current = pathname;
+      return;
+    }
+    // If overlay in "nav" and the path changed, finish the animation
+    if (mode === "nav" && isActive && pathname !== prevPathRef.current) {
+      const t = setTimeout(() => {
+        setActive(false);
+        setMode("idle");
+      }, prefersReduced ? 60 : 240);
+      prevPathRef.current = pathname;
+      return () => clearTimeout(t);
+    }
+    prevPathRef.current = pathname;
+  }, [pathname, mode, isActive, prefersReduced]);
+
+  const beginNav = useCallback(() => {
+    setMode("nav");
+    setActive(true);
+  }, []);
+
+  const endNow = useCallback(() => {
+    setActive(false);
+    setMode("idle");
+  }, []);
+
+  const value = useMemo(
+    () => ({ mode, isActive, beginNav, endNow, prefersReduced }),
+    [mode, isActive, beginNav, endNow, prefersReduced]
+  );
+
+  return <TransitionContext.Provider value={value}>{children}</TransitionContext.Provider>;
+}
