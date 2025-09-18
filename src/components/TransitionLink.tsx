@@ -49,7 +49,7 @@ export default function TransitionLink({
     beginNav();
 
     // Small lead-in so the overlay is visible before route swap
-    const lead = prefersReduced ? 30 : 160;
+    const lead = prefersReduced ? 40 : 220;
     setTimeout(() => {
       if (typeof href === "string") router.push(href);
       else router.push(href);
