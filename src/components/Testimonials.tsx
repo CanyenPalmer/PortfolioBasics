@@ -23,11 +23,10 @@ type Testimonial = {
 /**
  * Testimonials — Clean 2×2 (No Cards, No Frames)
  *
- * Changes (only what was requested):
- * - Fix unintended page scrollbar: constrain rail overflow.
- * - Banner direction: top → bottom, seamless/end-to-end.
- * - Increase testimonial text size and apply a tall/narrow/blocky feel.
- *   (larger sizes, tighter leading & tracking)
+ * Changes (only what was requested in this step):
+ * - Banner text repeats with dot spacers, travels top→bottom across the full section, and fades smoothly.
+ * - Removed residual right-side white bar by clipping horizontal overflow at the section.
+ * - Kept the larger, tall/narrow/blocky text sizing from previous fix.
  */
 
 function TestimonialsComponent() {
@@ -42,10 +41,10 @@ function TestimonialsComponent() {
       <section
         id="testimonials"
         aria-label="Testimonials"
-        className="relative bg-[#0b1016] min-h-[100svh] md:min-h-screen py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start"
+        className="relative bg-[#0b1016] min-h-[100svh] md:min-h-screen py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start overflow-x-hidden"
       >
         <div className="container mx-auto px-6 max-w-7xl">
-          {/* Keep semantic heading for SR; visually hidden since banner replaces visual title */}
+          {/* Semantic heading for SR; visually hidden since banner is the visual title */}
           <h2 className="sr-only">Testimonials</h2>
 
           {/* 2-col layout with left rail banner */}
@@ -66,10 +65,10 @@ function TestimonialsComponent() {
     <section
       id="testimonials"
       aria-label="Testimonials"
-      className="relative bg-[#0b1016] min-h-[100svh] md:min-h-screen py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start"
+      className="relative bg-[#0b1016] min-h-[100svh] md:min-h-screen py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start overflow-x-hidden"
     >
       <div className="container mx-auto px-6 max-w-7xl">
-        {/* Keep semantic heading for SR; visually hidden since banner replaces visual title */}
+        {/* Semantic heading for SR; visually hidden since banner is the visual title */}
         <h2 className="sr-only">Testimonials</h2>
 
         {/* 2-col layout with left rail banner */}
@@ -99,97 +98,93 @@ export default function DefaultExportedTestimonials() {
 
 /* -------------------- Left Rail Banner -------------------- */
 
+/**
+ * Implementation notes for THIS revision:
+ * - Made the rail span the full column height (not sticky) so the banner travels from the section top to bottom.
+ * - overflow-hidden keeps it from creating internal or page scrollbars.
+ * - A smooth mask fades the text at the top and just before the bottom to avoid a hard edge.
+ * - Animation runs top→bottom and loops; the jump happens fully out of view, hidden by the mask.
+ */
 function BannerRail() {
   const reduceMotion = useReducedMotion();
 
-  /**
-   * Sticky viewport rail with soft top/bottom fades.
-   * overflow-hidden prevents the inner track from creating page scrollbars.
-   */
   return (
     <div
       className={[
         "relative",
         "pointer-events-none",
         "hidden sm:block",
-        "sticky",
-        "top-24 md:top-28",
-        "h-[calc(100vh-6rem)] md:h-[calc(100vh-7rem)]",
+        "h-full",           // span full section column height
         "z-10",
-        "overflow-hidden", // <-- key fix: no internal/page scrollbars
+        "overflow-hidden",  // no internal/page scrollbars
       ].join(" ")}
       aria-hidden="true"
       style={{
         WebkitMaskImage:
-          "linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 12%, rgba(0,0,0,1) 88%, rgba(0,0,0,0) 100%)",
+          "linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 6%, rgba(0,0,0,1) 94%, rgba(0,0,0,0) 100%)",
         maskImage:
-          "linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 12%, rgba(0,0,0,1) 88%, rgba(0,0,0,0) 100%)",
+          "linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 6%, rgba(0,0,0,1) 94%, rgba(0,0,0,0) 100%)",
       }}
     >
-      {/* Track is 2× content (A + A) for a perfect loop. Now moving DOWN (top → bottom). */}
       <motion.div
-        initial={{ y: 0 }}
-        animate={reduceMotion ? { y: 0 } : { y: "50%" }} // downwards instead of upwards
+        initial={{ y: "-8%" }} // start slightly above the masked region
+        animate={
+          reduceMotion
+            ? { y: 0 }
+            : { y: "108%" } // glide to just below the bottom mask edge
+        }
         transition={
           reduceMotion
             ? undefined
             : {
-                duration: 40, // subtle/ambient speed
+                duration: 42,  // slow/ambient
                 ease: "linear",
                 repeat: Infinity,
+                repeatType: "loop",
               }
         }
         className="absolute inset-0 will-change-transform"
         style={{ translateZ: 0 }}
       >
-        {/* Duplicate stacks (A + A) to eliminate any jump at the loop seam */}
-        <BannerStack />
-        <BannerStack />
+        {/* Single tall stack; the loop resets off-screen thanks to the mask */}
+        <div className="flex min-h-[200%] flex-col items-center justify-start">
+          <BannerText />
+          <div className="h-40" />
+          <BannerText />
+          <div className="h-40" />
+          <BannerText />
+          <div className="h-40" />
+          <BannerText />
+        </div>
       </motion.div>
     </div>
   );
 }
 
-function BannerStack() {
-  return (
-    <div className="flex h-[200%] flex-col items-center justify-start">
-      <div className="flex h-1/2 flex-col items-center justify-start">
-        <BannerText />
-      </div>
-      <div className="flex h-1/2 flex-col items-center justify-start">
-        <BannerText />
-      </div>
-    </div>
-  );
-}
-
 function BannerText() {
+  // Repeated label with dot spacers; vertical writing keeps the tall/narrow look.
+  const line =
+    "TESTIMONIALS · VOICES · REVIEWS · TESTIMONIALS · VOICES · REVIEWS · TESTIMONIALS · VOICES · REVIEWS";
+
   return (
     <div
       className={[
         "select-none",
         "font-semibold",
-        "tracking-[0.05em]", // slightly tighter for a tall/narrow vibe
+        "tracking-[0.05em]",
         "text-transparent",
         "bg-clip-text",
         "bg-gradient-to-b",
         "from-cyan-200/90 via-white/60 to-white/20",
-        "opacity-80",
+        "opacity-85",
         "[writing-mode:vertical-rl]",
         "[text-orientation:mixed]",
-        "leading-[1.05]", // compact, blocky feel
+        "leading-[1.04]",
+        "text-[32px] md:text-[40px]",
       ].join(" ")}
       style={{ letterSpacing: "0.02em" }}
     >
-      <span className="block text-[34px] md:text-[42px] leading-[1.0]">
-        TESTIMONIALS
-      </span>
-
-      <span className="mt-6 block text-[11px] font-mono uppercase tracking-[0.2em] opacity-70">
-        voices / reviews
-      </span>
-
-      <span className="block h-24 md:h-28" />
+      <span className="block">{line}</span>
     </div>
   );
 }
@@ -306,7 +301,7 @@ function AvatarFree({
           width={1000}
           height={1400}
           sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 100vw"
-          className="mx-auto h-auto w-full select-none"
+        className="mx-auto h-auto w-full select-none"
           priority={false}
         />
       </div>
