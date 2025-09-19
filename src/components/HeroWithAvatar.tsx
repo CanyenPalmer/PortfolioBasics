@@ -176,15 +176,20 @@ export default function Hero({ headline, subheadline, typer }: Props) {
       <div className="container mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-10 items-center relative z-10">
         {/* Copy */}
         <div className="space-y-5">
-          <h1 className="text-7xl md:text-8xl lg:text-9xl font-bold leading-[1.05] whitespace-nowrap">
+          {/* Constrain title to match toolbelt width so it never overlaps avatar */}
+          <h1 className="text-7xl md:text-8xl lg:text-9xl font-bold leading-[1.05] max-w-[680px] md:max-w-[720px]">
             {/* Switch font-family on the same element once the stamp is done */}
             <span
-              className="hero-name inline-block whitespace-nowrap"
-              style={locked ? { fontFamily: alinoreStack, letterSpacing: "0.01em" } : undefined}
+              className="hero-name inline-block"
+              style={
+                locked
+                  ? { fontFamily: alinoreStack, letterSpacing: "0.01em" }
+                  : undefined
+              }
             >
               <NameStamp
                 text={resolvedName}
-                className="text-7xl md:text-8xl lg:text-9xl font-bold whitespace-nowrap"
+                className="text-7xl md:text-8xl lg:text-9xl font-bold"
                 variant="hero"
                 rearmOnExit={true}
               />
@@ -225,7 +230,7 @@ export default function Hero({ headline, subheadline, typer }: Props) {
           position: relative;
           display: inline-block;
           color: rgba(255,255,255,0.7);
-          isolation: isolate;     /* ⬅️ contain blending to the label only */
+          isolation: isolate;     /* contain blending to the label only */
         }
         .nav-glitch .nav-label { position: relative; z-index: 1; }
 
@@ -233,9 +238,9 @@ export default function Hero({ headline, subheadline, typer }: Props) {
           position: absolute;
           inset: 0;
           width: 100%;
-          overflow: hidden;        /* ⬅️ hard clip to label width */
+          overflow: hidden;        /* hard clip to label width */
           pointer-events: none;
-          contain: paint;          /* ⬅️ avoid paint/layout bleed */
+          contain: paint;          /* avoid paint/layout bleed */
         }
         .nav-glitch:hover { color: #fff; }
 
@@ -245,12 +250,11 @@ export default function Hero({ headline, subheadline, typer }: Props) {
           position: absolute; left: 0; top: 0;
           width: 100%;
           white-space: nowrap;
-          font: inherit; letter-spacing: inherit; line-height: inherit; /* ⬅️ lock metrics */
+          font: inherit; letter-spacing: inherit; line-height: inherit; /* lock metrics */
           will-change: transform, clip-path, opacity, text-shadow;
         }
         .nav-glitch.is-glitching .nav-vhs::before {
           color: currentColor;
-          /* no blend outside due to isolation on anchor */
           text-shadow: 1px 0 rgba(0,255,255,0.6);
           animation: vhsShiftA 280ms steps(2, end) infinite;
         }
@@ -291,4 +295,3 @@ export default function Hero({ headline, subheadline, typer }: Props) {
     </section>
   );
 }
-
