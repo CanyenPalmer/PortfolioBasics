@@ -18,9 +18,12 @@ type Props = {
 /**
  * LandingIntro — cinematic intro fully isolated from the rest of the site.
  *
- * Title + subheading are horizontally centered near the top (top middle).
- * Subtle text-shadows for a slight "pop".
- * Title block sits in front of buildings.
+ * Notes:
+ * - Title + subheading horizontally centered near the top.
+ * - Thicker (still tasteful) text-shadows for more pop.
+ * - Title split into two italic lines: "Let Data Drive" / "Your Decisions".
+ * - Title block sits in front of buildings.
+ * - Skyline-to-hero tint handoff tied to landing progress; overlay fades during early hero scroll.
  */
 export default function LandingIntro({
   title = "Let Data Drive Your Decisions",
@@ -87,22 +90,42 @@ export default function LandingIntro({
           />
         </motion.div>
 
-        {/* TITLE BLOCK — FULL-WIDTH container, centered text at same top height */}
+        {/* TITLE BLOCK — full-width container, centered at same top height; on top of buildings */}
         <motion.div
           className="absolute inset-x-0 top-[18vh] z-30 text-center"
           style={{ y: reduce ? "0vh" : titleY }}
         >
-          <h1 className={`${cinzel.className} text-white tracking-tight`}>
+          <h1 className={`${cinzel.className} italic text-white tracking-tight`}>
+            {/* Line 1 */}
             <span
               className="block text-4xl sm:text-6xl md:text-7xl lg:text-8xl drop-shadow-[0_0_16px_rgba(64,200,255,.25)]"
-              style={{ textShadow: "0 2px 6px rgba(0,0,0,0.35)" }}
+              style={{
+                // Thicker (still tasteful) per-character glow/shadow
+                textShadow:
+                  "0 4px 14px rgba(0,0,0,0.60), 0 2px 6px rgba(0,0,0,0.45)",
+              }}
             >
-              {title}
+              Let Data Drive
+            </span>
+            {/* Line 2 */}
+            <span
+              className="mt-1 block text-4xl sm:text-6xl md:text-7xl lg:text-8xl drop-shadow-[0_0_16px_rgba(64,200,255,.25)]"
+              style={{
+                textShadow:
+                  "0 4px 14px rgba(0,0,0,0.60), 0 2px 6px rgba(0,0,0,0.45)",
+              }}
+            >
+              Your Decisions
             </span>
           </h1>
+
+          {/* Subheading (thicker but subtle shadow) */}
           <p
             className="mt-3 text-base sm:text-lg md:text-xl text-white/90 font-normal"
-            style={{ textShadow: "0 1px 4px rgba(0,0,0,0.25)" }}
+            style={{
+              textShadow:
+                "0 3px 10px rgba(0,0,0,0.45), 0 1px 3px rgba(0,0,0,0.35)",
+            }}
           >
             Canyen&apos;s Portfolio
           </p>
@@ -154,4 +177,3 @@ export default function LandingIntro({
     </section>
   );
 }
-
