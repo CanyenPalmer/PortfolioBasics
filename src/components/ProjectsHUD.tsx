@@ -66,7 +66,7 @@ const ASPECT: Record<string, string> = {
   "Python 101": "2 / 3",
 };
 
-/** Collage layout (your original positions) */
+/** Collage layout (restored to your original, overlap-free positions) */
 const LAYOUT = {
   md: {
     containerHeight: 1950,
@@ -130,6 +130,7 @@ function ProjectTile({
   const aspect = ASPECT[p.title] ?? "3 / 4";
 
   return (
+    // ⬅️ ensure tiles render above the note layer
     <article className="absolute z-10" style={{ left, top, width }} aria-label={p.title}>
       <TransitionLink
         href={`/projects/${slug}?via=projects`}
@@ -199,21 +200,26 @@ function BlurbAndNote({
   width: string;
 }) {
   return (
+    // ⬅️ note sits beneath tiles and ignores pointer events
     <div
       className="absolute hidden md:block pointer-events-none z-0"
       style={{ left, top, width }}
     >
+      {/* Blurb */}
       <p className="text-[15px] leading-tight text-white/85 mb-4">
         I carry projects from messy data to maintainable tools—analyses, models, and apps that are
         rigorous, documented, and usable.
       </p>
 
+      {/* Two-column note (no bullets) */}
       <div className="grid grid-cols-[8.5rem,1fr] gap-x-6">
+        {/* Label */}
         <div className="text-[12px] leading-tight text-white/60 font-medium">
           <div>Showcase</div>
           <div>Highlights</div>
         </div>
 
+        {/* Lines */}
         <div className="flex flex-col gap-2 text-[14px] leading-snug text-white/85">
           <div>
             <span className="font-semibold">96.2% accuracy (AUC 93.8%)</span> on employee-retention models
@@ -236,82 +242,7 @@ function BlurbAndNote({
   );
 }
 
-/** PACE storyboard (centered vertically; behind collage) */
-function PACEBackground() {
-  return (
-    <div className="pointer-events-none absolute inset-0 z-0">
-      <div
-        className="absolute left-0 right-0 top-1/2 -translate-y-1/2"
-        style={{ height: "70vh", minHeight: 520, maxHeight: 820 }}
-      >
-        <div className="relative h-full w-full">
-          <div className="absolute left-6 top-2 bottom-2 w-px bg-white/10" />
-          <NodeWithBranches
-            top="0%"
-            label="PLAN"
-            sub="Scope for outcomes"
-            branches={["Storyboard", "Framework", "Deadline"]}
-          />
-          <NodeWithBranches
-            top="28%"
-            label="ANALYZE"
-            sub="Turn data into direction"
-            branches={["Data audit", "Hypotheses", "Methods"]}
-          />
-          <NodeWithBranches
-            top="58%"
-            label="CONSTRUCT"
-            sub="Build, iterate, instrument"
-            branches={["Prototype", "Feedback", "Instrumentation"]}
-          />
-          <NodeWithBranches
-            top="88%"
-            label="EXECUTE"
-            sub="Ship, train, measure"
-            branches={["Deploy", "Enablement", "Impact"]}
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function NodeWithBranches({
-  top,
-  label,
-  sub,
-  branches,
-}: {
-  top: string;
-  label: string;
-  sub: string;
-  branches: string[];
-}) {
-  return (
-    <div className="absolute left-0 right-0" style={{ top }}>
-      <div className="relative pl-16 pr-4">
-        <div className="absolute left-2 top-1 h-7 w-7 rounded-full bg-white/10 ring-1 ring-white/15" />
-        <div className="text-white/85">
-          <div className="text-xs tracking-[0.22em] text-white/60">{label}</div>
-          <div className="text-sm md:text-base text-white/80">{sub}</div>
-        </div>
-        <div className="absolute left-16 top-[1.6rem] h-px w-10 bg-white/12" />
-        <div className="ml-24 flex flex-wrap gap-3 mt-1">
-          {branches.map((b) => (
-            <div
-              key={b}
-              className="rounded-md border border-white/15 px-3 py-1 text-[11px] md:text-xs text-white/70"
-            >
-              {b}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/** Header block */
+/** Header block: “Palmer” (small + underline) + big condensed “PROJECTS” + subheader */
 function ProjectsHeader() {
   return (
     <div className="mb-8 md:mb-10">
@@ -331,13 +262,14 @@ function ProjectsHeader() {
   );
 }
 
-/** LEFT RAIL — visual behavior unchanged; height now based on viewport to avoid long tail */
+/** LEFT RAIL — single moving column, measured row height (UNCHANGED) */
 function LeftRail({ height }: { height?: number | null }) {
   const [paused, setPaused] = React.useState(false);
 
+  // ⬇️ Keep the mask fade exactly as you had it. Do not change.
   const TOP_FADE = 250;
   const BOTTOM_FADE = 96;
-  const SPEED = 22; // px/sec
+  const SPEED = 22; // px/sec scroll speed
 
   // Measure the *unrotated* label width, used as row height once rotated 90°
   const measureRef = React.useRef<HTMLSpanElement | null>(null);
@@ -346,7 +278,7 @@ function LeftRail({ height }: { height?: number | null }) {
     if (!measureRef.current) return;
     const measure = () => {
       const w = Math.ceil(measureRef.current!.getBoundingClientRect().width);
-      setRowH(w + 8);
+      setRowH(w + 8); // small breathing room
     };
     measure();
     const ro = new ResizeObserver(measure);
@@ -450,10 +382,119 @@ function RailColumn({ rows, rowH }: { rows: number; rowH: number }) {
   );
 }
 
+/* --------------------- SCROLL-LOCKED COLLAGE (new) --------------------- */
+/**
+ * Locks the viewport while the collage travels from below → past the header.
+ * Also trims the empty tail to a tiny buffer.
+ */
+function CollageScene({
+  vh,
+  containerHeight,
+  items,
+  note,
+  projects,
+  mode,
+}: {
+  vh: number;
+  containerHeight: number;
+  items: Record<string, { left: string; top: number; width: string }>;
+  note: { left: string; top: number; width: string };
+  projects: ReadonlyArray<Project>;
+  mode: "md" | "lg";
+}) {
+  // start the collage below the viewport so the user first sees the header/rail
+  const START_FROM_BOTTOM = Math.round(vh * 0.9); // ~“from bottom”
+  const TRAVEL_CORE = Math.max(0, containerHeight - vh); // actual content travel across the sticky window
+  const EXIT_TAIL = 140; // small overrun so last card cleanly clears the header
+
+  // total distance the collage will move
+  const TOTAL_PATH = START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL;
+
+  // sentinel height must exactly match the motion path → produces a real lock
+  const SENTINEL_HEIGHT = Math.max(vh + 1, TOTAL_PATH);
+
+  const sentinelRef = React.useRef<HTMLDivElement | null>(null);
+  const { scrollYProgress } = useScroll({
+    target: sentinelRef,
+    offset: ["start start", "end start"], // 0..1 over the whole motion
+  });
+
+  const y = useTransform(scrollYProgress, [0, 1], [
+    START_FROM_BOTTOM,
+    -(TRAVEL_CORE + EXIT_TAIL),
+  ]);
+
+  return (
+    <>
+      {/* Scroll driver = lock range */}
+      <div ref={sentinelRef} style={{ height: SENTINEL_HEIGHT }} className="relative">
+        {/* Pinned viewport */}
+        <div className="sticky top-0 h-screen">
+          <div className="absolute inset-0 z-10 overflow-hidden">
+            {/* Optional gentle fade at bottom/top edges so cards appear/vanish smoothly */}
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                WebkitMaskImage: `linear-gradient(to bottom,
+                  transparent 0px,
+                  black 110px,
+                  black calc(100% - 160px),
+                  transparent 100%)`,
+                maskImage: `linear-gradient(to bottom,
+                  transparent 0px,
+                  black 110px,
+                  black calc(100% - 160px),
+                  transparent 100%)`,
+              }}
+            />
+            <motion.div
+              style={{ y, height: containerHeight, position: "relative" }}
+              className="will-change-transform"
+            >
+              {TILE_ORDER.map((title) => {
+                const p = projects.find((x) => x.title === title);
+                if (!p) return null;
+                const pos = items[title];
+                return (
+                  <ProjectTile
+                    key={`${mode}-${title}`}
+                    p={p}
+                    left={pos.left}
+                    top={pos.top}
+                    width={pos.width}
+                  />
+                );
+              })}
+              <BlurbAndNote left={note.left} top={note.top} width={note.width} />
+            </motion.div>
+          </div>
+        </div>
+      </div>
+
+      {/* Tiny buffer so the next section is snug (removes the long empty space) */}
+      <div style={{ height: 12 }} />
+    </>
+  );
+}
+
 export default function ProjectsHUD() {
   const projects = ((profile as any)?.projects ?? []) as ReadonlyArray<Project>;
 
-  // Viewport height (for sticky window sizing and rail height)
+  // Measure the right column height so the left rail can span the full section height
+  const rightColRef = React.useRef<HTMLDivElement>(null);
+  const [railHeight, setRailHeight] = React.useState<number | null>(null);
+
+  React.useEffect(() => {
+    if (!rightColRef.current) return;
+    const ro = new ResizeObserver((entries) => {
+      const cr = entries[0]?.contentRect;
+      if (cr && typeof cr.height === "number") setRailHeight(Math.ceil(cr.height));
+    });
+    ro.observe(rightColRef.current);
+    return () => ro.disconnect();
+  }, []);
+
+  // viewport height for lock math
   const [vh, setVh] = React.useState<number>(
     typeof window === "undefined" ? 800 : window.innerHeight
   );
@@ -463,201 +504,102 @@ export default function ProjectsHUD() {
     return () => window.removeEventListener("resize", onResize);
   }, [vh]);
 
-  // The left rail should be sized to the viewport window, not the tall sentinel
-  const [railHeight, setRailHeight] = React.useState<number | null>(null);
-  React.useEffect(() => {
-    // Slightly shorter than full viewport so the vignettes look natural
-    setRailHeight(Math.max(300, Math.round(vh - 96)));
-  }, [vh]);
-
-  const TOP_FADE = 180;
-  const BOTTOM_FADE = 110;
-
-  // Tiny post-scene spacer so the last card never clips the next title
-  const EXTRA_TAIL = 12;
+  // Mobile: simple stack (note hidden on mobile)
+  const mobile = (
+    <div className="md:hidden space-y-10">
+      {TILE_ORDER.map((title) => {
+        const p = projects.find((x) => x.title === title);
+        if (!p) return null;
+        const img = IMAGE_BY_TITLE[p.title] ?? {
+          src: "/images/portfolio-basics-avatar.png",
+          alt: `${p.title} preview`,
+        };
+        const slug = slugify(p.title);
+        const aspect = ASPECT[p.title] ?? "3 / 4";
+        return (
+          <article key={title}>
+            <TransitionLink
+              href={`/projects/${slug}?via=projects`}
+              className="block group"
+              onClick={() =>
+                typeof window !== "undefined" &&
+                window.sessionStorage.setItem("cameFromProjects", "1")
+              }
+            >
+              <div style={{ aspectRatio: aspect }} className="w-full overflow-hidden">
+                <img
+                  src={img.src}
+                  alt={img.alt}
+                  className="w-full h-full object-contain transition-transform duration-300 ease-out group-hover:scale-[1.03] will-change-transform"
+                />
+              </div>
+            </TransitionLink>
+            <div className="mt-3 flex items-baseline justify-between gap-3">
+              <h3 className="text-lg font-medium tracking-tight">
+                <TransitionLink
+                  href={`/projects/${slug}?via=projects`}
+                  className="hover:underline"
+                  onClick={() =>
+                    typeof window !== "undefined" &&
+                    window.sessionStorage.setItem("cameFromProjects", "1")
+                  }
+                >
+                  {p.title}
+                </TransitionLink>
+              </h3>
+              <span className="text-xs uppercase tracking-wide text-white/60">
+                {KEYWORD_BY_TITLE[p.title] ?? "project"}
+              </span>
+            </div>
+          </article>
+        );
+      })}
+    </div>
+  );
 
   const md = LAYOUT.md;
   const lg = LAYOUT.lg;
-
-  /** Scroll-locked scene driven by a dedicated sentinel with height = true motion path */
-  function CollageScene({
-    containerHeight,
-    items,
-    note,
-  }: {
-    containerHeight: number;
-    items: Record<string, { left: string; top: number; width: string }>;
-    note: { left: string; top: number; width: string };
-  }) {
-    const sentinelRef = React.useRef<HTMLDivElement | null>(null);
-
-    // Start with the collage fully below the viewport so the PACE tree shows first.
-    const START_FROM_BOTTOM = vh + 120;
-
-    // Distance to move the collage across the sticky viewport
-    const TRAVEL_CORE = Math.max(0, containerHeight - vh);
-    const EXIT_TAIL = 220;
-
-    // Total translation we actually perform
-    const TOTAL_PATH = START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL;
-
-    // Sentinel height equals the motion path, so the viewport stays pinned
-    const SENTINEL_HEIGHT = Math.max(vh + 1, Math.ceil(TOTAL_PATH)) + EXTRA_TAIL;
-
-    // Map 0→1 progress to the full sentinel height: lock until end
-    const { scrollYProgress } = useScroll({
-      target: sentinelRef,
-      offset: ["start start", "end start"],
-    });
-
-    const y = useTransform(scrollYProgress, [0, 1], [
-      START_FROM_BOTTOM,
-      -(TRAVEL_CORE + EXIT_TAIL),
-    ]);
-
-    return (
-      <>
-        {/* Scroll driver */}
-        <div ref={sentinelRef} style={{ height: SENTINEL_HEIGHT }} className="relative">
-          {/* Pinned viewport; user is locked while the sentinel is in view */}
-          <div className="sticky top-0 h-screen overscroll-contain">
-            <PACEBackground />
-
-            {/* View window with entry/exit fades (cards slide under header) */}
-            <div
-              className="absolute inset-0 z-10 overflow-hidden"
-              style={{
-                WebkitMaskImage: `linear-gradient(to bottom,
-                  transparent 0px,
-                  black ${BOTTOM_FADE}px,
-                  black calc(100% - ${TOP_FADE}px),
-                  transparent 100%)`,
-                maskImage: `linear-gradient(to bottom,
-                  transparent 0px,
-                  black ${BOTTOM_FADE}px,
-                  black calc(100% - ${TOP_FADE}px),
-                  transparent 100%)`,
-              }}
-            >
-              <motion.div
-                style={{ y, height: containerHeight, position: "relative" }}
-                className="will-change-transform"
-              >
-                {TILE_ORDER.map((title) => {
-                  const p = projects.find((x) => x.title === title);
-                  if (!p) return null;
-                  const pos = items[title];
-                  return (
-                    <ProjectTile
-                      key={title}
-                      p={p}
-                      left={pos.left}
-                      top={pos.top}
-                      width={pos.width}
-                    />
-                  );
-                })}
-                <BlurbAndNote left={note.left} top={note.top} width={note.width} />
-              </motion.div>
-            </div>
-          </div>
-        </div>
-        {/* Small tail only; keeps the next section snug */}
-        <div style={{ height: EXTRA_TAIL }} />
-      </>
-    );
-  }
-
-  /** Mobile: unchanged stack */
-  function MobileList() {
-    return (
-      <div className="md:hidden space-y-10">
-        {TILE_ORDER.map((title) => {
-          const p = ((profile as any)?.projects ?? []).find(
-            (x: Project) => x.title === title
-          ) as Project | undefined;
-        if (!p) return null;
-          const img = IMAGE_BY_TITLE[p.title] ?? {
-            src: "/images/portfolio-basics-avatar.png",
-            alt: `${p.title} preview`,
-          };
-          const slug = slugify(p.title);
-          const aspect = ASPECT[p.title] ?? "3 / 4";
-          return (
-            <article key={title}>
-              <TransitionLink
-                href={`/projects/${slug}?via=projects`}
-                className="block group"
-                onClick={() =>
-                  typeof window !== "undefined" &&
-                  window.sessionStorage.setItem("cameFromProjects", "1")
-                }
-              >
-                <div style={{ aspectRatio: aspect }} className="w-full overflow-hidden">
-                  <img
-                    src={img.src}
-                    alt={img.alt}
-                    className="w-full h-full object-contain transition-transform duration-300 ease-out group-hover:scale-[1.03] will-change-transform"
-                  />
-                </div>
-              </TransitionLink>
-              <div className="mt-3 flex items-baseline justify-between gap-3">
-                <h3 className="text-lg font-medium tracking-tight">
-                  <TransitionLink
-                    href={`/projects/${slug}?via=projects`}
-                    className="hover:underline"
-                  >
-                    {p.title}
-                  </TransitionLink>
-                </h3>
-                <span className="text-xs uppercase tracking-wide text-white/60">
-                  {KEYWORD_BY_TITLE[p.title] ?? "project"}
-                </span>
-              </div>
-            </article>
-          );
-        })}
-      </div>
-    );
-  }
 
   return (
     <section
       id="projects"
       aria-label="Projects"
-      className="relative w-full pt-20 md:pt-28 pb-0 scroll-mt-24 md:scroll-mt-28 bg-[#0d131d] overscroll-contain"
+      className="relative w-full pt-20 md:pt-28 pb-0 scroll-mt-24 md:scroll-mt-28 bg-[#0d131d]"
     >
       <div className="mx-auto max-w-7xl px-6">
-        {/* Sticky header so cards fade under it */}
-        <div className="md:sticky md:top-6 md:z-20">
-          <ProjectsHeader />
-        </div>
+        {/* Header */}
+        <ProjectsHeader />
 
         {/* Two-column layout on md+: left rail + right content; mobile shows content full-width */}
         <div className="md:grid md:grid-cols-[64px,1fr] md:gap-6">
-          {/* Left vertical scroller (height based on viewport) */}
+          {/* Left vertical scroller (hidden on mobile) — UNCHANGED */}
           <LeftRail height={railHeight} />
 
           {/* Right column */}
-          <div>
+          <div ref={rightColRef}>
             {/* Mobile stacked (unchanged) */}
-            <MobileList />
+            {mobile}
 
-            {/* md collage (locked) */}
+            {/* md+ scroll-locked scenes replace static height blocks */}
             <div className="relative hidden md:block lg:hidden">
               <CollageScene
+                vh={vh}
                 containerHeight={md.containerHeight}
                 items={md.items}
                 note={md.note}
+                projects={projects}
+                mode="md"
               />
             </div>
 
-            {/* lg collage (locked) */}
             <div className="relative hidden lg:block">
               <CollageScene
+                vh={vh}
                 containerHeight={lg.containerHeight}
                 items={lg.items}
                 note={lg.note}
+                projects={projects}
+                mode="lg"
               />
             </div>
           </div>
