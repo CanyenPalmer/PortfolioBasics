@@ -3,32 +3,34 @@
 
 import Image from "next/image";
 import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 
 type Props = {
   title?: string;
   skylineSrc?: string;   // sky-only background
   buildingsSrc?: string; // transparent foreground buildings
-  handoffColor?: string; // new: the color to fade toward at the very end
+  handoffColor?: string; // target tone to match the next section (Hero) before fade-out
 };
 
 /**
  * LandingIntro — cinematic intro fully isolated from the rest of the site.
  *
- * Behavior:
- *  - Locks user in this scene (via sentinel height) while buildings exit.
- *  - Smoothly fades overlay at the end (no snap/jump).
- *  - Adds a dim/tint handoff layer that eases to your Hero background color
- *    before the overlay fades out, making the transition feel seamless.
- *  - When scrolling back up, this plays in reverse just like the other animations.
+ * NEW (only change):
+ *  - Seamless handoff to the next section:
+ *    • As the Hero enters the viewport (its top goes from bottom→top), a tint layer fades in
+ *      toward `handoffColor`, visually matching the Hero’s background.
+ *    • Over the first ~15% of scrolling within the Hero, the overlay itself fades out (1→0).
+ *    • Both effects are reversible when scrolling back up.
+ *
+ * Everything else remains exactly as before (lock-in, parallax, reverse behavior, isolation).
  */
 export default function LandingIntro({
   title = "Let Data Drive Your Decisions",
   skylineSrc = "/images/landing/skyline.png",
   buildingsSrc = "/images/landing/buildings.png",
-  handoffColor = "rgb(8,12,20)", // default tone for hero bg — adjust as needed
+  handoffColor = "rgb(8,12,20)", // set to your Hero background tone
 }: Props) {
-  // Scroll progress is based on a local "sentinel" only—no page-wide listeners.
+  // SECTION-LOCAL SCROLL DRIVER (unchanged): locks user into the intro
   const sentinelRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: sentinelRef,
@@ -37,46 +39,57 @@ export default function LandingIntro({
 
   const reduce = useReducedMotion();
 
-  // Soft fade of overlay near the end to remove any perceived jump.
-  const overlayOpacity = useTransform(scrollYProgress, [0.97, 1.0], [1, 0]);
+  // --- NEW: detect the next section (Hero) without modifying it ---
+  // We expect the Hero to have id="home". We only *read* it; no changes outside this file.
+  const heroRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    heroRef.current = document.getElementById("home") as HTMLElement | null;
+  }, []);
 
-  // Motion mappings for elements INSIDE the overlay (never touch outer layout).
+  // 1) As Hero approaches: map its top from bottom→top of viewport (start 100% → start 0%)
+  //    This drives the TINT layer opacity 0→1 so the skyline color matches the Hero tone.
+  const { scrollYProgress: heroApproach } = useScroll({
+    target: heroRef,
+    offset: ["start 100%", "start 0%"],
+  });
+  const tintOpacity = useTransform(heroApproach, [0, 1], [0, 1]);
+
+  // 2) Once Hero is fully in view: fade the overlay out over ~15% scroll within Hero.
+  const { scrollYProgress: heroIntra } = useScroll({
+    target: heroRef,
+    offset: ["start 0%", "start -15%"], // top of Hero at top → 15% into Hero
+  });
+  const overlayFadeByHero = useTransform(heroIntra, [0, 1], [1, 0]);
+
+  // Fallback (previous behavior) if #home isn't found yet:
+  const overlayFadeBySentinel = useTransform(scrollYProgress, [0.97, 1.0], [1, 0]);
+
+  // TITLE / BUILDINGS / SKY motions (unchanged)
   const titleY = useTransform(scrollYProgress, [0.0, 0.48], ["0vh", "130vh"]);
   const bldgY = useTransform(scrollYProgress, [0.12, 0.98], ["0vh", "130vh"]);
   const bldgOpacity = useTransform(scrollYProgress, [0.80, 0.98], [1, 0.35]);
   const skyScale = useTransform(scrollYProgress, [0.18, 0.85], [1, 1.03]);
-
-  // Optional: scroll cue fades out early; when returning, it fades back in.
   const cueOpacity = useTransform(scrollYProgress, [0.0, 0.15], [0.9, 0]);
 
-  // NEW: handoff dim layer — fades in during last ~10% to match hero bg tone
-  const handoffOpacity = useTransform(scrollYProgress, [0.90, 0.99], [0, 1]);
-
   return (
-    <section
-      aria-label="Landing Intro"
-      className="relative isolate"
-    >
+    <section aria-label="Landing Intro" className="relative isolate">
       {/* SCROLL DRIVER — defines how long the user is "locked" in this scene */}
-      <div
-        ref={sentinelRef}
-        className="h-[320vh]" // adjust for longer/shorter lock-in duration
-      />
+      <div ref={sentinelRef} className="h-[320vh]" />
 
       {/* FIXED OVERLAY — draws the scene on top without affecting layout or sizing elsewhere */}
       <motion.div
         aria-hidden
         className="fixed inset-0 z-[60] pointer-events-none select-none will-change-transform will-change-opacity"
         style={{
-          opacity: reduce ? 1 : overlayOpacity,
+          // Use hero-driven fade when #home exists; otherwise fall back to the sentinel fade.
+          opacity: reduce
+            ? 1
+            : (heroRef.current ? overlayFadeByHero : overlayFadeBySentinel) as unknown as number,
           contain: "paint layout style size",
         }}
       >
         {/* SKY (bottom layer) */}
-        <motion.div
-          className="absolute inset-0 z-0"
-          style={{ scale: reduce ? 1 : skyScale }}
-        >
+        <motion.div className="absolute inset-0 z-0" style={{ scale: reduce ? 1 : skyScale }}>
           <Image
             src={skylineSrc}
             alt="Starry anime night sky with subtle clouds"
@@ -115,16 +128,17 @@ export default function LandingIntro({
           />
         </motion.div>
 
-        {/* NEW: Handoff dim/tint layer */}
+        {/* NEW: Handoff tint/dimmer — matches Hero tone as it comes into view.
+            Place above buildings and sky, below the title. */}
         <motion.div
-          className="absolute inset-0 z-40"
+          className="absolute inset-0 z-25"
           style={{
             backgroundColor: handoffColor,
-            opacity: reduce ? 0 : handoffOpacity,
+            opacity: reduce ? 0 : tintOpacity,
           }}
         />
 
-        {/* Subtle scroll cue */}
+        {/* Subtle scroll cue (unchanged) */}
         <motion.div
           className="absolute bottom-6 left-1/2 z-50 -translate-x-1/2 text-[12px] tracking-[0.2em] text-slate-200/80"
           style={{ opacity: cueOpacity }}
