@@ -6,7 +6,7 @@ import TransitionLink from "@/components/TransitionLink";
 import { profile } from "@/content/profile";
 import { slugify } from "@/lib/slug";
 import { Oswald, Plus_Jakarta_Sans } from "next/font/google";
-// ⬇️ NEW (for scroll-lock + motion of the collage only)
+// NEW: motion hooks for scroll-lock + collage movement
 import { motion, useScroll, useTransform } from "framer-motion";
 
 const oswald = Oswald({ subsets: ["latin"], weight: ["400", "500", "700"] });
@@ -243,40 +243,50 @@ function BlurbAndNote({
   );
 }
 
-/** Pinned PACE storyboard (right column only; behind collage; no pointer events) */
+/** Pinned PACE storyboard (centered vertically; right column only; behind collage) */
 function PACEBackground() {
   return (
     <div className="pointer-events-none absolute inset-0 z-0">
-      {/* Fill the sticky stage height (parent provides the height) */}
-      <div className="relative h-full w-full">
-        {/* vertical spine */}
-        <div className="absolute left-6 top-4 bottom-4 w-px bg-white/10" />
+      {/* Center the entire tree vertically in the viewport (moves DOWN, not sideways) */}
+      <div
+        className="absolute left-0 right-0 top-1/2 -translate-y-1/2"
+        style={{
+          // Keep it substantial but centered; adjust if you want it taller/shorter
+          height: "70vh",
+          minHeight: 520,
+          maxHeight: 820,
+        }}
+      >
+        <div className="relative h-full w-full">
+          {/* vertical spine within the centered box */}
+          <div className="absolute left-6 top-2 bottom-2 w-px bg-white/10" />
 
-        {/* Nodes with branches */}
-        <NodeWithBranches
-          top="4%"
-          label="PLAN"
-          sub="Scope for outcomes"
-          branches={["Storyboard", "Framework", "Deadline"]}
-        />
-        <NodeWithBranches
-          top="29%"
-          label="ANALYZE"
-          sub="Turn data into direction"
-          branches={["Data audit", "Hypotheses", "Methods"]}
-        />
-        <NodeWithBranches
-          top="56%"
-          label="CONSTRUCT"
-          sub="Build, iterate, instrument"
-          branches={["Prototype", "Feedback", "Instrumentation"]}
-        />
-        <NodeWithBranches
-          top="83%"
-          label="EXECUTE"
-          sub="Ship, train, measure"
-          branches={["Deploy", "Enablement", "Impact"]}
-        />
+          {/* Nodes (positions are relative to the centered box height) */}
+          <NodeWithBranches
+            top="0%"
+            label="PLAN"
+            sub="Scope for outcomes"
+            branches={["Storyboard", "Framework", "Deadline"]}
+          />
+          <NodeWithBranches
+            top="28%"
+            label="ANALYZE"
+            sub="Turn data into direction"
+            branches={["Data audit", "Hypotheses", "Methods"]}
+          />
+          <NodeWithBranches
+            top="58%"
+            label="CONSTRUCT"
+            sub="Build, iterate, instrument"
+            branches={["Prototype", "Feedback", "Instrumentation"]}
+          />
+          <NodeWithBranches
+            top="88%"
+            label="EXECUTE"
+            sub="Ship, train, measure"
+            branches={["Deploy", "Enablement", "Impact"]}
+          />
+        </div>
       </div>
     </div>
   );
@@ -477,7 +487,9 @@ export default function ProjectsHUD() {
   }, []);
 
   // Viewport height for the sticky "stage" (scroll-lock window)
-  const [vh, setVh] = React.useState<number>(typeof window === "undefined" ? 800 : window.innerHeight);
+  const [vh, setVh] = React.useState<number>(
+    typeof window === "undefined" ? 800 : window.innerHeight
+  );
   React.useEffect(() => {
     const onResize = () => setVh(window.innerHeight || vh);
     window.addEventListener("resize", onResize, { passive: true });
@@ -487,7 +499,7 @@ export default function ProjectsHUD() {
   // Fade mask tuning for the collage stage (right column)
   const TOP_FADE = 180;    // px — tiles fade out under sticky header
   const BOTTOM_FADE = 110; // px — tiles fade in from bottom
-  const EXTRA_BOTTOM = 96; // ≈ 1 inch of extra scroll after the storyboard ends
+  const EXTRA_BOTTOM = 96; // ≈ ~1 inch after storyboard ends (short, no big blank)
 
   // Mobile: simple stack (note hidden on mobile)
   const mobile = (
@@ -545,7 +557,7 @@ export default function ProjectsHUD() {
   const md = LAYOUT.md;
   const lg = LAYOUT.lg;
 
-  // ====== NEW: Scroll-locked "Scene" wrapper (right column only) ======
+  // ===== Scroll-locked "Scene" wrapper (right column only) =====
   function CollageScene({
     mode, // "md" | "lg"
     containerHeight,
@@ -557,19 +569,19 @@ export default function ProjectsHUD() {
     items: Record<string, { left: string; top: number; width: string }>;
     note: { left: string; top: number; width: string };
   }) {
-    // Sentinel drives progress (0→1) while section is locked
-    const sentinelRef = React.useRef<HTMLDivElement | null>(null);
+    // Wrapper element that defines the scroll range (this locks the user inside)
+    const sceneRef = React.useRef<HTMLDivElement | null>(null);
 
     // Travel distance: how far the collage must move to pass completely
     const travel = Math.max(0, containerHeight - vh);
 
-    // Total scroll height for this scene = visible window (vh) + travel + a bit extra
+    // Total scroll height for this scene = visible window (vh) + travel + ~1 inch
     const sceneHeight = vh + travel + EXTRA_BOTTOM;
 
-    // Progress within the scene
+    // Progress within the scene (0→1 while the wrapper scrolls)
     const { scrollYProgress } = useScroll({
-      target: sentinelRef,
-      offset: ["start start", "end end"], // lock from first pixel to last pixel of the scene
+      target: sceneRef,
+      offset: ["start start", "end end"],
     });
 
     // Translate the collage upward from 0px → -travel px
@@ -577,13 +589,13 @@ export default function ProjectsHUD() {
 
     return (
       <div
+        ref={sceneRef}
         className={mode === "md" ? "relative hidden md:block lg:hidden" : "relative hidden lg:block"}
-        // Section is now only as tall as needed: window + travel + ~1 inch (shorter overall)
-        style={{ height: sceneHeight }}
+        style={{ height: sceneHeight }} // SHORTER: only window + travel + ~1 inch
       >
-        {/* Sticky stage that pins the storyboard + window while the user scrolls the scene */}
+        {/* Sticky stage pins the storyboard + view window while user scrolls the scene */}
         <div className="sticky top-0 h-screen">
-          {/* Pinned storyboard behind */}
+          {/* Pinned + centered storyboard behind */}
           <PACEBackground />
 
           {/* View window with top/bottom fades; collage moves inside this window only */}
@@ -605,7 +617,6 @@ export default function ProjectsHUD() {
             {/* Moving canvas holding the fixed-position collage */}
             <motion.div
               style={{ y, height: containerHeight, position: "relative" }}
-              // smooth GPU transform; only the collage moves (like the reference)
               className="will-change-transform"
             >
               {TILE_ORDER.map((title) => {
@@ -626,9 +637,6 @@ export default function ProjectsHUD() {
             </motion.div>
           </div>
         </div>
-
-        {/* The invisible scroll driver that creates the lock-in */}
-        <div ref={sentinelRef} className="absolute inset-0 -z-10" />
       </div>
     );
   }
@@ -637,7 +645,8 @@ export default function ProjectsHUD() {
     <section
       id="projects"
       aria-label="Projects"
-      className="relative w-full py-20 md:py-28 scroll-mt-24 md:scroll-mt-28 bg-[#0d131d]"
+      // SHORTER: keep top padding; reduce bottom padding so we don't add extra blank
+      className="relative w-full pt-20 md:pt-28 pb-0 scroll-mt-24 md:scroll-mt-28 bg-[#0d131d]"
     >
       <div className="mx-auto max-w-7xl px-6">
         {/* Header (sticky so tiles fade under it) */}
@@ -655,7 +664,7 @@ export default function ProjectsHUD() {
             {/* Mobile stacked — unchanged */}
             {mobile}
 
-            {/* md scene: only the collage moves; storyboard pinned; section locked */}
+            {/* md scene: only the collage moves; storyboard pinned; scroll locked */}
             <CollageScene
               mode="md"
               containerHeight={md.containerHeight}
