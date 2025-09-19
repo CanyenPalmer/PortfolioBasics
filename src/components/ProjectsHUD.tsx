@@ -56,7 +56,7 @@ const KEYWORD_BY_TITLE: Record<string, string> = {
   "PortfolioBasics (This Site)": "frontend",
 };
 
-// Predictable heights via aspect-ratio wrappers (prevents overlaps)
+// Predictable heights via aspect-ratio wrappers
 const ASPECT: Record<string, string> = {
   "CGM Patient Analytics": "3 / 4",
   "MyCaddy — Physics Shot Calculator": "3 / 4",
@@ -66,7 +66,7 @@ const ASPECT: Record<string, string> = {
   "Python 101": "2 / 3",
 };
 
-/** Collage layout (unchanged) */
+/** Collage layout (your original positions) */
 const LAYOUT = {
   md: {
     containerHeight: 1950,
@@ -188,7 +188,7 @@ function ProjectTile({
   );
 }
 
-/** Blurb + reference-style note (md+ only). */
+/** Blurb + note (md+ only) */
 function BlurbAndNote({
   left,
   top,
@@ -236,7 +236,7 @@ function BlurbAndNote({
   );
 }
 
-/** PACE storyboard (centered vertically; behind collage) */
+/** PACE storyboard (behind collage) */
 function PACEBackground() {
   return (
     <div className="pointer-events-none absolute inset-0 z-0">
@@ -311,7 +311,7 @@ function NodeWithBranches({
   );
 }
 
-/** Header block */
+/** Header */
 function ProjectsHeader() {
   return (
     <div className="mb-8 md:mb-10">
@@ -331,7 +331,7 @@ function ProjectsHeader() {
   );
 }
 
-/** LEFT RAIL (unchanged visuals/behavior) */
+/** LEFT RAIL (unchanged) */
 function LeftRail({ height }: { height?: number | null }) {
   const [paused, setPaused] = React.useState(false);
 
@@ -450,10 +450,9 @@ function RailColumn({ rows, rowH }: { rows: number; rowH: number }) {
 export default function ProjectsHUD() {
   const projects = ((profile as any)?.projects ?? []) as ReadonlyArray<Project>;
 
-  // Measure the right column height so the left rail can span the full section height
+  // Right column measured height (for the left rail)
   const rightColRef = React.useRef<HTMLDivElement>(null);
   const [railHeight, setRailHeight] = React.useState<number | null>(null);
-
   React.useEffect(() => {
     if (!rightColRef.current) return;
     const ro = new ResizeObserver((entries) => {
@@ -464,7 +463,7 @@ export default function ProjectsHUD() {
     return () => ro.disconnect();
   }, []);
 
-  // Viewport height (for sticky window sizing)
+  // Viewport height
   const [vh, setVh] = React.useState<number>(
     typeof window === "undefined" ? 800 : window.innerHeight
   );
@@ -476,11 +475,9 @@ export default function ProjectsHUD() {
 
   const TOP_FADE = 180;
   const BOTTOM_FADE = 110;
+  const EXTRA_TAIL = 10; // shorter bottom buffer
 
-  // Tiny post-scene spacer
-  const EXTRA_TAIL = 16;
-
-  // Mobile (unchanged)
+  // Mobile stack (unchanged)
   const mobile = (
     <div className="md:hidden space-y-10">
       {TILE_ORDER.map((title) => {
@@ -532,28 +529,27 @@ export default function ProjectsHUD() {
   const md = LAYOUT.md;
   const lg = LAYOUT.lg;
 
-  /** Scroll-locked scene (right column only) — sentinel height = EXACT motion path */
+  /** ONE scene component. The sentinel wraps the **whole right column** to guarantee lock. */
   function CollageScene({
-    mode,
     containerHeight,
     items,
     note,
   }: {
-    mode: "md" | "lg";
     containerHeight: number;
     items: Record<string, { left: string; top: number; width: string }>;
     note: { left: string; top: number; width: string };
   }) {
     const sentinelRef = React.useRef<HTMLDivElement | null>(null);
 
-    const START_FROM_BOTTOM = vh + 120; // show PACE first
+    // Show PACE first; start collage from below the viewport
+    const START_FROM_BOTTOM = vh + 120;
     const TRAVEL_CORE = Math.max(0, containerHeight - vh);
     const EXIT_TAIL = 220;
 
-    // Total y-translation we actually perform
+    // True motion path of the collage
     const TOTAL_PATH = START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL;
 
-    // Lock range equals the true motion distance (prevents early release)
+    // Sentinel **height is exactly the motion path** so the sticky stays pinned
     const SENTINEL_HEIGHT = Math.max(vh + 1, Math.ceil(TOTAL_PATH));
 
     const { scrollYProgress } = useScroll({
@@ -597,7 +593,7 @@ export default function ProjectsHUD() {
                   const pos = items[title];
                   return (
                     <ProjectTile
-                      key={`${mode}-${title}`}
+                      key={title}
                       p={p}
                       left={pos.left}
                       top={pos.top}
@@ -610,8 +606,7 @@ export default function ProjectsHUD() {
             </div>
           </div>
         </div>
-
-        {/* Tiny trimmed tail so the next title sits closer */}
+        {/* small buffer so the last card never clips the next title */}
         <div style={{ height: EXTRA_TAIL }} />
       </>
     );
@@ -624,31 +619,32 @@ export default function ProjectsHUD() {
       className="relative w-full pt-20 md:pt-28 pb-0 scroll-mt-24 md:scroll-mt-28 bg-[#0d131d] overscroll-contain"
     >
       <div className="mx-auto max-w-7xl px-6">
-        {/* Sticky header so cards fade under it */}
+        {/* Sticky header remains as-is so cards fade under it */}
         <div className="md:sticky md:top-6 md:z-20">
           <ProjectsHeader />
         </div>
 
         <div className="md:grid md:grid-cols-[64px,1fr] md:gap-6">
+          {/* Left rail unchanged */}
           <LeftRail height={railHeight} />
 
+          {/* Right column */}
           <div ref={rightColRef}>
+            {/* Mobile list */}
             {mobile}
 
-            {/* md collage */}
+            {/* On md screens, one locked scene */}
             <div className="relative hidden md:block lg:hidden">
               <CollageScene
-                mode="md"
                 containerHeight={md.containerHeight}
                 items={md.items}
                 note={md.note}
               />
             </div>
 
-            {/* lg collage */}
+            {/* On lg+ screens, one locked scene */}
             <div className="relative hidden lg:block">
               <CollageScene
-                mode="lg"
                 containerHeight={lg.containerHeight}
                 items={lg.items}
                 note={lg.note}
