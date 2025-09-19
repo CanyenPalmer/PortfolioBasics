@@ -1,3 +1,4 @@
+// src/components/ProjectsHUD.tsx
 "use client";
 
 import * as React from "react";
@@ -64,7 +65,7 @@ const ASPECT: Record<string, string> = {
   "Python 101": "2 / 3",
 };
 
-/** Collage layout (restored to your original, overlap-free positions) */
+/** Collage layout (unchanged from your version) */
 const LAYOUT = {
   md: {
     containerHeight: 1950,
@@ -128,7 +129,7 @@ function ProjectTile({
   const aspect = ASPECT[p.title] ?? "3 / 4";
 
   return (
-    // ⬅️ ensure tiles render above the note layer
+    // Tiles render above the storyboard (z-10)
     <article className="absolute z-10" style={{ left, top, width }} aria-label={p.title}>
       <TransitionLink
         href={`/projects/${slug}?via=projects`}
@@ -198,7 +199,7 @@ function BlurbAndNote({
   width: string;
 }) {
   return (
-    // ⬅️ note sits beneath tiles and ignores pointer events
+    // Note sits beneath tiles and ignores pointer events
     <div
       className="absolute hidden md:block pointer-events-none z-0"
       style={{ left, top, width }}
@@ -240,7 +241,93 @@ function BlurbAndNote({
   );
 }
 
-/** Header block: “Palmer” (small + underline) + big condensed “PROJECTS” + subheader */
+/** Pinned PACE storyboard (right column only; behind collage; no pointer events) */
+function PACEBackground() {
+  // Sticky area sits below the header; 7rem ≈ top-28 on your rail, keep it consistent.
+  return (
+    <div className="pointer-events-none absolute inset-0 z-0">
+      <div
+        className="sticky top-6 md:top-6"
+        style={{
+          height: "calc(100vh - 1.5rem)", // viewport minus 24px
+        }}
+      >
+        <div className="relative h-full w-full">
+          {/* vertical spine */}
+          <div className="absolute left-6 top-4 bottom-4 w-px bg-white/10" />
+
+          {/* Nodes (Plan / Analyze / Construct / Execute) with subtle branches */}
+          <NodeWithBranches
+            top="4%"
+            label="PLAN"
+            sub="Scope for outcomes"
+            branches={["Storyboard", "Framework", "Deadline"]}
+          />
+          <NodeWithBranches
+            top="29%"
+            label="ANALYZE"
+            sub="Turn data into direction"
+            branches={["Data audit", "Hypotheses", "Methods"]}
+          />
+          <NodeWithBranches
+            top="56%"
+            label="CONSTRUCT"
+            sub="Build, iterate, instrument"
+            branches={["Prototype", "Feedback", "Instrumentation"]}
+          />
+          <NodeWithBranches
+            top="83%"
+            label="EXECUTE"
+            sub="Ship, train, measure"
+            branches={["Deploy", "Enablement", "Impact"]}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NodeWithBranches({
+  top,
+  label,
+  sub,
+  branches,
+}: {
+  top: string;
+  label: string;
+  sub: string;
+  branches: string[];
+}) {
+  return (
+    <div className="absolute left-0 right-0" style={{ top }}>
+      <div className="relative pl-16 pr-4">
+        {/* Node */}
+        <div className="absolute left-2 top-1 h-7 w-7 rounded-full bg-white/10 ring-1 ring-white/15" />
+        <div className="text-white/85">
+          <div className="text-xs tracking-[0.22em] text-white/60">{label}</div>
+          <div className="text-sm md:text-base text-white/80">{sub}</div>
+        </div>
+
+        {/* Branch connector */}
+        <div className="absolute left-16 top-[1.6rem] h-px w-10 bg-white/12" />
+
+        {/* Branch boxes */}
+        <div className="ml-24 flex flex-wrap gap-3 mt-1">
+          {branches.map((b) => (
+            <div
+              key={b}
+              className="rounded-md border border-white/15 px-3 py-1 text-[11px] md:text-xs text-white/70"
+            >
+              {b}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Header block (unchanged markup); we’ll make it sticky outside this component. */
 function ProjectsHeader() {
   return (
     <div className="mb-8 md:mb-10">
@@ -260,23 +347,22 @@ function ProjectsHeader() {
   );
 }
 
-/** LEFT RAIL — single moving column, measured row height, **earlier top fade** */
+/** LEFT RAIL — unchanged mechanics; mask-only fades to avoid boxes on #0d131d */
 function LeftRail({ height }: { height?: number | null }) {
   const [paused, setPaused] = React.useState(false);
 
-  // ⬇️ Only change: keep mask fade; remove color overlays to prevent visible boxes.
-  const TOP_FADE = 250;
+  const TOP_FADE = 250; // earlier top fade to ensure invisibility before clipping
   const BOTTOM_FADE = 96;
-  const SPEED = 22; // px/sec scroll speed
+  const SPEED = 22; // px/sec
 
-  // Measure the *unrotated* label width, used as row height once rotated 90°
+  // Measure unrotated label width (used as row height when rotated 90°)
   const measureRef = React.useRef<HTMLSpanElement | null>(null);
   const [rowH, setRowH] = React.useState<number>(0);
   React.useEffect(() => {
     if (!measureRef.current) return;
     const measure = () => {
       const w = Math.ceil(measureRef.current!.getBoundingClientRect().width);
-      setRowH(w + 8); // small breathing room
+      setRowH(w + 8);
     };
     measure();
     const ro = new ResizeObserver(measure);
@@ -284,7 +370,6 @@ function LeftRail({ height }: { height?: number | null }) {
     return () => ro.disconnect();
   }, []);
 
-  // Rows needed for the given rail height
   const [rows, setRows] = React.useState<number>(80);
   React.useEffect(() => {
     if (!height || !rowH) return;
@@ -292,7 +377,6 @@ function LeftRail({ height }: { height?: number | null }) {
     setRows(target);
   }, [height, rowH]);
 
-  // RAF loop: translateY upward; wrap by whole rows
   const innerRef = React.useRef<HTMLDivElement | null>(null);
   const yRef = React.useRef(0);
   const lastRef = React.useRef<number | null>(null);
@@ -453,6 +537,10 @@ export default function ProjectsHUD() {
   const md = LAYOUT.md;
   const lg = LAYOUT.lg;
 
+  // Fade mask tuning for the collage stage (right column)
+  const TOP_FADE = 180;    // px — tiles fade out under sticky header
+  const BOTTOM_FADE = 110; // px — tiles fade in from bottom
+
   return (
     <section
       id="projects"
@@ -460,58 +548,97 @@ export default function ProjectsHUD() {
       className="relative w-full py-20 md:py-28 scroll-mt-24 md:scroll-mt-28 bg-[#0d131d]"
     >
       <div className="mx-auto max-w-7xl px-6">
-        {/* Header */}
-        <ProjectsHeader />
+        {/* Header (made sticky so tiles fade under it) */}
+        <div className="md:sticky md:top-6 md:z-20">
+          <ProjectsHeader />
+        </div>
 
         {/* Two-column layout on md+: left rail + right content; mobile shows content full-width */}
         <div className="md:grid md:grid-cols-[64px,1fr] md:gap-6">
-          {/* Left vertical scroller (hidden on mobile) */}
+          {/* Left vertical scroller (hidden on mobile) — UNCHANGED */}
           <LeftRail height={railHeight} />
 
-          {/* Right column: unchanged gallery & note */}
+          {/* Right column: storyboard + collage stage */}
           <div ref={rightColRef}>
-            {/* Mobile stacked */}
+            {/* Mobile stacked — unchanged */}
             {mobile}
 
-            {/* md collage */}
-            <div
-              className="relative hidden md:block lg:hidden"
-              style={{ height: md.containerHeight }}
-            >
-              {TILE_ORDER.map((title) => {
-                const p = projects.find((x) => x.title === title);
-                if (!p) return null;
-                const pos = md.items[title];
-                return (
-                  <ProjectTile
-                    key={`md-${title}`}
-                    p={p}
-                    left={pos.left}
-                    top={pos.top}
-                    width={pos.width}
-                  />
-                );
-              })}
-              <BlurbAndNote left={md.note.left} top={md.note.top} width={md.note.width} />
+            {/* md stage (collage scrolls over pinned storyboard) */}
+            <div className="relative hidden md:block lg:hidden" style={{ height: md.containerHeight }}>
+              {/* Pinned storyboard (behind) */}
+              <PACEBackground />
+
+              {/* Collage layer with top/bottom mask for smooth enter/leave */}
+              <div
+                className="relative z-10"
+                style={{
+                  WebkitMaskImage: `linear-gradient(to bottom,
+                    transparent 0px,
+                    black ${BOTTOM_FADE}px,
+                    black calc(100% - ${TOP_FADE}px),
+                    transparent 100%)`,
+                  maskImage: `linear-gradient(to bottom,
+                    transparent 0px,
+                    black ${BOTTOM_FADE}px,
+                    black calc(100% - ${TOP_FADE}px),
+                    transparent 100%)`,
+                }}
+              >
+                {TILE_ORDER.map((title) => {
+                  const p = projects.find((x) => x.title === title);
+                  if (!p) return null;
+                  const pos = md.items[title];
+                  return (
+                    <ProjectTile
+                      key={`md-${title}`}
+                      p={p}
+                      left={pos.left}
+                      top={pos.top}
+                      width={pos.width}
+                    />
+                  );
+                })}
+                <BlurbAndNote left={md.note.left} top={md.note.top} width={md.note.width} />
+              </div>
             </div>
 
-            {/* lg collage */}
+            {/* lg stage */}
             <div className="relative hidden lg:block" style={{ height: lg.containerHeight }}>
-              {TILE_ORDER.map((title) => {
-                const p = projects.find((x) => x.title === title);
-                if (!p) return null;
-                const pos = lg.items[title];
-                return (
-                  <ProjectTile
-                    key={`lg-${title}`}
-                    p={p}
-                    left={pos.left}
-                    top={pos.top}
-                    width={pos.width}
-                  />
-                );
-              })}
-              <BlurbAndNote left={lg.note.left} top={lg.note.top} width={lg.note.width} />
+              {/* Pinned storyboard (behind) */}
+              <PACEBackground />
+
+              {/* Collage layer with top/bottom mask for smooth enter/leave */}
+              <div
+                className="relative z-10"
+                style={{
+                  WebkitMaskImage: `linear-gradient(to bottom,
+                    transparent 0px,
+                    black ${BOTTOM_FADE}px,
+                    black calc(100% - ${TOP_FADE}px),
+                    transparent 100%)`,
+                  maskImage: `linear-gradient(to bottom,
+                    transparent 0px,
+                    black ${BOTTOM_FADE}px,
+                    black calc(100% - ${TOP_FADE}px),
+                    transparent 100%)`,
+                }}
+              >
+                {TILE_ORDER.map((title) => {
+                  const p = projects.find((x) => x.title === title);
+                  if (!p) return null;
+                  const pos = lg.items[title];
+                  return (
+                    <ProjectTile
+                      key={`lg-${title}`}
+                      p={p}
+                      left={pos.left}
+                      top={pos.top}
+                      width={pos.width}
+                    />
+                  );
+                })}
+                <BlurbAndNote left={lg.note.left} top={lg.note.top} width={lg.note.width} />
+              </div>
             </div>
           </div>
         </div>
