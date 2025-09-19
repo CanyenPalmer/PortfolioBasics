@@ -4,9 +4,9 @@
 import Image from "next/image";
 import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
 import { useEffect, useRef } from "react";
-import { Cinzel } from "next/font/google"; // [NEW] custom title font
+import { Cinzel } from "next/font/google"; // custom title font
 
-const cinzel = Cinzel({ subsets: ["latin"], weight: ["700", "800", "900"] }); // [NEW]
+const cinzel = Cinzel({ subsets: ["latin"], weight: ["700", "800", "900"] });
 
 type Props = {
   title?: string;
@@ -18,13 +18,7 @@ type Props = {
 /**
  * LandingIntro — cinematic intro fully isolated from the rest of the site.
  *
- * CHANGE (handoff fix):
- *  - The color “tint/dim” now keys off the LANDING section’s own scroll progress
- *    (sentinel) so it fades in ONLY near the end of the section.
- *  - The overlay itself still fades out during the first ~15% of Hero scroll.
- *  - Result: while leaving the landing section, the skyline smoothly dims toward the
- *    next section’s tone and looks like a fade into it — not a hard cut.
- *  - Fully reversible when scrolling back up.
+ * Title block is now restored to the front (above buildings) and positioned near the top.
  */
 export default function LandingIntro({
   title = "Let Data Drive Your Decisions",
@@ -55,10 +49,10 @@ export default function LandingIntro({
   });
   const overlayFadeByHero = useTransform(heroIntra, [0, 1], [1, 0]);
 
-  // NEW: tint/dimmer driven ONLY by landing progress — last slice of the landing section.
+  // Tint/dimmer driven ONLY by landing progress — last slice of the landing section.
   const tintOpacity = useTransform(scrollYProgress, [0.30, 0.995], [0, 1]);
 
-  // TITLE / BUILDINGS / SKY motions (unchanged)
+  // TITLE / BUILDINGS / SKY motions
   const titleY = useTransform(scrollYProgress, [0.0, 0.48], ["0vh", "130vh"]);
   const bldgY = useTransform(scrollYProgress, [0.12, 0.98], ["0vh", "130vh"]);
   const bldgOpacity = useTransform(scrollYProgress, [0.80, 0.98], [1, 0.35]);
@@ -75,8 +69,6 @@ export default function LandingIntro({
         aria-hidden
         className="fixed inset-0 z-[60] pointer-events-none select-none will-change-transform will-change-opacity"
         style={{
-          // Keep overlay fully present until we start moving inside the Hero,
-          // then fade it out smoothly (reversible on scroll-up).
           opacity: reduce ? 1 : (heroRef.current ? overlayFadeByHero : 1),
           contain: "paint layout style size",
         }}
@@ -93,25 +85,22 @@ export default function LandingIntro({
           />
         </motion.div>
 
-        {/* TITLE BLOCK — now centered AND behind buildings */}
+        {/* TITLE BLOCK — restored to the front, positioned near top */}
         <motion.div
-          className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 text-center"
+          className="absolute left-1/2 top-[18vh] z-30 -translate-x-1/2 text-center"
           style={{ y: reduce ? "0vh" : titleY }}
         >
-          <h1
-            className={`${cinzel.className} text-white tracking-tight`}
-          >
+          <h1 className={`${cinzel.className} text-white tracking-tight`}>
             <span className="block text-4xl sm:text-6xl md:text-7xl lg:text-8xl drop-shadow-[0_0_16px_rgba(64,200,255,.25)]">
               {title}
             </span>
           </h1>
-          {/* Subheading: softer, not bold */}
           <p className="mt-3 text-base sm:text-lg md:text-xl text-white/80 font-normal">
             Canyen&apos;s Portfolio
           </p>
         </motion.div>
 
-        {/* BUILDINGS — remain in front of the title (z-20 > z-10) */}
+        {/* BUILDINGS — remain behind the title now (z-20 < z-30) */}
         <motion.div
           className="absolute inset-x-0 bottom-0 z-20"
           style={{
@@ -129,8 +118,7 @@ export default function LandingIntro({
           />
         </motion.div>
 
-        {/* HANDOFF tint/dimmer — fades in only at the end of the landing section.
-            Placed above buildings/sky but below the cue, so overall tone matches next section. */}
+        {/* HANDOFF tint/dimmer — fades in only at the end of the landing section */}
         <motion.div
           className="absolute inset-0 z-25"
           style={{
@@ -148,7 +136,7 @@ export default function LandingIntro({
         </motion.div>
       </motion.div>
 
-      {/* A11y: quick path for keyboard/screen-reader users; does not affect layout */}
+      {/* A11y: quick path for keyboard/screen-reader users */}
       <a
         href="#home"
         className="sr-only focus:not-sr-only focus:absolute focus:bottom-6 focus:left-6 focus:z-50 bg-white/10 text-white rounded px-3 py-2 backdrop-blur"
