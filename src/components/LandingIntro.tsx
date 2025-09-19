@@ -4,6 +4,9 @@
 import Image from "next/image";
 import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
 import { useEffect, useRef } from "react";
+import { Cinzel } from "next/font/google"; // [NEW] custom title font
+
+const cinzel = Cinzel({ subsets: ["latin"], weight: ["700", "800", "900"] }); // [NEW]
 
 type Props = {
   title?: string;
@@ -52,8 +55,7 @@ export default function LandingIntro({
   });
   const overlayFadeByHero = useTransform(heroIntra, [0, 1], [1, 0]);
 
-  // NEW: tint/dimmer driven ONLY by landing progress — last ~12% of the landing section.
-  // This ensures the skyline is visible during most of the section and only dims near exit.
+  // NEW: tint/dimmer driven ONLY by landing progress — last slice of the landing section.
   const tintOpacity = useTransform(scrollYProgress, [0.30, 0.995], [0, 1]);
 
   // TITLE / BUILDINGS / SKY motions (unchanged)
@@ -91,17 +93,25 @@ export default function LandingIntro({
           />
         </motion.div>
 
-        {/* TITLE — drops first */}
-        <motion.h1
-          className="absolute left-1/2 top-[18vh] z-30 -translate-x-1/2 text-center font-extrabold tracking-tight text-white"
+        {/* TITLE BLOCK — now centered AND behind buildings */}
+        <motion.div
+          className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 text-center"
           style={{ y: reduce ? "0vh" : titleY }}
         >
-          <span className="block text-4xl sm:text-6xl md:text-7xl lg:text-8xl drop-shadow-[0_0_16px_rgba(64,200,255,.25)]">
-            {title}
-          </span>
-        </motion.h1>
+          <h1
+            className={`${cinzel.className} text-white tracking-tight`}
+          >
+            <span className="block text-4xl sm:text-6xl md:text-7xl lg:text-8xl drop-shadow-[0_0_16px_rgba(64,200,255,.25)]">
+              {title}
+            </span>
+          </h1>
+          {/* Subheading: softer, not bold */}
+          <p className="mt-3 text-base sm:text-lg md:text-xl text-white/80 font-normal">
+            Canyen&apos;s Portfolio
+          </p>
+        </motion.div>
 
-        {/* BUILDINGS — slide down and lightly fade near the end */}
+        {/* BUILDINGS — remain in front of the title (z-20 > z-10) */}
         <motion.div
           className="absolute inset-x-0 bottom-0 z-20"
           style={{
@@ -120,7 +130,7 @@ export default function LandingIntro({
         </motion.div>
 
         {/* HANDOFF tint/dimmer — fades in only at the end of the landing section.
-           Placed above buildings/sky but below the title so the heading remains crisp. */}
+            Placed above buildings/sky but below the cue, so overall tone matches next section. */}
         <motion.div
           className="absolute inset-0 z-25"
           style={{
