@@ -448,8 +448,10 @@ function RailColumn({ rows, rowH }: { rows: number; rowH: number }) {
 
 /* -------------------- SCROLL-LOCKED COLLAGE (right column only) -------------------- */
 /**
- * Change: add a dynamic lead-in BEFORE the sticky viewport so the lock engages
- * only after the PACE tree would be fully visible and centered.
+ * Robust lock:
+ *  - Adds a lead-in so the PACE tree is fully centered BEFORE lock.
+ *  - Uses sticky by default, but if sticky is constrained, switches to a fixed
+ *    overlay sized/positioned to the right column (so the lock still happens).
  */
 function CollageScene({
   vh,
@@ -468,7 +470,7 @@ function CollageScene({
   projects: ReadonlyArray<Project>;
   mode: "md" | "lg";
 }) {
-  // Distance to scroll before locking so the tree would be centered in view
+  // Distance to scroll before locking so the tree is centered
   const LEAD_IN = Math.max(0, Math.round((vh - treeHeight) / 2));
 
   // Cards appear from the bottom after lock begins
@@ -489,7 +491,7 @@ function CollageScene({
   });
 
   // Keep collage still during lead-in, then animate across the locked span
-  const startFrac = LEAD_IN / SENTINEL_HEIGHT;
+  const startFrac = LEAD_IN / SENTINEL_HEIGHT || 0;
   const y = useTransform(scrollYProgress, [0, startFrac, 1], [
     START_FROM_BOTTOM,
     START_FROM_BOTTOM,
@@ -500,56 +502,137 @@ function CollageScene({
   const TOP_FADE = 180;
   const BOTTOM_FADE = 110;
 
+  // ---------- Fixed-overlay fallback when sticky is constrained ----------
+  const stageBoxRef = React.useRef<HTMLDivElement | null>(null);
+  const [box, setBox] = React.useState<{ left: number; width: number } | null>(null);
+  const [forceFixed, setForceFixed] = React.useState(false);
+
+  // Measure the right-column box for fixed overlay placement
+  React.useLayoutEffect(() => {
+    const measure = () => {
+      const el = stageBoxRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      setBox({ left: Math.round(r.left), width: Math.round(r.width) });
+    };
+    measure();
+    window.addEventListener("resize", measure, { passive: true });
+    return () => window.removeEventListener("resize", measure);
+  }, []);
+
+  // Turn on the fixed overlay only during the lock span (after lead-in, before end)
+  React.useEffect(() => {
+    const unsub = scrollYProgress.on("change", (v) => {
+      setForceFixed(v > startFrac && v < 0.999);
+    });
+    return () => unsub();
+  }, [scrollYProgress, startFrac]);
+
   return (
     <>
       {/* Scroll driver (controls the timing and lock) */}
       <div ref={sentinelRef} style={{ height: SENTINEL_HEIGHT }} className="relative">
-        {/* free-scroll lead-in so the tree would be fully visible BEFORE lock */}
+        {/* Free-scroll lead-in so the tree is fully visible BEFORE lock */}
         {LEAD_IN > 0 && <div style={{ height: LEAD_IN }} />}
 
-        {/* Pinned viewport (locks while sticky is in view) */}
-        <div className="sticky top-0 h-screen">
-          {/* Tree behind, unmasked (always visible) */}
-          <PACEBackground />
+        {/* This box defines the right-column bounds for the fixed fallback */}
+        <div ref={stageBoxRef} className="relative">
+          {/* STICKY stage (default). Hidden while fixed overlay is active to avoid double draw. */}
+          <div className={forceFixed ? "invisible" : "visible"}>
+            <div className="sticky top-0 h-screen">
+              {/* Tree behind, unmasked */}
+              <PACEBackground />
 
-          {/* Collage in front, masked at edges only */}
-          <div className="absolute inset-0 z-10 overflow-hidden">
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                WebkitMaskImage: `linear-gradient(to bottom,
-                  transparent 0px,
-                  black ${BOTTOM_FADE}px,
-                  black calc(100% - ${TOP_FADE}px),
-                  transparent 100%)`,
-                maskImage: `linear-gradient(to bottom,
-                  transparent 0px,
-                  black ${BOTTOM_FADE}px,
-                  black calc(100% - ${TOP_FADE}px),
-                  transparent 100%)`,
-              }}
-            />
-            <motion.div
-              style={{ y, height: containerHeight, position: "relative" }}
-              className="will-change-transform"
-            >
-              {TILE_ORDER.map((title) => {
-                const p = projects.find((x) => x.title === title);
-                if (!p) return null;
-                const pos = items[title];
-                return (
-                  <ProjectTile
-                    key={`${mode}-${title}`}
-                    p={p}
-                    left={pos.left}
-                    top={pos.top}
-                    width={pos.width}
-                  />
-                );
-              })}
-              <BlurbAndNote left={note.left} top={note.top} width={note.width} />
-            </motion.div>
+              {/* Collage in front, masked at edges only */}
+              <div className="absolute inset-0 z-10 overflow-hidden">
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    WebkitMaskImage: `linear-gradient(to bottom,
+                      transparent 0px,
+                      black ${BOTTOM_FADE}px,
+                      black calc(100% - ${TOP_FADE}px),
+                      transparent 100%)`,
+                    maskImage: `linear-gradient(to bottom,
+                      transparent 0px,
+                      black ${BOTTOM_FADE}px,
+                      black calc(100% - ${TOP_FADE}px),
+                      transparent 100%)`,
+                  }}
+                />
+                <motion.div
+                  style={{ y, height: containerHeight, position: "relative" }}
+                  className="will-change-transform"
+                >
+                  {TILE_ORDER.map((title) => {
+                    const p = projects.find((x) => x.title === title);
+                    if (!p) return null;
+                    const pos = items[title];
+                    return (
+                      <ProjectTile
+                        key={`${mode}-${title}`}
+                        p={p}
+                        left={pos.left}
+                        top={pos.top}
+                        width={pos.width}
+                      />
+                    );
+                  })}
+                  <BlurbAndNote left={note.left} top={note.top} width={note.width} />
+                </motion.div>
+              </div>
+            </div>
           </div>
+
+          {/* FIXED overlay (fallback lock) — shown ONLY during the locked span */}
+          {forceFixed && box && (
+            <div
+              className="fixed top-0 h-screen z-[50]"
+              style={{ left: box.left, width: box.width }}
+            >
+              {/* Tree behind, unmasked */}
+              <PACEBackground />
+
+              {/* Collage in front, masked at edges only */}
+              <div className="absolute inset-0 z-10 overflow-hidden">
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    WebkitMaskImage: `linear-gradient(to bottom,
+                      transparent 0px,
+                      black ${BOTTOM_FADE}px,
+                      black calc(100% - ${TOP_FADE}px),
+                      transparent 100%)`,
+                    maskImage: `linear-gradient(to bottom,
+                      transparent 0px,
+                      black ${BOTTOM_FADE}px,
+                      black calc(100% - ${TOP_FADE}px),
+                      transparent 100%)`,
+                  }}
+                />
+                <motion.div
+                  style={{ y, height: containerHeight, position: "relative" }}
+                  className="will-change-transform"
+                >
+                  {TILE_ORDER.map((title) => {
+                    const p = projects.find((x) => x.title === title);
+                    if (!p) return null;
+                    const pos = items[title];
+                    return (
+                      <ProjectTile
+                        key={`fixed-${mode}-${title}`}
+                        p={p}
+                        left={pos.left}
+                        top={pos.top}
+                        width={pos.width}
+                      />
+                    );
+                  })}
+                  <BlurbAndNote left={note.left} top={note.top} width={note.width} />
+                </motion.div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
