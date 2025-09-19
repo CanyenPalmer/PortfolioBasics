@@ -18,8 +18,8 @@ type Props = {
 /**
  * LandingIntro — cinematic intro fully isolated from the rest of the site.
  *
- * Fix: overlay opacity also keys off the landing sentinel (safety), and the
- * transformer explicitly treats inputs as numbers to avoid TS build errors.
+ * Fix: keep overlay fully visible through the landing animations.
+ * - Prefer hero-driven fade; fallback to a last-moment sentinel fade only if #home is missing.
  */
 export default function LandingIntro({
   title = "Let Data Drive Your Decisions",
@@ -43,25 +43,18 @@ export default function LandingIntro({
     heroRef.current = document.getElementById("home") as HTMLElement | null;
   }, []);
 
-  // Fade the overlay OUT over ~15% of scrolling within the Hero
+  // Hero-driven overlay fade (preferred): fade out over first ~15% inside Hero
   const { scrollYProgress: heroIntra } = useScroll({
     target: heroRef,
     offset: ["start 0%", "start -15%"], // top of Hero at top → 15% into Hero
   });
   const overlayFadeByHero = useTransform(heroIntra, [0, 1], [1, 0]);
 
-  // Safety fallback: also fade out purely by the landing sentinel near the end
-  const overlayFadeBySentinel = useTransform(scrollYProgress, [0.97, 1.0], [1, 0]);
+  // Fallback: only if #home isn't found, fade at the very end of landing (doesn't cut animations)
+  const overlayFadeBySentinel = useTransform(scrollYProgress, [0.999, 1.0], [1, 0]);
 
-  // Combine both fades — whichever is more transparent wins (typed explicitly for TS)
-  const overlayOpacity = useTransform(
-    [overlayFadeByHero, overlayFadeBySentinel],
-    (latest) => {
-      const h = Number(latest[0] ?? 1);
-      const s = Number(latest[1] ?? 1);
-      return Math.min(h, s);
-    }
-  );
+  // Choose fade source: prefer hero-driven; otherwise last-moment sentinel fade
+  const overlayOpacity = heroRef.current ? overlayFadeByHero : overlayFadeBySentinel;
 
   // Tint/dimmer driven ONLY by landing progress — last slice of the landing section.
   const tintOpacity = useTransform(scrollYProgress, [0.30, 0.995], [0, 1]);
