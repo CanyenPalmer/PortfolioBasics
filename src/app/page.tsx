@@ -4,6 +4,8 @@
 import VscodeTopBar from "@/components/VscodeTopBar";
 import Hero from "@/components/HeroWithAvatar";
 import AboutMeShowcase from "@/components/AboutMeShowcase";
+// NEW
+import LandingIntro from "@/components/LandingIntro";
 
 // These components own their own <section> now
 import Experience from "@/components/Experience";
@@ -25,31 +27,18 @@ export default function Page() {
         githubHref="https://github.com/CanyenPalmer"
       />
 
-      {/* HERO — wrapper keeps props; now sized like a page */}
-      <section
-        id="hero"
-        aria-label="Hero"
-        className="min-h-[100svh] md:min-h-screen flex items-center py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start"
-      >
-        <div className="container mx-auto px-6 max-w-7xl w-full">
-          <Hero
-            headline={profile.hero.headline}
-            subheadline={profile.hero.subheadline}
-            typer={profile.hero.typer}
-          />
-        </div>
-      </section>
+      {/* LANDING INTRO — pinned cinematic section */}
+      <LandingIntro />
 
-      {/* ABOUT — sized like a page; top-aligned content for natural reading */}
-      <section
-        id="about"
-        aria-label="About"
-        className="min-h-[100svh] md:min-h-screen flex items-center py-24 md:py-32 scroll-mt-24 md:scroll-mt-28 md:snap-start"
-      >
-        <div className="container mx-auto px-6 max-w-7xl w-full">
-          <AboutMeShowcase />
-        </div>
-      </section>
+      {/* HERO — your existing section (unchanged) */}
+      <Hero
+        headline={profile.headline}
+        subheadline={profile.subheadline}
+        typer={profile.typer}
+      />
+
+      {/* ABOUT — component owns <section> */}
+      <AboutMeShowcase />
 
       {/* EXPERIENCE — component owns <section> */}
       <Experience />
