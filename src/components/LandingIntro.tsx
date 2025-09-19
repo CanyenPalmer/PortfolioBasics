@@ -87,9 +87,9 @@ export default function LandingIntro({
           />
         </motion.div>
 
-        {/* TITLE BLOCK — horizontally centered at top with subtle text shadow */}
+        {/* TITLE BLOCK — FULL-WIDTH container, centered text at same top height */}
         <motion.div
-          className="absolute left-1/2 top-[18vh] z-30 -translate-x-1/2 text-center"
+          className="absolute inset-x-0 top-[18vh] z-30 text-center"
           style={{ y: reduce ? "0vh" : titleY }}
         >
           <h1 className={`${cinzel.className} text-white tracking-tight`}>
@@ -154,3 +154,4 @@ export default function LandingIntro({
     </section>
   );
 }
+
