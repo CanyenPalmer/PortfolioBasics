@@ -767,3 +767,5 @@ export default function ProjectsHUD() {
     </section>
   );
 }
+
+/*ignore*/
