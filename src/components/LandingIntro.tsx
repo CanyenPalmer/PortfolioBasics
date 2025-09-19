@@ -18,7 +18,9 @@ type Props = {
 /**
  * LandingIntro — cinematic intro fully isolated from the rest of the site.
  *
- * Title block is now restored to the front (above buildings) and positioned near the top.
+ * Changes:
+ * 1) Title and subheading centered in the middle of the page.
+ * 2) Subtle shadow behind characters of title + subheading for a soft "pop".
  */
 export default function LandingIntro({
   title = "Let Data Drive Your Decisions",
@@ -85,22 +87,27 @@ export default function LandingIntro({
           />
         </motion.div>
 
-        {/* TITLE BLOCK — restored to the front, positioned near top */}
+        {/* TITLE BLOCK — centered vertically in the middle with subtle text shadow */}
         <motion.div
-          className="absolute left-1/2 top-[18vh] z-30 -translate-x-1/2 text-center"
+          className="absolute left-1/2 top-1/2 z-30 -translate-x-1/2 -translate-y-1/2 text-center"
           style={{ y: reduce ? "0vh" : titleY }}
         >
           <h1 className={`${cinzel.className} text-white tracking-tight`}>
-            <span className="block text-4xl sm:text-6xl md:text-7xl lg:text-8xl drop-shadow-[0_0_16px_rgba(64,200,255,.25)]">
+            <span className="block text-4xl sm:text-6xl md:text-7xl lg:text-8xl"}
+              style={{ textShadow: "0 2px 6px rgba(0,0,0,0.35)" }}
+            >
               {title}
             </span>
           </h1>
-          <p className="mt-3 text-base sm:text-lg md:text-xl text-white/80 font-normal">
+          <p
+            className="mt-3 text-base sm:text-lg md:text-xl text-white/90 font-normal"
+            style={{ textShadow: "0 1px 4px rgba(0,0,0,0.25)" }}
+          >
             Canyen&apos;s Portfolio
           </p>
         </motion.div>
 
-        {/* BUILDINGS — remain behind the title now (z-20 < z-30) */}
+        {/* BUILDINGS — behind the title now (z-20 < z-30) */}
         <motion.div
           className="absolute inset-x-0 bottom-0 z-20"
           style={{
