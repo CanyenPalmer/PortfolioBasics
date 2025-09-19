@@ -18,12 +18,9 @@ type Props = {
 /**
  * LandingIntro — cinematic intro fully isolated from the rest of the site.
  *
- * Notes:
- * - Title + subheading horizontally centered near the top (top middle).
- * - Thicker (tasteful) text-shadows for pop.
- * - Title split into two italic lines; subheading italicized too.
- * - Title block sits in front of buildings.
- * - Skyline-to-hero tint handoff tied to landing progress; overlay fades during early hero scroll.
+ * Minimal change:
+ * - Ensure the title visibly reads as italic by adding a subtle skew to each line
+ *   (some Google fonts don’t include true italic). Subheading already italic.
  */
 export default function LandingIntro({
   title = "Let Data Drive Your Decisions",
@@ -98,7 +95,7 @@ export default function LandingIntro({
           <h1 className={`${cinzel.className} italic text-white tracking-tight`}>
             {/* Line 1 */}
             <span
-              className="block text-4xl sm:text-6xl md:text-7xl lg:text-8xl drop-shadow-[0_0_16px_rgba(64,200,255,.25)]"
+              className="block italic transform -skew-x-6 text-4xl sm:text-6xl md:text-7xl lg:text-8xl drop-shadow-[0_0_16px_rgba(64,200,255,.25)]"
               style={{
                 textShadow:
                   "0 5px 18px rgba(0,0,0,0.65), 0 3px 8px rgba(0,0,0,0.5)",
@@ -108,7 +105,7 @@ export default function LandingIntro({
             </span>
             {/* Line 2 */}
             <span
-              className="mt-1 block text-4xl sm:text-6xl md:text-7xl lg:text-8xl drop-shadow-[0_0_16px_rgba(64,200,255,.25)]"
+              className="mt-1 block italic transform -skew-x-6 text-4xl sm:text-6xl md:text-7xl lg:text-8xl drop-shadow-[0_0_16px_rgba(64,200,255,.25)]"
               style={{
                 textShadow:
                   "0 5px 18px rgba(0,0,0,0.65), 0 3px 8px rgba(0,0,0,0.5)",
