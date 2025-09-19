@@ -18,9 +18,10 @@ type Props = {
 /**
  * LandingIntro — cinematic intro fully isolated from the rest of the site.
  *
- * Changes:
- * 1) Title and subheading centered in the middle of the page.
- * 2) Subtle shadow behind characters of title + subheading for a soft "pop".
+ * Notes:
+ * - Title + subheading centered vertically, with subtle text-shadows for a slight "pop".
+ * - Title block sits in front of buildings.
+ * - Skyline-to-hero tint handoff tied to landing progress; overlay fades during early hero scroll.
  */
 export default function LandingIntro({
   title = "Let Data Drive Your Decisions",
@@ -87,13 +88,14 @@ export default function LandingIntro({
           />
         </motion.div>
 
-        {/* TITLE BLOCK — centered vertically in the middle with subtle text shadow */}
+        {/* TITLE BLOCK — centered vertically in the middle with subtle text shadow; on top of buildings */}
         <motion.div
           className="absolute left-1/2 top-1/2 z-30 -translate-x-1/2 -translate-y-1/2 text-center"
           style={{ y: reduce ? "0vh" : titleY }}
         >
           <h1 className={`${cinzel.className} text-white tracking-tight`}>
-            <span className="block text-4xl sm:text-6xl md:text-7xl lg:text-8xl"}
+            <span
+              className="block text-4xl sm:text-6xl md:text-7xl lg:text-8xl drop-shadow-[0_0_16px_rgba(64,200,255,.25)]"
               style={{ textShadow: "0 2px 6px rgba(0,0,0,0.35)" }}
             >
               {title}
@@ -107,7 +109,7 @@ export default function LandingIntro({
           </p>
         </motion.div>
 
-        {/* BUILDINGS — behind the title now (z-20 < z-30) */}
+        {/* BUILDINGS — behind the title (z-20 < z-30) */}
         <motion.div
           className="absolute inset-x-0 bottom-0 z-20"
           style={{
