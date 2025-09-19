@@ -43,7 +43,7 @@ function ResumeIcon(props: React.SVGProps<SVGSVGElement>) {
 export default function Hero({ headline, subheadline, typer }: Props) {
   // === VHS glitch hover (nav-only) ===
   const _glitchTimers = React.useRef<Map<HTMLElement, number>>(new Map());
-  // ASCII-only to keep width stable per character (prevents visual stretching)
+  // ASCII-only to keep width visually stable (prevents layout shift)
   const _glyphs = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
   function scrambleLabel(label: string) {
@@ -92,7 +92,6 @@ export default function Hero({ headline, subheadline, typer }: Props) {
   const LOCK_DELAY_MS = 1300; // matches end of NameStamp animation; tweak if needed
   const [locked, setLocked] = React.useState(false);
   const resolvedName = headline ?? "Canyen Palmer";
-  // Fancy title stack with Alinore first
   const alinoreStack =
     '"Alinore", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif';
 
@@ -177,15 +176,15 @@ export default function Hero({ headline, subheadline, typer }: Props) {
       <div className="container mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-10 items-center relative z-10">
         {/* Copy */}
         <div className="space-y-5">
-          <h1 className="text-7xl md:text-8xl lg:text-9xl font-bold leading-[1.05]">
+          <h1 className="text-7xl md:text-8xl lg:text-9xl font-bold leading-[1.05] whitespace-nowrap">
             {/* Switch font-family on the same element once the stamp is done */}
             <span
-              className="hero-name"
+              className="hero-name inline-block whitespace-nowrap"
               style={locked ? { fontFamily: alinoreStack, letterSpacing: "0.01em" } : undefined}
             >
               <NameStamp
                 text={resolvedName}
-                className="text-7xl md:text-8xl lg:text-9xl font-bold"
+                className="text-7xl md:text-8xl lg:text-9xl font-bold whitespace-nowrap"
                 variant="hero"
                 rearmOnExit={true}
               />
@@ -222,16 +221,21 @@ export default function Hero({ headline, subheadline, typer }: Props) {
       {/* VHS glitch overlay (nav) + Alinore face */}
       <style jsx global>{`
         /* ---------- Hero nav VHS glitch ---------- */
-        .nav-glitch { position: relative; display: inline-block; color: rgba(255,255,255,0.7); }
+        .nav-glitch {
+          position: relative;
+          display: inline-block;
+          color: rgba(255,255,255,0.7);
+          isolation: isolate;     /* ⬅️ contain blending to the label only */
+        }
         .nav-glitch .nav-label { position: relative; z-index: 1; }
 
         .nav-glitch .nav-vhs {
           position: absolute;
           inset: 0;
           width: 100%;
-          overflow: hidden;      /* hard clip overlay to label width */
+          overflow: hidden;        /* ⬅️ hard clip to label width */
           pointer-events: none;
-          contain: paint;        /* isolate paints; no layout spill */
+          contain: paint;          /* ⬅️ avoid paint/layout bleed */
         }
         .nav-glitch:hover { color: #fff; }
 
@@ -241,16 +245,17 @@ export default function Hero({ headline, subheadline, typer }: Props) {
           position: absolute; left: 0; top: 0;
           width: 100%;
           white-space: nowrap;
-          font: inherit; letter-spacing: inherit; /* lock metrics */
+          font: inherit; letter-spacing: inherit; line-height: inherit; /* ⬅️ lock metrics */
           will-change: transform, clip-path, opacity, text-shadow;
         }
         .nav-glitch.is-glitching .nav-vhs::before {
-          color: currentColor; mix-blend-mode: screen;
+          color: currentColor;
+          /* no blend outside due to isolation on anchor */
           text-shadow: 1px 0 rgba(0,255,255,0.6);
           animation: vhsShiftA 280ms steps(2, end) infinite;
         }
         .nav-glitch.is-glitching .nav-vhs::after {
-          color: currentColor; mix-blend-mode: screen;
+          color: currentColor;
           text-shadow: -1px 0 rgba(255,0,0,0.6);
           animation: vhsShiftB 280ms steps(2, end) infinite;
         }
@@ -286,3 +291,4 @@ export default function Hero({ headline, subheadline, typer }: Props) {
     </section>
   );
 }
+
