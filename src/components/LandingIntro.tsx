@@ -9,6 +9,7 @@ type Props = {
   title?: string;
   skylineSrc?: string;   // sky-only background
   buildingsSrc?: string; // transparent foreground buildings
+  handoffColor?: string; // new: the color to fade toward at the very end
 };
 
 /**
@@ -17,16 +18,15 @@ type Props = {
  * Behavior:
  *  - Locks user in this scene (via sentinel height) while buildings exit.
  *  - Smoothly fades overlay at the end (no snap/jump).
- *  - When scrolling back up into this section, the entire sequence plays IN REVERSE.
- *
- * Isolation:
- *  - Fixed overlay with pointer-events-none (no layout impact elsewhere).
- *  - Section uses `isolate` to prevent z-index/filter bleed into other sections.
+ *  - Adds a dim/tint handoff layer that eases to your Hero background color
+ *    before the overlay fades out, making the transition feel seamless.
+ *  - When scrolling back up, this plays in reverse just like the other animations.
  */
 export default function LandingIntro({
   title = "Let Data Drive Your Decisions",
   skylineSrc = "/images/landing/skyline.png",
   buildingsSrc = "/images/landing/buildings.png",
+  handoffColor = "rgb(8,12,20)", // default tone for hero bg — adjust as needed
 }: Props) {
   // Scroll progress is based on a local "sentinel" only—no page-wide listeners.
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -38,7 +38,6 @@ export default function LandingIntro({
   const reduce = useReducedMotion();
 
   // Soft fade of overlay near the end to remove any perceived jump.
-  // NOTE: We keep the overlay mounted (no permanent 'hidden') so reverse scroll replays smoothly.
   const overlayOpacity = useTransform(scrollYProgress, [0.97, 1.0], [1, 0]);
 
   // Motion mappings for elements INSIDE the overlay (never touch outer layout).
@@ -50,10 +49,12 @@ export default function LandingIntro({
   // Optional: scroll cue fades out early; when returning, it fades back in.
   const cueOpacity = useTransform(scrollYProgress, [0.0, 0.15], [0.9, 0]);
 
+  // NEW: handoff dim layer — fades in during last ~10% to match hero bg tone
+  const handoffOpacity = useTransform(scrollYProgress, [0.90, 0.99], [0, 1]);
+
   return (
     <section
       aria-label="Landing Intro"
-      // isolate = new stacking context so filters/shadows/z-index don't bleed into other sections
       className="relative isolate"
     >
       {/* SCROLL DRIVER — defines how long the user is "locked" in this scene */}
@@ -68,7 +69,6 @@ export default function LandingIntro({
         className="fixed inset-0 z-[60] pointer-events-none select-none will-change-transform will-change-opacity"
         style={{
           opacity: reduce ? 1 : overlayOpacity,
-          // Further contain the overlay to avoid any potential style/layout bleed.
           contain: "paint layout style size",
         }}
       >
@@ -115,9 +115,18 @@ export default function LandingIntro({
           />
         </motion.div>
 
+        {/* NEW: Handoff dim/tint layer */}
+        <motion.div
+          className="absolute inset-0 z-40"
+          style={{
+            backgroundColor: handoffColor,
+            opacity: reduce ? 0 : handoffOpacity,
+          }}
+        />
+
         {/* Subtle scroll cue */}
         <motion.div
-          className="absolute bottom-6 left-1/2 z-40 -translate-x-1/2 text-[12px] tracking-[0.2em] text-slate-200/80"
+          className="absolute bottom-6 left-1/2 z-50 -translate-x-1/2 text-[12px] tracking-[0.2em] text-slate-200/80"
           style={{ opacity: cueOpacity }}
         >
           • SCROLL TO ENTER •
