@@ -6,7 +6,6 @@ import TransitionLink from "@/components/TransitionLink";
 import { profile } from "@/content/profile";
 import { slugify } from "@/lib/slug";
 import { Oswald, Plus_Jakarta_Sans } from "next/font/google";
-// NEW: motion hooks for scroll-lock + collage movement
 import { motion, useScroll, useTransform } from "framer-motion";
 
 const oswald = Oswald({ subsets: ["latin"], weight: ["400", "500", "700"] });
@@ -243,16 +242,15 @@ function BlurbAndNote({
   );
 }
 
-/** Pinned PACE storyboard (centered vertically; right column only; behind collage) */
+/** Pinned PACE storyboard (lowered & centered vertically; behind collage) */
 function PACEBackground() {
   return (
     <div className="pointer-events-none absolute inset-0 z-0">
-      {/* Center the entire tree vertically in the viewport (moves DOWN, not sideways) */}
+      {/* Center the entire tree vertically (away from the subheading), without shifting horizontally */}
       <div
         className="absolute left-0 right-0 top-1/2 -translate-y-1/2"
         style={{
-          // Keep it substantial but centered; adjust if you want it taller/shorter
-          height: "70vh",
+          height: "70vh", // substantial height, but centered vertically
           minHeight: 520,
           maxHeight: 820,
         }}
@@ -261,7 +259,7 @@ function PACEBackground() {
           {/* vertical spine within the centered box */}
           <div className="absolute left-6 top-2 bottom-2 w-px bg-white/10" />
 
-          {/* Nodes (positions are relative to the centered box height) */}
+          {/* Nodes positioned relative to the centered box */}
           <NodeWithBranches
             top="0%"
             label="PLAN"
@@ -486,7 +484,7 @@ export default function ProjectsHUD() {
     return () => ro.disconnect();
   }, []);
 
-  // Viewport height for the sticky "stage" (scroll-lock window)
+  // Viewport height (for sticky window sizing)
   const [vh, setVh] = React.useState<number>(
     typeof window === "undefined" ? 800 : window.innerHeight
   );
@@ -499,9 +497,13 @@ export default function ProjectsHUD() {
   // Fade mask tuning for the collage stage (right column)
   const TOP_FADE = 180;    // px — tiles fade out under sticky header
   const BOTTOM_FADE = 110; // px — tiles fade in from bottom
-  const EXTRA_BOTTOM = 96; // ≈ ~1 inch after storyboard ends (short, no big blank)
 
-  // Mobile: simple stack (note hidden on mobile)
+  // **Key traversal tuning**:
+  const ENTER_OFFSET = 160; // px — start with collage pushed below the window so first cards "come in"
+  const EXIT_TAIL   = 220; // px — ensure last card fully clears header before unlock
+  const EXTRA_TAIL  = 96;  // ~1 inch of scroll after storyboard ends (short bottom)
+
+  // Mobile stack (unchanged)
   const mobile = (
     <div className="md:hidden space-y-10">
       {TILE_ORDER.map((title) => {
@@ -557,9 +559,9 @@ export default function ProjectsHUD() {
   const md = LAYOUT.md;
   const lg = LAYOUT.lg;
 
-  // ===== Scroll-locked "Scene" wrapper (right column only) =====
+  /** Scroll-locked scene (right column only). */
   function CollageScene({
-    mode, // "md" | "lg"
+    mode,
     containerHeight,
     items,
     note,
@@ -569,36 +571,39 @@ export default function ProjectsHUD() {
     items: Record<string, { left: string; top: number; width: string }>;
     note: { left: string; top: number; width: string };
   }) {
-    // Wrapper element that defines the scroll range (this locks the user inside)
     const sceneRef = React.useRef<HTMLDivElement | null>(null);
 
-    // Travel distance: how far the collage must move to pass completely
+    // Distance collage must travel to pass entirely through the window
     const travel = Math.max(0, containerHeight - vh);
 
-    // Total scroll height for this scene = visible window (vh) + travel + ~1 inch
-    const sceneHeight = vh + travel + EXTRA_BOTTOM;
+    // Scene height that **locks** the user:
+    //   viewport + enter offset + travel + exit tail + short extra tail
+    const sceneHeight = vh + ENTER_OFFSET + travel + EXIT_TAIL + EXTRA_TAIL;
 
-    // Progress within the scene (0→1 while the wrapper scrolls)
+    // Progress 0→1 while the wrapper scrolls; this is the lock
     const { scrollYProgress } = useScroll({
       target: sceneRef,
       offset: ["start start", "end end"],
     });
 
-    // Translate the collage upward from 0px → -travel px
-    const y = useTransform(scrollYProgress, [0, 1], [0, -travel]);
+    // Translate collage from just-below-bottom → fully past header
+    const y = useTransform(
+      scrollYProgress,
+      [0, 1],
+      [ENTER_OFFSET, -(travel + EXIT_TAIL)]
+    );
 
     return (
       <div
         ref={sceneRef}
         className={mode === "md" ? "relative hidden md:block lg:hidden" : "relative hidden lg:block"}
-        style={{ height: sceneHeight }} // SHORTER: only window + travel + ~1 inch
+        style={{ height: sceneHeight }} // SHORT section: no long run-on
       >
-        {/* Sticky stage pins the storyboard + view window while user scrolls the scene */}
+        {/* Sticky viewport: storyboard stays pinned; collage moves within */}
         <div className="sticky top-0 h-screen">
-          {/* Pinned + centered storyboard behind */}
           <PACEBackground />
 
-          {/* View window with top/bottom fades; collage moves inside this window only */}
+          {/* View window with bottom/top fades (cards enter from bottom, exit under header) */}
           <div
             className="absolute inset-0 z-10 overflow-hidden"
             style={{
@@ -614,7 +619,6 @@ export default function ProjectsHUD() {
                 transparent 100%)`,
             }}
           >
-            {/* Moving canvas holding the fixed-position collage */}
             <motion.div
               style={{ y, height: containerHeight, position: "relative" }}
               className="will-change-transform"
@@ -645,34 +649,30 @@ export default function ProjectsHUD() {
     <section
       id="projects"
       aria-label="Projects"
-      // SHORTER: keep top padding; reduce bottom padding so we don't add extra blank
+      // keep top padding; **remove bottom padding** so no extra blank after the scene
       className="relative w-full pt-20 md:pt-28 pb-0 scroll-mt-24 md:scroll-mt-28 bg-[#0d131d]"
     >
       <div className="mx-auto max-w-7xl px-6">
-        {/* Header (sticky so tiles fade under it) */}
+        {/* Header stays sticky so cards fade under it */}
         <div className="md:sticky md:top-6 md:z-20">
           <ProjectsHeader />
         </div>
 
-        {/* Two-column layout on md+: left rail + right content; mobile shows content full-width */}
+        {/* Two-column grid (left rail untouched) */}
         <div className="md:grid md:grid-cols-[64px,1fr] md:gap-6">
-          {/* Left vertical scroller (hidden on mobile) — UNCHANGED */}
           <LeftRail height={railHeight} />
 
-          {/* Right column: mobile unchanged; md/lg use scroll-locked scenes */}
           <div ref={rightColRef}>
-            {/* Mobile stacked — unchanged */}
+            {/* Mobile unchanged */}
             {mobile}
 
-            {/* md scene: only the collage moves; storyboard pinned; scroll locked */}
+            {/* md + lg scenes: scroll-locked, cards move up, tree pinned & centered */}
             <CollageScene
               mode="md"
               containerHeight={md.containerHeight}
               items={md.items}
               note={md.note}
             />
-
-            {/* lg scene */}
             <CollageScene
               mode="lg"
               containerHeight={lg.containerHeight}
