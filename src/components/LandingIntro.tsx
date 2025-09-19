@@ -18,9 +18,8 @@ type Props = {
 /**
  * LandingIntro — cinematic intro fully isolated from the rest of the site.
  *
- * Minimal change:
- * - Ensure the title visibly reads as italic by adding a subtle skew to each line
- *   (some Google fonts don’t include true italic). Subheading already italic.
+ * Fix: overlay opacity now also keys off the landing sentinel (as a safety),
+ * so the tint cannot leak onto About Me even if #home isn't found/observed.
  */
 export default function LandingIntro({
   title = "Let Data Drive Your Decisions",
@@ -51,6 +50,15 @@ export default function LandingIntro({
   });
   const overlayFadeByHero = useTransform(heroIntra, [0, 1], [1, 0]);
 
+  // ✅ Safety fallback: also fade out purely by the landing sentinel near the end
+  const overlayFadeBySentinel = useTransform(scrollYProgress, [0.97, 1.0], [1, 0]);
+
+  // Combine both fades — whichever says "be more transparent" wins
+  const overlayOpacity = useTransform(
+    [overlayFadeByHero, overlayFadeBySentinel],
+    ([h, s]) => Math.min(h ?? 1, s ?? 1)
+  );
+
   // Tint/dimmer driven ONLY by landing progress — last slice of the landing section.
   const tintOpacity = useTransform(scrollYProgress, [0.30, 0.995], [0, 1]);
 
@@ -71,7 +79,7 @@ export default function LandingIntro({
         aria-hidden
         className="fixed inset-0 z-[60] pointer-events-none select-none will-change-transform will-change-opacity"
         style={{
-          opacity: reduce ? 1 : (heroRef.current ? overlayFadeByHero : 1),
+          opacity: reduce ? 1 : overlayOpacity,
           contain: "paint layout style size",
         }}
       >
@@ -97,8 +105,7 @@ export default function LandingIntro({
             <span
               className="block italic transform -skew-x-6 text-4xl sm:text-6xl md:text-7xl lg:text-8xl drop-shadow-[0_0_16px_rgba(64,200,255,.25)]"
               style={{
-                textShadow:
-                  "0 5px 18px rgba(0,0,0,0.65), 0 3px 8px rgba(0,0,0,0.5)",
+                textShadow: "0 5px 18px rgba(0,0,0,0.65), 0 3px 8px rgba(0,0,0,0.5)",
               }}
             >
               Let Data Drive
@@ -107,8 +114,7 @@ export default function LandingIntro({
             <span
               className="mt-1 block italic transform -skew-x-6 text-4xl sm:text-6xl md:text-7xl lg:text-8xl drop-shadow-[0_0_16px_rgba(64,200,255,.25)]"
               style={{
-                textShadow:
-                  "0 5px 18px rgba(0,0,0,0.65), 0 3px 8px rgba(0,0,0,0.5)",
+                textShadow: "0 5px 18px rgba(0,0,0,0.65), 0 3px 8px rgba(0,0,0,0.5)",
               }}
             >
               Your Decisions
@@ -119,8 +125,7 @@ export default function LandingIntro({
           <p
             className="mt-3 italic text-base sm:text-lg md:text-xl text-white/90 font-normal"
             style={{
-              textShadow:
-                "0 4px 14px rgba(0,0,0,0.50), 0 2px 6px rgba(0,0,0,0.4)",
+              textShadow: "0 4px 14px rgba(0,0,0,0.50), 0 2px 6px rgba(0,0,0,0.4)",
             }}
           >
             Canyen&apos;s Portfolio
