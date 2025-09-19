@@ -19,9 +19,9 @@ type Props = {
  * LandingIntro — cinematic intro fully isolated from the rest of the site.
  *
  * Notes:
- * - Title + subheading horizontally centered near the top.
- * - Thicker (still tasteful) text-shadows for more pop.
- * - Title split into two italic lines: "Let Data Drive" / "Your Decisions".
+ * - Title + subheading horizontally centered near the top (top middle).
+ * - Thicker (tasteful) text-shadows for pop.
+ * - Title split into two italic lines; subheading italicized too.
  * - Title block sits in front of buildings.
  * - Skyline-to-hero tint handoff tied to landing progress; overlay fades during early hero scroll.
  */
@@ -100,9 +100,8 @@ export default function LandingIntro({
             <span
               className="block text-4xl sm:text-6xl md:text-7xl lg:text-8xl drop-shadow-[0_0_16px_rgba(64,200,255,.25)]"
               style={{
-                // Thicker (still tasteful) per-character glow/shadow
                 textShadow:
-                  "0 4px 14px rgba(0,0,0,0.60), 0 2px 6px rgba(0,0,0,0.45)",
+                  "0 5px 18px rgba(0,0,0,0.65), 0 3px 8px rgba(0,0,0,0.5)",
               }}
             >
               Let Data Drive
@@ -112,19 +111,19 @@ export default function LandingIntro({
               className="mt-1 block text-4xl sm:text-6xl md:text-7xl lg:text-8xl drop-shadow-[0_0_16px_rgba(64,200,255,.25)]"
               style={{
                 textShadow:
-                  "0 4px 14px rgba(0,0,0,0.60), 0 2px 6px rgba(0,0,0,0.45)",
+                  "0 5px 18px rgba(0,0,0,0.65), 0 3px 8px rgba(0,0,0,0.5)",
               }}
             >
               Your Decisions
             </span>
           </h1>
 
-          {/* Subheading (thicker but subtle shadow) */}
+          {/* Subheading — italicized, soft weight, slightly stronger (yet subtle) shadow */}
           <p
-            className="mt-3 text-base sm:text-lg md:text-xl text-white/90 font-normal"
+            className="mt-3 italic text-base sm:text-lg md:text-xl text-white/90 font-normal"
             style={{
               textShadow:
-                "0 3px 10px rgba(0,0,0,0.45), 0 1px 3px rgba(0,0,0,0.35)",
+                "0 4px 14px rgba(0,0,0,0.50), 0 2px 6px rgba(0,0,0,0.4)",
             }}
           >
             Canyen&apos;s Portfolio
