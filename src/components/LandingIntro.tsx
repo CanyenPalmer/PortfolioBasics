@@ -12,67 +12,67 @@ type Props = {
 };
 
 /**
- * LandingIntro — cinematic, pinned landing section.
- * Fixes per request:
- * 1) Effects isolated to this section (no site-wide formatting changes).
- * 2) Section remains static/pinned while animating.
- * 3) Title sits on the very front, in frame, and drops FIRST; then buildings fall; then unlock scroll.
+ * LandingIntro — pinned landing section with scroll-locked choreography:
+ *  1) Title drops first
+ *  2) Buildings slide off bottom while sky subtly zooms
+ *  3) Only after buildings are fully gone does scroll unlock to Hero
  *
- * Place ABOVE your Hero in app/page.tsx. Do not change other files.
+ * Fixes requested:
+ *  - User is locked in this section until buildings fully exit
+ *  - No formatting or layout impact on Hero/About or anything else on the page
  */
 export default function LandingIntro({
   title = "Let Data Drive Your Decisions",
   skylineSrc = "/images/landing/skyline.png",
   buildingsSrc = "/images/landing/buildings.png",
 }: Props) {
-  // Tall wrapper + sticky viewport child to "pin" the section during the intro.
+  /**
+   * We "pin" with a tall wrapper and a sticky child filling the viewport.
+   * The sticky child stays fixed while the wrapper scrolls behind it.
+   * When the wrapper's height is exhausted, the sticky releases and
+   * the page continues to the next section.
+   *
+   * To ensure the user remains locked until the buildings are fully gone,
+   * we:
+   *  - make the wrapper tall enough (h-[300vh])
+   *  - map animations so buildings finish at ~0.98 progress
+   *  - release right after that (natural sticky behavior)
+   */
   const wrapRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: wrapRef,
-    offset: ["start start", "end start"], // progress 0..1 while sticky viewport is in view
+    offset: ["start start", "end start"], // progress 0..1 only while THIS section is in control
   });
 
   const reduce = useReducedMotion();
 
-  /**
-   * PROGRESSION (kept simple and strictly scoped to local layers):
-   * - Title falls first:    progress 0.00 → 0.50  (from visible to off-bottom)
-   * - Buildings fall next:  progress 0.18 → 0.88  (from baseline to off-bottom)
-   * - Sky subtle zoom ONLY while buildings are exiting: 0.22 → 0.80 (1.00 → 1.03)
-   * - Unlock near 0.92 → natural scroll continues to Hero.
-   */
+  // ---- CHOREOGRAPHY (remapped to finish just before release) ----
+  // Title: starts visible and drops out first (0.00 -> 0.48)
+  const titleY = useTransform(scrollYProgress, [0.0, 0.48], ["0vh", "130vh"]);
 
-  // Title starts visible (in frame), then drops out first.
-  // Start a bit below the very top so it's clearly in-frame.
-  const titleY = useTransform(scrollYProgress, [0.0, 0.5], ["0vh", "130vh"]);
+  // Buildings: start after title begins; finish at ~0.98 so lock holds till they're gone
+  const bldgY = useTransform(scrollYProgress, [0.12, 0.98], ["0vh", "130vh"]);
+  const bldgOpacity = useTransform(scrollYProgress, [0.80, 0.98], [1, 0.35]);
 
-  // Buildings: slide down after the title begins.
-  const bldgY = useTransform(scrollYProgress, [0.18, 0.88], ["0vh", "120vh"]);
-  // Slight fade near the end of their exit.
-  const bldgOpacity = useTransform(scrollYProgress, [0.72, 0.88], [1, 0.4]);
-
-  // Sky: very subtle zoom ONLY during building exit, then hold (no continuous scaling).
-  const skyScale = useTransform(scrollYProgress, [0.22, 0.80], [1, 1.03]);
+  // Sky: subtle zoom only during the building exit window (then hold)
+  const skyScale = useTransform(scrollYProgress, [0.18, 0.85], [1, 1.03]);
 
   return (
-    // Tall wrapper provides scroll room; nothing outside is affected.
-    <section
-      aria-label="Landing Intro"
-      className="relative h-[240vh] md:h-[240vh]"
-    >
-      {/* Sticky viewport — isolates effects to this section */}
+    // Tall wrapper: the ONLY thing that determines how long we are "locked" here.
+    <section aria-label="Landing Intro" className="relative h-[300vh]">
+      {/* Sticky viewport; isolated so nothing leaks out to the rest of the site */}
       <div
         ref={wrapRef}
         className="sticky top-0 h-screen overflow-hidden bg-black isolate"
       >
-        {/* LAYER: SKY (bottom). Scaling this div only — no layout shift. */}
+        {/* SKY — bottom layer; transforms scoped here only */}
         <motion.div
           className="absolute inset-0 z-0 will-change-transform"
           style={{ scale: reduce ? 1 : skyScale }}
         >
           <Image
             src={skylineSrc}
-            alt="Starry anime night sky with moon and subtle clouds"
+            alt="Starry anime night sky with subtle clouds"
             fill
             priority
             sizes="100vw"
@@ -80,7 +80,7 @@ export default function LandingIntro({
           />
         </motion.div>
 
-        {/* LAYER: TITLE (front-most). Drops FIRST. */}
+        {/* TITLE — front-most; drops FIRST, then buildings go */}
         <motion.h1
           className="absolute left-1/2 top-[18vh] z-30 -translate-x-1/2 text-center font-extrabold tracking-tight text-white"
           style={{
@@ -93,7 +93,7 @@ export default function LandingIntro({
           </span>
         </motion.h1>
 
-        {/* LAYER: BUILDINGS (in front of sky, behind the title per new spec) */}
+        {/* BUILDINGS — above sky, below title; slide off and lightly fade near end */}
         <motion.div
           aria-hidden
           className="absolute inset-x-0 bottom-0 z-20 will-change-transform"
@@ -102,7 +102,6 @@ export default function LandingIntro({
             opacity: reduce ? 1 : bldgOpacity,
           }}
         >
-          {/* PNG with transparency; keep intrinsic aspect to avoid layout changes */}
           <Image
             src={buildingsSrc}
             alt=""
@@ -113,12 +112,12 @@ export default function LandingIntro({
           />
         </motion.div>
 
-        {/* Scroll cue (static, in-section only) */}
+        {/* Scroll cue (kept inside; no layout outside is affected) */}
         <div className="absolute bottom-6 left-1/2 z-40 -translate-x-1/2 text-[12px] tracking-[0.2em] text-slate-200/80">
           • SCROLL TO ENTER •
         </div>
 
-        {/* Reduced-motion helper (no animation; provide jump link) */}
+        {/* Reduced-motion: no movement; provide jump link; still scoped locally */}
         <a
           href="#home"
           className="sr-only focus:not-sr-only focus:absolute focus:bottom-6 focus:left-6 focus:z-50 bg-white/10 text-white rounded px-3 py-2 backdrop-blur"
