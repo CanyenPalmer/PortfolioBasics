@@ -188,7 +188,7 @@ function ProjectTile({
   );
 }
 
-/** Blurb + reference-style note (md+ only). */
+/** Blurb + reference-style note (md+ only) — unchanged */
 function BlurbAndNote({
   left,
   top,
@@ -236,7 +236,7 @@ function BlurbAndNote({
   );
 }
 
-/** Pinned PACE storyboard (centered vertically; behind collage) */
+/** PACE storyboard (centered vertically; behind collage) — unchanged visuals */
 function PACEBackground() {
   return (
     <div className="pointer-events-none absolute inset-0 z-0">
@@ -311,7 +311,7 @@ function NodeWithBranches({
   );
 }
 
-/** Header block: unchanged */
+/** Header block — unchanged */
 function ProjectsHeader() {
   return (
     <div className="mb-8 md:mb-10">
@@ -403,6 +403,7 @@ function LeftRail({ height }: { height?: number | null }) {
           onMouseEnter={() => setPaused(true)}
           onMouseLeave={() => setPaused(false)}
         >
+          {/* hidden measurer */}
           <span
             ref={measureRef}
             className={`${plusJakarta.className} text-[11px] tracking-[0.18em] absolute opacity-0 pointer-events-none whitespace-nowrap`}
@@ -410,6 +411,7 @@ function LeftRail({ height }: { height?: number | null }) {
             Scroll to Explore
           </span>
 
+          {/* moving column */}
           <div className="absolute inset-0">
             <div ref={innerRef} className="will-change-transform">
               <RailColumn rows={rows} rowH={rowH || 40} />
@@ -472,13 +474,14 @@ export default function ProjectsHUD() {
     return () => window.removeEventListener("resize", onResize);
   }, [vh]);
 
+  // Fade masks for entry/exit of cards inside the viewport
   const TOP_FADE = 180;
   const BOTTOM_FADE = 110;
 
   // **Shorter tail** after scene so the next title sits closer
-  const EXTRA_TAIL = 48;
+  const EXTRA_TAIL = 36;
 
-  // Mobile: simple stack (unchanged)
+  // Mobile: unchanged
   const mobile = (
     <div className="md:hidden space-y-10">
       {TILE_ORDER.map((title) => {
@@ -544,32 +547,34 @@ export default function ProjectsHUD() {
   }) {
     const sceneRef = React.useRef<HTMLDivElement | null>(null);
 
-    // Start from below the window so the PACE tree shows first.
+    // Start with the collage fully below the viewport so the PACE tree shows first.
     const START_FROM_BOTTOM = vh + 120;
 
-    // Travel distance + header-clear tail
+    // Distance the collage must travel to move last items beyond the header
     const TRAVEL_CORE = Math.max(0, containerHeight - vh);
     const EXIT_TAIL = 220;
 
+    // Total motion path
     const TOTAL_PATH = START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL;
 
-    // Short scroll budget to keep the section tight (movement mapping unchanged).
-    const SCROLL_BUDGET = Math.max(420, Math.min(620, Math.round(TOTAL_PATH * 0.25)));
+    // Keep the section tight but ensure lock until the end of the motion.
+    // (We map 0→1 progress to the whole TOTAL_PATH, so motion length is unchanged.)
+    const SCROLL_BUDGET = Math.max(540, Math.min(740, Math.round(TOTAL_PATH * 0.28)));
 
-    // Height that **locks** the user in the section
+    // Wrapper height that **locks** the user inside this section
     const sceneHeight = vh + SCROLL_BUDGET + EXTRA_TAIL;
 
-    // 🔒 Strong lock: progress reaches 1 only when wrapper's BOTTOM hits viewport TOP
+    // 🔒 Strong lock: don’t hit progress=1 until the wrapper’s bottom reaches the viewport top
     const { scrollYProgress } = useScroll({
       target: sceneRef,
-      offset: ["start start", "end start"],
+      offset: ["start start", "end -1px"],
     });
 
-    const y = useTransform(
-      scrollYProgress,
-      [0, 1],
-      [START_FROM_BOTTOM, -(TRAVEL_CORE + EXIT_TAIL)]
-    );
+    // Translate collage from below → beyond header across the locked range
+    const y = useTransform(scrollYProgress, [0, 1], [
+      START_FROM_BOTTOM,
+      -(TRAVEL_CORE + EXIT_TAIL),
+    ]);
 
     return (
       <div
@@ -577,10 +582,11 @@ export default function ProjectsHUD() {
         className={mode === "md" ? "relative hidden md:block lg:hidden" : "relative hidden lg:block"}
         style={{ height: sceneHeight }}
       >
-        {/* Pinned viewport with scroll-chain containment for a firm lock */}
+        {/* Pinned viewport; contain scroll to avoid chain skips */}
         <div className="sticky top-0 h-screen overscroll-contain">
           <PACEBackground />
 
+          {/* View window with entry/exit fades */}
           <div
             className="absolute inset-0 z-10 overflow-hidden"
             style={{
@@ -626,7 +632,7 @@ export default function ProjectsHUD() {
     <section
       id="projects"
       aria-label="Projects"
-      className="relative w-full pt-20 md:pt-28 pb-0 scroll-mt-24 md:scroll-mt-28 bg-[#0d131d]"
+      className="relative w-full pt-20 md:pt-28 pb-0 scroll-mt-24 md:scroll-mt-28 bg-[#0d131d] overscroll-contain"
     >
       <div className="mx-auto max-w-7xl px-6">
         {/* Sticky header so cards fade under it */}
