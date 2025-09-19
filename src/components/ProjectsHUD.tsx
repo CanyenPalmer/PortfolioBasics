@@ -66,7 +66,7 @@ const ASPECT: Record<string, string> = {
   "Python 101": "2 / 3",
 };
 
-/** Collage layout (restored to your original, overlap-free positions) */
+/** Collage layout (unchanged) */
 const LAYOUT = {
   md: {
     containerHeight: 1950,
@@ -130,7 +130,6 @@ function ProjectTile({
   const aspect = ASPECT[p.title] ?? "3 / 4";
 
   return (
-    // ⬅️ ensure tiles render above the note layer
     <article className="absolute z-10" style={{ left, top, width }} aria-label={p.title}>
       <TransitionLink
         href={`/projects/${slug}?via=projects`}
@@ -200,26 +199,21 @@ function BlurbAndNote({
   width: string;
 }) {
   return (
-    // ⬅️ note sits beneath tiles and ignores pointer events
     <div
       className="absolute hidden md:block pointer-events-none z-0"
       style={{ left, top, width }}
     >
-      {/* Blurb */}
       <p className="text-[15px] leading-tight text-white/85 mb-4">
         I carry projects from messy data to maintainable tools—analyses, models, and apps that are
         rigorous, documented, and usable.
       </p>
 
-      {/* Two-column note (no bullets) */}
       <div className="grid grid-cols-[8.5rem,1fr] gap-x-6">
-        {/* Label */}
         <div className="text-[12px] leading-tight text-white/60 font-medium">
           <div>Showcase</div>
           <div>Highlights</div>
         </div>
 
-        {/* Lines */}
         <div className="flex flex-col gap-2 text-[14px] leading-snug text-white/85">
           <div>
             <span className="font-semibold">96.2% accuracy (AUC 93.8%)</span> on employee-retention models
@@ -317,7 +311,7 @@ function NodeWithBranches({
   );
 }
 
-/** Header block: “Palmer” + big “PROJECTS” + subheader */
+/** Header block */
 function ProjectsHeader() {
   return (
     <div className="mb-8 md:mb-10">
@@ -337,15 +331,14 @@ function ProjectsHeader() {
   );
 }
 
-/** LEFT RAIL — single moving column (unchanged styling/behavior) */
+/** LEFT RAIL (unchanged visuals/behavior) */
 function LeftRail({ height }: { height?: number | null }) {
   const [paused, setPaused] = React.useState(false);
 
   const TOP_FADE = 250;
   const BOTTOM_FADE = 96;
-  const SPEED = 22; // px/sec
+  const SPEED = 22;
 
-  // Measure the *unrotated* label width, used as row height once rotated 90°
   const measureRef = React.useRef<HTMLSpanElement | null>(null);
   const [rowH, setRowH] = React.useState<number>(0);
   React.useEffect(() => {
@@ -360,7 +353,6 @@ function LeftRail({ height }: { height?: number | null }) {
     return () => ro.disconnect();
   }, []);
 
-  // Rows needed for the given rail height
   const [rows, setRows] = React.useState<number>(80);
   React.useEffect(() => {
     if (!height || !rowH) return;
@@ -368,7 +360,6 @@ function LeftRail({ height }: { height?: number | null }) {
     setRows(target);
   }, [height, rowH]);
 
-  // RAF loop: translateY upward; wrap by whole rows
   const innerRef = React.useRef<HTMLDivElement | null>(null);
   const yRef = React.useRef(0);
   const lastRef = React.useRef<number | null>(null);
@@ -483,14 +474,13 @@ export default function ProjectsHUD() {
     return () => window.removeEventListener("resize", onResize);
   }, [vh]);
 
-  // Fade masks for entry/exit of cards inside the viewport
   const TOP_FADE = 180;
   const BOTTOM_FADE = 110;
 
-  // ——— Tail: keep small gap after scene so the next section is closer (trimmed) ———
-  const EXTRA_TAIL = 28;
+  // Tiny post-scene spacer
+  const EXTRA_TAIL = 16;
 
-  // Mobile: simple stack (note hidden on mobile)
+  // Mobile (unchanged)
   const mobile = (
     <div className="md:hidden space-y-10">
       {TILE_ORDER.map((title) => {
@@ -542,7 +532,7 @@ export default function ProjectsHUD() {
   const md = LAYOUT.md;
   const lg = LAYOUT.lg;
 
-  /** Scroll-locked scene (right column only) — progress driven by a dedicated sentinel. */
+  /** Scroll-locked scene (right column only) — sentinel height = EXACT motion path */
   function CollageScene({
     mode,
     containerHeight,
@@ -556,26 +546,21 @@ export default function ProjectsHUD() {
   }) {
     const sentinelRef = React.useRef<HTMLDivElement | null>(null);
 
-    // Start with the collage fully below the viewport so the PACE tree shows first.
-    const START_FROM_BOTTOM = vh + 120;
-
-    // Distance needed for the collage to traverse across the viewport
+    const START_FROM_BOTTOM = vh + 120; // show PACE first
     const TRAVEL_CORE = Math.max(0, containerHeight - vh);
     const EXIT_TAIL = 220;
+
+    // Total y-translation we actually perform
     const TOTAL_PATH = START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL;
 
-    // The amount of scroll the user must perform while the viewport is pinned.
-    // (Short enough to keep the section tight, long enough to finish the motion.)
-    const SCROLL_BUDGET = Math.max(540, Math.min(740, Math.round(TOTAL_PATH * 0.28)));
+    // Lock range equals the true motion distance (prevents early release)
+    const SENTINEL_HEIGHT = Math.max(vh + 1, Math.ceil(TOTAL_PATH));
 
-    // Progress based on the sentinel only (prevents sticky/progress desync)
     const { scrollYProgress } = useScroll({
       target: sentinelRef,
-      // lock from when sentinel hits the top until its bottom reaches the top
       offset: ["start start", "end start"],
     });
 
-    // Translate collage along its path during the locked scroll
     const y = useTransform(scrollYProgress, [0, 1], [
       START_FROM_BOTTOM,
       -(TRAVEL_CORE + EXIT_TAIL),
@@ -583,13 +568,10 @@ export default function ProjectsHUD() {
 
     return (
       <>
-        {/* Sentinel: exact scroll distance that keeps the viewport pinned */}
-        <div ref={sentinelRef} style={{ height: vh + SCROLL_BUDGET }} className="relative">
-          {/* Pinned viewport; overscroll containment avoids scroll chaining */}
+        <div ref={sentinelRef} style={{ height: SENTINEL_HEIGHT }} className="relative">
           <div className="sticky top-0 h-screen overscroll-contain">
             <PACEBackground />
 
-            {/* View window with entry/exit fades (cards slide under header) */}
             <div
               className="absolute inset-0 z-10 overflow-hidden"
               style={{
@@ -629,7 +611,7 @@ export default function ProjectsHUD() {
           </div>
         </div>
 
-        {/* Small trimmed tail so the next section sits closer */}
+        {/* Tiny trimmed tail so the next title sits closer */}
         <div style={{ height: EXTRA_TAIL }} />
       </>
     );
@@ -647,14 +629,10 @@ export default function ProjectsHUD() {
           <ProjectsHeader />
         </div>
 
-        {/* Two-column layout on md+: left rail + right content; mobile shows content full-width */}
         <div className="md:grid md:grid-cols-[64px,1fr] md:gap-6">
-          {/* Left vertical scroller (hidden on mobile) */}
           <LeftRail height={railHeight} />
 
-          {/* Right column: unchanged gallery & note */}
           <div ref={rightColRef}>
-            {/* Mobile stacked */}
             {mobile}
 
             {/* md collage */}
