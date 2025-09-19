@@ -56,7 +56,7 @@ const KEYWORD_BY_TITLE: Record<string, string> = {
   "PortfolioBasics (This Site)": "frontend",
 };
 
-// Predictable heights via aspect-ratio wrappers
+// Predictable heights via aspect-ratio wrappers (prevents overlaps)
 const ASPECT: Record<string, string> = {
   "CGM Patient Analytics": "3 / 4",
   "MyCaddy — Physics Shot Calculator": "3 / 4",
@@ -188,7 +188,7 @@ function ProjectTile({
   );
 }
 
-/** Blurb + note (md+ only) */
+/** Blurb + reference-style note (md+ only). */
 function BlurbAndNote({
   left,
   top,
@@ -236,7 +236,7 @@ function BlurbAndNote({
   );
 }
 
-/** PACE storyboard (behind collage) */
+/** PACE storyboard (centered vertically; behind collage) */
 function PACEBackground() {
   return (
     <div className="pointer-events-none absolute inset-0 z-0">
@@ -311,7 +311,7 @@ function NodeWithBranches({
   );
 }
 
-/** Header */
+/** Header block */
 function ProjectsHeader() {
   return (
     <div className="mb-8 md:mb-10">
@@ -331,14 +331,15 @@ function ProjectsHeader() {
   );
 }
 
-/** LEFT RAIL (unchanged) */
+/** LEFT RAIL — visual behavior unchanged; height now based on viewport to avoid long tail */
 function LeftRail({ height }: { height?: number | null }) {
   const [paused, setPaused] = React.useState(false);
 
   const TOP_FADE = 250;
   const BOTTOM_FADE = 96;
-  const SPEED = 22;
+  const SPEED = 22; // px/sec
 
+  // Measure the *unrotated* label width, used as row height once rotated 90°
   const measureRef = React.useRef<HTMLSpanElement | null>(null);
   const [rowH, setRowH] = React.useState<number>(0);
   React.useEffect(() => {
@@ -353,6 +354,7 @@ function LeftRail({ height }: { height?: number | null }) {
     return () => ro.disconnect();
   }, []);
 
+  // Rows needed for the given rail height
   const [rows, setRows] = React.useState<number>(80);
   React.useEffect(() => {
     if (!height || !rowH) return;
@@ -360,6 +362,7 @@ function LeftRail({ height }: { height?: number | null }) {
     setRows(target);
   }, [height, rowH]);
 
+  // RAF loop: translateY upward; wrap by whole rows
   const innerRef = React.useRef<HTMLDivElement | null>(null);
   const yRef = React.useRef(0);
   const lastRef = React.useRef<number | null>(null);
@@ -450,20 +453,7 @@ function RailColumn({ rows, rowH }: { rows: number; rowH: number }) {
 export default function ProjectsHUD() {
   const projects = ((profile as any)?.projects ?? []) as ReadonlyArray<Project>;
 
-  // Right column measured height (for the left rail)
-  const rightColRef = React.useRef<HTMLDivElement>(null);
-  const [railHeight, setRailHeight] = React.useState<number | null>(null);
-  React.useEffect(() => {
-    if (!rightColRef.current) return;
-    const ro = new ResizeObserver((entries) => {
-      const cr = entries[0]?.contentRect;
-      if (cr && typeof cr.height === "number") setRailHeight(Math.ceil(cr.height));
-    });
-    ro.observe(rightColRef.current);
-    return () => ro.disconnect();
-  }, []);
-
-  // Viewport height
+  // Viewport height (for sticky window sizing and rail height)
   const [vh, setVh] = React.useState<number>(
     typeof window === "undefined" ? 800 : window.innerHeight
   );
@@ -473,63 +463,23 @@ export default function ProjectsHUD() {
     return () => window.removeEventListener("resize", onResize);
   }, [vh]);
 
+  // The left rail should be sized to the viewport window, not the tall sentinel
+  const [railHeight, setRailHeight] = React.useState<number | null>(null);
+  React.useEffect(() => {
+    // Slightly shorter than full viewport so the vignettes look natural
+    setRailHeight(Math.max(300, Math.round(vh - 96)));
+  }, [vh]);
+
   const TOP_FADE = 180;
   const BOTTOM_FADE = 110;
-  const EXTRA_TAIL = 10; // shorter bottom buffer
 
-  // Mobile stack (unchanged)
-  const mobile = (
-    <div className="md:hidden space-y-10">
-      {TILE_ORDER.map((title) => {
-        const p = projects.find((x) => x.title === title);
-        if (!p) return null;
-        const img = IMAGE_BY_TITLE[p.title] ?? {
-          src: "/images/portfolio-basics-avatar.png",
-          alt: `${p.title} preview`,
-        };
-        const slug = slugify(p.title);
-        const aspect = ASPECT[p.title] ?? "3 / 4";
-        return (
-          <article key={title}>
-            <TransitionLink
-              href={`/projects/${slug}?via=projects`}
-              className="block group"
-              onClick={() =>
-                typeof window !== "undefined" &&
-                window.sessionStorage.setItem("cameFromProjects", "1")
-              }
-            >
-              <div style={{ aspectRatio: aspect }} className="w-full overflow-hidden">
-                <img
-                  src={img.src}
-                  alt={img.alt}
-                  className="w-full h-full object-contain transition-transform duration-300 ease-out group-hover:scale-[1.03] will-change-transform"
-                />
-              </div>
-            </TransitionLink>
-            <div className="mt-3 flex items-baseline justify-between gap-3">
-              <h3 className="text-lg font-medium tracking-tight">
-                <TransitionLink
-                  href={`/projects/${slug}?via=projects`}
-                  className="hover:underline"
-                >
-                  {p.title}
-                </TransitionLink>
-              </h3>
-              <span className="text-xs uppercase tracking-wide text-white/60">
-                {KEYWORD_BY_TITLE[p.title] ?? "project"}
-              </span>
-            </div>
-          </article>
-        );
-      })}
-    </div>
-  );
+  // Tiny post-scene spacer so the last card never clips the next title
+  const EXTRA_TAIL = 12;
 
   const md = LAYOUT.md;
   const lg = LAYOUT.lg;
 
-  /** ONE scene component. The sentinel wraps the **whole right column** to guarantee lock. */
+  /** Scroll-locked scene driven by a dedicated sentinel with height = true motion path */
   function CollageScene({
     containerHeight,
     items,
@@ -541,17 +491,20 @@ export default function ProjectsHUD() {
   }) {
     const sentinelRef = React.useRef<HTMLDivElement | null>(null);
 
-    // Show PACE first; start collage from below the viewport
+    // Start with the collage fully below the viewport so the PACE tree shows first.
     const START_FROM_BOTTOM = vh + 120;
+
+    // Distance to move the collage across the sticky viewport
     const TRAVEL_CORE = Math.max(0, containerHeight - vh);
     const EXIT_TAIL = 220;
 
-    // True motion path of the collage
+    // Total translation we actually perform
     const TOTAL_PATH = START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL;
 
-    // Sentinel **height is exactly the motion path** so the sticky stays pinned
-    const SENTINEL_HEIGHT = Math.max(vh + 1, Math.ceil(TOTAL_PATH));
+    // Sentinel height equals the motion path, so the viewport stays pinned
+    const SENTINEL_HEIGHT = Math.max(vh + 1, Math.ceil(TOTAL_PATH)) + EXTRA_TAIL;
 
+    // Map 0→1 progress to the full sentinel height: lock until end
     const { scrollYProgress } = useScroll({
       target: sentinelRef,
       offset: ["start start", "end start"],
@@ -564,10 +517,13 @@ export default function ProjectsHUD() {
 
     return (
       <>
+        {/* Scroll driver */}
         <div ref={sentinelRef} style={{ height: SENTINEL_HEIGHT }} className="relative">
+          {/* Pinned viewport; user is locked while the sentinel is in view */}
           <div className="sticky top-0 h-screen overscroll-contain">
             <PACEBackground />
 
+            {/* View window with entry/exit fades (cards slide under header) */}
             <div
               className="absolute inset-0 z-10 overflow-hidden"
               style={{
@@ -606,9 +562,62 @@ export default function ProjectsHUD() {
             </div>
           </div>
         </div>
-        {/* small buffer so the last card never clips the next title */}
+        {/* Small tail only; keeps the next section snug */}
         <div style={{ height: EXTRA_TAIL }} />
       </>
+    );
+  }
+
+  /** Mobile: unchanged stack */
+  function MobileList() {
+    return (
+      <div className="md:hidden space-y-10">
+        {TILE_ORDER.map((title) => {
+          const p = ((profile as any)?.projects ?? []).find(
+            (x: Project) => x.title === title
+          ) as Project | undefined;
+        if (!p) return null;
+          const img = IMAGE_BY_TITLE[p.title] ?? {
+            src: "/images/portfolio-basics-avatar.png",
+            alt: `${p.title} preview`,
+          };
+          const slug = slugify(p.title);
+          const aspect = ASPECT[p.title] ?? "3 / 4";
+          return (
+            <article key={title}>
+              <TransitionLink
+                href={`/projects/${slug}?via=projects`}
+                className="block group"
+                onClick={() =>
+                  typeof window !== "undefined" &&
+                  window.sessionStorage.setItem("cameFromProjects", "1")
+                }
+              >
+                <div style={{ aspectRatio: aspect }} className="w-full overflow-hidden">
+                  <img
+                    src={img.src}
+                    alt={img.alt}
+                    className="w-full h-full object-contain transition-transform duration-300 ease-out group-hover:scale-[1.03] will-change-transform"
+                  />
+                </div>
+              </TransitionLink>
+              <div className="mt-3 flex items-baseline justify-between gap-3">
+                <h3 className="text-lg font-medium tracking-tight">
+                  <TransitionLink
+                    href={`/projects/${slug}?via=projects`}
+                    className="hover:underline"
+                  >
+                    {p.title}
+                  </TransitionLink>
+                </h3>
+                <span className="text-xs uppercase tracking-wide text-white/60">
+                  {KEYWORD_BY_TITLE[p.title] ?? "project"}
+                </span>
+              </div>
+            </article>
+          );
+        })}
+      </div>
     );
   }
 
@@ -619,21 +628,22 @@ export default function ProjectsHUD() {
       className="relative w-full pt-20 md:pt-28 pb-0 scroll-mt-24 md:scroll-mt-28 bg-[#0d131d] overscroll-contain"
     >
       <div className="mx-auto max-w-7xl px-6">
-        {/* Sticky header remains as-is so cards fade under it */}
+        {/* Sticky header so cards fade under it */}
         <div className="md:sticky md:top-6 md:z-20">
           <ProjectsHeader />
         </div>
 
+        {/* Two-column layout on md+: left rail + right content; mobile shows content full-width */}
         <div className="md:grid md:grid-cols-[64px,1fr] md:gap-6">
-          {/* Left rail unchanged */}
+          {/* Left vertical scroller (height based on viewport) */}
           <LeftRail height={railHeight} />
 
           {/* Right column */}
-          <div ref={rightColRef}>
-            {/* Mobile list */}
-            {mobile}
+          <div>
+            {/* Mobile stacked (unchanged) */}
+            <MobileList />
 
-            {/* On md screens, one locked scene */}
+            {/* md collage (locked) */}
             <div className="relative hidden md:block lg:hidden">
               <CollageScene
                 containerHeight={md.containerHeight}
@@ -642,7 +652,7 @@ export default function ProjectsHUD() {
               />
             </div>
 
-            {/* On lg+ screens, one locked scene */}
+            {/* lg collage (locked) */}
             <div className="relative hidden lg:block">
               <CollageScene
                 containerHeight={lg.containerHeight}
