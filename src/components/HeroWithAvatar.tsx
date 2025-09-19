@@ -43,15 +43,16 @@ function ResumeIcon(props: React.SVGProps<SVGSVGElement>) {
 export default function Hero({ headline, subheadline, typer }: Props) {
   // === VHS glitch hover (nav-only) ===
   const _glitchTimers = React.useRef<Map<HTMLElement, number>>(new Map());
-  const _glyphs =
-    "アイウエオカキクケコサシスセソタチツテトﾅﾆﾇﾈﾉABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  // ASCII-only to keep width stable per character (prevents visual stretching)
+  const _glyphs = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
   function scrambleLabel(label: string) {
     const n = Math.max(1, Math.min(label.length, Math.floor(label.length * 0.8)));
     let out = "";
     for (let i = 0; i < label.length; i++) {
-      if (/\s/.test(label[i])) { out += " "; continue; }
-      if (i < label.length - n) { out += label[i]; continue; }
+      const ch = label[i];
+      if (/\s/.test(ch)) { out += " "; continue; }
+      if (i < label.length - n) { out += ch; continue; }
       const c = _glyphs[Math.floor(Math.random() * _glyphs.length)];
       out += c;
     }
@@ -91,6 +92,9 @@ export default function Hero({ headline, subheadline, typer }: Props) {
   const LOCK_DELAY_MS = 1300; // matches end of NameStamp animation; tweak if needed
   const [locked, setLocked] = React.useState(false);
   const resolvedName = headline ?? "Canyen Palmer";
+  // Fancy title stack with Alinore first
+  const alinoreStack =
+    '"Alinore", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif';
 
   React.useEffect(() => {
     setLocked(false);
@@ -174,8 +178,11 @@ export default function Hero({ headline, subheadline, typer }: Props) {
         {/* Copy */}
         <div className="space-y-5">
           <h1 className="text-7xl md:text-8xl lg:text-9xl font-bold leading-[1.05]">
-            {/* We switch the font on this wrapper once the stamp is done */}
-            <span className={`hero-name ${locked ? "is-locked" : ""}`}>
+            {/* Switch font-family on the same element once the stamp is done */}
+            <span
+              className="hero-name"
+              style={locked ? { fontFamily: alinoreStack, letterSpacing: "0.01em" } : undefined}
+            >
               <NameStamp
                 text={resolvedName}
                 className="text-7xl md:text-8xl lg:text-9xl font-bold"
@@ -212,20 +219,29 @@ export default function Hero({ headline, subheadline, typer }: Props) {
         <div className="text-base text-white/50">• Scroll to Explore •</div>
       </div>
 
-      {/* VHS glitch overlay (nav) + Alinore face + lock class */}
+      {/* VHS glitch overlay (nav) + Alinore face */}
       <style jsx global>{`
         /* ---------- Hero nav VHS glitch ---------- */
         .nav-glitch { position: relative; display: inline-block; color: rgba(255,255,255,0.7); }
         .nav-glitch .nav-label { position: relative; z-index: 1; }
-        .nav-glitch .nav-vhs { position: absolute; inset: 0; width: 100%; overflow: hidden; pointer-events: none; }
+
+        .nav-glitch .nav-vhs {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          overflow: hidden;      /* hard clip overlay to label width */
+          pointer-events: none;
+          contain: paint;        /* isolate paints; no layout spill */
+        }
         .nav-glitch:hover { color: #fff; }
+
         .nav-glitch.is-glitching .nav-vhs::before,
         .nav-glitch.is-glitching .nav-vhs::after {
           content: var(--glitch-text);
           position: absolute; left: 0; top: 0;
           width: 100%;
           white-space: nowrap;
-          font: inherit; letter-spacing: inherit;
+          font: inherit; letter-spacing: inherit; /* lock metrics */
           will-change: transform, clip-path, opacity, text-shadow;
         }
         .nav-glitch.is-glitching .nav-vhs::before {
@@ -265,13 +281,6 @@ export default function Hero({ headline, subheadline, typer }: Props) {
           font-weight: normal;
           font-style: normal;
           font-display: swap;
-        }
-
-        /* When locked, switch the same element to Alinore */
-        .hero-name { display: inline-block; }
-        .hero-name.is-locked {
-          font-family: "Alinore", ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
-          line-height: 1.05; /* match your h1 line-height to avoid shift */
         }
       `}</style>
     </section>
