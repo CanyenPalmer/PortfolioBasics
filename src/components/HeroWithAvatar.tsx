@@ -3,12 +3,18 @@
 
 import React from "react";
 import SkillsBelt from "@/components/SkillsBelt";
-import { Outfit } from "next/font/google";
+import { Outfit, Cinzel } from "next/font/google";
 import NameStamp from "@/components/NameStamp";
 
 const outfit = Outfit({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
+});
+
+// Display face used ONLY for the hero title lock-in
+const cinzel = Cinzel({
+  subsets: ["latin"],
+  weight: ["700", "900"], // bold cuts feel best for a title
 });
 
 type Props = {
@@ -41,10 +47,9 @@ function ResumeIcon(props: React.SVGProps<SVGSVGElement>) {
 }
 
 export default function Hero({ headline, subheadline, typer }: Props) {
-  // === VHS glitch hover (nav-only) — preserved as you liked ===
+  // === VHS glitch hover (nav-only) — keeps layout stable ===
   const _glitchTimers = React.useRef<Map<HTMLElement, number>>(new Map());
-  // ASCII-only to keep width visually stable (prevents layout shift)
-  const _glyphs = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  const _glyphs = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"; // fixed-width-ish set
 
   function scrambleLabel(label: string) {
     const n = Math.max(1, Math.min(label.length, Math.floor(label.length * 0.8)));
@@ -87,13 +92,10 @@ export default function Hero({ headline, subheadline, typer }: Props) {
     el.classList.remove("is-glitching");
   }
 
-  // === Alinore lock-in: switch font-family on the SAME element (no overlay) ===
-  // Put your font file at public/fonts/Alinore.woff2
-  const LOCK_DELAY_MS = 1300; // matches end of NameStamp animation; tweak if needed
+  // === Title lock-in timing ===
+  const LOCK_DELAY_MS = 1300; // sync to NameStamp end
   const [locked, setLocked] = React.useState(false);
   const resolvedName = headline ?? "Canyen Palmer";
-  const alinoreStack =
-    '"Alinore", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif';
 
   React.useEffect(() => {
     setLocked(false);
@@ -176,24 +178,23 @@ export default function Hero({ headline, subheadline, typer }: Props) {
       <div className="container mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-10 items-center relative z-10">
         {/* Copy */}
         <div className="space-y-5">
-          {/* Single-line title, fluid size so it fits column without overlapping avatar */}
-          <h1 className="leading-[1.05]">
+          {/* Single-line, big title — no overlap, same sizing you liked */}
+          <h1 className="text-7xl md:text-8xl lg:text-9xl font-bold leading-[1.05] whitespace-nowrap">
+            {/* When locked, add Cinzel font class to the same element */}
             <span
-              className={
-                "hero-name inline-block whitespace-nowrap " +
-                "text-[clamp(2.6rem,7.2vw,5.4rem)] md:text-[clamp(3rem,6.5vw,5.6rem)] lg:text-[clamp(3.2rem,6vw,5.8rem)] font-bold"
-              }
+              className={`hero-name inline-block whitespace-nowrap ${locked ? cinzel.className : ""}`}
+              style={locked ? { letterSpacing: "0.02em" } : undefined}
             >
               <NameStamp
                 text={resolvedName}
-                className="whitespace-nowrap text-inherit font-inherit leading-none"
+                className="text-7xl md:text-8xl lg:text-9xl font-bold whitespace-nowrap"
                 variant="hero"
                 rearmOnExit={true}
               />
             </span>
           </h1>
 
-          {/* SkillsBelt — scaled visually, still capped */}
+          {/* SkillsBelt — unchanged */}
           <div className="mt-2 w-full max-w-[680px]">
             <SkillsBelt speedSeconds={26} logoHeight={42} gapPx={32} />
           </div>
@@ -204,7 +205,7 @@ export default function Hero({ headline, subheadline, typer }: Props) {
           ) : null}
         </div>
 
-        {/* Avatar (larger, but capped; transparent background) */}
+        {/* Avatar (unchanged) */}
         <div className="justify-self-center">
           <img
             src="/about/avatar-hero-headshot.png"
@@ -220,24 +221,22 @@ export default function Hero({ headline, subheadline, typer }: Props) {
         <div className="text-base text-white/50">• Scroll to Explore •</div>
       </div>
 
-      {/* VHS glitch overlay (nav) + Alinore face + lock rule */}
+      {/* VHS glitch overlay (nav) — unchanged */}
       <style jsx global>{`
-        /* ---------- Hero nav VHS glitch (unchanged) ---------- */
         .nav-glitch {
           position: relative;
           display: inline-block;
           color: rgba(255,255,255,0.7);
-          isolation: isolate;     /* contain blending to the label only */
+          isolation: isolate;
         }
         .nav-glitch .nav-label { position: relative; z-index: 1; }
-
         .nav-glitch .nav-vhs {
           position: absolute;
           inset: 0;
           width: 100%;
-          overflow: hidden;        /* hard clip to label width */
+          overflow: hidden;
           pointer-events: none;
-          contain: paint;          /* avoid paint/layout bleed */
+          contain: paint;
         }
         .nav-glitch:hover { color: #fff; }
 
@@ -247,7 +246,7 @@ export default function Hero({ headline, subheadline, typer }: Props) {
           position: absolute; left: 0; top: 0;
           width: 100%;
           white-space: nowrap;
-          font: inherit; letter-spacing: inherit; line-height: inherit; /* lock metrics */
+          font: inherit; letter-spacing: inherit; line-height: inherit;
           will-change: transform, clip-path, opacity, text-shadow;
         }
         .nav-glitch.is-glitching .nav-vhs::before {
@@ -277,23 +276,6 @@ export default function Hero({ headline, subheadline, typer }: Props) {
         @media (prefers-reduced-motion: reduce) {
           .nav-glitch.is-glitching .nav-vhs::before,
           .nav-glitch.is-glitching .nav-vhs::after { animation: none !important; text-shadow: none !important; }
-        }
-
-        /* ---------- Alinore (local font) ---------- */
-        /* Place your font at: public/fonts/Alinore.woff2 */
-        @font-face {
-          font-family: "Alinore";
-          src: url("/fonts/Alinore.woff2") format("woff2");
-          font-weight: normal;
-          font-style: normal;
-          font-display: swap;
-        }
-
-        /* Lock Alinore on the same element and all descendants */
-        /* !important ensures inner spans from NameStamp can't override it */
-        .hero-name.is-locked, .hero-name.is-locked * {
-          font-family: "Alinore", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif !important;
-          letter-spacing: 0.01em;
         }
       `}</style>
     </section>
