@@ -467,7 +467,7 @@ export default function ProjectsHUD() {
     <section
       id="projects"
       aria-label="Projects"
-      className="relative w-full py-20 md:py-28 scroll-mt-24 md:scroll-mt-28 bg-[#16202e]"
+      className="relative w-full py-20 md:py-28 scroll-mt-24 md:scroll-mt-28 bg-[#0d131d]"
     >
       <div className="mx-auto max-w-7xl px-6">
         {/* Header */}
