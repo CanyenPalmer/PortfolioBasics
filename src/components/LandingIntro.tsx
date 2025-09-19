@@ -3,23 +3,32 @@
 
 import Image from "next/image";
 import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Props = {
   title?: string;
-  skylineSrc?: string;
-  buildingsSrc?: string;
+  skylineSrc?: string;   // sky-only background
+  buildingsSrc?: string; // transparent foreground buildings
 };
 
 /**
- * LandingIntro — pinned landing section with scroll-locked choreography:
- *  1) Title drops first
- *  2) Buildings slide off bottom while sky subtly zooms
- *  3) Only after buildings are fully gone does scroll unlock to Hero
+ * LandingIntro — cinematic intro that is fully isolated from the rest of the site.
  *
- * Fixes requested:
- *  - User is locked in this section until buildings fully exit
- *  - No formatting or layout impact on Hero/About or anything else on the page
+ * FIXES:
+ * 1) Locks the user in this section until the buildings are fully removed.
+ *    - We use a non-interfering "sentinel" spacer to drive progress.
+ *    - A fixed overlay renders the animation independently of page layout.
+ *    - Overlay becomes hidden only after buildings finish exiting.
+ *
+ * 2) No formatting changes to Hero/About (or anything else):
+ *    - The overlay is `fixed inset-0` with `pointer-events-none`.
+ *    - No transforms applied to any shared/container element outside this component.
+ *    - The rest of the page flows normally under the overlay.
+ *
+ * ORDER (as requested):
+ *  - Headline drops first.
+ *  - Buildings slide off bottom while sky subtly zooms (only during building exit).
+ *  - When only sky remains, overlay hides and normal scrolling proceeds to Hero.
  */
 export default function LandingIntro({
   title = "Let Data Drive Your Decisions",
@@ -27,48 +36,59 @@ export default function LandingIntro({
   buildingsSrc = "/images/landing/buildings.png",
 }: Props) {
   /**
-   * We "pin" with a tall wrapper and a sticky child filling the viewport.
-   * The sticky child stays fixed while the wrapper scrolls behind it.
-   * When the wrapper's height is exhausted, the sticky releases and
-   * the page continues to the next section.
-   *
-   * To ensure the user remains locked until the buildings are fully gone,
-   * we:
-   *  - make the wrapper tall enough (h-[300vh])
-   *  - map animations so buildings finish at ~0.98 progress
-   *  - release right after that (natural sticky behavior)
+   * SCROLL DRIVER (sentinel):
+   * We create a tall spacer <div> that advances scroll progress from 0→1.
+   * The animation itself is rendered in a separate FIXED overlay layer,
+   * so no layout/zoom leaks into the rest of the site.
    */
-  const wrapRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
-    target: wrapRef,
-    offset: ["start start", "end start"], // progress 0..1 only while THIS section is in control
+    target: sentinelRef,
+    offset: ["start start", "end start"], // 0..1 while sentinel is scrolling past the top
   });
 
   const reduce = useReducedMotion();
+  const [done, setDone] = useState(false);
 
-  // ---- CHOREOGRAPHY (remapped to finish just before release) ----
-  // Title: starts visible and drops out first (0.00 -> 0.48)
+  // Hide the overlay once progress is essentially complete (prevents any interference).
+  useEffect(() => {
+    const unsub = scrollYProgress.on("change", (v) => {
+      // Buildings finish by ~0.98; give a tiny buffer before hiding the overlay entirely.
+      setDone(v >= 0.995);
+    });
+    return () => unsub();
+  }, [scrollYProgress]);
+
+  /**
+   * CHOREOGRAPHY
+   * - Title:     0.00 → 0.48    (falls first; from in-frame to off-bottom)
+   * - Buildings: 0.12 → 0.98    (slide off; light fade near end)
+   * - Sky zoom:  0.18 → 0.85    (1.00 → 1.03 ONLY during building exit)
+   */
   const titleY = useTransform(scrollYProgress, [0.0, 0.48], ["0vh", "130vh"]);
-
-  // Buildings: start after title begins; finish at ~0.98 so lock holds till they're gone
-  const bldgY = useTransform(scrollYProgress, [0.12, 0.98], ["0vh", "130vh"]);
+  const bldgY  = useTransform(scrollYProgress, [0.12, 0.98], ["0vh", "130vh"]);
   const bldgOpacity = useTransform(scrollYProgress, [0.80, 0.98], [1, 0.35]);
-
-  // Sky: subtle zoom only during the building exit window (then hold)
   const skyScale = useTransform(scrollYProgress, [0.18, 0.85], [1, 1.03]);
 
   return (
-    // Tall wrapper: the ONLY thing that determines how long we are "locked" here.
-    <section aria-label="Landing Intro" className="relative h-[300vh]">
-      {/* Sticky viewport; isolated so nothing leaks out to the rest of the site */}
+    <section aria-label="Landing Intro" className="relative">
+      {/* SENTINEL — provides the lock-in scroll length (user can't "leave" until it finishes) */}
       <div
-        ref={wrapRef}
-        className="sticky top-0 h-screen overflow-hidden bg-black isolate"
+        ref={sentinelRef}
+        className="h-[320vh]" // tall enough to complete the whole sequence before releasing
+      />
+
+      {/* FIXED OVERLAY — isolated, no pointer events, no layout impact */}
+      <div
+        className={[
+          "fixed inset-0 z-[60] pointer-events-none", // sits above page, doesn't capture input
+          done ? "hidden" : "",                       // fully remove once sequence is done
+        ].join(" ")}
       >
-        {/* SKY — bottom layer; transforms scoped here only */}
+        {/* SKY (bottom of overlay). Scaling here does NOT affect page layout. */}
         <motion.div
-          className="absolute inset-0 z-0 will-change-transform"
-          style={{ scale: reduce ? 1 : skyScale }}
+          className="absolute inset-0 z-0"
+          style={{ scale: reduce ? 1 : skyScale, willChange: "transform" }}
         >
           <Image
             src={skylineSrc}
@@ -76,30 +96,28 @@ export default function LandingIntro({
             fill
             priority
             sizes="100vw"
-            className="object-cover pointer-events-none select-none"
+            className="object-cover select-none"
           />
         </motion.div>
 
-        {/* TITLE — front-most; drops FIRST, then buildings go */}
+        {/* TITLE (front-most in overlay) — drops FIRST */}
         <motion.h1
           className="absolute left-1/2 top-[18vh] z-30 -translate-x-1/2 text-center font-extrabold tracking-tight text-white"
-          style={{
-            y: reduce ? "0vh" : titleY,
-            willChange: "transform",
-          }}
+          style={{ y: reduce ? "0vh" : titleY, willChange: "transform" }}
         >
           <span className="block text-4xl sm:text-6xl md:text-7xl lg:text-8xl drop-shadow-[0_0_16px_rgba(64,200,255,.25)]">
             {title}
           </span>
         </motion.h1>
 
-        {/* BUILDINGS — above sky, below title; slide off and lightly fade near end */}
+        {/* BUILDINGS (above sky, below title) — slide and lightly fade near end */}
         <motion.div
           aria-hidden
-          className="absolute inset-x-0 bottom-0 z-20 will-change-transform"
+          className="absolute inset-x-0 bottom-0 z-20"
           style={{
             y: reduce ? "0vh" : bldgY,
             opacity: reduce ? 1 : bldgOpacity,
+            willChange: "transform,opacity",
           }}
         >
           <Image
@@ -108,23 +126,23 @@ export default function LandingIntro({
             width={3840}
             height={2160}
             priority
-            className="w-full h-auto pointer-events-none select-none"
+            className="w-full h-auto select-none"
           />
         </motion.div>
 
-        {/* Scroll cue (kept inside; no layout outside is affected) */}
+        {/* Scroll cue (visual only) */}
         <div className="absolute bottom-6 left-1/2 z-40 -translate-x-1/2 text-[12px] tracking-[0.2em] text-slate-200/80">
           • SCROLL TO ENTER •
         </div>
-
-        {/* Reduced-motion: no movement; provide jump link; still scoped locally */}
-        <a
-          href="#home"
-          className="sr-only focus:not-sr-only focus:absolute focus:bottom-6 focus:left-6 focus:z-50 bg-white/10 text-white rounded px-3 py-2 backdrop-blur"
-        >
-          Skip intro and jump to hero
-        </a>
       </div>
+
+      {/* Accessibility: Reduced-motion quick path (kept outside overlay to avoid interference) */}
+      <a
+        href="#home"
+        className="sr-only focus:not-sr-only focus:absolute focus:bottom-6 focus:left-6 focus:z-50 bg-white/10 text-white rounded px-3 py-2 backdrop-blur"
+      >
+        Skip intro and jump to hero
+      </a>
     </section>
   );
 }
