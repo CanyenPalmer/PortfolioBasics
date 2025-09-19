@@ -66,7 +66,7 @@ const ASPECT: Record<string, string> = {
   "Python 101": "2 / 3",
 };
 
-/** Collage layout (unchanged) */
+/** Collage layout (restored to your original, overlap-free positions) */
 const LAYOUT = {
   md: {
     containerHeight: 1950,
@@ -130,6 +130,7 @@ function ProjectTile({
   const aspect = ASPECT[p.title] ?? "3 / 4";
 
   return (
+    // ⬅️ ensure tiles render above the note layer
     <article className="absolute z-10" style={{ left, top, width }} aria-label={p.title}>
       <TransitionLink
         href={`/projects/${slug}?via=projects`}
@@ -188,7 +189,7 @@ function ProjectTile({
   );
 }
 
-/** Blurb + reference-style note (md+ only) — unchanged */
+/** Blurb + reference-style note (md+ only). */
 function BlurbAndNote({
   left,
   top,
@@ -199,21 +200,26 @@ function BlurbAndNote({
   width: string;
 }) {
   return (
+    // ⬅️ note sits beneath tiles and ignores pointer events
     <div
       className="absolute hidden md:block pointer-events-none z-0"
       style={{ left, top, width }}
     >
+      {/* Blurb */}
       <p className="text-[15px] leading-tight text-white/85 mb-4">
         I carry projects from messy data to maintainable tools—analyses, models, and apps that are
         rigorous, documented, and usable.
       </p>
 
+      {/* Two-column note (no bullets) */}
       <div className="grid grid-cols-[8.5rem,1fr] gap-x-6">
+        {/* Label */}
         <div className="text-[12px] leading-tight text-white/60 font-medium">
           <div>Showcase</div>
           <div>Highlights</div>
         </div>
 
+        {/* Lines */}
         <div className="flex flex-col gap-2 text-[14px] leading-snug text-white/85">
           <div>
             <span className="font-semibold">96.2% accuracy (AUC 93.8%)</span> on employee-retention models
@@ -236,7 +242,7 @@ function BlurbAndNote({
   );
 }
 
-/** PACE storyboard (centered vertically; behind collage) — unchanged visuals */
+/** PACE storyboard (centered vertically; behind collage) */
 function PACEBackground() {
   return (
     <div className="pointer-events-none absolute inset-0 z-0">
@@ -311,7 +317,7 @@ function NodeWithBranches({
   );
 }
 
-/** Header block — unchanged */
+/** Header block: “Palmer” + big “PROJECTS” + subheader */
 function ProjectsHeader() {
   return (
     <div className="mb-8 md:mb-10">
@@ -331,14 +337,15 @@ function ProjectsHeader() {
   );
 }
 
-/** LEFT RAIL — unchanged mechanics */
+/** LEFT RAIL — single moving column (unchanged styling/behavior) */
 function LeftRail({ height }: { height?: number | null }) {
   const [paused, setPaused] = React.useState(false);
 
   const TOP_FADE = 250;
   const BOTTOM_FADE = 96;
-  const SPEED = 22;
+  const SPEED = 22; // px/sec
 
+  // Measure the *unrotated* label width, used as row height once rotated 90°
   const measureRef = React.useRef<HTMLSpanElement | null>(null);
   const [rowH, setRowH] = React.useState<number>(0);
   React.useEffect(() => {
@@ -353,6 +360,7 @@ function LeftRail({ height }: { height?: number | null }) {
     return () => ro.disconnect();
   }, []);
 
+  // Rows needed for the given rail height
   const [rows, setRows] = React.useState<number>(80);
   React.useEffect(() => {
     if (!height || !rowH) return;
@@ -360,6 +368,7 @@ function LeftRail({ height }: { height?: number | null }) {
     setRows(target);
   }, [height, rowH]);
 
+  // RAF loop: translateY upward; wrap by whole rows
   const innerRef = React.useRef<HTMLDivElement | null>(null);
   const yRef = React.useRef(0);
   const lastRef = React.useRef<number | null>(null);
@@ -478,10 +487,10 @@ export default function ProjectsHUD() {
   const TOP_FADE = 180;
   const BOTTOM_FADE = 110;
 
-  // **Shorter tail** after scene so the next title sits closer
-  const EXTRA_TAIL = 36;
+  // ——— Tail: keep small gap after scene so the next section is closer (trimmed) ———
+  const EXTRA_TAIL = 28;
 
-  // Mobile: unchanged
+  // Mobile: simple stack (note hidden on mobile)
   const mobile = (
     <div className="md:hidden space-y-10">
       {TILE_ORDER.map((title) => {
@@ -533,7 +542,7 @@ export default function ProjectsHUD() {
   const md = LAYOUT.md;
   const lg = LAYOUT.lg;
 
-  /** Scroll-locked scene (right column only). */
+  /** Scroll-locked scene (right column only) — progress driven by a dedicated sentinel. */
   function CollageScene({
     mode,
     containerHeight,
@@ -545,86 +554,84 @@ export default function ProjectsHUD() {
     items: Record<string, { left: string; top: number; width: string }>;
     note: { left: string; top: number; width: string };
   }) {
-    const sceneRef = React.useRef<HTMLDivElement | null>(null);
+    const sentinelRef = React.useRef<HTMLDivElement | null>(null);
 
     // Start with the collage fully below the viewport so the PACE tree shows first.
     const START_FROM_BOTTOM = vh + 120;
 
-    // Distance the collage must travel to move last items beyond the header
+    // Distance needed for the collage to traverse across the viewport
     const TRAVEL_CORE = Math.max(0, containerHeight - vh);
     const EXIT_TAIL = 220;
-
-    // Total motion path
     const TOTAL_PATH = START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL;
 
-    // Keep the section tight but ensure lock until the end of the motion.
-    // (We map 0→1 progress to the whole TOTAL_PATH, so motion length is unchanged.)
+    // The amount of scroll the user must perform while the viewport is pinned.
+    // (Short enough to keep the section tight, long enough to finish the motion.)
     const SCROLL_BUDGET = Math.max(540, Math.min(740, Math.round(TOTAL_PATH * 0.28)));
 
-    // Wrapper height that **locks** the user inside this section
-    const sceneHeight = vh + SCROLL_BUDGET + EXTRA_TAIL;
-
-    // 🔒 Strong lock: don’t hit progress=1 until the wrapper’s bottom reaches the viewport top
+    // Progress based on the sentinel only (prevents sticky/progress desync)
     const { scrollYProgress } = useScroll({
-      target: sceneRef,
-      offset: ["start start", "end -1px"],
+      target: sentinelRef,
+      // lock from when sentinel hits the top until its bottom reaches the top
+      offset: ["start start", "end start"],
     });
 
-    // Translate collage from below → beyond header across the locked range
+    // Translate collage along its path during the locked scroll
     const y = useTransform(scrollYProgress, [0, 1], [
       START_FROM_BOTTOM,
       -(TRAVEL_CORE + EXIT_TAIL),
     ]);
 
     return (
-      <div
-        ref={sceneRef}
-        className={mode === "md" ? "relative hidden md:block lg:hidden" : "relative hidden lg:block"}
-        style={{ height: sceneHeight }}
-      >
-        {/* Pinned viewport; contain scroll to avoid chain skips */}
-        <div className="sticky top-0 h-screen overscroll-contain">
-          <PACEBackground />
+      <>
+        {/* Sentinel: exact scroll distance that keeps the viewport pinned */}
+        <div ref={sentinelRef} style={{ height: vh + SCROLL_BUDGET }} className="relative">
+          {/* Pinned viewport; overscroll containment avoids scroll chaining */}
+          <div className="sticky top-0 h-screen overscroll-contain">
+            <PACEBackground />
 
-          {/* View window with entry/exit fades */}
-          <div
-            className="absolute inset-0 z-10 overflow-hidden"
-            style={{
-              WebkitMaskImage: `linear-gradient(to bottom,
-                transparent 0px,
-                black ${BOTTOM_FADE}px,
-                black calc(100% - ${TOP_FADE}px),
-                transparent 100%)`,
-              maskImage: `linear-gradient(to bottom,
-                transparent 0px,
-                black ${BOTTOM_FADE}px,
-                black calc(100% - ${TOP_FADE}px),
-                transparent 100%)`,
-            }}
-          >
-            <motion.div
-              style={{ y, height: containerHeight, position: "relative" }}
-              className="will-change-transform"
+            {/* View window with entry/exit fades (cards slide under header) */}
+            <div
+              className="absolute inset-0 z-10 overflow-hidden"
+              style={{
+                WebkitMaskImage: `linear-gradient(to bottom,
+                  transparent 0px,
+                  black ${BOTTOM_FADE}px,
+                  black calc(100% - ${TOP_FADE}px),
+                  transparent 100%)`,
+                maskImage: `linear-gradient(to bottom,
+                  transparent 0px,
+                  black ${BOTTOM_FADE}px,
+                  black calc(100% - ${TOP_FADE}px),
+                  transparent 100%)`,
+              }}
             >
-              {TILE_ORDER.map((title) => {
-                const p = projects.find((x) => x.title === title);
-                if (!p) return null;
-                const pos = items[title];
-                return (
-                  <ProjectTile
-                    key={`${mode}-${title}`}
-                    p={p}
-                    left={pos.left}
-                    top={pos.top}
-                    width={pos.width}
-                  />
-                );
-              })}
-              <BlurbAndNote left={note.left} top={note.top} width={note.width} />
-            </motion.div>
+              <motion.div
+                style={{ y, height: containerHeight, position: "relative" }}
+                className="will-change-transform"
+              >
+                {TILE_ORDER.map((title) => {
+                  const p = projects.find((x) => x.title === title);
+                  if (!p) return null;
+                  const pos = items[title];
+                  return (
+                    <ProjectTile
+                      key={`${mode}-${title}`}
+                      p={p}
+                      left={pos.left}
+                      top={pos.top}
+                      width={pos.width}
+                    />
+                  );
+                })}
+                <BlurbAndNote left={note.left} top={note.top} width={note.width} />
+              </motion.div>
+            </div>
           </div>
         </div>
-      </div>
+
+        {/* Small trimmed tail so the next section sits closer */}
+        <div style={{ height: EXTRA_TAIL }} />
+      </>
     );
   }
 
@@ -640,29 +647,35 @@ export default function ProjectsHUD() {
           <ProjectsHeader />
         </div>
 
+        {/* Two-column layout on md+: left rail + right content; mobile shows content full-width */}
         <div className="md:grid md:grid-cols-[64px,1fr] md:gap-6">
-          {/* Left vertical scroller (unchanged) */}
+          {/* Left vertical scroller (hidden on mobile) */}
           <LeftRail height={railHeight} />
 
-          {/* Right column */}
+          {/* Right column: unchanged gallery & note */}
           <div ref={rightColRef}>
+            {/* Mobile stacked */}
             {mobile}
 
             {/* md collage */}
-            <CollageScene
-              mode="md"
-              containerHeight={md.containerHeight}
-              items={md.items}
-              note={md.note}
-            />
+            <div className="relative hidden md:block lg:hidden">
+              <CollageScene
+                mode="md"
+                containerHeight={md.containerHeight}
+                items={md.items}
+                note={md.note}
+              />
+            </div>
 
             {/* lg collage */}
-            <CollageScene
-              mode="lg"
-              containerHeight={lg.containerHeight}
-              items={lg.items}
-              note={lg.note}
-            />
+            <div className="relative hidden lg:block">
+              <CollageScene
+                mode="lg"
+                containerHeight={lg.containerHeight}
+                items={lg.items}
+                note={lg.note}
+              />
+            </div>
           </div>
         </div>
       </div>
