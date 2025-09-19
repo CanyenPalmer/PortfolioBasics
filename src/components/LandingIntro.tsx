@@ -24,7 +24,7 @@ type Props = {
  *  - Title drops first (0.00→0.48)
  *  - Buildings slide/fade off (0.12→0.98)
  *  - Sky subtly zooms only during building exit (0.18→0.85)
- *  - Overlay opacity eases to 0 (0.97→1.00), then stays inert (invisible & non-interactive)
+ *  - Overlay opacity eases to 0 (0.97→1.00), then is hidden after fully complete
  */
 export default function LandingIntro({
   title = "Let Data Drive Your Decisions",
@@ -47,7 +47,6 @@ export default function LandingIntro({
 
   useEffect(() => {
     const unsub = scrollYProgress.on("change", (v) => {
-      // After fully complete, mark overlay as gone (display:none via class).
       if (v >= 0.999) setIsGone(true);
     });
     return () => unsub();
@@ -83,8 +82,8 @@ export default function LandingIntro({
         ].join(" ")}
         style={{
           opacity: reduce ? 1 : overlayOpacity,
-          // contain further prevents any layout/style leakage in some browsers
-          // @ts-expect-error - 'contain' not in CSSProperties typing for all versions
+          // Further contain the overlay to avoid any potential style/layout bleed.
+          // This is valid on modern React/TS DOM typings.
           contain: "paint layout style size",
         }}
       >
