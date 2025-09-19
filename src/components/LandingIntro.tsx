@@ -3,7 +3,7 @@
 
 import Image from "next/image";
 import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 
 type Props = {
   title?: string;
@@ -14,17 +14,14 @@ type Props = {
 /**
  * LandingIntro — cinematic intro fully isolated from the rest of the site.
  *
- * FIXES APPLIED:
- * 1) Isolation: section uses `isolate` + fixed overlay with `pointer-events-none`, no global
- *    CSS vars, no layout transforms outside this component.
- * 2) Smooth release: overlay fades out between ~97%→100% scroll progress (no snap/jump).
- * 3) Lock-in: tall sentinel drives progress; user can't leave until buildings fully exit.
+ * Behavior:
+ *  - Locks user in this scene (via sentinel height) while buildings exit.
+ *  - Smoothly fades overlay at the end (no snap/jump).
+ *  - When scrolling back up into this section, the entire sequence plays IN REVERSE.
  *
- * Sequence:
- *  - Title drops first (0.00→0.48)
- *  - Buildings slide/fade off (0.12→0.98)
- *  - Sky subtly zooms only during building exit (0.18→0.85)
- *  - Overlay opacity eases to 0 (0.97→1.00), then is hidden after fully complete
+ * Isolation:
+ *  - Fixed overlay with pointer-events-none (no layout impact elsewhere).
+ *  - Section uses `isolate` to prevent z-index/filter bleed into other sections.
  */
 export default function LandingIntro({
   title = "Let Data Drive Your Decisions",
@@ -39,26 +36,18 @@ export default function LandingIntro({
   });
 
   const reduce = useReducedMotion();
-  const [isGone, setIsGone] = useState(false); // hard-remove overlay only after fully faded
 
-  // Soft fade of overlay: prevents the end-of-section "jump".
-  // Keep the node mounted but transparent; once effectively complete, mark as gone.
+  // Soft fade of overlay near the end to remove any perceived jump.
+  // NOTE: We keep the overlay mounted (no permanent 'hidden') so reverse scroll replays smoothly.
   const overlayOpacity = useTransform(scrollYProgress, [0.97, 1.0], [1, 0]);
 
-  useEffect(() => {
-    const unsub = scrollYProgress.on("change", (v) => {
-      if (v >= 0.999) setIsGone(true);
-    });
-    return () => unsub();
-  }, [scrollYProgress]);
-
-  // Motion mappings for the elements INSIDE the overlay (never touch outer layout).
+  // Motion mappings for elements INSIDE the overlay (never touch outer layout).
   const titleY = useTransform(scrollYProgress, [0.0, 0.48], ["0vh", "130vh"]);
   const bldgY = useTransform(scrollYProgress, [0.12, 0.98], ["0vh", "130vh"]);
   const bldgOpacity = useTransform(scrollYProgress, [0.80, 0.98], [1, 0.35]);
   const skyScale = useTransform(scrollYProgress, [0.18, 0.85], [1, 1.03]);
 
-  // Optional: scroll cue fades out early
+  // Optional: scroll cue fades out early; when returning, it fades back in.
   const cueOpacity = useTransform(scrollYProgress, [0.0, 0.15], [0.9, 0]);
 
   return (
@@ -76,14 +65,10 @@ export default function LandingIntro({
       {/* FIXED OVERLAY — draws the scene on top without affecting layout or sizing elsewhere */}
       <motion.div
         aria-hidden
-        className={[
-          "fixed inset-0 z-[60] pointer-events-none select-none will-change-transform will-change-opacity",
-          isGone ? "hidden" : "",
-        ].join(" ")}
+        className="fixed inset-0 z-[60] pointer-events-none select-none will-change-transform will-change-opacity"
         style={{
           opacity: reduce ? 1 : overlayOpacity,
           // Further contain the overlay to avoid any potential style/layout bleed.
-          // This is valid on modern React/TS DOM typings.
           contain: "paint layout style size",
         }}
       >
