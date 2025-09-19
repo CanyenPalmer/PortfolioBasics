@@ -14,7 +14,7 @@ const outfit = Outfit({
 // Display face used ONLY for the hero title lock-in
 const cinzel = Cinzel({
   subsets: ["latin"],
-  weight: ["700", "900"], // bold cuts feel best for a title
+  weight: ["700", "900"],
 });
 
 type Props = {
@@ -47,9 +47,9 @@ function ResumeIcon(props: React.SVGProps<SVGSVGElement>) {
 }
 
 export default function Hero({ headline, subheadline, typer }: Props) {
-  // === VHS glitch hover (nav-only) — keeps layout stable ===
+  // === VHS glitch hover (nav-only) — layout-safe ===
   const _glitchTimers = React.useRef<Map<HTMLElement, number>>(new Map());
-  const _glyphs = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"; // fixed-width-ish set
+  const _glyphs = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
   function scrambleLabel(label: string) {
     const n = Math.max(1, Math.min(label.length, Math.floor(label.length * 0.8)));
@@ -178,16 +178,24 @@ export default function Hero({ headline, subheadline, typer }: Props) {
       <div className="container mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-10 items-center relative z-10">
         {/* Copy */}
         <div className="space-y-5">
-          {/* Single-line, big title — no overlap, same sizing you liked */}
-          <h1 className="text-7xl md:text-8xl lg:text-9xl font-bold leading-[1.05] whitespace-nowrap">
-            {/* When locked, add Cinzel font class to the same element */}
+          {/* Single line, fluid size, and constrained width to avoid avatar overlap */}
+          <h1
+            className="
+              leading-[1.05] whitespace-nowrap
+              text-[clamp(2.8rem,7vw,5.2rem)]
+              md:text-[clamp(3.2rem,6.2vw,5.6rem)]
+              lg:text-[clamp(3.4rem,5.4vw,5.8rem)]
+              font-bold
+              max-w-[680px] md:max-w-[720px]
+            "
+          >
             <span
               className={`hero-name inline-block whitespace-nowrap ${locked ? cinzel.className : ""}`}
               style={locked ? { letterSpacing: "0.02em" } : undefined}
             >
               <NameStamp
                 text={resolvedName}
-                className="text-7xl md:text-8xl lg:text-9xl font-bold whitespace-nowrap"
+                className="whitespace-nowrap text-inherit font-inherit leading-none"
                 variant="hero"
                 rearmOnExit={true}
               />
@@ -272,10 +280,6 @@ export default function Hero({ headline, subheadline, typer }: Props) {
           50% { transform: translate(1px,-0.5px); clip-path: inset(0 0 50% 0); opacity: .65; }
           75% { transform: translate(-0.5px,0); clip-path: inset(50% 0 0 0); opacity: .55; }
           100% { transform: translate(0,0); clip-path: inset(0 0 0 0); opacity: .8; }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .nav-glitch.is-glitching .nav-vhs::before,
-          .nav-glitch.is-glitching .nav-vhs::after { animation: none !important; text-shadow: none !important; }
         }
       `}</style>
     </section>
