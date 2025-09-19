@@ -236,7 +236,7 @@ function BlurbAndNote({
   );
 }
 
-/** PACE storyboard (always visible behind collage) */
+/** PACE storyboard (centered vertically; behind collage and always visible) */
 function PACEBackground() {
   return (
     <div className="pointer-events-none absolute inset-0 z-0">
@@ -331,14 +331,14 @@ function ProjectsHeader() {
   );
 }
 
-/** LEFT RAIL — UNCHANGED (per your request) */
+/** LEFT RAIL — unchanged visuals; height now comes from PACE tree so lengths match exactly */
 function LeftRail({ height }: { height?: number | null }) {
   const [paused, setPaused] = React.useState(false);
-
   const TOP_FADE = 250;
   const BOTTOM_FADE = 96;
   const SPEED = 22;
 
+  // Measure the *unrotated* label width, used as row height once rotated 90°
   const measureRef = React.useRef<HTMLSpanElement | null>(null);
   const [rowH, setRowH] = React.useState<number>(0);
   React.useEffect(() => {
@@ -447,34 +447,22 @@ function RailColumn({ rows, rowH }: { rows: number; rowH: number }) {
   );
 }
 
-/* -------------------- LOCKED COLLAGE (right column only) -------------------- */
-/**
- * Locks the viewport while the collage travels from just below the fold to past the header.
- * Also trims the empty tail to a small buffer so the next section sits snugly.
- * PACE tree is drawn behind and is **never masked** so it stays visible.
- */
+/* -------------------- SCROLL-LOCKED COLLAGE (right column only) -------------------- */
 function CollageScene({
+  vh,
   containerHeight,
   items,
   note,
   projects,
   mode,
 }: {
+  vh: number;
   containerHeight: number;
   items: Record<string, { left: string; top: number; width: string }>;
   note: { left: string; top: number; width: string };
   projects: ReadonlyArray<Project>;
   mode: "md" | "lg";
 }) {
-  const [vh, setVh] = React.useState<number>(
-    typeof window === "undefined" ? 800 : window.innerHeight
-  );
-  React.useEffect(() => {
-    const onResize = () => setVh(window.innerHeight || vh);
-    window.addEventListener("resize", onResize, { passive: true });
-    return () => window.removeEventListener("resize", onResize);
-  }, [vh]);
-
   // Cards appear from the bottom after lock begins
   const START_FROM_BOTTOM = Math.round(vh * 0.9);
   const TRAVEL_CORE = Math.max(0, containerHeight - vh);
@@ -503,9 +491,9 @@ function CollageScene({
     <>
       {/* Scroll driver (controls the lock) */}
       <div ref={sentinelRef} style={{ height: SENTINEL_HEIGHT }} className="relative">
-        {/* Pinned viewport */}
+        {/* Pinned viewport (locks while sentinel is in range) */}
         <div className="sticky top-0 h-screen">
-          {/* Tree behind, unmasked */}
+          {/* Tree behind, unmasked (always visible) */}
           <PACEBackground />
 
           {/* Collage in front, masked at edges only */}
@@ -549,7 +537,7 @@ function CollageScene({
         </div>
       </div>
 
-      {/* Small buffer so the next section sits closer (removes the long tail) */}
+      {/* Tiny buffer so the next section sits closer (removes long tail) */}
       <div style={{ height: 12 }} />
     </>
   );
@@ -558,20 +546,20 @@ function CollageScene({
 export default function ProjectsHUD() {
   const projects = ((profile as any)?.projects ?? []) as ReadonlyArray<Project>;
 
-  // Measure right column for the left rail (UNCHANGED wiring)
-  const rightColRef = React.useRef<HTMLDivElement>(null);
-  const [railHeight, setRailHeight] = React.useState<number | null>(null);
+  // Viewport height for lock math + tree sizing
+  const [vh, setVh] = React.useState<number>(
+    typeof window === "undefined" ? 800 : window.innerHeight
+  );
   React.useEffect(() => {
-    if (!rightColRef.current) return;
-    const ro = new ResizeObserver((entries) => {
-      const cr = entries[0]?.contentRect;
-      if (cr && typeof cr.height === "number") setRailHeight(Math.ceil(cr.height));
-    });
-    ro.observe(rightColRef.current);
-    return () => ro.disconnect();
-  }, []);
+    const onResize = () => setVh(window.innerHeight || vh);
+    window.addEventListener("resize", onResize, { passive: true });
+    return () => window.removeEventListener("resize", onResize);
+  }, [vh]);
 
-  // Mobile stack (unchanged)
+  // PACE tree height (must match the rail length)
+  const treeHeight = Math.max(520, Math.min(820, Math.round(vh * 0.7)));
+
+  // Mobile: simple stack (unchanged)
   const mobile = (
     <div className="md:hidden space-y-10">
       {TILE_ORDER.map((title) => {
@@ -627,7 +615,7 @@ export default function ProjectsHUD() {
     <section
       id="projects"
       aria-label="Projects"
-      className="relative w-full py-20 md:py-28 scroll-mt-24 md:scroll-mt-28 bg-[#0d131d]"
+      className="relative w-full pt-20 md:pt-28 pb-0 scroll-mt-24 md:scroll-mt-28 bg-[#0d131d]"
     >
       <div className="mx-auto max-w-7xl px-6">
         {/* Header */}
@@ -635,17 +623,18 @@ export default function ProjectsHUD() {
 
         {/* Two-column layout on md+: left rail + right content; mobile shows content full-width */}
         <div className="md:grid md:grid-cols-[64px,1fr] md:gap-6">
-          {/* Left vertical scroller (UNCHANGED) */}
-          <LeftRail height={railHeight} />
+          {/* Left vertical scroller — height now equals the PACE tree height */}
+          <LeftRail height={treeHeight} />
 
           {/* Right column */}
-          <div ref={rightColRef}>
-            {/* Mobile stacked (unchanged) */}
+          <div>
+            {/* Mobile stacked */}
             {mobile}
 
-            {/* md: locked collage scene (replaces static tall block) */}
+            {/* md: locked collage scene */}
             <div className="relative hidden md:block lg:hidden">
               <CollageScene
+                vh={vh}
                 containerHeight={md.containerHeight}
                 items={md.items}
                 note={md.note}
@@ -657,6 +646,7 @@ export default function ProjectsHUD() {
             {/* lg: locked collage scene */}
             <div className="relative hidden lg:block">
               <CollageScene
+                vh={vh}
                 containerHeight={lg.containerHeight}
                 items={lg.items}
                 note={lg.note}
