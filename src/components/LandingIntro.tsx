@@ -150,5 +150,3 @@ export default function LandingIntro({
     </section>
   );
 }
-
-/*ignore*/
