@@ -203,20 +203,26 @@ export default function Hero({ headline, subheadline, typer }: Props) {
       <style jsx global>{`
         .nav-glitch { position: relative; display: inline-block; color: rgba(255,255,255,0.7); }
         .nav-glitch .nav-label { position: relative; z-index: 1; }
-        .nav-glitch:hover { color: #fff; }
 
         /* Overlay element uses CSS var --glitch-text for randomized content */
         .nav-glitch .nav-vhs {
           position: absolute;
           inset: 0;
+          width: 100%;
+          overflow: hidden;            /* ⬅️ clip overlay to label width */
           pointer-events: none;
         }
+        .nav-glitch:hover { color: #fff; }
+
         .nav-glitch.is-glitching .nav-vhs::before,
         .nav-glitch.is-glitching .nav-vhs::after {
           content: var(--glitch-text);
           position: absolute;
           left: 0; top: 0;
+          width: 100%;                 /* ⬅️ constrain pseudo width */
           white-space: nowrap;
+          font: inherit;               /* ⬅️ match metrics exactly */
+          letter-spacing: inherit;     /* ⬅️ keeps overlay width aligned */
           will-change: transform, clip-path, opacity, text-shadow;
         }
         .nav-glitch.is-glitching .nav-vhs::before {
