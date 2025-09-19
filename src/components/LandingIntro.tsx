@@ -54,7 +54,7 @@ export default function LandingIntro({
 
   // NEW: tint/dimmer driven ONLY by landing progress — last ~12% of the landing section.
   // This ensures the skyline is visible during most of the section and only dims near exit.
-  const tintOpacity = useTransform(scrollYProgress, [0.50, 0.995], [0, 1]);
+  const tintOpacity = useTransform(scrollYProgress, [0.30, 0.995], [0, 1]);
 
   // TITLE / BUILDINGS / SKY motions (unchanged)
   const titleY = useTransform(scrollYProgress, [0.0, 0.48], ["0vh", "130vh"]);
