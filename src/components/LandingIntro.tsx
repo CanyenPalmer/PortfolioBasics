@@ -18,11 +18,9 @@ type Props = {
 /**
  * LandingIntro — cinematic intro fully isolated from the rest of the site.
  *
- * Notes:
- * - Title + subheading horizontally centered near the top.
- * - Subtle text-shadows for a slight "pop".
- * - Title block sits in front of buildings.
- * - Skyline-to-hero tint handoff tied to landing progress; overlay fades during early hero scroll.
+ * Title + subheading are horizontally centered near the top (top middle).
+ * Subtle text-shadows for a slight "pop".
+ * Title block sits in front of buildings.
  */
 export default function LandingIntro({
   title = "Let Data Drive Your Decisions",
@@ -89,7 +87,7 @@ export default function LandingIntro({
           />
         </motion.div>
 
-        {/* TITLE BLOCK — horizontally centered near the top with subtle text shadow; on top of buildings */}
+        {/* TITLE BLOCK — horizontally centered at top with subtle text shadow */}
         <motion.div
           className="absolute left-1/2 top-[18vh] z-30 -translate-x-1/2 text-center"
           style={{ y: reduce ? "0vh" : titleY }}
