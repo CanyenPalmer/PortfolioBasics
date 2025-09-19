@@ -331,14 +331,13 @@ function ProjectsHeader() {
   );
 }
 
-/** LEFT RAIL — unchanged visuals; height now comes from PACE tree so lengths match exactly */
+/** LEFT RAIL — unchanged visuals; height comes from PACE tree so lengths match */
 function LeftRail({ height }: { height?: number | null }) {
   const [paused, setPaused] = React.useState(false);
   const TOP_FADE = 250;
   const BOTTOM_FADE = 96;
   const SPEED = 22;
 
-  // Measure the *unrotated* label width, used as row height once rotated 90°
   const measureRef = React.useRef<HTMLSpanElement | null>(null);
   const [rowH, setRowH] = React.useState<number>(0);
   React.useEffect(() => {
@@ -448,8 +447,13 @@ function RailColumn({ rows, rowH }: { rows: number; rowH: number }) {
 }
 
 /* -------------------- SCROLL-LOCKED COLLAGE (right column only) -------------------- */
+/**
+ * Change: add a dynamic lead-in BEFORE the sticky viewport so the lock engages
+ * only after the PACE tree would be fully visible and centered.
+ */
 function CollageScene({
   vh,
+  treeHeight,
   containerHeight,
   items,
   note,
@@ -457,12 +461,16 @@ function CollageScene({
   mode,
 }: {
   vh: number;
+  treeHeight: number;
   containerHeight: number;
   items: Record<string, { left: string; top: number; width: string }>;
   note: { left: string; top: number; width: string };
   projects: ReadonlyArray<Project>;
   mode: "md" | "lg";
 }) {
+  // Distance to scroll before locking so the tree would be centered in view
+  const LEAD_IN = Math.max(0, Math.round((vh - treeHeight) / 2));
+
   // Cards appear from the bottom after lock begins
   const START_FROM_BOTTOM = Math.round(vh * 0.9);
   const TRAVEL_CORE = Math.max(0, containerHeight - vh);
@@ -470,7 +478,9 @@ function CollageScene({
 
   // Lock range = true motion path
   const TOTAL_PATH = START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL;
-  const SENTINEL_HEIGHT = Math.max(vh + 1, TOTAL_PATH);
+
+  // Sentinel spans: lead-in (free scroll) + locked motion
+  const SENTINEL_HEIGHT = Math.max(LEAD_IN + TOTAL_PATH, vh + 1);
 
   const sentinelRef = React.useRef<HTMLDivElement | null>(null);
   const { scrollYProgress } = useScroll({
@@ -478,7 +488,10 @@ function CollageScene({
     offset: ["start start", "end start"],
   });
 
-  const y = useTransform(scrollYProgress, [0, 1], [
+  // Keep collage still during lead-in, then animate across the locked span
+  const startFrac = LEAD_IN / SENTINEL_HEIGHT;
+  const y = useTransform(scrollYProgress, [0, startFrac, 1], [
+    START_FROM_BOTTOM,
     START_FROM_BOTTOM,
     -(TRAVEL_CORE + EXIT_TAIL),
   ]);
@@ -489,9 +502,12 @@ function CollageScene({
 
   return (
     <>
-      {/* Scroll driver (controls the lock) */}
+      {/* Scroll driver (controls the timing and lock) */}
       <div ref={sentinelRef} style={{ height: SENTINEL_HEIGHT }} className="relative">
-        {/* Pinned viewport (locks while sentinel is in range) */}
+        {/* free-scroll lead-in so the tree would be fully visible BEFORE lock */}
+        {LEAD_IN > 0 && <div style={{ height: LEAD_IN }} />}
+
+        {/* Pinned viewport (locks while sticky is in view) */}
         <div className="sticky top-0 h-screen">
           {/* Tree behind, unmasked (always visible) */}
           <PACEBackground />
@@ -537,7 +553,7 @@ function CollageScene({
         </div>
       </div>
 
-      {/* Tiny buffer so the next section sits closer (removes long tail) */}
+      {/* Tiny buffer so the next section sits closer (no long tail) */}
       <div style={{ height: 12 }} />
     </>
   );
@@ -623,7 +639,7 @@ export default function ProjectsHUD() {
 
         {/* Two-column layout on md+: left rail + right content; mobile shows content full-width */}
         <div className="md:grid md:grid-cols-[64px,1fr] md:gap-6">
-          {/* Left vertical scroller — height now equals the PACE tree height */}
+          {/* Left vertical scroller — height equals the PACE tree height */}
           <LeftRail height={treeHeight} />
 
           {/* Right column */}
@@ -635,6 +651,7 @@ export default function ProjectsHUD() {
             <div className="relative hidden md:block lg:hidden">
               <CollageScene
                 vh={vh}
+                treeHeight={treeHeight}
                 containerHeight={md.containerHeight}
                 items={md.items}
                 note={md.note}
@@ -647,6 +664,7 @@ export default function ProjectsHUD() {
             <div className="relative hidden lg:block">
               <CollageScene
                 vh={vh}
+                treeHeight={treeHeight}
                 containerHeight={lg.containerHeight}
                 items={lg.items}
                 note={lg.note}
