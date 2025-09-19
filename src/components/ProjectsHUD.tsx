@@ -6,6 +6,8 @@ import TransitionLink from "@/components/TransitionLink";
 import { profile } from "@/content/profile";
 import { slugify } from "@/lib/slug";
 import { Oswald, Plus_Jakarta_Sans } from "next/font/google";
+// ⬇️ NEW (for scroll-lock + motion of the collage only)
+import { motion, useScroll, useTransform } from "framer-motion";
 
 const oswald = Oswald({ subsets: ["latin"], weight: ["400", "500", "700"] });
 const plusJakarta = Plus_Jakarta_Sans({
@@ -243,45 +245,38 @@ function BlurbAndNote({
 
 /** Pinned PACE storyboard (right column only; behind collage; no pointer events) */
 function PACEBackground() {
-  // Sticky area sits below the header; 7rem ≈ top-28 on your rail, keep it consistent.
   return (
     <div className="pointer-events-none absolute inset-0 z-0">
-      <div
-        className="sticky top-6 md:top-6"
-        style={{
-          height: "calc(100vh - 1.5rem)", // viewport minus 24px
-        }}
-      >
-        <div className="relative h-full w-full">
-          {/* vertical spine */}
-          <div className="absolute left-6 top-4 bottom-4 w-px bg-white/10" />
+      {/* Fill the sticky stage height (parent provides the height) */}
+      <div className="relative h-full w-full">
+        {/* vertical spine */}
+        <div className="absolute left-6 top-4 bottom-4 w-px bg-white/10" />
 
-          {/* Nodes (Plan / Analyze / Construct / Execute) with subtle branches */}
-          <NodeWithBranches
-            top="4%"
-            label="PLAN"
-            sub="Scope for outcomes"
-            branches={["Storyboard", "Framework", "Deadline"]}
-          />
-          <NodeWithBranches
-            top="29%"
-            label="ANALYZE"
-            sub="Turn data into direction"
-            branches={["Data audit", "Hypotheses", "Methods"]}
-          />
-          <NodeWithBranches
-            top="56%"
-            label="CONSTRUCT"
-            sub="Build, iterate, instrument"
-            branches={["Prototype", "Feedback", "Instrumentation"]}
-          />
-          <NodeWithBranches
-            top="83%"
-            label="EXECUTE"
-            sub="Ship, train, measure"
-            branches={["Deploy", "Enablement", "Impact"]}
-          />
-        </div>
+        {/* Nodes with branches */}
+        <NodeWithBranches
+          top="4%"
+          label="PLAN"
+          sub="Scope for outcomes"
+          branches={["Storyboard", "Framework", "Deadline"]}
+        />
+        <NodeWithBranches
+          top="29%"
+          label="ANALYZE"
+          sub="Turn data into direction"
+          branches={["Data audit", "Hypotheses", "Methods"]}
+        />
+        <NodeWithBranches
+          top="56%"
+          label="CONSTRUCT"
+          sub="Build, iterate, instrument"
+          branches={["Prototype", "Feedback", "Instrumentation"]}
+        />
+        <NodeWithBranches
+          top="83%"
+          label="EXECUTE"
+          sub="Ship, train, measure"
+          branches={["Deploy", "Enablement", "Impact"]}
+        />
       </div>
     </div>
   );
@@ -327,7 +322,7 @@ function NodeWithBranches({
   );
 }
 
-/** Header block (unchanged markup); we’ll make it sticky outside this component. */
+/** Header block (unchanged markup) */
 function ProjectsHeader() {
   return (
     <div className="mb-8 md:mb-10">
@@ -481,6 +476,19 @@ export default function ProjectsHUD() {
     return () => ro.disconnect();
   }, []);
 
+  // Viewport height for the sticky "stage" (scroll-lock window)
+  const [vh, setVh] = React.useState<number>(typeof window === "undefined" ? 800 : window.innerHeight);
+  React.useEffect(() => {
+    const onResize = () => setVh(window.innerHeight || vh);
+    window.addEventListener("resize", onResize, { passive: true });
+    return () => window.removeEventListener("resize", onResize);
+  }, [vh]);
+
+  // Fade mask tuning for the collage stage (right column)
+  const TOP_FADE = 180;    // px — tiles fade out under sticky header
+  const BOTTOM_FADE = 110; // px — tiles fade in from bottom
+  const EXTRA_BOTTOM = 96; // ≈ 1 inch of extra scroll after the storyboard ends
+
   // Mobile: simple stack (note hidden on mobile)
   const mobile = (
     <div className="md:hidden space-y-10">
@@ -537,9 +545,93 @@ export default function ProjectsHUD() {
   const md = LAYOUT.md;
   const lg = LAYOUT.lg;
 
-  // Fade mask tuning for the collage stage (right column)
-  const TOP_FADE = 180;    // px — tiles fade out under sticky header
-  const BOTTOM_FADE = 110; // px — tiles fade in from bottom
+  // ====== NEW: Scroll-locked "Scene" wrapper (right column only) ======
+  function CollageScene({
+    mode, // "md" | "lg"
+    containerHeight,
+    items,
+    note,
+  }: {
+    mode: "md" | "lg";
+    containerHeight: number;
+    items: Record<string, { left: string; top: number; width: string }>;
+    note: { left: string; top: number; width: string };
+  }) {
+    // Sentinel drives progress (0→1) while section is locked
+    const sentinelRef = React.useRef<HTMLDivElement | null>(null);
+
+    // Travel distance: how far the collage must move to pass completely
+    const travel = Math.max(0, containerHeight - vh);
+
+    // Total scroll height for this scene = visible window (vh) + travel + a bit extra
+    const sceneHeight = vh + travel + EXTRA_BOTTOM;
+
+    // Progress within the scene
+    const { scrollYProgress } = useScroll({
+      target: sentinelRef,
+      offset: ["start start", "end end"], // lock from first pixel to last pixel of the scene
+    });
+
+    // Translate the collage upward from 0px → -travel px
+    const y = useTransform(scrollYProgress, [0, 1], [0, -travel]);
+
+    return (
+      <div
+        className={mode === "md" ? "relative hidden md:block lg:hidden" : "relative hidden lg:block"}
+        // Section is now only as tall as needed: window + travel + ~1 inch (shorter overall)
+        style={{ height: sceneHeight }}
+      >
+        {/* Sticky stage that pins the storyboard + window while the user scrolls the scene */}
+        <div className="sticky top-0 h-screen">
+          {/* Pinned storyboard behind */}
+          <PACEBackground />
+
+          {/* View window with top/bottom fades; collage moves inside this window only */}
+          <div
+            className="absolute inset-0 z-10 overflow-hidden"
+            style={{
+              WebkitMaskImage: `linear-gradient(to bottom,
+                transparent 0px,
+                black ${BOTTOM_FADE}px,
+                black calc(100% - ${TOP_FADE}px),
+                transparent 100%)`,
+              maskImage: `linear-gradient(to bottom,
+                transparent 0px,
+                black ${BOTTOM_FADE}px,
+                black calc(100% - ${TOP_FADE}px),
+                transparent 100%)`,
+            }}
+          >
+            {/* Moving canvas holding the fixed-position collage */}
+            <motion.div
+              style={{ y, height: containerHeight, position: "relative" }}
+              // smooth GPU transform; only the collage moves (like the reference)
+              className="will-change-transform"
+            >
+              {TILE_ORDER.map((title) => {
+                const p = projects.find((x) => x.title === title);
+                if (!p) return null;
+                const pos = items[title];
+                return (
+                  <ProjectTile
+                    key={`${mode}-${title}`}
+                    p={p}
+                    left={pos.left}
+                    top={pos.top}
+                    width={pos.width}
+                  />
+                );
+              })}
+              <BlurbAndNote left={note.left} top={note.top} width={note.width} />
+            </motion.div>
+          </div>
+        </div>
+
+        {/* The invisible scroll driver that creates the lock-in */}
+        <div ref={sentinelRef} className="absolute inset-0 -z-10" />
+      </div>
+    );
+  }
 
   return (
     <section
@@ -548,7 +640,7 @@ export default function ProjectsHUD() {
       className="relative w-full py-20 md:py-28 scroll-mt-24 md:scroll-mt-28 bg-[#0d131d]"
     >
       <div className="mx-auto max-w-7xl px-6">
-        {/* Header (made sticky so tiles fade under it) */}
+        {/* Header (sticky so tiles fade under it) */}
         <div className="md:sticky md:top-6 md:z-20">
           <ProjectsHeader />
         </div>
@@ -558,88 +650,26 @@ export default function ProjectsHUD() {
           {/* Left vertical scroller (hidden on mobile) — UNCHANGED */}
           <LeftRail height={railHeight} />
 
-          {/* Right column: storyboard + collage stage */}
+          {/* Right column: mobile unchanged; md/lg use scroll-locked scenes */}
           <div ref={rightColRef}>
             {/* Mobile stacked — unchanged */}
             {mobile}
 
-            {/* md stage (collage scrolls over pinned storyboard) */}
-            <div className="relative hidden md:block lg:hidden" style={{ height: md.containerHeight }}>
-              {/* Pinned storyboard (behind) */}
-              <PACEBackground />
+            {/* md scene: only the collage moves; storyboard pinned; section locked */}
+            <CollageScene
+              mode="md"
+              containerHeight={md.containerHeight}
+              items={md.items}
+              note={md.note}
+            />
 
-              {/* Collage layer with top/bottom mask for smooth enter/leave */}
-              <div
-                className="relative z-10"
-                style={{
-                  WebkitMaskImage: `linear-gradient(to bottom,
-                    transparent 0px,
-                    black ${BOTTOM_FADE}px,
-                    black calc(100% - ${TOP_FADE}px),
-                    transparent 100%)`,
-                  maskImage: `linear-gradient(to bottom,
-                    transparent 0px,
-                    black ${BOTTOM_FADE}px,
-                    black calc(100% - ${TOP_FADE}px),
-                    transparent 100%)`,
-                }}
-              >
-                {TILE_ORDER.map((title) => {
-                  const p = projects.find((x) => x.title === title);
-                  if (!p) return null;
-                  const pos = md.items[title];
-                  return (
-                    <ProjectTile
-                      key={`md-${title}`}
-                      p={p}
-                      left={pos.left}
-                      top={pos.top}
-                      width={pos.width}
-                    />
-                  );
-                })}
-                <BlurbAndNote left={md.note.left} top={md.note.top} width={md.note.width} />
-              </div>
-            </div>
-
-            {/* lg stage */}
-            <div className="relative hidden lg:block" style={{ height: lg.containerHeight }}>
-              {/* Pinned storyboard (behind) */}
-              <PACEBackground />
-
-              {/* Collage layer with top/bottom mask for smooth enter/leave */}
-              <div
-                className="relative z-10"
-                style={{
-                  WebkitMaskImage: `linear-gradient(to bottom,
-                    transparent 0px,
-                    black ${BOTTOM_FADE}px,
-                    black calc(100% - ${TOP_FADE}px),
-                    transparent 100%)`,
-                  maskImage: `linear-gradient(to bottom,
-                    transparent 0px,
-                    black ${BOTTOM_FADE}px,
-                    black calc(100% - ${TOP_FADE}px),
-                    transparent 100%)`,
-                }}
-              >
-                {TILE_ORDER.map((title) => {
-                  const p = projects.find((x) => x.title === title);
-                  if (!p) return null;
-                  const pos = lg.items[title];
-                  return (
-                    <ProjectTile
-                      key={`lg-${title}`}
-                      p={p}
-                      left={pos.left}
-                      top={pos.top}
-                      width={pos.width}
-                    />
-                  );
-                })}
-                <BlurbAndNote left={lg.note.left} top={lg.note.top} width={lg.note.width} />
-              </div>
-            </div>
+            {/* lg scene */}
+            <CollageScene
+              mode="lg"
+              containerHeight={lg.containerHeight}
+              items={lg.items}
+              note={lg.note}
+            />
           </div>
         </div>
       </div>
