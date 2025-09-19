@@ -66,7 +66,7 @@ const ASPECT: Record<string, string> = {
   "Python 101": "2 / 3",
 };
 
-/** Collage layout (unchanged from your version) */
+/** Collage layout (unchanged) */
 const LAYOUT = {
   md: {
     containerHeight: 1950,
@@ -130,7 +130,6 @@ function ProjectTile({
   const aspect = ASPECT[p.title] ?? "3 / 4";
 
   return (
-    // Tiles render above the storyboard (z-10)
     <article className="absolute z-10" style={{ left, top, width }} aria-label={p.title}>
       <TransitionLink
         href={`/projects/${slug}?via=projects`}
@@ -200,26 +199,21 @@ function BlurbAndNote({
   width: string;
 }) {
   return (
-    // Note sits beneath tiles and ignores pointer events
     <div
       className="absolute hidden md:block pointer-events-none z-0"
       style={{ left, top, width }}
     >
-      {/* Blurb */}
       <p className="text-[15px] leading-tight text-white/85 mb-4">
         I carry projects from messy data to maintainable tools—analyses, models, and apps that are
         rigorous, documented, and usable.
       </p>
 
-      {/* Two-column note (no bullets) */}
       <div className="grid grid-cols-[8.5rem,1fr] gap-x-6">
-        {/* Label */}
         <div className="text-[12px] leading-tight text-white/60 font-medium">
           <div>Showcase</div>
           <div>Highlights</div>
         </div>
 
-        {/* Lines */}
         <div className="flex flex-col gap-2 text-[14px] leading-snug text-white/85">
           <div>
             <span className="font-semibold">96.2% accuracy (AUC 93.8%)</span> on employee-retention models
@@ -242,24 +236,16 @@ function BlurbAndNote({
   );
 }
 
-/** Pinned PACE storyboard (lowered & centered vertically; behind collage) */
+/** Pinned PACE storyboard (centered vertically; behind collage) */
 function PACEBackground() {
   return (
     <div className="pointer-events-none absolute inset-0 z-0">
-      {/* Center the entire tree vertically (away from the subheading), without shifting horizontally */}
       <div
         className="absolute left-0 right-0 top-1/2 -translate-y-1/2"
-        style={{
-          height: "70vh", // substantial height, but centered vertically
-          minHeight: 520,
-          maxHeight: 820,
-        }}
+        style={{ height: "70vh", minHeight: 520, maxHeight: 820 }}
       >
         <div className="relative h-full w-full">
-          {/* vertical spine within the centered box */}
           <div className="absolute left-6 top-2 bottom-2 w-px bg-white/10" />
-
-          {/* Nodes positioned relative to the centered box */}
           <NodeWithBranches
             top="0%"
             label="PLAN"
@@ -304,17 +290,12 @@ function NodeWithBranches({
   return (
     <div className="absolute left-0 right-0" style={{ top }}>
       <div className="relative pl-16 pr-4">
-        {/* Node */}
         <div className="absolute left-2 top-1 h-7 w-7 rounded-full bg-white/10 ring-1 ring-white/15" />
         <div className="text-white/85">
           <div className="text-xs tracking-[0.22em] text-white/60">{label}</div>
           <div className="text-sm md:text-base text-white/80">{sub}</div>
         </div>
-
-        {/* Branch connector */}
         <div className="absolute left-16 top-[1.6rem] h-px w-10 bg-white/12" />
-
-        {/* Branch boxes */}
         <div className="ml-24 flex flex-wrap gap-3 mt-1">
           {branches.map((b) => (
             <div
@@ -330,7 +311,7 @@ function NodeWithBranches({
   );
 }
 
-/** Header block (unchanged markup) */
+/** Header block: unchanged */
 function ProjectsHeader() {
   return (
     <div className="mb-8 md:mb-10">
@@ -350,15 +331,14 @@ function ProjectsHeader() {
   );
 }
 
-/** LEFT RAIL — unchanged mechanics; mask-only fades to avoid boxes on #0d131d */
+/** LEFT RAIL — unchanged mechanics */
 function LeftRail({ height }: { height?: number | null }) {
   const [paused, setPaused] = React.useState(false);
 
-  const TOP_FADE = 250; // earlier top fade to ensure invisibility before clipping
+  const TOP_FADE = 250;
   const BOTTOM_FADE = 96;
-  const SPEED = 22; // px/sec
+  const SPEED = 22;
 
-  // Measure unrotated label width (used as row height when rotated 90°)
   const measureRef = React.useRef<HTMLSpanElement | null>(null);
   const [rowH, setRowH] = React.useState<number>(0);
   React.useEffect(() => {
@@ -423,7 +403,6 @@ function LeftRail({ height }: { height?: number | null }) {
           onMouseEnter={() => setPaused(true)}
           onMouseLeave={() => setPaused(false)}
         >
-          {/* hidden measurer */}
           <span
             ref={measureRef}
             className={`${plusJakarta.className} text-[11px] tracking-[0.18em] absolute opacity-0 pointer-events-none whitespace-nowrap`}
@@ -431,7 +410,6 @@ function LeftRail({ height }: { height?: number | null }) {
             Scroll to Explore
           </span>
 
-          {/* moving column */}
           <div className="absolute inset-0">
             <div ref={innerRef} className="will-change-transform">
               <RailColumn rows={rows} rowH={rowH || 40} />
@@ -494,14 +472,13 @@ export default function ProjectsHUD() {
     return () => window.removeEventListener("resize", onResize);
   }, [vh]);
 
-  // Fade mask tuning for the collage stage (right column)
-  const TOP_FADE = 180;    // px — tiles fade out under sticky header
-  const BOTTOM_FADE = 110; // px — tiles fade in from bottom
+  const TOP_FADE = 180;
+  const BOTTOM_FADE = 110;
 
-  // **Short tail** after storyboard so cards aren't clipped
-  const EXTRA_TAIL = 72;
+  // **Shorter tail** after scene so the next title sits closer
+  const EXTRA_TAIL = 48;
 
-  // Mobile stack (unchanged)
+  // Mobile: simple stack (unchanged)
   const mobile = (
     <div className="md:hidden space-y-10">
       {TILE_ORDER.map((title) => {
@@ -536,10 +513,6 @@ export default function ProjectsHUD() {
                 <TransitionLink
                   href={`/projects/${slug}?via=projects`}
                   className="hover:underline"
-                  onClick={() =>
-                    typeof window !== "undefined" &&
-                    window.sessionStorage.setItem("cameFromProjects", "1")
-                  }
                 >
                   {p.title}
                 </TransitionLink>
@@ -571,30 +544,27 @@ export default function ProjectsHUD() {
   }) {
     const sceneRef = React.useRef<HTMLDivElement | null>(null);
 
-    // We start fully below the window so the PACE tree shows first.
+    // Start from below the window so the PACE tree shows first.
     const START_FROM_BOTTOM = vh + 120;
 
-    // Travel needed to pass all cards through the window, plus a small header-clear tail.
+    // Travel distance + header-clear tail
     const TRAVEL_CORE = Math.max(0, containerHeight - vh);
     const EXIT_TAIL = 220;
 
-    // Total movement path
     const TOTAL_PATH = START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL;
 
-    // **Short scroll budget**: keeps the section tight while maintaining lock
-    // (maps 0→1 progress to the full TOTAL_PATH, so movement is unchanged).
+    // Short scroll budget to keep the section tight (movement mapping unchanged).
     const SCROLL_BUDGET = Math.max(420, Math.min(620, Math.round(TOTAL_PATH * 0.25)));
 
-    // Scene height that **locks** the user until the collage completes.
+    // Height that **locks** the user in the section
     const sceneHeight = vh + SCROLL_BUDGET + EXTRA_TAIL;
 
-    // Progress 0→1 while the wrapper scrolls (this enforces the lock)
+    // 🔒 Strong lock: progress reaches 1 only when wrapper's BOTTOM hits viewport TOP
     const { scrollYProgress } = useScroll({
       target: sceneRef,
-      offset: ["start start", "end end"],
+      offset: ["start start", "end start"],
     });
 
-    // Translate collage from below the window → past the header
     const y = useTransform(
       scrollYProgress,
       [0, 1],
@@ -607,11 +577,10 @@ export default function ProjectsHUD() {
         className={mode === "md" ? "relative hidden md:block lg:hidden" : "relative hidden lg:block"}
         style={{ height: sceneHeight }}
       >
-        {/* Sticky viewport: storyboard stays pinned; collage moves within */}
-        <div className="sticky top-0 h-screen">
+        {/* Pinned viewport with scroll-chain containment for a firm lock */}
+        <div className="sticky top-0 h-screen overscroll-contain">
           <PACEBackground />
 
-          {/* View window with bottom/top fades (cards enter from bottom, exit under header) */}
           <div
             className="absolute inset-0 z-10 overflow-hidden"
             style={{
@@ -657,30 +626,31 @@ export default function ProjectsHUD() {
     <section
       id="projects"
       aria-label="Projects"
-      // keep top padding; **remove bottom padding** so no extra blank after the scene
       className="relative w-full pt-20 md:pt-28 pb-0 scroll-mt-24 md:scroll-mt-28 bg-[#0d131d]"
     >
       <div className="mx-auto max-w-7xl px-6">
-        {/* Header stays sticky so cards fade under it */}
+        {/* Sticky header so cards fade under it */}
         <div className="md:sticky md:top-6 md:z-20">
           <ProjectsHeader />
         </div>
 
-        {/* Two-column grid (left rail untouched) */}
         <div className="md:grid md:grid-cols-[64px,1fr] md:gap-6">
+          {/* Left vertical scroller (unchanged) */}
           <LeftRail height={railHeight} />
 
+          {/* Right column */}
           <div ref={rightColRef}>
-            {/* Mobile unchanged */}
             {mobile}
 
-            {/* md + lg scenes: scroll-locked, cards move up, tree pinned & centered */}
+            {/* md collage */}
             <CollageScene
               mode="md"
               containerHeight={md.containerHeight}
               items={md.items}
               note={md.note}
             />
+
+            {/* lg collage */}
             <CollageScene
               mode="lg"
               containerHeight={lg.containerHeight}
