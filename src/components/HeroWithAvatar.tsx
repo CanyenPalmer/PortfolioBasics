@@ -88,6 +88,17 @@ export default function Hero({ headline, subheadline, typer }: Props) {
     el.classList.remove("is-glitching");
   }
 
+  // === Alinore lock-in overlay (safely layered above NameStamp) ===
+  const LOCK_DELAY_MS = 1300; // when NameStamp is usually done; tweak if needed
+  const [lockLive, setLockLive] = React.useState(false);
+  const resolvedName = headline ?? "Canyen Palmer";
+
+  React.useEffect(() => {
+    setLockLive(false);
+    const t = setTimeout(() => setLockLive(true), LOCK_DELAY_MS);
+    return () => clearTimeout(t);
+  }, [resolvedName]);
+
   return (
     <section
       id="home"
@@ -159,17 +170,27 @@ export default function Hero({ headline, subheadline, typer }: Props) {
         </ul>
       </nav>
 
-      {/* Main hero content (no DATA/SCIENCE underlay) */}
+      {/* Main hero content */}
       <div className="container mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-10 items-center relative z-10">
         {/* Copy */}
         <div className="space-y-5">
-          <h1 className="text-6xl md:text-7xl font-bold leading-[1.05]">
-            <NameStamp
-              text={headline ?? "Canyen Palmer"}
-              className="text-6xl md:text-7xl font-bold"
-              variant="hero"
-              rearmOnExit={true}
-            />
+          <h1 className="text-7xl md:text-8xl lg:text-9xl font-bold leading-[1.05]">
+            {/* Wrap to align Alinore overlay exactly over NameStamp */}
+            <span className="relative inline-block">
+              <NameStamp
+                text={resolvedName}
+                className="text-7xl md:text-8xl lg:text-9xl font-bold"
+                variant="hero"
+                rearmOnExit={true}
+              />
+              {/* Alinore overlay: fades in after NameStamp completes */}
+              <span
+                aria-hidden="true"
+                className={`pointer-events-none absolute inset-0 flex items-center alinore-lock ${lockLive ? "is-live" : ""}`}
+              >
+                {resolvedName}
+              </span>
+            </span>
           </h1>
 
           {/* SkillsBelt — scaled visually, still capped */}
@@ -199,45 +220,32 @@ export default function Hero({ headline, subheadline, typer }: Props) {
         <div className="text-base text-white/50">• Scroll to Explore •</div>
       </div>
 
-      {/* VHS glitch overlay (only on hovered nav item) */}
+      {/* VHS glitch overlay (nav) + Alinore font + lock fade */}
       <style jsx global>{`
+        /* ---------- Hero nav VHS glitch ---------- */
         .nav-glitch { position: relative; display: inline-block; color: rgba(255,255,255,0.7); }
         .nav-glitch .nav-label { position: relative; z-index: 1; }
-
-        /* Overlay element uses CSS var --glitch-text for randomized content */
-        .nav-glitch .nav-vhs {
-          position: absolute;
-          inset: 0;
-          width: 100%;
-          overflow: hidden;            /* ⬅️ clip overlay to label width */
-          pointer-events: none;
-        }
+        .nav-glitch .nav-vhs { position: absolute; inset: 0; width: 100%; overflow: hidden; pointer-events: none; }
         .nav-glitch:hover { color: #fff; }
-
         .nav-glitch.is-glitching .nav-vhs::before,
         .nav-glitch.is-glitching .nav-vhs::after {
           content: var(--glitch-text);
-          position: absolute;
-          left: 0; top: 0;
-          width: 100%;                 /* ⬅️ constrain pseudo width */
+          position: absolute; left: 0; top: 0;
+          width: 100%;
           white-space: nowrap;
-          font: inherit;               /* ⬅️ match metrics exactly */
-          letter-spacing: inherit;     /* ⬅️ keeps overlay width aligned */
+          font: inherit; letter-spacing: inherit;
           will-change: transform, clip-path, opacity, text-shadow;
         }
         .nav-glitch.is-glitching .nav-vhs::before {
-          color: currentColor;
-          mix-blend-mode: screen;
+          color: currentColor; mix-blend-mode: screen;
           text-shadow: 1px 0 rgba(0,255,255,0.6);
           animation: vhsShiftA 280ms steps(2, end) infinite;
         }
         .nav-glitch.is-glitching .nav-vhs::after {
-          color: currentColor;
-          mix-blend-mode: screen;
+          color: currentColor; mix-blend-mode: screen;
           text-shadow: -1px 0 rgba(255,0,0,0.6);
           animation: vhsShiftB 280ms steps(2, end) infinite;
         }
-
         @keyframes vhsShiftA {
           0% { transform: translate(0,0); clip-path: inset(0 0 0 0); opacity: .85; }
           25% { transform: translate(1px,-0.5px); clip-path: inset(0 0 60% 0); opacity: .55; }
@@ -252,10 +260,34 @@ export default function Hero({ headline, subheadline, typer }: Props) {
           75% { transform: translate(-0.5px,0); clip-path: inset(50% 0 0 0); opacity: .55; }
           100% { transform: translate(0,0); clip-path: inset(0 0 0 0); opacity: .8; }
         }
-
         @media (prefers-reduced-motion: reduce) {
           .nav-glitch.is-glitching .nav-vhs::before,
           .nav-glitch.is-glitching .nav-vhs::after { animation: none !important; text-shadow: none !important; }
+        }
+
+        /* ---------- Alinore (local font) ---------- */
+        /* Place your font at: public/fonts/Alinore.woff2 */
+        @font-face {
+          font-family: "Alinore";
+          src: url("/fonts/Alinore.woff2") format("woff2");
+          font-weight: normal;
+          font-style: normal;
+          font-display: swap;
+        }
+
+        /* Overlay that "locks" the name into Alinore after NameStamp finishes */
+        .alinore-lock {
+          font-family: "Alinore", ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+          opacity: 0;
+          /* Keep layout perfectly aligned */
+          line-height: 1.05;
+        }
+        .alinore-lock.is-live {
+          animation: alinoreLockFade 360ms ease-out forwards;
+        }
+        @keyframes alinoreLockFade {
+          from { opacity: 0; }
+          to   { opacity: 1; }
         }
       `}</style>
     </section>
