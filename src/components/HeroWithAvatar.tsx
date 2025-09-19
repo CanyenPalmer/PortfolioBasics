@@ -62,9 +62,7 @@ export default function Hero({ headline, subheadline, typer }: Props) {
     const el = e.currentTarget as HTMLElement;
     const label = el.getAttribute("data-label") || "";
     el.classList.add("is-glitching");
-    // Initialize CSS var so ::before/::after have content
     el.style.setProperty("--glitch-text", `"${label}"`);
-    // Update random overlay briefly (~300–360ms)
     let ticks = 0;
     const id = window.setInterval(() => {
       ticks++;
@@ -88,14 +86,15 @@ export default function Hero({ headline, subheadline, typer }: Props) {
     el.classList.remove("is-glitching");
   }
 
-  // === Alinore lock-in overlay (safely layered above NameStamp) ===
-  const LOCK_DELAY_MS = 1300; // when NameStamp is usually done; tweak if needed
-  const [lockLive, setLockLive] = React.useState(false);
+  // === Alinore lock-in: switch font-family on the SAME element (no overlay) ===
+  // Put your font file at public/fonts/Alinore.woff2
+  const LOCK_DELAY_MS = 1300; // matches end of NameStamp animation; tweak if needed
+  const [locked, setLocked] = React.useState(false);
   const resolvedName = headline ?? "Canyen Palmer";
 
   React.useEffect(() => {
-    setLockLive(false);
-    const t = setTimeout(() => setLockLive(true), LOCK_DELAY_MS);
+    setLocked(false);
+    const t = setTimeout(() => setLocked(true), LOCK_DELAY_MS);
     return () => clearTimeout(t);
   }, [resolvedName]);
 
@@ -175,21 +174,14 @@ export default function Hero({ headline, subheadline, typer }: Props) {
         {/* Copy */}
         <div className="space-y-5">
           <h1 className="text-7xl md:text-8xl lg:text-9xl font-bold leading-[1.05]">
-            {/* Wrap to align Alinore overlay exactly over NameStamp */}
-            <span className="relative inline-block">
+            {/* We switch the font on this wrapper once the stamp is done */}
+            <span className={`hero-name ${locked ? "is-locked" : ""}`}>
               <NameStamp
                 text={resolvedName}
                 className="text-7xl md:text-8xl lg:text-9xl font-bold"
                 variant="hero"
                 rearmOnExit={true}
               />
-              {/* Alinore overlay: fades in after NameStamp completes */}
-              <span
-                aria-hidden="true"
-                className={`pointer-events-none absolute inset-0 flex items-center alinore-lock ${lockLive ? "is-live" : ""}`}
-              >
-                {resolvedName}
-              </span>
             </span>
           </h1>
 
@@ -220,7 +212,7 @@ export default function Hero({ headline, subheadline, typer }: Props) {
         <div className="text-base text-white/50">• Scroll to Explore •</div>
       </div>
 
-      {/* VHS glitch overlay (nav) + Alinore font + lock fade */}
+      {/* VHS glitch overlay (nav) + Alinore face + lock class */}
       <style jsx global>{`
         /* ---------- Hero nav VHS glitch ---------- */
         .nav-glitch { position: relative; display: inline-block; color: rgba(255,255,255,0.7); }
@@ -275,19 +267,11 @@ export default function Hero({ headline, subheadline, typer }: Props) {
           font-display: swap;
         }
 
-        /* Overlay that "locks" the name into Alinore after NameStamp finishes */
-        .alinore-lock {
+        /* When locked, switch the same element to Alinore */
+        .hero-name { display: inline-block; }
+        .hero-name.is-locked {
           font-family: "Alinore", ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
-          opacity: 0;
-          /* Keep layout perfectly aligned */
-          line-height: 1.05;
-        }
-        .alinore-lock.is-live {
-          animation: alinoreLockFade 360ms ease-out forwards;
-        }
-        @keyframes alinoreLockFade {
-          from { opacity: 0; }
-          to   { opacity: 1; }
+          line-height: 1.05; /* match your h1 line-height to avoid shift */
         }
       `}</style>
     </section>
