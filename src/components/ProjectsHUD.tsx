@@ -264,10 +264,10 @@ function ProjectsHeader() {
 function LeftRail({ height }: { height?: number | null }) {
   const [paused, setPaused] = React.useState(false);
 
-  // ⬇️ Only change: start top fade sooner so text is fully invisible before clipping
-  const TOP_FADE = 250;    // was 96 — start fade earlier at the top
-  const BOTTOM_FADE = 96;  // unchanged
-  const SPEED = 22;        // px/sec scroll speed
+  // ⬇️ Only change: keep mask fade; remove color overlays to prevent visible boxes.
+  const TOP_FADE = 250;
+  const BOTTOM_FADE = 96;
+  const SPEED = 22; // px/sec scroll speed
 
   // Measure the *unrotated* label width, used as row height once rotated 90°
   const measureRef = React.useRef<HTMLSpanElement | null>(null);
@@ -343,16 +343,6 @@ function LeftRail({ height }: { height?: number | null }) {
           >
             Scroll to Explore
           </span>
-
-          {/* vignettes for fallback polish */}
-          <div
-            className="pointer-events-none absolute inset-x-0 top-0"
-            style={{ height: TOP_FADE, backgroundImage: "linear-gradient(to bottom, #16202e, transparent)" }}
-          />
-          <div
-            className="pointer-events-none absolute inset-x-0 bottom-0"
-            style={{ height: BOTTOM_FADE, backgroundImage: "linear-gradient(to top, #16202e, transparent)" }}
-          />
 
           {/* moving column */}
           <div className="absolute inset-0">
