@@ -18,8 +18,8 @@ type Props = {
 /**
  * LandingIntro — cinematic intro fully isolated from the rest of the site.
  *
- * Fix: overlay opacity now also keys off the landing sentinel (as a safety),
- * so the tint cannot leak onto About Me even if #home isn't found/observed.
+ * Fix: overlay opacity also keys off the landing sentinel (safety), and the
+ * transformer explicitly treats inputs as numbers to avoid TS build errors.
  */
 export default function LandingIntro({
   title = "Let Data Drive Your Decisions",
@@ -50,13 +50,17 @@ export default function LandingIntro({
   });
   const overlayFadeByHero = useTransform(heroIntra, [0, 1], [1, 0]);
 
-  // ✅ Safety fallback: also fade out purely by the landing sentinel near the end
+  // Safety fallback: also fade out purely by the landing sentinel near the end
   const overlayFadeBySentinel = useTransform(scrollYProgress, [0.97, 1.0], [1, 0]);
 
-  // Combine both fades — whichever says "be more transparent" wins
+  // Combine both fades — whichever is more transparent wins (typed explicitly for TS)
   const overlayOpacity = useTransform(
     [overlayFadeByHero, overlayFadeBySentinel],
-    ([h, s]) => Math.min(h ?? 1, s ?? 1)
+    (latest) => {
+      const h = Number(latest[0] ?? 1);
+      const s = Number(latest[1] ?? 1);
+      return Math.min(h, s);
+    }
   );
 
   // Tint/dimmer driven ONLY by landing progress — last slice of the landing section.
