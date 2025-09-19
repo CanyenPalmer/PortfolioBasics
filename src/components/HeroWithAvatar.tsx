@@ -41,7 +41,7 @@ function ResumeIcon(props: React.SVGProps<SVGSVGElement>) {
 }
 
 export default function Hero({ headline, subheadline, typer }: Props) {
-  // === VHS glitch hover (nav-only) ===
+  // === VHS glitch hover (nav-only) — preserved as you liked ===
   const _glitchTimers = React.useRef<Map<HTMLElement, number>>(new Map());
   // ASCII-only to keep width visually stable (prevents layout shift)
   const _glyphs = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -176,20 +176,17 @@ export default function Hero({ headline, subheadline, typer }: Props) {
       <div className="container mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-10 items-center relative z-10">
         {/* Copy */}
         <div className="space-y-5">
-          {/* Constrain title to match toolbelt width so it never overlaps avatar */}
-          <h1 className="text-7xl md:text-8xl lg:text-9xl font-bold leading-[1.05] max-w-[680px] md:max-w-[720px]">
-            {/* Switch font-family on the same element once the stamp is done */}
+          {/* Single-line title, fluid size so it fits column without overlapping avatar */}
+          <h1 className="leading-[1.05]">
             <span
-              className="hero-name inline-block"
-              style={
-                locked
-                  ? { fontFamily: alinoreStack, letterSpacing: "0.01em" }
-                  : undefined
+              className={
+                "hero-name inline-block whitespace-nowrap " +
+                "text-[clamp(2.6rem,7.2vw,5.4rem)] md:text-[clamp(3rem,6.5vw,5.6rem)] lg:text-[clamp(3.2rem,6vw,5.8rem)] font-bold"
               }
             >
               <NameStamp
                 text={resolvedName}
-                className="text-7xl md:text-8xl lg:text-9xl font-bold"
+                className="whitespace-nowrap text-inherit font-inherit leading-none"
                 variant="hero"
                 rearmOnExit={true}
               />
@@ -223,9 +220,9 @@ export default function Hero({ headline, subheadline, typer }: Props) {
         <div className="text-base text-white/50">• Scroll to Explore •</div>
       </div>
 
-      {/* VHS glitch overlay (nav) + Alinore face */}
+      {/* VHS glitch overlay (nav) + Alinore face + lock rule */}
       <style jsx global>{`
-        /* ---------- Hero nav VHS glitch ---------- */
+        /* ---------- Hero nav VHS glitch (unchanged) ---------- */
         .nav-glitch {
           position: relative;
           display: inline-block;
@@ -290,6 +287,13 @@ export default function Hero({ headline, subheadline, typer }: Props) {
           font-weight: normal;
           font-style: normal;
           font-display: swap;
+        }
+
+        /* Lock Alinore on the same element and all descendants */
+        /* !important ensures inner spans from NameStamp can't override it */
+        .hero-name.is-locked, .hero-name.is-locked * {
+          font-family: "Alinore", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif !important;
+          letter-spacing: 0.01em;
         }
       `}</style>
     </section>
