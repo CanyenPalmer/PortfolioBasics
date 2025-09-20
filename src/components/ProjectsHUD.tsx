@@ -346,11 +346,11 @@ export default function ProjectsHUD() {
   // Travel math
   const TRAVEL_CORE = Math.max(0, LAYOUT.lg.containerHeight - windowH);
 
-  // Start immediately; cards begin lower but **closer** now so they appear sooner
+  // Start immediately; cards begin **lower** so they appear after a few scrolls
   const LEAD_IN = 0;
-  const START_FROM_BOTTOM = Math.round(windowH * 0.82); // ↓ from 1.06 to 0.82 so first card appears sooner
+  const START_FROM_BOTTOM = Math.round(windowH * 1.02); // ↑ raised so cards appear a bit later after lock
 
-  // Extended run-out so cards fully clear the top
+  // Extended run-out so cards fully clear the top (unchanged)
   const OUT_EXTRA = Math.max(700, Math.round(windowH * 1.45));
   const END_Y = -TRAVEL_CORE - OUT_EXTRA;
 
@@ -693,4 +693,3 @@ export default function ProjectsHUD() {
     </section>
   );
 }
-
