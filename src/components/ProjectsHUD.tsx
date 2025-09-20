@@ -374,8 +374,11 @@ export default function ProjectsHUD() {
   // ---- Lock & rail visibility; prevent tiny rebound at lock start
   const [lockActive, setLockActive] = React.useState(false);
   const [railVisible, setRailVisible] = React.useState(false);
-  const [enteredLock, setEnteredLock] = React.useState(false);
   const didSnapRef = React.useRef(false);
+
+  useMotionValueEvent(scrollYProgress, "change", (v) => {
+    // no-op but keeps hook alive if you need thresholds later
+  });
 
   React.useEffect(() => {
     const onScroll = () => {
@@ -383,6 +386,7 @@ export default function ProjectsHUD() {
       const lockStart = Math.round(docTop(staticStageRef.current!));
       const lockEnd = Math.round(docTop(afterDriverRef.current!)); // lock ends immediately after driver
 
+      // small snap to avoid rebound jiggle
       if (!didSnapRef.current && y > lockStart && y < lockStart + 12) {
         didSnapRef.current = true;
         window.scrollTo({ top: lockStart, behavior: "auto" });
@@ -392,10 +396,7 @@ export default function ProjectsHUD() {
       }
 
       const inLock = y >= lockStart && y < lockEnd;
-      if (inLock !== lockActive) {
-        setLockActive(inLock);
-        if (inLock) setEnteredLock(true);
-      }
+      if (inLock !== lockActive) setLockActive(inLock);
 
       const railOn = y >= lockStart - 40 && y < lockEnd;
       if (railOn !== railVisible) setRailVisible(railOn);
@@ -409,28 +410,28 @@ export default function ProjectsHUD() {
     };
   }, [lockActive, railVisible]);
 
-  /* ----------- STATIC IN-FLOW CHROME (before lock) ----------- */
+  /* ----------- STATIC IN-FLOW CHROME (ALWAYS MOUNTED) ----------- */
+  // Key: keep it in the layout the whole time; hide visually (not in layout) while locked.
   const StaticStage = (
-    <motion.div
+    <div
       className="mx-auto max-w-7xl px-6"
-      style={{ height: stageH, pointerEvents: lockActive ? "none" : "auto" }}
-      initial={false}
-      animate={{ opacity: lockActive ? 0 : 1 }}
-      transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+      style={{
+        height: stageH,
+        visibility: lockActive ? "hidden" : "visible",
+        pointerEvents: lockActive ? "none" as const : "auto",
+      }}
     >
-      {!enteredLock && (
-        <div className="h-full md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
-          <div className="hidden md:block" aria-hidden />
-          <div className="relative h-full">
-            <div className="pt-6 md:pt-8">
-              <StageHeader onMeasured={setHeaderH} />
-            </div>
-            <PACEBackground topOffset={paceTop} height={treeH} />
-            <div className="absolute inset-x-0" style={{ top: paceTop, height: windowH }} />
+      <div className="h-full md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
+        <div className="hidden md:block" aria-hidden />
+        <div className="relative h-full">
+          <div className="pt-6 md:pt-8">
+            <StageHeader onMeasured={setHeaderH} />
           </div>
+          <PACEBackground topOffset={paceTop} height={treeH} />
+          <div className="absolute inset-x-0" style={{ top: paceTop, height: windowH }} />
         </div>
-      )}
-    </motion.div>
+      </div>
+    </div>
   );
 
   /* ----------- LOCKED OVERLAYS ----------- */
@@ -499,34 +500,6 @@ export default function ProjectsHUD() {
     </motion.div>
   ) : null;
 
-  /* ----------- POST-LOCK CHROME (in-flow, scrolls with user) ----------- */
-  // Renders only after we’ve entered the lock once AND are no longer locked.
-  const PostLockChrome = enteredLock && !lockActive ? (
-    <div className="mx-auto max-w-7xl px-6" style={{ minHeight: stageH }}>
-      <div className="h-full md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
-        <div className="hidden md:block" aria-hidden />
-        <div className="relative h-full">
-          <div className="pt-6 md:pt-8">
-            <div className={`${oswald.className} leading-none tracking-tight`}>
-              <div className="inline-block">
-                <div className="text-xl md:text-2xl font-medium text-white/90">Palmer</div>
-                <div className="h-[2px] bg-white/25 mt-1" />
-              </div>
-              <h2 className="mt-3 uppercase font-bold text-white/90 tracking-tight text:[12vw] md:text-[9vw] lg:text-[8vw]">
-                Projects
-              </h2>
-            </div>
-            <div className={`${plusJakarta.className} mt-3 text-sm md:text-base text-white/70`}>
-              Select a project to view the full details
-            </div>
-          </div>
-          <PACEBackground topOffset={paceTop} height={treeH} />
-          <div className="absolute inset-x-0" style={{ top: paceTop, height: windowH }} />
-        </div>
-      </div>
-    </div>
-  ) : null;
-
   // Mobile (unchanged)
   const mobile = (
     <div className="md:hidden space-y-10 px-6 py-10 bg-[#0d131d]">
@@ -571,18 +544,15 @@ export default function ProjectsHUD() {
 
       {/* Desktop / Tablet */}
       <div className="hidden md:block">
-        {/* Pre-lock frame (visible only before lock) */}
+        {/* In-flow static frame: ALWAYS mounted, hidden visually during lock */}
         <div ref={staticStageRef} className="relative">
           {StaticStage}
         </div>
 
-        {/* Driver (card animation distance) */}
+        {/* Driver (card animation distance = lock distance) */}
         <div ref={driverRef} style={{ height: DRIVER_HEIGHT }} />
 
-        {/* Post-lock chrome (in-flow, scrolls with user) */}
-        {PostLockChrome}
-
-        {/* Buffer after lock to separate next section */}
+        {/* Neutral buffer to separate next section */}
         <div ref={afterDriverRef} style={{ height: 1100 }} />
 
         {/* Locked overlays */}
