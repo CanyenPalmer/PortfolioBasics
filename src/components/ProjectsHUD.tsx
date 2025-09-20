@@ -149,7 +149,7 @@ function ProjectTile({
             onError={(e) => {
               (e.currentTarget as HTMLImageElement).src =
                 "/images/portfolio-basics-avatar.png";
-            })}
+            }}
           />
         </div>
       </TransitionLink>
@@ -693,23 +693,23 @@ export default function ProjectsHUD() {
         {/* Mobile content */}
         {mobile}
 
-        {/* One scene at a time: */}
+        {/* One scene at a time */}
         <LockedScene
           className="hidden md:block lg:hidden"
           headerOffset={headerH}
-          stageVh={Math.max(220, vh - headerH)}
+          stageVh={stageVh}
           treeHeight={treeHeight}
           layout={LAYOUT.md}
-          projects={((profile as any)?.projects ?? []) as ReadonlyArray<Project>}
+          projects={projects}
           mode="md"
         />
         <LockedScene
           className="hidden lg:block"
           headerOffset={headerH}
-          stageVh={Math.max(220, vh - headerH)}
+          stageVh={stageVh}
           treeHeight={treeHeight}
           layout={LAYOUT.lg}
-          projects={((profile as any)?.projects ?? []) as ReadonlyArray<Project>}
+          projects={projects}
           mode="lg"
         />
       </div>
