@@ -521,11 +521,9 @@ export default function ProjectsHUD() {
     </div>
   );
 
-  // --- NEW: make the rail rise from the bottom fade line on lock ---
+  // --- Make the rail rise from the bottom fade line on lock ---
   const BOTTOM_FADE_PX = 180; // matches collage mask bottom fade
-  // Compute how far down the rail should start so its bottom aligns with the fade line:
-  // target bottom at (paceTop + windowH - BOTTOM_FADE_PX)
-  // normal bottom is (paceTop + treeH), so offset = (windowH - BOTTOM_FADE_PX) - treeH
+  // Offset so the rail's bottom starts at the fade line: (windowH - fade) - treeH
   const railIntroOffset = Math.max(0, (windowH - BOTTOM_FADE_PX) - treeH);
 
   return (
@@ -543,25 +541,32 @@ export default function ProjectsHUD() {
         {/* Driver: defines lock distance & progress */}
         <div ref={driverRef} style={{ height: DRIVER_HEIGHT }} />
 
-        {/* Neutral buffer for clean handoff — a bit more space (from prior step) */}
+        {/* Neutral buffer for clean handoff */}
         <div ref={afterDriverRef} style={{ height: 920 }} />
 
         {/* Overlays (only while locked) */}
         {CollageOverlay}
         {ChromeOverlay}
 
-        {/* PERSISTENT LEFT RAIL — fades in and slides up from bottom fade line at lock */}
+        {/* PERSISTENT LEFT RAIL — wrapper fades, inner slides up from bottom fade line */}
         <motion.div
           className="fixed inset-0 z-[62] pointer-events-none"
           aria-hidden
           initial={false}
-          animate={lockActive ? { opacity: 1, y: 0 } : { opacity: 0, y: railIntroOffset }}
-          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+          animate={{ opacity: lockActive ? 1 : 0 }}
+          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
         >
           <div className="h-full mx-auto max-w-7xl px-6">
             <div className="relative h-full md:grid md:grid-cols-[64px,1fr] md:gap-6">
               <div className="hidden md:block">
-                <LeftRail height={treeH} top={paceTop} />
+                <motion.div
+                  initial={false}
+                  animate={lockActive ? { y: 0, opacity: 1 } : { y: railIntroOffset, opacity: 0 }}
+                  transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                  style={{ willChange: "transform, opacity" }}
+                >
+                  <LeftRail height={treeH} top={paceTop} />
+                </motion.div>
               </div>
               <div aria-hidden className="hidden md:block" />
             </div>
