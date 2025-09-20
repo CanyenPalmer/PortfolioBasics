@@ -460,7 +460,7 @@ function RailColumn({ rows, rowH }: { rows: number; rowH: number }) {
   );
 }
 
-/* -------------------- STATIC UNDERLAY (always visible so arrival is formatted) -------------------- */
+/* -------------------- STATIC UNDERLAY (now mirrors the locked layout exactly) -------------------- */
 function StaticStage({
   vh,
   headerH,
@@ -475,20 +475,54 @@ function StaticStage({
 
   const paceTop = headerH + EXTRA_PACE_GAP;
   const windowH = Math.max(360, stageH - paceTop);
-  const treeH = Math.max(520, Math.min(820, Math.round(windowH * 0.75)));
 
   return (
-    <div className="mx-auto max-w-7xl px-6 pt-6 md:pt-8">
+    <div className="relative mx-auto max-w-7xl px-6 bg-[#0d131d]">
+      {/* Exact same grid as the locked overlay */}
       <div className="md:grid md:grid-cols-[64px,1fr] md:gap-6">
+        {/* Left rail matches tree height/offset during lock — we mirror that silhouette */}
         <div className="hidden md:block">
-          <LeftRail height={treeH} top={paceTop} />
+          {/* We don’t know treeH here (computed in overlay), but the rail’s visual length
+              is driven by the PACE area; mirroring the “window” height keeps alignment. */}
+          <LeftRail height={Math.max(520, Math.min(820, Math.round(windowH * 0.75)))} top={paceTop} />
         </div>
+
+        {/* Right column */}
         <div className="relative w-full">
-          <StageHeader onMeasured={setHeaderH} />
-          {/* Reserve the same vertical space the overlay will occupy to avoid jumps */}
+          {/* Title/subheading (measured) */}
+          <div className="pt-6 md:pt-8">
+            <StageHeader onMeasured={setHeaderH} />
+          </div>
+
+          {/* Reserve the visible stage area below the header so nothing jumps */}
           <div className="relative" style={{ height: stageH }}>
-            <div style={{ height: paceTop }} />
-            <PACEBackground topOffset={paceTop} height={treeH} />
+            {/* PACE tree positioned exactly like the overlay */}
+            <PACEBackground
+              topOffset={paceTop}
+              height={Math.max(520, Math.min(820, Math.round(windowH * 0.75)))}
+            />
+
+            {/* Collage “window frame” placeholder (same mask/box as overlay) */}
+            <div
+              className="absolute inset-x-0 z-10 overflow-hidden pointer-events-none"
+              style={{ top: paceTop, height: windowH }}
+            >
+              <div
+                className="absolute inset-0"
+                style={{
+                  WebkitMaskImage: `linear-gradient(to bottom,
+                    transparent 0px,
+                    black 110px,
+                    black calc(100% - 180px),
+                    transparent 100%)`,
+                  maskImage: `linear-gradient(to bottom,
+                    transparent 0px,
+                    black 110px,
+                    black calc(100% - 180px),
+                    transparent 100%)`,
+                }}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -721,3 +755,4 @@ export default function ProjectsHUD() {
     </section>
   );
 }
+
