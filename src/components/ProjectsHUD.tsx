@@ -243,14 +243,15 @@ export default function ProjectsHUD() {
   const staticStageRef = React.useRef<HTMLDivElement>(null);
   const [headerH, setHeaderH] = React.useState(0);
 
-  // driver (how long the animation runs)
+  // driver region spans the animation distance
   const driverRef = React.useRef<HTMLDivElement>(null);
   const afterDriverRef = React.useRef<HTMLDivElement>(null);
 
-  // geometry / timing
-  const EXTRA_PACE_GAP = 84;               // ~1" under subheading
+  // geometry (shared by static + overlay)
+  const EXTRA_PACE_GAP = 84;            // ~1" breathing room
   const paceTop = headerH + EXTRA_PACE_GAP;
   const windowH = Math.max(360, stageH - paceTop);
+  const treeH = Math.max(520, Math.min(820, Math.round(windowH * 0.75)));
 
   const TRAVEL_CORE = Math.max(0, LAYOUT.lg.containerHeight - windowH);
   const LEAD_IN = Math.max(220, Math.round(windowH * 0.22));
@@ -267,25 +268,16 @@ export default function ProjectsHUD() {
     -TRAVEL_CORE,
   ]);
 
-  // robust lock timing:
-  // lockStart: when the static stage is fully on screen (its top reaches the viewport top)
-  // lockEnd:   when we've scrolled past the driver region (plus a small buffer);
+  // robust lock timing based on document positions
   const [active, setActive] = React.useState(false);
   React.useEffect(() => {
     const onScroll = () => {
       const y = window.scrollY || window.pageYOffset || 0;
-
-      // When the stage is fully in view: its top equals the current scroll position
-      const lockStart = Math.round(docTop(staticStageRef.current!));
-
-      // End when we've passed the driver and the small tail buffer
-      const lockEnd = Math.round(docTop(afterDriverRef.current!));
-
-      // Engage immediately at or after lockStart; release strictly after lockEnd
+      const lockStart = Math.round(docTop(staticStageRef.current!)); // top of static stage reaches viewport top
+      const lockEnd = Math.round(docTop(afterDriverRef.current!));   // end boundary (driver + tail)
       const nextActive = y >= lockStart && y < lockEnd;
       if (nextActive !== active) setActive(nextActive);
     };
-
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll, { passive: true });
@@ -295,35 +287,44 @@ export default function ProjectsHUD() {
     };
   }, [active]);
 
-  // static (pre-lock) markup – keeps the section formatted before lock begins
+  // static (pre-lock): now shows header + PACE tree + left rail (no collage)
   const StaticStage = (
     <div className="mx-auto max-w-7xl px-6" style={{ height: stageH }}>
-      <div className="h-full md:grid md:grid-cols-[64px,1fr] md:gap-6">
-        <div className="hidden md:block" />
+      <div className="h-full md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
+        {/* Left rail (same geometry as locked) */}
+        <div className="hidden md:block">
+          <LeftRail height={treeH} top={paceTop} />
+        </div>
+
+        {/* Right column */}
         <div className="relative h-full">
           <div className="pt-6 md:pt-8">
             <StageHeader onMeasured={setHeaderH} />
           </div>
+
+          {/* PACE tree positioned and sized identically to locked view */}
+          <PACEBackground topOffset={paceTop} height={treeH} />
+
+          {/* Collage window placeholder to match layout (no content pre-lock) */}
+          <div className="absolute inset-x-0" style={{ top: paceTop, height: windowH }} />
         </div>
       </div>
     </div>
   );
 
-  // overlay (locked) — no fade, no pointer interception so scroll drives the driver cleanly
+  // overlay (locked): no fade, pointer-events off so scrolling feels natural
   const Overlay = active ? (
     <div className="fixed inset-0 z-[60] pointer-events-none">
       <div className="absolute inset-0 bg-[#0d131d]" />
 
       <div className="relative h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6">
-        {/* left rail */}
         <div className="hidden md:block">
-          <LeftRail height={Math.max(520, Math.min(820, Math.round(windowH * 0.75)))} top={paceTop} />
+          <LeftRail height={treeH} top={paceTop} />
         </div>
 
-        {/* right side */}
         <div className="relative h-full">
           <div className="pt-6 md:pt-8">
-            {/* header re-render (visual match, no measuring during lock) */}
+            {/* Header clone for visual consistency during lock */}
             <div className={`${oswald.className} leading-none tracking-tight`}>
               <div className="inline-block">
                 <div className="text-xl md:text-2xl font-medium text-white/90">Palmer</div>
@@ -336,7 +337,7 @@ export default function ProjectsHUD() {
             </div>
           </div>
 
-          <PACEBackground topOffset={paceTop} height={Math.max(520, Math.min(820, Math.round(windowH * 0.75)))} />
+          <PACEBackground topOffset={paceTop} height={treeH} />
 
           <div className="absolute inset-x-0 z-10 overflow-hidden" style={{ top: paceTop, height: windowH }}>
             <div
@@ -401,7 +402,7 @@ export default function ProjectsHUD() {
 
       {/* Desktop / Tablet */}
       <div className="hidden md:block">
-        {/* 1) Static stage (what you see as you arrive) */}
+        {/* 1) Static stage (now shows header + PACE tree + left rail) */}
         <div ref={staticStageRef} className="relative">
           {StaticStage}
         </div>
@@ -409,7 +410,7 @@ export default function ProjectsHUD() {
         {/* 2) Driver (scroll distance for the animation) */}
         <div ref={driverRef} style={{ height: DRIVER_HEIGHT }} />
 
-        {/* 3) End boundary – small spacer to release naturally (no snap/fade) */}
+        {/* 3) End boundary – small spacer for a natural release (no snap) */}
         <div ref={afterDriverRef} style={{ height: Math.max(140, Math.round(stageH * 0.18)) }} />
 
         {/* 4) Overlay (locked) */}
@@ -419,7 +420,7 @@ export default function ProjectsHUD() {
   );
 }
 
-/* left rail & helpers (kept as-is) */
+/* left rail & helpers (same as before) */
 function LeftRail({ height, top }: { height: number; top: number }) {
   const [paused, setPaused] = React.useState(false);
   const TOP_FADE = 250;
