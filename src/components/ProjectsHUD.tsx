@@ -6,7 +6,7 @@ import TransitionLink from "@/components/TransitionLink";
 import { profile } from "@/content/profile";
 import { slugify } from "@/lib/slug";
 import { Oswald, Plus_Jakarta_Sans } from "next/font/google";
-import { motion, useScroll, useTransform, useMotionValueEvent } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 
 const oswald = Oswald({ subsets: ["latin"], weight: ["400", "500", "700"] });
 const plusJakarta = Plus_Jakarta_Sans({
@@ -56,7 +56,7 @@ const KEYWORD_BY_TITLE: Record<string, string> = {
   "PortfolioBasics (This Site)": "frontend",
 };
 
-// predictable tile heights
+// Predictable heights via aspect-ratio wrappers (prevents overlaps)
 const ASPECT: Record<string, string> = {
   "CGM Patient Analytics": "3 / 4",
   "MyCaddy — Physics Shot Calculator": "3 / 4",
@@ -236,7 +236,7 @@ function BlurbAndNote({
   );
 }
 
-/** Title block — measured so the tree ALWAYS begins below it */
+/** Title block, measured for layout */
 function StageHeader({ onMeasured }: { onMeasured: (h: number) => void }) {
   const ref = React.useRef<HTMLDivElement>(null);
   React.useEffect(() => {
@@ -270,49 +270,35 @@ function StageHeader({ onMeasured }: { onMeasured: (h: number) => void }) {
   );
 }
 
-/** PACE storyboard (can be used in static or overlay) */
-function PACEBackground({
-  topOffset,
-  height,
-  absolute = true,
-}: {
-  topOffset: number;
-  height: number;
-  absolute?: boolean;
-}) {
-  const wrapperCls = absolute
-    ? "pointer-events-none absolute inset-x-0 z-[5]"
-    : "pointer-events-none relative z-[5]";
-
+/** PACE storyboard */
+function PACEBackground({ height }: { height: number }) {
   return (
-    <div className={wrapperCls} style={{ top: absolute ? topOffset : undefined, height }}>
-      <div className="relative h-full w-full">
-        <div className="absolute left-6 top-2 bottom-2 w-px bg-white/10" />
-        <NodeWithBranches
-          top="0%"
-          label="PLAN"
-          sub="Scope for outcomes"
-          branches={["Storyboard", "Framework", "Deadline"]}
-        />
-        <NodeWithBranches
-          top="28%"
-          label="ANALYZE"
-          sub="Turn data into direction"
-          branches={["Data audit", "Hypotheses", "Methods"]}
-        />
-        <NodeWithBranches
-          top="58%"
-          label="CONSTRUCT"
-          sub="Build, iterate, instrument"
-          branches={["Prototype", "Feedback", "Instrumentation"]}
-        />
-        <NodeWithBranches
-          top="88%"
-          label="EXECUTE"
-          sub="Ship, train, measure"
-          branches={["Deploy", "Enablement", "Impact"]}
-        />
-      </div>
+    <div className="pointer-events-none relative z-[5]" style={{ height }}>
+      <div className="absolute left-6 top-2 bottom-2 w-px bg-white/10" />
+      <NodeWithBranches
+        top="0%"
+        label="PLAN"
+        sub="Scope for outcomes"
+        branches={["Storyboard", "Framework", "Deadline"]}
+      />
+      <NodeWithBranches
+        top="28%"
+        label="ANALYZE"
+        sub="Turn data into direction"
+        branches={["Data audit", "Hypotheses", "Methods"]}
+      />
+      <NodeWithBranches
+        top="58%"
+        label="CONSTRUCT"
+        sub="Build, iterate, instrument"
+        branches={["Prototype", "Feedback", "Instrumentation"]}
+      />
+      <NodeWithBranches
+        top="88%"
+        label="EXECUTE"
+        sub="Ship, train, measure"
+        branches={["Deploy", "Enablement", "Impact"]}
+      />
     </div>
   );
 }
@@ -352,7 +338,7 @@ function NodeWithBranches({
   );
 }
 
-/** LEFT RAIL — length & vertical position match the PACE area exactly */
+/** LEFT RAIL — length & position match the PACE area exactly */
 function LeftRail({ height, top }: { height: number; top: number }) {
   const [paused, setPaused] = React.useState(false);
   const TOP_FADE = 250;
@@ -423,6 +409,7 @@ function LeftRail({ height, top }: { height: number; top: number }) {
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
       >
+        {/* hidden measurer */}
         <span
           ref={measureRef}
           className={`${plusJakarta.className} text-[11px] tracking-[0.18em] absolute opacity-0 pointer-events-none whitespace-nowrap`}
@@ -464,15 +451,11 @@ function RailColumn({ rows, rowH }: { rows: number; rowH: number }) {
   );
 }
 
-/* -------------------- FIXED-STAGE OVERLAY -------------------- */
-function FixedStage({
-  vh,
-  headerH,
+/* -------------------- STICKY STAGE (NO OVERLAY) -------------------- */
+function StickyStage({
   projects,
   layout,
 }: {
-  vh: number;
-  headerH: number;
   projects: ReadonlyArray<Project>;
   layout: {
     containerHeight: number;
@@ -480,153 +463,6 @@ function FixedStage({
     note: { left: string; top: number; width: string };
   };
 }) {
-  // visible stage height
-  const stageH = Math.max(640, vh);
-
-  // 1-inch breathing room (~96px)
-  const EXTRA_PACE_GAP = 96;
-
-  // Tree geometry identical to static layer
-  const paceTop = headerH + EXTRA_PACE_GAP;
-  const windowH = Math.max(520, stageH - paceTop);
-  const treeH = Math.max(520, Math.min(820, Math.round(windowH * 0.75)));
-
-  // Timeline distances
-  const LEAD_IN = Math.max(220, Math.round(windowH * 0.22));
-  const START_FROM_BOTTOM = Math.round(windowH * 0.95);
-  const TRAVEL_CORE = Math.max(0, layout.containerHeight - windowH);
-  const EXIT_TAIL = Math.max(180, Math.round(windowH * 0.28));
-
-  // Scroll driver height
-  const SENTINEL = Math.max(
-    LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL,
-    Math.round(stageH * 2.6)
-  );
-
-  // Release pad so unlock is gentle (no snap)
-  const RELEASE_PAD = 160; // px
-  const unlockFrac = Math.max(0.88, Math.min(0.99, 1 - RELEASE_PAD / SENTINEL));
-
-  const sentinelRef = React.useRef<HTMLDivElement | null>(null);
-  const { scrollYProgress } = useScroll({
-    target: sentinelRef,
-    offset: ["start start", "end start"],
-  });
-
-  // Collage Y mapping: start fixed then travel upward, finishing by unlockFrac
-  const startFrac = LEAD_IN / SENTINEL || 0.0001;
-  const collageY = useTransform(scrollYProgress, [0, startFrac, unlockFrac], [
-    START_FROM_BOTTOM,
-    START_FROM_BOTTOM,
-    -TRAVEL_CORE,
-  ]);
-
-  // Keep overlay interactive only while within the sentinel range
-  const [active, setActive] = React.useState(false);
-  useMotionValueEvent(scrollYProgress, "change", (v) => {
-    setActive(v > 0 && v < 1);
-  });
-
-  // Overlay opacity: keep fully visible across the lock; fade out smoothly at the end
-  const overlayOpacity = useTransform(scrollYProgress, [0, 0.02, unlockFrac, 1], [0, 1, 1, 0]);
-
-  return (
-    <>
-      {/* Scroll driver */}
-      <div ref={sentinelRef} style={{ height: SENTINEL }} />
-
-      {/* Fixed overlay that runs the card animation */}
-      <motion.div
-        className="fixed inset-0 z-[60]"
-        style={{ opacity: overlayOpacity, pointerEvents: active ? "auto" : "none" }}
-        aria-hidden={!active}
-      >
-        <div className="absolute inset-0 bg-[#0d131d]" />
-
-        {/* Center column */}
-        <div className="relative h-full mx-auto max-w-7xl px-6">
-          <div className="absolute inset-0 md:grid md:grid-cols-[64px,1fr] md:gap-6">
-            {/* Left rail (aligned to PACE area) */}
-            <LeftRail height={treeH} top={paceTop} />
-
-            {/* Right column */}
-            <div className="relative h-full">
-              {/* Header (visual only here; static layer underneath is identical) */}
-              <div className="pt-6 md:pt-8">
-                <div>
-                  <div className={`${oswald.className} leading-none tracking-tight`}>
-                    <div className="inline-block">
-                      <div className="text-xl md:text-2xl font-medium text-white/90">Palmer</div>
-                      <div className="h-[2px] bg-white/25 mt-1" />
-                    </div>
-                    <h2 className="mt-3 uppercase font-bold text-white/90 tracking-tight text-[12vw] md:text-[9vw] lg:text-[8vw]">
-                      Projects
-                    </h2>
-                  </div>
-                  <div className={`${plusJakarta.className} mt-3 text-sm md:text-base text-white/70`}>
-                    Select a project to view the full details
-                  </div>
-                </div>
-              </div>
-
-              {/* PACE tree in overlay — purely visual mirror of static */}
-              <PACEBackground topOffset={paceTop} height={treeH} />
-
-              {/* Collage window (scroll-controlled) */}
-              <div
-                className="absolute inset-x-0 z-10 overflow-hidden"
-                style={{ top: paceTop, height: windowH }}
-              >
-                {/* vignette mask for entry/exit */}
-                <div
-                  className="absolute inset-0 pointer-events-none"
-                  style={{
-                    WebkitMaskImage: `linear-gradient(to bottom,
-                      transparent 0px,
-                      black 110px,
-                      black calc(100% - 180px),
-                      transparent 100%)`,
-                    maskImage: `linear-gradient(to bottom,
-                      transparent 0px,
-                      black 110px,
-                      black calc(100% - 180px),
-                      transparent 100%)`,
-                  }}
-                />
-                <motion.div
-                  style={{ y: collageY, height: layout.containerHeight, position: "relative" }}
-                  className="will-change-transform"
-                >
-                  {TILE_ORDER.map((title) => {
-                    const p = projects.find((x) => x.title === title);
-                    if (!p) return null;
-                    const pos = layout.items[title];
-                    return (
-                      <ProjectTile
-                        key={`tile-${title}`}
-                        p={p}
-                        left={pos.left}
-                        top={pos.top}
-                        width={pos.width}
-                      />
-                    );
-                  })}
-                  <BlurbAndNote left={layout.note.left} top={layout.note.top} width={layout.note.width} />
-                </motion.div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </motion.div>
-    </>
-  );
-}
-
-/* -------------------- Component entry -------------------- */
-
-export default function ProjectsHUD() {
-  const projects = ((profile as any)?.projects ?? []) as ReadonlyArray<Project>;
-
   // viewport height
   const [vh, setVh] = React.useState<number>(
     typeof window === "undefined" ? 800 : window.innerHeight
@@ -637,17 +473,117 @@ export default function ProjectsHUD() {
     return () => window.removeEventListener("resize", onResize);
   }, [vh]);
 
-  // Header measurement kept at the section level (used by both static + overlay)
+  const stageH = Math.max(640, vh);
+
+  // Measure the header (title + sub)
   const [headerH, setHeaderH] = React.useState(0);
 
-  // geometry shared by static and overlay
-  const stageH = Math.max(640, vh);
-  const EXTRA_PACE_GAP = 96; // ~1 inch breathing room
+  // Spacing between subheading and first line of the tree (~1 inch)
+  const EXTRA_PACE_GAP = 96;
+
+  // Geometry
   const paceTop = headerH + EXTRA_PACE_GAP;
   const windowH = Math.max(520, stageH - paceTop);
   const treeH = Math.max(520, Math.min(820, Math.round(windowH * 0.75)));
 
-  // Mobile: simple stack (unchanged)
+  // Timeline distances
+  const LEAD_IN = Math.max(220, Math.round(windowH * 0.22));
+  const START_FROM_BOTTOM = Math.round(windowH * 0.95);
+  const TRAVEL_CORE = Math.max(0, layout.containerHeight - windowH);
+  const EXIT_TAIL = Math.max(180, Math.round(windowH * 0.28));
+
+  // Scroll driver height = how long we keep the stage sticky
+  const SENTINEL = LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL;
+
+  const sentinelRef = React.useRef<HTMLDivElement | null>(null);
+  const { scrollYProgress } = useScroll({
+    target: sentinelRef,
+    offset: ["start start", "end start"],
+  });
+
+  // Collage Y mapping: stay parked during lead-in, then travel up until sentinel ends
+  const startFrac = LEAD_IN / SENTINEL || 0.0001;
+  const collageY = useTransform(scrollYProgress, [0, startFrac, 1], [
+    START_FROM_BOTTOM,
+    START_FROM_BOTTOM,
+    -TRAVEL_CORE,
+  ]);
+
+  return (
+    <div ref={sentinelRef} style={{ height: SENTINEL }} className="relative">
+      {/* Sticky stage keeps the section visually frozen while the collage animates */}
+      <div className="sticky top-0 z-[40] bg-[#0d131d]">
+        <div className="mx-auto max-w-7xl px-6 pt-6 md:pt-8">
+          <StageHeader onMeasured={setHeaderH} />
+        </div>
+
+        <div className="mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6">
+          {/* Left rail aligned to PACE */}
+          <LeftRail height={treeH} top={paceTop} />
+
+          {/* Right column (tree + collage window) */}
+          <div className="relative" style={{ height: stageH }}>
+            {/* Reserve header gap */}
+            <div style={{ height: paceTop }} />
+
+            {/* PACE tree under the collage */}
+            <PACEBackground height={treeH} />
+
+            {/* Collage window over the tree */}
+            <div
+              className="absolute inset-x-0 z-10 overflow-hidden"
+              style={{ top: paceTop, height: windowH }}
+            >
+              {/* vignette mask for clean enter/exit */}
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  WebkitMaskImage: `linear-gradient(to bottom,
+                    transparent 0px,
+                    black 110px,
+                    black calc(100% - 180px),
+                    transparent 100%)`,
+                  maskImage: `linear-gradient(to bottom,
+                    transparent 0px,
+                    black 110px,
+                    black calc(100% - 180px),
+                    transparent 100%)`,
+                }}
+              />
+              <motion.div
+                style={{ y: collageY, height: layout.containerHeight, position: "relative" }}
+                className="will-change-transform"
+              >
+                {TILE_ORDER.map((title) => {
+                  const p = projects.find((x) => x.title === title);
+                  if (!p) return null;
+                  const pos = layout.items[title];
+                  return (
+                    <ProjectTile
+                      key={`tile-${title}`}
+                      p={p}
+                      left={pos.left}
+                      top={pos.top}
+                      width={pos.width}
+                    />
+                  );
+                })}
+                <BlurbAndNote left={layout.note.left} top={layout.note.top} width={layout.note.width} />
+              </motion.div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* -------------------- Component entry -------------------- */
+
+export default function ProjectsHUD() {
+  const projects = ((profile as any)?.projects ?? []) as ReadonlyArray<Project>;
+
+  // Mobile: unchanged stacked list
   const mobile = (
     <div className="md:hidden space-y-10 px-6 py-10 bg-[#0d131d]">
       {TILE_ORDER.map((title) => {
@@ -690,33 +626,14 @@ export default function ProjectsHUD() {
 
   return (
     <section id="projects" aria-label="Projects" className="relative w-full bg-[#0d131d]">
-      {/* Mobile content only */}
+      {/* Mobile */}
       {mobile}
 
-      {/* Desktop/tablet: STATIC BASE LAYER (prevents any jump in/out) */}
+      {/* Desktop/tablet sticky stage */}
       <div className="hidden md:block">
-        <div className="mx-auto max-w-7xl px-6 pt-6 md:pt-8">
-          {/* Title/subheading — measured here once */}
-          <StageHeader onMeasured={setHeaderH} />
-        </div>
-
-        {/* Two-column grid that renders the rail + PACE tree in normal flow */}
-        <div className="mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6">
-          {/* Left rail aligned to the PACE area */}
-          <LeftRail height={treeH} top={paceTop} />
-
-          {/* Right column: only the PACE tree (no cards here) */}
-          <div className="relative" style={{ minHeight: paceTop + treeH }}>
-            {/* Reserve space above for the header gap */}
-            <div style={{ height: paceTop }} />
-            {/* PACE tree in normal flow */}
-            <PACEBackground topOffset={0} height={treeH} absolute={false} />
-          </div>
-        </div>
-
-        {/* FIXED OVERLAY that runs the lock + collage animation */}
-        <FixedStage vh={Math.max(400, vh)} headerH={headerH} projects={projects} layout={lg} />
+        <StickyStage projects={projects} layout={lg} />
       </div>
     </section>
   );
 }
+
