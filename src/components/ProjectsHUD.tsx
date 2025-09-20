@@ -71,7 +71,7 @@ const TILE_ORDER = [
   "Python 101",
 ];
 
-/* -------------------- utils -------------------- */
+/* -------------------- small utils -------------------- */
 function keywordFor(title: string, tech?: string[]) {
   if (KEYWORD_BY_TITLE[title]) return KEYWORD_BY_TITLE[title];
   if (tech?.some((t) => /scikit-learn|xgboost|lightgbm/i.test(t))) return "machine-learning";
@@ -351,12 +351,19 @@ export default function ProjectsHUD() {
 
   // Scroll progress across the driver (for collage)
   const { scrollYProgress } = useScroll({ target: driverRef, offset: ["start start", "end start"] });
+
+  // Start when we’ve “locked”, travel through to the final pose
   const startFrac = LEAD_IN / DRIVER_HEIGHT || 0.0001;
-  const collageY = useTransform(scrollYProgress, [0, startFrac, 1], [
+  const rawY = useTransform(scrollYProgress, [0, startFrac, 1], [
     START_FROM_BOTTOM,
     START_FROM_BOTTOM,
     -TRAVEL_CORE,
   ]);
+
+  // CLAMP the Y so tiles never overshoot/linger after unlock
+  const collageY = useTransform(rawY, (v) =>
+    Math.max(-TRAVEL_CORE, Math.min(START_FROM_BOTTOM, Math.round(v)))
+  );
 
   // Lock + rail visibility
   const [lockActive, setLockActive] = React.useState(false);
@@ -433,8 +440,8 @@ export default function ProjectsHUD() {
     </div>
   ) : null;
 
-  // COLLAGE WINDOW (only moving layer, below overlay)
-  const CollageStage = (
+  // COLLAGE WINDOW (only moving layer) — RENDER **ONLY WHILE LOCKED**
+  const CollageStage = lockActive ? (
     <div className="sticky top-0" style={{ height: stageH }}>
       <div className="relative h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6">
         <div className="hidden md:block" aria-hidden />
@@ -452,8 +459,14 @@ export default function ProjectsHUD() {
               }}
             />
             <motion.div
-              style={{ y: collageY, height: LAYOUT.lg.containerHeight, position: "relative" }}
-              className="will-change-transform"
+              style={{
+                y: collageY,
+                height: LAYOUT.lg.containerHeight,
+                position: "relative",
+                transform: "translateZ(0)", // enforce GPU path, reduce jitter
+                willChange: "transform",
+                pointerEvents: "auto",
+              }}
             >
               {TILE_ORDER.map((title) => {
                 const p = projects.find((x) => x.title === title);
@@ -467,7 +480,7 @@ export default function ProjectsHUD() {
         </div>
       </div>
     </div>
-  );
+  ) : null;
 
   // Mobile (unchanged)
   const mobile = (
