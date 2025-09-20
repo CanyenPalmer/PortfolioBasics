@@ -353,9 +353,9 @@ export default function ProjectsHUD() {
   const OUT_EXTRA = Math.max(700, Math.round(windowH * 1.45));
   const END_Y = -TRAVEL_CORE - OUT_EXTRA;
 
-  // Keep speed constant by extending driver distance
+  // Driver height: ends exactly when cards reach END_Y (no extra tail)
   const EXIT_TAIL_BASE = Math.max(560, Math.round(windowH * 0.72));
-  const EXIT_TAIL = EXIT_TAIL_BASE + OUT_EXTRA + 240;
+  const EXIT_TAIL = EXIT_TAIL_BASE; // ❗ keep tight so unlock happens when the last card exits
 
   const DRIVER_HEIGHT = LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL + 1;
 
@@ -371,9 +371,8 @@ export default function ProjectsHUD() {
   ]);
   const collageY = useTransform(rawY, (v) => Math.max(END_Y, Math.min(START_FROM_BOTTOM, Math.round(v))));
 
-  // CHROME moves at same rate BUT only as far as needed so the
-  // bottom of the tree exits exactly when the last card clears.
-  const CHROME_END = -(paceTop + treeH + 8); // extra 8px to ensure clean exit
+  // CHROME moves at same rate, limited to the distance needed for the tree to leave
+  const CHROME_END = -(paceTop + treeH + 8);
   const chromeY = useTransform(rawY, (y) => {
     const t = (y - START_FROM_BOTTOM) / (END_Y - START_FROM_BOTTOM); // 0 -> 1
     const clamped = Math.max(0, Math.min(1, t));
@@ -389,7 +388,7 @@ export default function ProjectsHUD() {
     const onScroll = () => {
       const y = window.scrollY || window.pageYOffset || 0;
       const lockStart = Math.round(docTop(staticStageRef.current!));
-      const lockEnd = Math.round(docTop(afterDriverRef.current!));
+      const lockEnd = Math.round(docTop(afterDriverRef.current!)); // lock ends right after driver (no extra dwell)
 
       if (!didSnapRef.current && y > lockStart && y < lockStart + 12) {
         didSnapRef.current = true;
@@ -436,7 +435,7 @@ export default function ProjectsHUD() {
     </motion.div>
   );
 
-  // FIXED CHROME
+  // FIXED CHROME (title/subheader/PACE)
   const ChromeOverlay = lockActive ? (
     <motion.div className="fixed inset-0 z-[70] pointer-events-none">
       <motion.div style={{ y: chromeY }} className="h-full">
@@ -552,10 +551,10 @@ export default function ProjectsHUD() {
           {StaticStage}
         </div>
 
-        {/* Driver */}
+        {/* Driver (lock distance = card animation distance) */}
         <div ref={driverRef} style={{ height: DRIVER_HEIGHT }} />
 
-        {/* Buffer */}
+        {/* Buffer follows lock end so the next section starts after the last card exits */}
         <div ref={afterDriverRef} style={{ height: 1100 }} />
 
         {/* Overlays (only while locked) */}
