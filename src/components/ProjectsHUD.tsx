@@ -71,7 +71,7 @@ const TILE_ORDER = [
   "Python 101",
 ];
 
-/* -------------------- small utils -------------------- */
+/* -------------------- utils -------------------- */
 function keywordFor(title: string, tech?: string[]) {
   if (KEYWORD_BY_TITLE[title]) return KEYWORD_BY_TITLE[title];
   if (tech?.some((t) => /scikit-learn|xgboost|lightgbm/i.test(t))) return "machine-learning";
@@ -349,7 +349,7 @@ export default function ProjectsHUD() {
   const EXIT_TAIL = Math.max(220, Math.round(windowH * 0.32));
   const DRIVER_HEIGHT = LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL + 1;
 
-  // Scroll progress across the driver (for animated collage)
+  // Scroll progress across the driver (for collage)
   const { scrollYProgress } = useScroll({ target: driverRef, offset: ["start start", "end start"] });
   const startFrac = LEAD_IN / DRIVER_HEIGHT || 0.0001;
   const collageY = useTransform(scrollYProgress, [0, startFrac, 1], [
@@ -383,7 +383,7 @@ export default function ProjectsHUD() {
     };
   }, [lockActive, railVisible]);
 
-  // Pre-lock static frame (kept in flow; hidden during lock to avoid duplication and reflow)
+  // PRE-LOCK (kept in flow; hidden during lock to avoid duplication)
   const StaticStage = (
     <div
       className="mx-auto max-w-7xl px-6"
@@ -405,39 +405,45 @@ export default function ProjectsHUD() {
     </div>
   );
 
-  // Sticky stage rendered ONLY while locked:
-  // - Pinned chrome (title, subheader, PACE) stays visible.
-  // - Collage scrolls underneath.
-  const StickyStage = lockActive ? (
+  // FIXED CHROME OVERLAY (never moves, renders only while locked)
+  const ChromeOverlay = lockActive ? (
+    <div className="fixed inset-0 z-[70] pointer-events-none">
+      <div className="h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
+        <div className="hidden md:block" aria-hidden />
+        <div className="relative h-full">
+          <div className="pt-6 md:pt-8">
+            <div className={`${oswald.className} leading-none tracking-tight`}>
+              <div className="inline-block">
+                <div className="text-xl md:text-2xl font-medium text-white/90">Palmer</div>
+                <div className="h-[2px] bg-white/25 mt-1" />
+              </div>
+              <h2 className="mt-3 uppercase font-bold text-white/90 tracking-tight text-[12vw] md:text-[9vw] lg:text-[8vw]">
+                Projects
+              </h2>
+            </div>
+            <div className={`${plusJakarta.className} mt-3 text-sm md:text-base text-white/70`}>
+              Select a project to view the full details
+            </div>
+          </div>
+
+          {/* PACE stays pinned too */}
+          <PACEBackground topOffset={paceTop} height={treeH} />
+        </div>
+      </div>
+    </div>
+  ) : null;
+
+  // COLLAGE WINDOW (only moving layer, below overlay)
+  const CollageStage = (
     <div className="sticky top-0" style={{ height: stageH }}>
       <div className="relative h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6">
         <div className="hidden md:block" aria-hidden />
         <div className="relative h-full">
-          {/* Pinned chrome */}
-          <div className="sticky top-0 z-[30]">
-            <div className="pt-6 md:pt-8">
-              <div className={`${oswald.className} leading-none tracking-tight`}>
-                <div className="inline-block">
-                  <div className="text-xl md:text-2xl font-medium text-white/90">Palmer</div>
-                  <div className="h-[2px] bg-white/25 mt-1" />
-                </div>
-                <h2 className="mt-3 uppercase font-bold text-white/90 tracking-tight text-[12vw] md:text-[9vw] lg:text-[8vw]">
-                  Projects
-                </h2>
-              </div>
-              <div className={`${plusJakarta.className} mt-3 text-sm md:text-base text-white/70`}>
-                Select a project to view the full details
-              </div>
-            </div>
-            <div className="relative">
-              <PACEBackground topOffset={paceTop} height={treeH} />
-              {/* reserve the collage viewport height under the PACE area */}
-              <div style={{ height: windowH }} />
-            </div>
-          </div>
-
-          {/* Collage viewport (only moving layer) */}
-          <div className="absolute inset-x-0 z-[10] overflow-hidden" style={{ top: paceTop, height: windowH }}>
+          <div
+            className="absolute inset-x-0 z-[20] overflow-hidden"
+            style={{ top: paceTop, height: windowH }}
+          >
+            {/* Mask ON COLLAGE ONLY */}
             <div
               className="absolute inset-0 pointer-events-none"
               style={{
@@ -461,7 +467,7 @@ export default function ProjectsHUD() {
         </div>
       </div>
     </div>
-  ) : null;
+  );
 
   // Mobile (unchanged)
   const mobile = (
@@ -509,13 +515,16 @@ export default function ProjectsHUD() {
           {StaticStage}
         </div>
 
-        {/* Driver (hosts sticky stage and defines lock window) */}
+        {/* Driver: defines lock distance for the collage animation */}
         <div ref={driverRef} style={{ height: DRIVER_HEIGHT }}>
-          {StickyStage}
+          {CollageStage}
         </div>
 
-        {/* Neutral buffer for clean handoff to next section */}
+        {/* Neutral buffer to hand off cleanly to the next section */}
         <div ref={afterDriverRef} style={{ height: 600 }} />
+
+        {/* Fixed pinned chrome (only while locked) */}
+        {ChromeOverlay}
 
         {/* PERSISTENT LEFT RAIL */}
         <div
@@ -538,3 +547,4 @@ export default function ProjectsHUD() {
     </section>
   );
 }
+
