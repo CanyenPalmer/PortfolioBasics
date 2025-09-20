@@ -345,12 +345,12 @@ export default function ProjectsHUD() {
   // Travel math
   const TRAVEL_CORE = Math.max(0, LAYOUT.lg.containerHeight - windowH);
 
-  // CHANGE 1: start immediately on lock and start lower so section is fully in view first
-  const LEAD_IN = 0; // was 16
-  const START_FROM_BOTTOM = Math.round(windowH * 1.12); // was ~0.92, now lower (offscreen) to delay first appearance
+  // Starts immediately at lock and appears a bit sooner
+  const LEAD_IN = 0;
+  const START_FROM_BOTTOM = Math.round(windowH * 1.06); // lowered from 1.12
 
-  // CHANGE 2: add more exit space to avoid colliding with next section
-  const EXIT_TAIL = Math.max(420, Math.round(windowH * 0.5)); // was 220 / 0.32
+  // Exit spacing
+  const EXIT_TAIL = Math.max(420, Math.round(windowH * 0.5));
 
   const DRIVER_HEIGHT = LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL + 1;
 
@@ -370,7 +370,7 @@ export default function ProjectsHUD() {
     Math.max(-TRAVEL_CORE, Math.min(START_FROM_BOTTOM, Math.round(v)))
   );
 
-  // Fade-out near the end of the driver (projects dissolve as next section arrives)
+  // Fade-out near the end of the driver
   const FADE_START = 0.92;
   const collageOpacity = useTransform(scrollYProgress, [0, FADE_START, 1], [1, 1, 0]);
   const chromeOpacity  = useTransform(scrollYProgress, [0, FADE_START + 0.03, 1], [1, 1, 0]);
@@ -536,8 +536,8 @@ export default function ProjectsHUD() {
         {/* Driver: defines lock distance & progress */}
         <div ref={driverRef} style={{ height: DRIVER_HEIGHT }} />
 
-        {/* Neutral buffer for clean handoff (more room to avoid collision) */}
-        <div ref={afterDriverRef} style={{ height: 800 }} /> {/* was 600 */}
+        {/* Neutral buffer for clean handoff — a bit more space */}
+        <div ref={afterDriverRef} style={{ height: 920 }} /> {/* was 800 */}
 
         {/* Overlays (only while locked) */}
         {CollageOverlay}
