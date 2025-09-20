@@ -357,7 +357,7 @@ export default function ProjectsHUD() {
   // Scroll progress
   const { scrollYProgress } = useScroll({ target: driverRef, offset: ["start start", "end start"] });
 
-  // Continuous travel (no hold)
+  // Continuous travel
   const startFrac = LEAD_IN / DRIVER_HEIGHT || 0.0000001;
   const rawY = useTransform(scrollYProgress, [0, startFrac, 1], [
     START_FROM_BOTTOM,
@@ -374,7 +374,7 @@ export default function ProjectsHUD() {
   // then fade instantly to zero to hand off.
   const collageOpacity = useTransform(scrollYProgress, [0, 0.995, 1], [1, 1, 0]);
 
-  // Chrome (title/subheader) fades just after the cards, to keep the header visible while cards pass above it.
+  // Chrome (title/subheader) fades just after the cards.
   const chromeOpacity = useTransform(scrollYProgress, [0, 0.998, 1], [1, 1, 0]);
 
   // Lock + rail visibility
@@ -450,39 +450,44 @@ export default function ProjectsHUD() {
     </motion.div>
   ) : null;
 
-  // FIXED COLLAGE (dominant above chrome; continuous move)
+  // FIXED COLLAGE (dominant above chrome; viewport now spans the full screen so cards can pass above the header)
   const CollageOverlay = lockActive ? (
     <motion.div className="fixed inset-0 z-[75]" style={{ opacity: collageOpacity }}>
       <div className="h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
         <div className="hidden md:block" aria-hidden />
         <div className="relative h-full">
-          {/* Collage viewport window */}
-          <div className="absolute inset-x-0 overflow-hidden" style={{ top: paceTop, height: windowH }}>
-            {/* MASK: remove top fade so cards scroll off the very top (cut above 'Palmer'); keep only bottom fade */}
+          {/* NEW: viewport covers the full screen to allow scrolling off the very top */}
+          <div className="absolute inset-x-0 overflow-hidden" style={{ top: 0, height: stageH }}>
+            {/* Inner window aligned to original start line, with only a BOTTOM fade */}
             <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                WebkitMaskImage: `linear-gradient(to bottom, black 0px, black calc(100% - 180px), transparent 100%)`,
-                maskImage: `linear-gradient(to bottom, black 0px, black calc(100% - 180px), transparent 100%)`,
-              }}
-            />
-            <motion.div
-              style={{
-                y: collageY,
-                height: LAYOUT.lg.containerHeight,
-                position: "relative",
-                transform: "translateZ(0)",
-                willChange: "transform",
-              }}
+              className="absolute inset-x-0"
+              style={{ top: paceTop, height: windowH }}
             >
-              {TILE_ORDER.map((title) => {
-                const p = projects.find((x) => x.title === title);
-                if (!p) return null;
-                const pos = LAYOUT.lg.items[title];
-                return <ProjectTile key={`tile-${title}`} p={p} left={pos.left} top={pos.top} width={pos.width} />;
-              })}
-              <BlurbAndNote left={LAYOUT.lg.note.left} top={LAYOUT.lg.note.top} width={LAYOUT.lg.note.width} />
-            </motion.div>
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  WebkitMaskImage: `linear-gradient(to bottom, black 0px, black calc(100% - 180px), transparent 100%)`,
+                  maskImage: `linear-gradient(to bottom, black 0px, black calc(100% - 180px), transparent 100%)`,
+                }}
+              />
+              <motion.div
+                style={{
+                  y: collageY,
+                  height: LAYOUT.lg.containerHeight,
+                  position: "relative",
+                  transform: "translateZ(0)",
+                  willChange: "transform",
+                }}
+              >
+                {TILE_ORDER.map((title) => {
+                  const p = projects.find((x) => x.title === title);
+                  if (!p) return null;
+                  const pos = LAYOUT.lg.items[title];
+                  return <ProjectTile key={`tile-${title}`} p={p} left={pos.left} top={pos.top} width={pos.width} />;
+                })}
+                <BlurbAndNote left={LAYOUT.lg.note.left} top={LAYOUT.lg.note.top} width={LAYOUT.lg.note.width} />
+              </motion.div>
+            </div>
           </div>
         </div>
       </div>
