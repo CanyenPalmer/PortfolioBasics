@@ -352,7 +352,7 @@ export default function ProjectsHUD() {
   // Scroll progress across the driver (for collage)
   const { scrollYProgress } = useScroll({ target: driverRef, offset: ["start start", "end start"] });
 
-  // Start when we’ve “locked”, travel through to the final pose
+  // Start when locked, travel through to the final pose
   const startFrac = LEAD_IN / DRIVER_HEIGHT || 0.0001;
   const rawY = useTransform(scrollYProgress, [0, startFrac, 1], [
     START_FROM_BOTTOM,
@@ -360,7 +360,7 @@ export default function ProjectsHUD() {
     -TRAVEL_CORE,
   ]);
 
-  // CLAMP the Y so tiles never overshoot/linger after unlock
+  // Clamp for no overshoot
   const collageY = useTransform(rawY, (v) =>
     Math.max(-TRAVEL_CORE, Math.min(START_FROM_BOTTOM, Math.round(v)))
   );
@@ -390,7 +390,7 @@ export default function ProjectsHUD() {
     };
   }, [lockActive, railVisible]);
 
-  // PRE-LOCK (kept in flow; hidden during lock to avoid duplication)
+  // PRE-LOCK static frame (kept in flow; hidden during lock)
   const StaticStage = (
     <div
       className="mx-auto max-w-7xl px-6"
@@ -412,7 +412,7 @@ export default function ProjectsHUD() {
     </div>
   );
 
-  // FIXED CHROME OVERLAY (never moves, renders only while locked)
+  // FIXED CHROME (pinned while locked, lets clicks pass through)
   const ChromeOverlay = lockActive ? (
     <div className="fixed inset-0 z-[70] pointer-events-none">
       <div className="h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
@@ -432,25 +432,24 @@ export default function ProjectsHUD() {
               Select a project to view the full details
             </div>
           </div>
-
-          {/* PACE stays pinned too */}
           <PACEBackground topOffset={paceTop} height={treeH} />
         </div>
       </div>
     </div>
   ) : null;
 
-  // COLLAGE WINDOW (only moving layer) — RENDER **ONLY WHILE LOCKED**
-  const CollageStage = lockActive ? (
-    <div className="sticky top-0" style={{ height: stageH }}>
-      <div className="relative h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6">
+  // NEW: FIXED COLLAGE OVERLAY (cards animate under the pinned chrome; start line is fixed)
+  const CollageOverlay = lockActive ? (
+    <div className="fixed inset-0 z-[50]">
+      <div className="h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
         <div className="hidden md:block" aria-hidden />
         <div className="relative h-full">
+          {/* Collage viewport window pinned to the same start line */}
           <div
-            className="absolute inset-x-0 z-[20] overflow-hidden"
+            className="absolute inset-x-0 overflow-hidden"
             style={{ top: paceTop, height: windowH }}
           >
-            {/* Mask ON COLLAGE ONLY */}
+            {/* Mask ONLY the collage */}
             <div
               className="absolute inset-0 pointer-events-none"
               style={{
@@ -463,9 +462,8 @@ export default function ProjectsHUD() {
                 y: collageY,
                 height: LAYOUT.lg.containerHeight,
                 position: "relative",
-                transform: "translateZ(0)", // enforce GPU path, reduce jitter
+                transform: "translateZ(0)",
                 willChange: "transform",
-                pointerEvents: "auto",
               }}
             >
               {TILE_ORDER.map((title) => {
@@ -528,15 +526,14 @@ export default function ProjectsHUD() {
           {StaticStage}
         </div>
 
-        {/* Driver: defines lock distance for the collage animation */}
-        <div ref={driverRef} style={{ height: DRIVER_HEIGHT }}>
-          {CollageStage}
-        </div>
+        {/* Driver defines the lock window and powers the animation progress */}
+        <div ref={driverRef} style={{ height: DRIVER_HEIGHT }} />
 
-        {/* Neutral buffer to hand off cleanly to the next section */}
+        {/* Neutral buffer for clean handoff */}
         <div ref={afterDriverRef} style={{ height: 600 }} />
 
-        {/* Fixed pinned chrome (only while locked) */}
+        {/* Pinned chrome and collage (both fixed, only while locked) */}
+        {CollageOverlay}
         {ChromeOverlay}
 
         {/* PERSISTENT LEFT RAIL */}
@@ -560,4 +557,3 @@ export default function ProjectsHUD() {
     </section>
   );
 }
-
