@@ -236,7 +236,7 @@ function BlurbAndNote({
   );
 }
 
-/** Title block — measured so the tree ALWAYS begins below it (no overlap) */
+/** Title block — measured so the tree ALWAYS begins below it */
 function StageHeader({ onMeasured }: { onMeasured: (h: number) => void }) {
   const ref = React.useRef<HTMLDivElement>(null);
   React.useEffect(() => {
@@ -479,12 +479,12 @@ function FixedStage({
   // Visible stage height
   const stageH = Math.max(640, vh);
 
-  // --- Only change: add a small safety gap so the PACE tree never sits under the subheading ---
-  const EXTRA_PACE_GAP = 28; // px
+  // 1) EXTRA breathing room (~1 inch ≈ 96px) between subheading and PACE tree
+  const EXTRA_PACE_GAP = 96; // breathing room
 
   // Tree height + placement
   const paceTop = headerH + EXTRA_PACE_GAP;
-  const windowH = Math.max(360, stageH - paceTop);
+  const windowH = Math.max(520, stageH - paceTop);
   const treeH = Math.max(520, Math.min(820, Math.round(windowH * 0.75)));
 
   // Timeline distances
@@ -493,11 +493,15 @@ function FixedStage({
   const TRAVEL_CORE = Math.max(0, layout.containerHeight - windowH);
   const EXIT_TAIL = Math.max(180, Math.round(windowH * 0.28));
 
-  // Sentinel height ensures full animation travel + buffer
+  // Scroll driver height
   const SENTINEL = Math.max(
     LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL,
     Math.round(stageH * 2.6)
   );
+
+  // 2) Release-pad: fade the overlay out *before* the sentinel fully ends
+  const RELEASE_PAD = 160; // px
+  const unlockFrac = Math.max(0.85, Math.min(0.99, 1 - RELEASE_PAD / SENTINEL));
 
   const sentinelRef = React.useRef<HTMLDivElement | null>(null);
   const { scrollYProgress } = useScroll({
@@ -505,32 +509,32 @@ function FixedStage({
     offset: ["start start", "end start"],
   });
 
-  // Collage Y mapping
+  // Collage Y mapping: finish motion by `unlockFrac`
   const startFrac = LEAD_IN / SENTINEL || 0.0001;
-  const collageY = useTransform(scrollYProgress, [0, startFrac, 1], [
+  const collageY = useTransform(scrollYProgress, [0, startFrac, unlockFrac], [
     START_FROM_BOTTOM,
     START_FROM_BOTTOM,
     -TRAVEL_CORE,
   ]);
 
-  // Show the fixed overlay only while we're within the sentinel range
+  // Keep overlay interactive only while within the sentinel range
   const [active, setActive] = React.useState(false);
   useMotionValueEvent(scrollYProgress, "change", (v) => {
     setActive(v > 0 && v < 1);
   });
+
+  // Overlay opacity: 0 → 1 as we enter; 1 → 0 across the release-pad
+  const overlayOpacity = useTransform(scrollYProgress, [0, 0.0001, unlockFrac, 1], [0, 1, 1, 0]);
 
   return (
     <>
       {/* Scroll driver */}
       <div ref={sentinelRef} style={{ height: SENTINEL }} />
 
-      {/* FIXED overlay — appears "locked" while sentinel is in view */}
-      <div
-        className={[
-          "fixed inset-0 z-[60]",
-          active ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
-          "transition-opacity duration-200",
-        ].join(" ")}
+      {/* FIX: motion.div so opacity MotionValue is valid */}
+      <motion.div
+        className="fixed inset-0 z-[60]"
+        style={{ opacity: overlayOpacity, pointerEvents: active ? "auto" : "none" }}
         aria-hidden={!active}
       >
         <div className="absolute inset-0 bg-[#0d131d]" />
@@ -551,7 +555,7 @@ function FixedStage({
                 <StageHeader onMeasured={setHeaderH} />
               </div>
 
-              {/* PACE tree — strictly below the header now */}
+              {/* PACE tree — starts below the header with gap */}
               <PACEBackground topOffset={paceTop} height={treeH} />
 
               {/* Collage window (scroll-controlled) */}
@@ -599,7 +603,7 @@ function FixedStage({
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
     </>
   );
 }
@@ -675,7 +679,7 @@ export default function ProjectsHUD() {
 
       {/* Desktop/tablet: fixed overlay driven by sentinel */}
       <div className="hidden md:block">
-        <FixedStage vh={vh} projects={projects} layout={LAYOUT.lg} />
+        <FixedStage vh={Math.max(400, vh)} projects={projects} layout={LAYOUT.lg} />
       </div>
     </section>
   );
