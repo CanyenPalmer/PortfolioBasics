@@ -521,6 +521,13 @@ export default function ProjectsHUD() {
     </div>
   );
 
+  // --- NEW: make the rail rise from the bottom fade line on lock ---
+  const BOTTOM_FADE_PX = 180; // matches collage mask bottom fade
+  // Compute how far down the rail should start so its bottom aligns with the fade line:
+  // target bottom at (paceTop + windowH - BOTTOM_FADE_PX)
+  // normal bottom is (paceTop + treeH), so offset = (windowH - BOTTOM_FADE_PX) - treeH
+  const railIntroOffset = Math.max(0, (windowH - BOTTOM_FADE_PX) - treeH);
+
   return (
     <section id="projects" aria-label="Projects" className="relative w-full bg-[#0d131d]">
       {/* Mobile */}
@@ -543,12 +550,12 @@ export default function ProjectsHUD() {
         {CollageOverlay}
         {ChromeOverlay}
 
-        {/* PERSISTENT LEFT RAIL — now animates in from bottom at lock */}
+        {/* PERSISTENT LEFT RAIL — fades in and slides up from bottom fade line at lock */}
         <motion.div
           className="fixed inset-0 z-[62] pointer-events-none"
           aria-hidden
           initial={false}
-          animate={lockActive ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 }}
+          animate={lockActive ? { opacity: 1, y: 0 } : { opacity: 0, y: railIntroOffset }}
           transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
         >
           <div className="h-full mx-auto max-w-7xl px-6">
