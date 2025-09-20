@@ -338,11 +338,11 @@ function NodeWithBranches({
   );
 }
 
-/** LEFT RAIL — length & position match the PACE area exactly */
+/** LEFT RAIL — matches the PACE block height exactly */
 function LeftRail({ height, top }: { height: number; top: number }) {
   const [paused, setPaused] = React.useState(false);
-  const TOP_FADE = 250;
-  const BOTTOM_FADE = 96;
+  const TOP_FADE = 220;
+  const BOTTOM_FADE = 90;
   const SPEED = 22;
 
   const measureRef = React.useRef<HTMLSpanElement | null>(null);
@@ -394,7 +394,7 @@ function LeftRail({ height, top }: { height: number; top: number }) {
         className="relative w-16 overflow-hidden"
         style={{
           height: `${height}px`,
-          marginTop: top, // aligns with PACE top
+          marginTop: top,
           WebkitMaskImage: `linear-gradient(to bottom,
             transparent 0px,
             black ${TOP_FADE}px,
@@ -451,7 +451,7 @@ function RailColumn({ rows, rowH }: { rows: number; rowH: number }) {
   );
 }
 
-/* -------------------- STICKY STAGE (NO OVERLAY) -------------------- */
+/* -------------------- STICKY STAGE (LOCK & RELEASE) -------------------- */
 function StickyStage({
   projects,
   layout,
@@ -465,7 +465,7 @@ function StickyStage({
 }) {
   // viewport height
   const [vh, setVh] = React.useState<number>(
-    typeof window === "undefined" ? 800 : window.innerHeight
+    typeof window === "undefined" ? 900 : window.innerHeight
   );
   React.useEffect(() => {
     const onResize = () => setVh(window.innerHeight || vh);
@@ -478,22 +478,23 @@ function StickyStage({
   // Measure the header (title + sub)
   const [headerH, setHeaderH] = React.useState(0);
 
-  // Spacing between subheading and first line of the tree (~1 inch)
-  const EXTRA_PACE_GAP = 96;
+  // Tighter spacing under the subheading (~0.6in)
+  const EXTRA_PACE_GAP = 56;
 
   // Geometry
   const paceTop = headerH + EXTRA_PACE_GAP;
-  const windowH = Math.max(520, stageH - paceTop);
+  const windowH = Math.max(520, stageH - paceTop - 8);
   const treeH = Math.max(520, Math.min(820, Math.round(windowH * 0.75)));
 
-  // Timeline distances
-  const LEAD_IN = Math.max(220, Math.round(windowH * 0.22));
-  const START_FROM_BOTTOM = Math.round(windowH * 0.95);
+  // Timeline distances (shorter tail => less blank space)
+  const LEAD_IN = Math.max(140, Math.min(240, Math.round(windowH * 0.16)));
+  const START_FROM_BOTTOM = Math.round(windowH * 0.90);
   const TRAVEL_CORE = Math.max(0, layout.containerHeight - windowH);
-  const EXIT_TAIL = Math.max(180, Math.round(windowH * 0.28));
+  const EXIT_TAIL = Math.max(90, Math.round(windowH * 0.18));
 
-  // Scroll driver height = how long we keep the stage sticky
-  const SENTINEL = LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL;
+  // Ensure sentinel is comfortably bigger than viewport
+  const SENTINEL_RAW = LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL;
+  const SENTINEL = Math.max(SENTINEL_RAW, stageH + 180);
 
   const sentinelRef = React.useRef<HTMLDivElement | null>(null);
   const { scrollYProgress } = useScroll({
@@ -501,8 +502,8 @@ function StickyStage({
     offset: ["start start", "end start"],
   });
 
-  // Collage Y mapping: stay parked during lead-in, then travel up until sentinel ends
-  const startFrac = LEAD_IN / SENTINEL || 0.0001;
+  // Collage Y mapping: parked during lead-in, then travel up until sentinel ends
+  const startFrac = Math.max(0.0001, LEAD_IN / SENTINEL);
   const collageY = useTransform(scrollYProgress, [0, startFrac, 1], [
     START_FROM_BOTTOM,
     START_FROM_BOTTOM,
@@ -511,7 +512,7 @@ function StickyStage({
 
   return (
     <div ref={sentinelRef} style={{ height: SENTINEL }} className="relative">
-      {/* Sticky stage keeps the section visually frozen while the collage animates */}
+      {/* Sticky stage: locks visuals while collage animates; releases cleanly at end */}
       <div className="sticky top-0 z-[40] bg-[#0d131d]">
         <div className="mx-auto max-w-7xl px-6 pt-6 md:pt-8">
           <StageHeader onMeasured={setHeaderH} />
@@ -540,13 +541,13 @@ function StickyStage({
                 style={{
                   WebkitMaskImage: `linear-gradient(to bottom,
                     transparent 0px,
-                    black 110px,
-                    black calc(100% - 180px),
+                    black 96px,
+                    black calc(100% - 140px),
                     transparent 100%)`,
                   maskImage: `linear-gradient(to bottom,
                     transparent 0px,
-                    black 110px,
-                    black calc(100% - 180px),
+                    black 96px,
+                    black calc(100% - 140px),
                     transparent 100%)`,
                 }}
               />
@@ -583,7 +584,7 @@ function StickyStage({
 export default function ProjectsHUD() {
   const projects = ((profile as any)?.projects ?? []) as ReadonlyArray<Project>;
 
-  // Mobile: unchanged stacked list
+  // Mobile: unchanged stacked list (hidden on md+)
   const mobile = (
     <div className="md:hidden space-y-10 px-6 py-10 bg-[#0d131d]">
       {TILE_ORDER.map((title) => {
