@@ -342,9 +342,9 @@ export default function ProjectsHUD() {
   const windowH = Math.max(360, stageH - paceTop);
   const treeH = Math.max(520, Math.min(820, Math.round(windowH * 0.75)));
 
-  // === START EARLIER (fix #2)
+  // Start very soon after lock
   const TRAVEL_CORE = Math.max(0, LAYOUT.lg.containerHeight - windowH);
-  const LEAD_IN = 16; // was 64 → now the collage starts almost immediately after lock
+  const LEAD_IN = 16;
   const START_FROM_BOTTOM = Math.round(windowH * 0.92);
   const EXIT_TAIL = Math.max(220, Math.round(windowH * 0.32));
   const DRIVER_HEIGHT = LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL + 1;
@@ -366,10 +366,9 @@ export default function ProjectsHUD() {
     const onScroll = () => {
       const y = window.scrollY || window.pageYOffset || 0;
       const lockStart = Math.round(docTop(staticStageRef.current!));
-      // === BIGGER NEUTRAL BUFFER TO AVOID JUMP (fix #3)
-      const lockEnd = Math.round(docTop(afterDriverRef.current!));
+      const lockEnd = Math.round(docTop(afterDriverRef.current!)); // neutral buffer avoids jump
 
-      // hard clamp micro-overshoot at entry
+      // clamp micro-overshoot at entry
       if (y > lockStart && y < lockStart + LOCK_EPS) {
         window.scrollTo({ top: lockStart, behavior: "auto" });
       }
@@ -377,7 +376,7 @@ export default function ProjectsHUD() {
       const nextActive = y >= lockStart && y < lockEnd;
       if (nextActive !== active) setActive(nextActive);
 
-      // show the persistent rail from a bit before entry to a bit after exit
+      // show persistent rail slightly before & after section
       const railOn = y >= lockStart - 40 && y < lockEnd + 40;
       if (railOn !== railVisible) setRailVisible(railOn);
     };
@@ -390,11 +389,11 @@ export default function ProjectsHUD() {
     };
   }, [active, railVisible]);
 
-  // Pre-lock static frame (title + tree) — rail is now persistent and not duplicated
+  // Pre-lock static frame: **add a left placeholder column** to keep the grid aligned
   const StaticStage = (
     <div className="mx-auto max-w-7xl px-6" style={{ height: stageH }}>
       <div className="h-full md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
-        {/* (rail removed here to keep one persistent instance) */}
+        <div className="hidden md:block" aria-hidden /> {/* placeholder keeps layout aligned */}
         <div className="relative h-full">
           <div className="pt-6 md:pt-8">
             <StageHeader onMeasured={setHeaderH} />
@@ -406,11 +405,12 @@ export default function ProjectsHUD() {
     </div>
   );
 
+  // Locked overlay: **also add left placeholder** for perfect alignment
   const Overlay = active ? (
     <div className="fixed inset-0 z-[60] pointer-events-none">
       <div className="absolute inset-0 bg-[#0d131d]" />
       <div className="relative h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6">
-        {/* (rail removed here to keep one persistent instance) */}
+        <div className="hidden md:block" aria-hidden /> {/* placeholder keeps layout aligned */}
         <div className="relative h-full">
           {/* mirror header during lock */}
           <div className="pt-6 md:pt-8">
@@ -505,13 +505,13 @@ export default function ProjectsHUD() {
         {/* Driver distance for animation */}
         <div ref={driverRef} style={{ height: DRIVER_HEIGHT }} />
 
-        {/* Bigger neutral buffer to avoid jump into Education */}
+        {/* Neutral buffer avoids jump into Education */}
         <div ref={afterDriverRef} style={{ height: 600 }} />
 
         {/* Locked overlay */}
         {Overlay}
 
-        {/* PERSISTENT LEFT RAIL (no reset) */}
+        {/* PERSISTENT LEFT RAIL (no reset), above overlay, pointer-events disabled */}
         <div
           className={[
             "fixed inset-0 z-[62] pointer-events-none transition-opacity duration-150",
@@ -524,6 +524,8 @@ export default function ProjectsHUD() {
               <div className="hidden md:block">
                 <LeftRail height={treeH} top={paceTop} />
               </div>
+              {/* right column intentionally empty here */}
+              <div aria-hidden className="hidden md:block" />
             </div>
           </div>
         </div>
