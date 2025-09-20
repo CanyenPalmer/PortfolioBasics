@@ -333,7 +333,8 @@ export default function ProjectsHUD() {
 
   const staticStageRef = React.useRef<HTMLDivElement>(null);
   const driverRef = React.useRef<HTMLDivElement>(null);
-  const afterDriverRef = React.useRef<HTMLDivElement>(null);
+  const lockEndRef = React.useRef<HTMLDivElement>(null); // <— lock end marker (0px)
+  const postLockRef = React.useRef<HTMLDivElement>(null);
 
   const [headerH, setHeaderH] = React.useState(0);
 
@@ -382,7 +383,7 @@ export default function ProjectsHUD() {
     const onScroll = () => {
       const y = window.scrollY || window.pageYOffset || 0;
       const lockStart = Math.round(docTop(staticStageRef.current!));
-      const lockEnd = Math.round(docTop(afterDriverRef.current!)); // lock ends immediately after driver
+      const lockEnd = Math.round(docTop(lockEndRef.current!)); // <— lock ends at lockEndRef
 
       // small snap to avoid rebound jiggle
       if (!didSnapRef.current && y > lockStart && y < lockStart + 12) {
@@ -495,42 +496,6 @@ export default function ProjectsHUD() {
     </motion.div>
   ) : null;
 
-  /* ----------- POST-LOCK CHROME (ALWAYS MOUNTED, AFTER DRIVER) ----------- */
-  // Stays hidden during lock, becomes visible exactly when lock ends, so content
-  // continues in-flow with the user's scroll instead of "disappearing".
-  const PostLockChrome = (
-    <div
-      className="mx-auto max-w-7xl px-6"
-      style={{
-        minHeight: stageH,
-        visibility: lockActive ? "hidden" : "visible",
-        pointerEvents: lockActive ? "none" as const : "auto",
-      }}
-    >
-      <div className="h-full md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
-        <div className="hidden md:block" aria-hidden />
-        <div className="relative h-full">
-          <div className="pt-6 md:pt-8">
-            <div className={`${oswald.className} leading-none tracking-tight`}>
-              <div className="inline-block">
-                <div className="text-xl md:text-2xl font-medium text-white/90">Palmer</div>
-                <div className="h-[2px] bg-white/25 mt-1" />
-              </div>
-              <h2 className="mt-3 uppercase font-bold text-white/90 tracking-tight text-[12vw] md:text-[9vw] lg:text-[8vw]">
-                Projects
-              </h2>
-            </div>
-            <div className={`${plusJakarta.className} mt-3 text-sm md:text-base text-white/70`}>
-              Select a project to view the full details
-            </div>
-          </div>
-          <PACEBackground topOffset={paceTop} height={treeH} />
-          <div className="absolute inset-x-0" style={{ top: paceTop, height: windowH }} />
-        </div>
-      </div>
-    </div>
-  );
-
   // Mobile (unchanged)
   const mobile = (
     <div className="md:hidden space-y-10 px-6 py-10 bg-[#0d131d]">
@@ -583,11 +548,36 @@ export default function ProjectsHUD() {
         {/* Driver (card animation distance) */}
         <div ref={driverRef} style={{ height: DRIVER_HEIGHT }} />
 
-        {/* In-flow frame AFTER driver (kept in layout; visible after unlock) */}
-        {PostLockChrome}
+        {/* 0px marker that defines EXACTLY when the lock ends */}
+        <div ref={lockEndRef} style={{ height: 0 }} />
 
-        {/* Neutral buffer to separate next section */}
-        <div ref={afterDriverRef} style={{ height: 1100 }} />
+        {/* Post-lock in-flow chrome (placed AFTER lockEnd so it’s visible right when unlock happens) */}
+        <div ref={postLockRef} className="mx-auto max-w-7xl px-6" style={{ minHeight: stageH }}>
+          <div className="h-full md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
+            <div className="hidden md:block" aria-hidden />
+            <div className="relative h-full">
+              <div className="pt-6 md:pt-8">
+                <div className={`${oswald.className} leading-none tracking-tight`}>
+                  <div className="inline-block">
+                    <div className="text-xl md:text-2xl font-medium text-white/90">Palmer</div>
+                    <div className="h-[2px] bg-white/25 mt-1" />
+                  </div>
+                  <h2 className="mt-3 uppercase font-bold text-white/90 tracking-tight text-[12vw] md:text-[9vw] lg:text-[8vw]">
+                    Projects
+                  </h2>
+                </div>
+                <div className={`${plusJakarta.className} mt-3 text-sm md:text-base text-white/70`}>
+                  Select a project to view the full details
+                </div>
+              </div>
+              <PACEBackground topOffset={paceTop} height={treeH} />
+              <div className="absolute inset-x-0" style={{ top: paceTop, height: windowH }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Spacer so we don’t collide with Education */}
+        <div style={{ height: 1100 }} />
 
         {/* Locked overlays */}
         {CollageOverlay}
