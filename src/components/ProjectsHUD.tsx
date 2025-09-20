@@ -536,20 +536,20 @@ export default function ProjectsHUD() {
         {/* Driver: defines lock distance & progress */}
         <div ref={driverRef} style={{ height: DRIVER_HEIGHT }} />
 
-        {/* Neutral buffer for clean handoff — a bit more space */}
-        <div ref={afterDriverRef} style={{ height: 920 }} /> {/* was 800 */}
+        {/* Neutral buffer for clean handoff — a bit more space (from prior step) */}
+        <div ref={afterDriverRef} style={{ height: 920 }} />
 
         {/* Overlays (only while locked) */}
         {CollageOverlay}
         {ChromeOverlay}
 
-        {/* PERSISTENT LEFT RAIL */}
-        <div
-          className={[
-            "fixed inset-0 z-[62] pointer-events-none transition-opacity duration-150",
-            railVisible ? "opacity-100" : "opacity-0",
-          ].join(" ")}
+        {/* PERSISTENT LEFT RAIL — now animates in from bottom at lock */}
+        <motion.div
+          className="fixed inset-0 z-[62] pointer-events-none"
           aria-hidden
+          initial={false}
+          animate={lockActive ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 }}
+          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
         >
           <div className="h-full mx-auto max-w-7xl px-6">
             <div className="relative h-full md:grid md:grid-cols-[64px,1fr] md:gap-6">
@@ -559,7 +559,7 @@ export default function ProjectsHUD() {
               <div aria-hidden className="hidden md:block" />
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
     </section>
   );
