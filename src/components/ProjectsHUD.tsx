@@ -349,15 +349,15 @@ export default function ProjectsHUD() {
   const LEAD_IN = 0;
   const START_FROM_BOTTOM = Math.round(windowH * 1.06); // quicker first tile
 
-  // Exit spacing (already extended so projects clear header before Education)
+  // Exit spacing (already extended)
   const EXIT_TAIL = Math.max(560, Math.round(windowH * 0.72));
 
   const DRIVER_HEIGHT = LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL + 1;
 
-  // Scroll progress across the driver (for collage)
+  // Scroll progress
   const { scrollYProgress } = useScroll({ target: driverRef, offset: ["start start", "end start"] });
 
-  // >>> Continuous travel (no hold) <<<
+  // Continuous travel (no hold)
   const startFrac = LEAD_IN / DRIVER_HEIGHT || 0.0000001;
   const rawY = useTransform(scrollYProgress, [0, startFrac, 1], [
     START_FROM_BOTTOM,
@@ -370,13 +370,12 @@ export default function ProjectsHUD() {
     Math.max(-TRAVEL_CORE, Math.min(START_FROM_BOTTOM, Math.round(v)))
   );
 
-  // >>> Continuous fade while moving; cards fade through the subheader
-  const FADE_THROUGH_START = 0.86; // begin fading while still moving
-  const FADE_THROUGH_END   = 0.98; // finish fading just before section hands off
-  const collageOpacity = useTransform(scrollYProgress, [0, FADE_THROUGH_START, FADE_THROUGH_END, 1], [1, 1, 0, 0]);
+  // Cards stay opaque until the very end so they scroll off the top of the screen,
+  // then fade instantly to zero to hand off.
+  const collageOpacity = useTransform(scrollYProgress, [0, 0.995, 1], [1, 1, 0]);
 
-  // Chrome (title/subheader) fades a hair later than cards
-  const chromeOpacity  = useTransform(scrollYProgress, [0, FADE_THROUGH_END + 0.01, 1], [1, 1, 0]);
+  // Chrome (title/subheader) fades just after the cards, to keep the header visible while cards pass above it.
+  const chromeOpacity = useTransform(scrollYProgress, [0, 0.998, 1], [1, 1, 0]);
 
   // Lock + rail visibility
   const [lockActive, setLockActive] = React.useState(false);
@@ -425,7 +424,7 @@ export default function ProjectsHUD() {
     </div>
   );
 
-  // FIXED CHROME (pinned while locked, fades after cards)
+  // FIXED CHROME (pinned while locked)
   const ChromeOverlay = lockActive ? (
     <motion.div className="fixed inset-0 z-[70] pointer-events-none" style={{ opacity: chromeOpacity }}>
       <div className="h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
@@ -451,20 +450,20 @@ export default function ProjectsHUD() {
     </motion.div>
   ) : null;
 
-  // FIXED COLLAGE (dominant above chrome; continuous move + fade)
+  // FIXED COLLAGE (dominant above chrome; continuous move)
   const CollageOverlay = lockActive ? (
     <motion.div className="fixed inset-0 z-[75]" style={{ opacity: collageOpacity }}>
       <div className="h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
         <div className="hidden md:block" aria-hidden />
         <div className="relative h-full">
-          {/* Collage viewport window pinned to the same start line */}
+          {/* Collage viewport window */}
           <div className="absolute inset-x-0 overflow-hidden" style={{ top: paceTop, height: windowH }}>
-            {/* Mask ONLY the collage */}
+            {/* MASK: remove top fade so cards scroll off the very top (cut above 'Palmer'); keep only bottom fade */}
             <div
               className="absolute inset-0 pointer-events-none"
               style={{
-                WebkitMaskImage: `linear-gradient(to bottom, transparent 0px, black 110px, black calc(100% - 180px), transparent 100%)`,
-                maskImage: `linear-gradient(to bottom, transparent 0px, black 110px, black calc(100% - 180px), transparent 100%)`,
+                WebkitMaskImage: `linear-gradient(to bottom, black 0px, black calc(100% - 180px), transparent 100%)`,
+                maskImage: `linear-gradient(to bottom, black 0px, black calc(100% - 180px), transparent 100%)`,
               }}
             />
             <motion.div
@@ -524,7 +523,7 @@ export default function ProjectsHUD() {
     </div>
   );
 
-  // Sidebar entrance: rise from the bottom of the viewport on lock (unchanged)
+  // Sidebar entrance: rise from the bottom of the viewport on lock (kept)
   const railIntroOffset = Math.max(0, windowH - (paceTop + treeH));
 
   return (
@@ -542,7 +541,7 @@ export default function ProjectsHUD() {
         {/* Driver: defines lock distance & progress */}
         <div ref={driverRef} style={{ height: DRIVER_HEIGHT }} />
 
-        {/* Neutral buffer for clean handoff (extended) */}
+        {/* Neutral buffer for clean handoff (extended previously) */}
         <div ref={afterDriverRef} style={{ height: 1100 }} />
 
         {/* Overlays (only while locked) */}
@@ -577,4 +576,3 @@ export default function ProjectsHUD() {
     </section>
   );
 }
-
