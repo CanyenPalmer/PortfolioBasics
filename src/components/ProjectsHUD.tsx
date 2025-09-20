@@ -88,7 +88,7 @@ function docTop(el: HTMLElement | null) {
 /* -------------------- bits -------------------- */
 function ProjectTile({ p, left, top, width }: { p: Project; left: string; top: number; width: string }) {
   const img = IMAGE_BY_TITLE[p.title] ?? { src: "/images/portfolio-basics-avatar.png", alt: `${p.title} preview` };
-  const slug = slugify(p.title);
+  the const slug = slugify(p.title);
   const aspect = ASPECT[p.title] ?? "3 / 4";
 
   return (
@@ -172,17 +172,17 @@ function StageHeader({ onMeasured }: { onMeasured: (h: number) => void }) {
 
   return (
     <div ref={ref}>
-      <div className={`${oswald.className} leading-none tracking-tight`}>
-        <div className="inline-block">
-          <div className="text-xl md:text-2xl font-medium text-white/90">Palmer</div>
-          <div className="h-[2px] bg-white/25 mt-1" />
-        </div>
-        <h2 className="mt-3 uppercase font-bold text-white/90 tracking-tight text-[12vw] md:text-[9vw] lg:text-[8vw]">Projects</h2>
+    <div className={`${oswald.className} leading-none tracking-tight`}>
+      <div className="inline-block">
+        <div className="text-xl md:text-2xl font-medium text-white/90">Palmer</div>
+        <div className="h-[2px] bg-white/25 mt-1" />
       </div>
-      <div className={`${plusJakarta.className} mt-3 text-sm md:text-base text-white/70`}>
-        Select a project to view the full details
-      </div>
+      <h2 className="mt-3 uppercase font-bold text-white/90 tracking-tight text-[12vw] md:text-[9vw] lg:text-[8vw]">Projects</h2>
     </div>
+    <div className={`${plusJakarta.className} mt-3 text-sm md:text-base text-white/70`}>
+      Select a project to view the full details
+    </div>
+  </div>
   );
 }
 
@@ -349,13 +349,13 @@ export default function ProjectsHUD() {
   const LEAD_IN = 0;
   const START_FROM_BOTTOM = Math.round(windowH * 1.06); // quicker first tile
 
-  // >>> NEW: extra travel so cards fully clear the viewport
-  const OUT_EXTRA = Math.max(220, Math.round(windowH * 0.45));
-  const END_Y = -TRAVEL_CORE + -OUT_EXTRA;
+  // >>> EXTENDED extra travel so cards fully clear, with time to spare
+  const OUT_EXTRA = Math.max(420, Math.round(windowH * 0.9));
+  const END_Y = -TRAVEL_CORE - OUT_EXTRA;
 
-  // Exit spacing (increase driver length so animation doesn't speed up)
+  // Extend driver so speed feels the same
   const EXIT_TAIL_BASE = Math.max(560, Math.round(windowH * 0.72));
-  const EXIT_TAIL = EXIT_TAIL_BASE + OUT_EXTRA;
+  const EXIT_TAIL = EXIT_TAIL_BASE + OUT_EXTRA + 160;
 
   const DRIVER_HEIGHT = LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL + 1;
 
@@ -375,10 +375,10 @@ export default function ProjectsHUD() {
     Math.max(END_Y, Math.min(START_FROM_BOTTOM, Math.round(v)))
   );
 
-  // Keep cards opaque until the very end, then fade quickly to hand off
-  const collageOpacity = useTransform(scrollYProgress, [0, 0.9995, 1], [1, 1, 0]);
-  // Chrome fades just after cards
-  const chromeOpacity  = useTransform(scrollYProgress, [0, 0.9997, 1], [1, 1, 0]);
+  // Keep cards visible almost all the way; fade at the last breath
+  const collageOpacity = useTransform(scrollYProgress, [0, 0.9999, 1], [1, 1, 0]);
+  // Chrome fades just after cards to keep header visible as cards pass
+  const chromeOpacity  = useTransform(scrollYProgress, [0, 0.99993, 1], [1, 1, 0]);
 
   // Lock + rail visibility
   const [lockActive, setLockActive] = React.useState(false);
@@ -546,7 +546,7 @@ export default function ProjectsHUD() {
         {/* Driver: defines lock distance & progress */}
         <div ref={driverRef} style={{ height: DRIVER_HEIGHT }} />
 
-        {/* Neutral buffer for clean handoff (unchanged) */}
+        {/* Neutral buffer for clean handoff */}
         <div ref={afterDriverRef} style={{ height: 1100 }} />
 
         {/* Overlays (only while locked) */}
