@@ -88,7 +88,7 @@ function docTop(el: HTMLElement | null) {
 /* -------------------- bits -------------------- */
 function ProjectTile({ p, left, top, width }: { p: Project; left: string; top: number; width: string }) {
   const img = IMAGE_BY_TITLE[p.title] ?? { src: "/images/portfolio-basics-avatar.png", alt: `${p.title} preview` };
-  const slug = slugify(p.title); // <-- fixed: removed stray "the"
+  const slug = slugify(p.title);
   const aspect = ASPECT[p.title] ?? "3 / 4";
 
   return (
@@ -370,7 +370,7 @@ export default function ProjectsHUD() {
       const inLock = y >= sTop && y < dEnd;
       if (inLock !== lockActive) setLockActive(inLock);
 
-      // rail only while in/near the section, but ends exactly at unlock
+      // rail only while in/near the section, ends exactly at unlock
       const railOn = y >= sTop - 40 && y < dEnd;
       if (railOn !== railVisible) setRailVisible(railOn);
     };
@@ -404,30 +404,33 @@ export default function ProjectsHUD() {
   // STICKY stage: only rendered WHILE locked (prevents double-vision and guarantees release)
   const StickyStage = (
     <div className="sticky top-0 z-[10]" style={{ height: stageH }}>
-      <div className="h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6">
+      <div className="relative h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6">
         <div className="hidden md:block" aria-hidden />
         <div className="relative h-full">
-          {/* Title + subheader LOCKED */}
-          <div className="pt-6 md:pt-8">
-            <div className={`${oswald.className} leading-none tracking-tight`}>
-              <div className="inline-block">
-                <div className="text-xl md:text-2xl font-medium text-white/90">Palmer</div>
-                <div className="h-[2px] bg-white/25 mt-1" />
+          {/* PINNED CHROME — title, subheader, and PACE stay on top while collage scrolls under */}
+          <div className="absolute inset-0 z-[30] pointer-events-none">
+            <div className="pt-6 md:pt-8 pointer-events-none">
+              <div className={`${oswald.className} leading-none tracking-tight`}>
+                <div className="inline-block">
+                  <div className="text-xl md:text-2xl font-medium text-white/90">Palmer</div>
+                  <div className="h-[2px] bg-white/25 mt-1" />
+                </div>
+                <h2 className="mt-3 uppercase font-bold text-white/90 tracking-tight text-[12vw] md:text-[9vw] lg:text-[8vw]">
+                  Projects
+                </h2>
               </div>
-              <h2 className="mt-3 uppercase font-bold text-white/90 tracking-tight text-[12vw] md:text-[9vw] lg:text-[8vw]">
-                Projects
-              </h2>
+              <div className={`${plusJakarta.className} mt-3 text-sm md:text-base text-white/70`}>
+                Select a project to view the full details
+              </div>
             </div>
-            <div className={`${plusJakarta.className} mt-3 text-sm md:text-base text-white/70`}>
-              Select a project to view the full details
+            <div className="relative">
+              {/* PACE tree pinned as well */}
+              <PACEBackground topOffset={paceTop} height={treeH} />
             </div>
           </div>
 
-          {/* PACE tree LOCKED */}
-          <PACEBackground topOffset={paceTop} height={treeH} />
-
-          {/* Collage scroll window */}
-          <div className="absolute inset-x-0 z-10 overflow-hidden" style={{ top: paceTop, height: windowH }}>
+          {/* COLLAGE WINDOW — sits under the pinned chrome and moves only itself */}
+          <div className="absolute inset-x-0 z-[10] overflow-hidden" style={{ top: paceTop, height: windowH }}>
             <div
               className="absolute inset-0 pointer-events-none"
               style={{
