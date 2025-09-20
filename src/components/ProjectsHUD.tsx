@@ -349,33 +349,36 @@ export default function ProjectsHUD() {
   const LEAD_IN = 0;
   const START_FROM_BOTTOM = Math.round(windowH * 1.06); // quicker first tile
 
-  // Exit spacing (already extended)
-  const EXIT_TAIL = Math.max(560, Math.round(windowH * 0.72));
+  // >>> NEW: extra travel so cards fully clear the viewport
+  const OUT_EXTRA = Math.max(220, Math.round(windowH * 0.45));
+  const END_Y = -TRAVEL_CORE + -OUT_EXTRA;
+
+  // Exit spacing (increase driver length so animation doesn't speed up)
+  const EXIT_TAIL_BASE = Math.max(560, Math.round(windowH * 0.72));
+  const EXIT_TAIL = EXIT_TAIL_BASE + OUT_EXTRA;
 
   const DRIVER_HEIGHT = LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL + 1;
 
   // Scroll progress
   const { scrollYProgress } = useScroll({ target: driverRef, offset: ["start start", "end start"] });
 
-  // Continuous travel
+  // Continuous travel to END_Y
   const startFrac = LEAD_IN / DRIVER_HEIGHT || 0.0000001;
   const rawY = useTransform(scrollYProgress, [0, startFrac, 1], [
     START_FROM_BOTTOM,
     START_FROM_BOTTOM,
-    -TRAVEL_CORE,
+    END_Y,
   ]);
 
   // Clamp for no overshoot
   const collageY = useTransform(rawY, (v) =>
-    Math.max(-TRAVEL_CORE, Math.min(START_FROM_BOTTOM, Math.round(v)))
+    Math.max(END_Y, Math.min(START_FROM_BOTTOM, Math.round(v)))
   );
 
-  // Cards stay opaque until the very end so they scroll off the top of the screen,
-  // then fade instantly to zero to hand off.
-  const collageOpacity = useTransform(scrollYProgress, [0, 0.995, 1], [1, 1, 0]);
-
-  // Chrome (title/subheader) fades just after the cards.
-  const chromeOpacity = useTransform(scrollYProgress, [0, 0.998, 1], [1, 1, 0]);
+  // Keep cards opaque until the very end, then fade quickly to hand off
+  const collageOpacity = useTransform(scrollYProgress, [0, 0.9995, 1], [1, 1, 0]);
+  // Chrome fades just after cards
+  const chromeOpacity  = useTransform(scrollYProgress, [0, 0.9997, 1], [1, 1, 0]);
 
   // Lock + rail visibility
   const [lockActive, setLockActive] = React.useState(false);
@@ -450,19 +453,16 @@ export default function ProjectsHUD() {
     </motion.div>
   ) : null;
 
-  // FIXED COLLAGE (dominant above chrome; viewport now spans the full screen so cards can pass above the header)
+  // FIXED COLLAGE (dominant above chrome; viewport spans the full screen so cards can pass above the header)
   const CollageOverlay = lockActive ? (
     <motion.div className="fixed inset-0 z-[75]" style={{ opacity: collageOpacity }}>
       <div className="h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
         <div className="hidden md:block" aria-hidden />
         <div className="relative h-full">
-          {/* NEW: viewport covers the full screen to allow scrolling off the very top */}
+          {/* Full-screen viewport for free upward travel */}
           <div className="absolute inset-x-0 overflow-hidden" style={{ top: 0, height: stageH }}>
             {/* Inner window aligned to original start line, with only a BOTTOM fade */}
-            <div
-              className="absolute inset-x-0"
-              style={{ top: paceTop, height: windowH }}
-            >
+            <div className="absolute inset-x-0" style={{ top: paceTop, height: windowH }}>
               <div
                 className="absolute inset-0 pointer-events-none"
                 style={{
@@ -546,7 +546,7 @@ export default function ProjectsHUD() {
         {/* Driver: defines lock distance & progress */}
         <div ref={driverRef} style={{ height: DRIVER_HEIGHT }} />
 
-        {/* Neutral buffer for clean handoff (extended previously) */}
+        {/* Neutral buffer for clean handoff (unchanged) */}
         <div ref={afterDriverRef} style={{ height: 1100 }} />
 
         {/* Overlays (only while locked) */}
