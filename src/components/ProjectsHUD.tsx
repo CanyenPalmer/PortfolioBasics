@@ -331,10 +331,10 @@ export default function ProjectsHUD() {
   const projects = ((profile as any)?.projects ?? []) as ReadonlyArray<Project>;
   const stageH = typeof window === "undefined" ? 800 : window.innerHeight;
 
-  const staticStageRef = React.useRef<HTMLDivElement>(null);
+  const preStageRef = React.useRef<HTMLDivElement>(null);
   const driverRef = React.useRef<HTMLDivElement>(null);
-  const lockEndRef = React.useRef<HTMLDivElement>(null); // <— lock end marker (0px)
-  const postLockRef = React.useRef<HTMLDivElement>(null);
+  const lockEndRef = React.useRef<HTMLDivElement>(null); // true lock end
+  const postStageRef = React.useRef<HTMLDivElement>(null);
 
   const [headerH, setHeaderH] = React.useState(0);
 
@@ -346,7 +346,7 @@ export default function ProjectsHUD() {
   // Travel math
   const TRAVEL_CORE = Math.max(0, LAYOUT.lg.containerHeight - windowH);
 
-  // Start immediately; cards begin slightly below to ensure full section is visible first
+  // Start immediately; cards begin low so full section is visible first
   const LEAD_IN = 0;
   const START_FROM_BOTTOM = Math.round(windowH * 1.06);
 
@@ -360,10 +360,8 @@ export default function ProjectsHUD() {
 
   const DRIVER_HEIGHT = LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL + 1;
 
-  // Scroll progress
+  // Scroll progress for card motion
   const { scrollYProgress } = useScroll({ target: driverRef, offset: ["start start", "end start"] });
-
-  // Cards travel to END_Y (clamped)
   const startFrac = LEAD_IN / DRIVER_HEIGHT || 0.0000001;
   const rawY = useTransform(scrollYProgress, [0, startFrac, 1], [
     START_FROM_BOTTOM,
@@ -372,9 +370,12 @@ export default function ProjectsHUD() {
   ]);
   const collageY = useTransform(rawY, (v) => Math.max(END_Y, Math.min(START_FROM_BOTTOM, Math.round(v))));
 
-  // ---- Lock & rail visibility; prevent tiny rebound at lock start
+  // Visibility states (mutually exclusive)
+  const [preVisible, setPreVisible] = React.useState(true);
   const [lockActive, setLockActive] = React.useState(false);
+  const [postVisible, setPostVisible] = React.useState(false);
   const [railVisible, setRailVisible] = React.useState(false);
+
   const didSnapRef = React.useRef(false);
 
   useMotionValueEvent(scrollYProgress, "change", () => {});
@@ -382,10 +383,10 @@ export default function ProjectsHUD() {
   React.useEffect(() => {
     const onScroll = () => {
       const y = window.scrollY || window.pageYOffset || 0;
-      const lockStart = Math.round(docTop(staticStageRef.current!));
-      const lockEnd = Math.round(docTop(lockEndRef.current!)); // <— lock ends at lockEndRef
+      const lockStart = Math.round(docTop(preStageRef.current!));
+      const lockEnd = Math.round(docTop(lockEndRef.current!)); // unlock point
 
-      // small snap to avoid rebound jiggle
+      // Prevent tiny rebound jiggle exactly at lock
       if (!didSnapRef.current && y > lockStart && y < lockStart + 12) {
         didSnapRef.current = true;
         window.scrollTo({ top: lockStart, behavior: "auto" });
@@ -395,9 +396,27 @@ export default function ProjectsHUD() {
       }
 
       const inLock = y >= lockStart && y < lockEnd;
-      if (inLock !== lockActive) setLockActive(inLock);
+      const beforeLock = y < lockStart;
+      const afterLock = y >= lockEnd;
 
-      const railOn = y >= lockStart - 40 && y < lockEnd;
+      // Mutually exclusive visibility
+      if (beforeLock) {
+        if (!preVisible) setPreVisible(true);
+        if (lockActive) setLockActive(false);
+        if (postVisible) setPostVisible(false);
+      } else if (inLock) {
+        if (preVisible) setPreVisible(false);
+        if (!lockActive) setLockActive(true);
+        if (postVisible) setPostVisible(false);
+      } else /* afterLock */ {
+        if (preVisible) setPreVisible(false);
+        if (lockActive) setLockActive(false);
+        // show the post section ONLY after unlock so it appears perfectly overlapped
+        if (!postVisible) setPostVisible(true);
+      }
+
+      // sidebar only during lock
+      const railOn = inLock;
       if (railOn !== railVisible) setRailVisible(railOn);
     };
     onScroll();
@@ -407,16 +426,16 @@ export default function ProjectsHUD() {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
     };
-  }, [lockActive, railVisible]);
+  }, [preVisible, lockActive, postVisible, railVisible]);
 
-  /* ----------- STATIC IN-FLOW CHROME (ALWAYS MOUNTED, BEFORE DRIVER) ----------- */
-  const StaticStage = (
+  /* ----------- PRE-LOCK in-flow stage ----------- */
+  const StaticPre = (
     <div
       className="mx-auto max-w-7xl px-6"
       style={{
         height: stageH,
-        visibility: lockActive ? "hidden" : "visible",
-        pointerEvents: lockActive ? "none" as const : "auto",
+        visibility: preVisible ? "visible" : "hidden",
+        pointerEvents: preVisible ? "auto" : "none",
       }}
     >
       <div className="h-full md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
@@ -432,7 +451,7 @@ export default function ProjectsHUD() {
     </div>
   );
 
-  /* ----------- LOCKED OVERLAYS ----------- */
+  /* ----------- LOCKED overlays (chrome + cards) ----------- */
   const ChromeOverlay = lockActive ? (
     <div className="fixed inset-0 z-[70] pointer-events-none">
       <div className="h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
@@ -496,6 +515,40 @@ export default function ProjectsHUD() {
     </motion.div>
   ) : null;
 
+  /* ----------- POST-LOCK in-flow stage ----------- */
+  const StaticPost = (
+    <div
+      className="mx-auto max-w-7xl px-6"
+      style={{
+        minHeight: stageH,
+        visibility: postVisible ? "visible" : "hidden",
+        pointerEvents: postVisible ? "auto" : "none",
+      }}
+    >
+      <div className="h-full md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
+        <div className="hidden md:block" aria-hidden />
+        <div className="relative h-full">
+          <div className="pt-6 md:pt-8">
+            <div className={`${oswald.className} leading-none tracking-tight`}>
+              <div className="inline-block">
+                <div className="text-xl md:text-2xl font-medium text-white/90">Palmer</div>
+                <div className="h-[2px] bg-white/25 mt-1" />
+              </div>
+              <h2 className="mt-3 uppercase font-bold text-white/90 tracking-tight text-[12vw] md:text-[9vw] lg:text-[8vw]">
+                Projects
+              </h2>
+            </div>
+            <div className={`${plusJakarta.className} mt-3 text-sm md:text-base text-white/70`}>
+              Select a project to view the full details
+            </div>
+          </div>
+          <PACEBackground topOffset={paceTop} height={treeH} />
+          <div className="absolute inset-x-0" style={{ top: paceTop, height: windowH }} />
+        </div>
+      </div>
+    </div>
+  );
+
   // Mobile (unchanged)
   const mobile = (
     <div className="md:hidden space-y-10 px-6 py-10 bg-[#0d131d]">
@@ -540,55 +593,35 @@ export default function ProjectsHUD() {
 
       {/* Desktop / Tablet */}
       <div className="hidden md:block">
-        {/* In-flow static frame BEFORE driver (kept in layout; hidden during lock) */}
-        <div ref={staticStageRef} className="relative">
-          {StaticStage}
+        {/* PRE-LOCK in-flow */}
+        <div ref={preStageRef} className="relative">
+          {StaticPre}
         </div>
 
-        {/* Driver (card animation distance) */}
+        {/* DRIVER (card animation distance) */}
         <div ref={driverRef} style={{ height: DRIVER_HEIGHT }} />
 
-        {/* 0px marker that defines EXACTLY when the lock ends */}
+        {/* Lock end marker */}
         <div ref={lockEndRef} style={{ height: 0 }} />
 
-        {/* Post-lock in-flow chrome (placed AFTER lockEnd so it’s visible right when unlock happens) */}
-        <div ref={postLockRef} className="mx-auto max-w-7xl px-6" style={{ minHeight: stageH }}>
-          <div className="h-full md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
-            <div className="hidden md:block" aria-hidden />
-            <div className="relative h-full">
-              <div className="pt-6 md:pt-8">
-                <div className={`${oswald.className} leading-none tracking-tight`}>
-                  <div className="inline-block">
-                    <div className="text-xl md:text-2xl font-medium text-white/90">Palmer</div>
-                    <div className="h-[2px] bg-white/25 mt-1" />
-                  </div>
-                  <h2 className="mt-3 uppercase font-bold text-white/90 tracking-tight text-[12vw] md:text-[9vw] lg:text-[8vw]">
-                    Projects
-                  </h2>
-                </div>
-                <div className={`${plusJakarta.className} mt-3 text-sm md:text-base text-white/70`}>
-                  Select a project to view the full details
-                </div>
-              </div>
-              <PACEBackground topOffset={paceTop} height={treeH} />
-              <div className="absolute inset-x-0" style={{ top: paceTop, height: windowH }} />
-            </div>
-          </div>
+        {/* POST-LOCK in-flow (becomes visible only after unlock to ensure perfect overlap) */}
+        <div ref={postStageRef} className="relative">
+          {StaticPost}
         </div>
 
         {/* Spacer so we don’t collide with Education */}
         <div style={{ height: 1100 }} />
 
-        {/* Locked overlays */}
+        {/* LOCKED overlays */}
         {CollageOverlay}
         {ChromeOverlay}
 
-        {/* PERSISTENT LEFT RAIL (only while locked) */}
+        {/* PERSISTENT LEFT RAIL (only while locked, enters from bottom) */}
         <motion.div
           className="fixed inset-0 z-[62] pointer-events-none"
           aria-hidden
           initial={false}
-          animate={{ opacity: lockActive ? 1 : 0 }}
+          animate={{ opacity: railVisible ? 1 : 0 }}
           transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
         >
           <div className="h-full mx-auto max-w-7xl px-6">
@@ -596,7 +629,7 @@ export default function ProjectsHUD() {
               <div className="hidden md:block">
                 <motion.div
                   initial={false}
-                  animate={lockActive ? { y: 0, opacity: 1 } : { y: railIntroOffset, opacity: 0 }}
+                  animate={railVisible ? { y: 0, opacity: 1 } : { y: railIntroOffset, opacity: 0 }}
                   transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
                   style={{ willChange: "transform, opacity" }}
                 >
