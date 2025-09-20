@@ -88,7 +88,7 @@ function docTop(el: HTMLElement | null) {
 /* -------------------- bits -------------------- */
 function ProjectTile({ p, left, top, width }: { p: Project; left: string; top: number; width: string }) {
   const img = IMAGE_BY_TITLE[p.title] ?? { src: "/images/portfolio-basics-avatar.png", alt: `${p.title} preview` };
-  the const slug = slugify(p.title);
+  const slug = slugify(p.title);
   const aspect = ASPECT[p.title] ?? "3 / 4";
 
   return (
@@ -172,17 +172,17 @@ function StageHeader({ onMeasured }: { onMeasured: (h: number) => void }) {
 
   return (
     <div ref={ref}>
-    <div className={`${oswald.className} leading-none tracking-tight`}>
-      <div className="inline-block">
-        <div className="text-xl md:text-2xl font-medium text-white/90">Palmer</div>
-        <div className="h-[2px] bg-white/25 mt-1" />
+      <div className={`${oswald.className} leading-none tracking-tight`}>
+        <div className="inline-block">
+          <div className="text-xl md:text-2xl font-medium text-white/90">Palmer</div>
+          <div className="h-[2px] bg-white/25 mt-1" />
+        </div>
+        <h2 className="mt-3 uppercase font-bold text-white/90 tracking-tight text-[12vw] md:text-[9vw] lg:text-[8vw]">Projects</h2>
       </div>
-      <h2 className="mt-3 uppercase font-bold text-white/90 tracking-tight text-[12vw] md:text-[9vw] lg:text-[8vw]">Projects</h2>
+      <div className={`${plusJakarta.className} mt-3 text-sm md:text-base text-white/70`}>
+        Select a project to view the full details
+      </div>
     </div>
-    <div className={`${plusJakarta.className} mt-3 text-sm md:text-base text-white/70`}>
-      Select a project to view the full details
-    </div>
-  </div>
   );
 }
 
@@ -349,7 +349,7 @@ export default function ProjectsHUD() {
   const LEAD_IN = 0;
   const START_FROM_BOTTOM = Math.round(windowH * 1.06); // quicker first tile
 
-  // >>> EXTENDED extra travel so cards fully clear, with time to spare
+  // Extra travel so cards fully clear, with time to spare
   const OUT_EXTRA = Math.max(420, Math.round(windowH * 0.9));
   const END_Y = -TRAVEL_CORE - OUT_EXTRA;
 
@@ -453,15 +453,13 @@ export default function ProjectsHUD() {
     </motion.div>
   ) : null;
 
-  // FIXED COLLAGE (dominant above chrome; viewport spans the full screen so cards can pass above the header)
+  // FIXED COLLAGE (viewport spans the full screen so cards can pass above the header)
   const CollageOverlay = lockActive ? (
     <motion.div className="fixed inset-0 z-[75]" style={{ opacity: collageOpacity }}>
       <div className="h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
         <div className="hidden md:block" aria-hidden />
         <div className="relative h-full">
-          {/* Full-screen viewport for free upward travel */}
           <div className="absolute inset-x-0 overflow-hidden" style={{ top: 0, height: stageH }}>
-            {/* Inner window aligned to original start line, with only a BOTTOM fade */}
             <div className="absolute inset-x-0" style={{ top: paceTop, height: windowH }}>
               <div
                 className="absolute inset-0 pointer-events-none"
@@ -528,7 +526,7 @@ export default function ProjectsHUD() {
     </div>
   );
 
-  // Sidebar entrance: rise from the bottom of the viewport on lock (kept)
+  // Sidebar entrance (kept)
   const railIntroOffset = Math.max(0, windowH - (paceTop + treeH));
 
   return (
