@@ -344,16 +344,21 @@ export default function ProjectsHUD() {
 
   // Travel math
   const TRAVEL_CORE = Math.max(0, LAYOUT.lg.containerHeight - windowH);
-  const LEAD_IN = 16;
-  const START_FROM_BOTTOM = Math.round(windowH * 0.92);
-  const EXIT_TAIL = Math.max(220, Math.round(windowH * 0.32));
+
+  // CHANGE 1: start immediately on lock and start lower so section is fully in view first
+  const LEAD_IN = 0; // was 16
+  const START_FROM_BOTTOM = Math.round(windowH * 1.12); // was ~0.92, now lower (offscreen) to delay first appearance
+
+  // CHANGE 2: add more exit space to avoid colliding with next section
+  const EXIT_TAIL = Math.max(420, Math.round(windowH * 0.5)); // was 220 / 0.32
+
   const DRIVER_HEIGHT = LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL + 1;
 
   // Scroll progress across the driver (for collage)
   const { scrollYProgress } = useScroll({ target: driverRef, offset: ["start start", "end start"] });
 
   // Start when locked, travel through to the final pose
-  const startFrac = LEAD_IN / DRIVER_HEIGHT || 0.0001;
+  const startFrac = LEAD_IN / DRIVER_HEIGHT || 0.0000001;
   const rawY = useTransform(scrollYProgress, [0, startFrac, 1], [
     START_FROM_BOTTOM,
     START_FROM_BOTTOM,
@@ -365,10 +370,10 @@ export default function ProjectsHUD() {
     Math.max(-TRAVEL_CORE, Math.min(START_FROM_BOTTOM, Math.round(v)))
   );
 
-  // Fade-out near the end of the driver (projects should dissolve as next section arrives)
-  const FADE_START = 0.92; // start fading ~last 8% of the driver
+  // Fade-out near the end of the driver (projects dissolve as next section arrives)
+  const FADE_START = 0.92;
   const collageOpacity = useTransform(scrollYProgress, [0, FADE_START, 1], [1, 1, 0]);
-  const chromeOpacity  = useTransform(scrollYProgress, [0, FADE_START + 0.03, 1], [1, 1, 0]); // chrome lingers slightly longer
+  const chromeOpacity  = useTransform(scrollYProgress, [0, FADE_START + 0.03, 1], [1, 1, 0]);
 
   // Lock + rail visibility
   const [lockActive, setLockActive] = React.useState(false);
@@ -443,7 +448,7 @@ export default function ProjectsHUD() {
     </motion.div>
   ) : null;
 
-  // FIXED COLLAGE (now above chrome so projects dominate; fades out toward the end)
+  // FIXED COLLAGE (dominant above chrome; fades toward the end)
   const CollageOverlay = lockActive ? (
     <motion.div className="fixed inset-0 z-[75]" style={{ opacity: collageOpacity }}>
       <div className="h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
@@ -531,8 +536,8 @@ export default function ProjectsHUD() {
         {/* Driver: defines lock distance & progress */}
         <div ref={driverRef} style={{ height: DRIVER_HEIGHT }} />
 
-        {/* Neutral buffer for clean handoff */}
-        <div ref={afterDriverRef} style={{ height: 600 }} />
+        {/* Neutral buffer for clean handoff (more room to avoid collision) */}
+        <div ref={afterDriverRef} style={{ height: 800 }} /> {/* was 600 */}
 
         {/* Overlays (only while locked) */}
         {CollageOverlay}
