@@ -460,46 +460,7 @@ function RailColumn({ rows, rowH }: { rows: number; rowH: number }) {
   );
 }
 
-/* -------------------- SMALL STATIC UNDERLAY (pre-lock view) -------------------- */
-function StaticStage({
-  vh,
-  headerH,
-  setHeaderH,
-}: {
-  vh: number;
-  headerH: number;
-  setHeaderH: (n: number) => void;
-}) {
-  const stageH = Math.max(640, vh);
-
-  // ~1 inch gap below subheading so PACE never sits behind it
-  const EXTRA_PACE_GAP = 84;
-
-  const paceTop = headerH + EXTRA_PACE_GAP;
-  const windowH = Math.max(360, stageH - paceTop);
-  const treeH = Math.max(520, Math.min(820, Math.round(windowH * 0.75)));
-
-  return (
-    <div className="mx-auto max-w-7xl px-6 pt-6 md:pt-8">
-      <div className="md:grid md:grid-cols-[64px,1fr] md:gap-6">
-        <div className="hidden md:block">
-          <LeftRail height={treeH} top={paceTop} />
-        </div>
-        <div className="relative w-full">
-          {/* header in-flow (measured) */}
-          <StageHeader onMeasured={setHeaderH} />
-          {/* reserve space above tree */}
-          <div className="relative" style={{ height: stageH }}>
-            <div style={{ height: paceTop }} />
-            <PACEBackground topOffset={paceTop} height={treeH} />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* -------------------- FIXED-STAGE IMPLEMENTATION -------------------- */
+/* -------------------- FIXED-STAGE (only) — no duplicate static view -------------------- */
 function FixedStage({
   vh,
   projects,
@@ -513,7 +474,8 @@ function FixedStage({
     note: { left: string; top: number; width: string };
   };
 }) {
-  const [headerH, setHeaderH] = React.useState(0);
+  // provide a sensible initial estimate to avoid first-frame jump
+  const [headerH, setHeaderH] = React.useState(180);
 
   // Visible stage height
   const stageH = Math.max(640, vh);
@@ -555,18 +517,14 @@ function FixedStage({
   // Show the fixed overlay only while we're within the sentinel range
   const [active, setActive] = React.useState(false);
   useMotionValueEvent(scrollYProgress, "change", (v) => {
-    // Keep overlay on for almost the entire sentinel, then fade a touch early.
-    const releaseAt = 0.985;
+    // Engage as soon as the section touches the viewport; release just before the tail ends
+    const releaseAt = 0.995;
     setActive(v > 0 && v < releaseAt);
   });
 
-  // ---- RENDER ----
   return (
     <>
-      {/* STATIC underlay so the user sees header + tree BEFORE lock → avoids entry "jump" */}
-      <StaticStage vh={vh} headerH={headerH} setHeaderH={setHeaderH} />
-
-      {/* Scroll driver (controls the overlay lock) */}
+      {/* Scroll driver (controls the overlay lock) — placed right at section start */}
       <div ref={sentinelRef} style={{ height: SENTINEL }} />
 
       {/* FIXED overlay — appears "locked" while sentinel is in view */}
@@ -574,7 +532,8 @@ function FixedStage({
         className={[
           "fixed inset-0 z-[60]",
           active ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
-          "transition-opacity duration-200",
+          // instant toggle to avoid visual cross-fade into the next section
+          "transition-opacity duration-0",
         ].join(" ")}
         aria-hidden={!active}
       >
@@ -591,7 +550,7 @@ function FixedStage({
 
             {/* Right column */}
             <div className="relative h-full">
-              {/* Title/subheading (measured; shared with underlay) */}
+              {/* Title/subheading (measured) */}
               <div className="pt-6 md:pt-8">
                 <StageHeader onMeasured={setHeaderH} />
               </div>
@@ -646,8 +605,8 @@ function FixedStage({
         </div>
       </div>
 
-      {/* Small trailing pad so release never "snaps" into Education */}
-      <div style={{ height: Math.max(120, Math.round(vh * 0.15)) }} />
+      {/* Small trailing spacer so release never lands directly on Education */}
+      <div className="bg-[#0d131d]" style={{ height: Math.max(240, Math.round(vh * 0.22)) }} />
     </>
   );
 }
@@ -721,7 +680,7 @@ export default function ProjectsHUD() {
       {/* Mobile content only */}
       {mobile}
 
-      {/* Desktop/tablet: fixed overlay driven by sentinel */}
+      {/* Desktop/tablet: fixed overlay driven by sentinel (no static duplicate view) */}
       <div className="hidden md:block">
         <FixedStage vh={vh} projects={projects} layout={LAYOUT.lg} />
       </div>
