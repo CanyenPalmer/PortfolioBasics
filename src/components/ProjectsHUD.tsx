@@ -6,7 +6,7 @@ import TransitionLink from "@/components/TransitionLink";
 import { profile } from "@/content/profile";
 import { slugify } from "@/lib/slug";
 import { Oswald, Plus_Jakarta_Sans } from "next/font/google";
-import { motion, useScroll, useTransform, useMotionValueEvent } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 
 const oswald = Oswald({ subsets: ["latin"], weight: ["400", "500", "700"] });
 const plusJakarta = Plus_Jakarta_Sans({
@@ -460,85 +460,13 @@ function RailColumn({ rows, rowH }: { rows: number; rowH: number }) {
   );
 }
 
-/* -------------------- STATIC UNDERLAY (now mirrors the locked layout exactly) -------------------- */
-function StaticStage({
+/* -------------------- STICKY-STAGE (single, stable lock — no jumps) -------------------- */
+function StickyStage({
   vh,
-  headerH,
-  setHeaderH,
-}: {
-  vh: number;
-  headerH: number;
-  setHeaderH: (n: number) => void;
-}) {
-  const stageH = Math.max(640, vh);
-  const EXTRA_PACE_GAP = 84; // ~1" below subheading
-
-  const paceTop = headerH + EXTRA_PACE_GAP;
-  const windowH = Math.max(360, stageH - paceTop);
-
-  return (
-    <div className="relative mx-auto max-w-7xl px-6 bg-[#0d131d]">
-      {/* Exact same grid as the locked overlay */}
-      <div className="md:grid md:grid-cols-[64px,1fr] md:gap-6">
-        {/* Left rail matches tree height/offset during lock — we mirror that silhouette */}
-        <div className="hidden md:block">
-          {/* We don’t know treeH here (computed in overlay), but the rail’s visual length
-              is driven by the PACE area; mirroring the “window” height keeps alignment. */}
-          <LeftRail height={Math.max(520, Math.min(820, Math.round(windowH * 0.75)))} top={paceTop} />
-        </div>
-
-        {/* Right column */}
-        <div className="relative w-full">
-          {/* Title/subheading (measured) */}
-          <div className="pt-6 md:pt-8">
-            <StageHeader onMeasured={setHeaderH} />
-          </div>
-
-          {/* Reserve the visible stage area below the header so nothing jumps */}
-          <div className="relative" style={{ height: stageH }}>
-            {/* PACE tree positioned exactly like the overlay */}
-            <PACEBackground
-              topOffset={paceTop}
-              height={Math.max(520, Math.min(820, Math.round(windowH * 0.75)))}
-            />
-
-            {/* Collage “window frame” placeholder (same mask/box as overlay) */}
-            <div
-              className="absolute inset-x-0 z-10 overflow-hidden pointer-events-none"
-              style={{ top: paceTop, height: windowH }}
-            >
-              <div
-                className="absolute inset-0"
-                style={{
-                  WebkitMaskImage: `linear-gradient(to bottom,
-                    transparent 0px,
-                    black 110px,
-                    black calc(100% - 180px),
-                    transparent 100%)`,
-                  maskImage: `linear-gradient(to bottom,
-                    transparent 0px,
-                    black 110px,
-                    black calc(100% - 180px),
-                    transparent 100%)`,
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* -------------------- FIXED-STAGE (lock + collage animation) -------------------- */
-function FixedStage({
-  vh,
-  headerH,
   projects,
   layout,
 }: {
   vh: number;
-  headerH: number;
   projects: ReadonlyArray<Project>;
   layout: {
     containerHeight: number;
@@ -546,24 +474,27 @@ function FixedStage({
     note: { left: string; top: number; width: string };
   };
 }) {
+  const [headerH, setHeaderH] = React.useState(0);
+
+  // Visible stage height (locks while parent sentinel scrolls)
   const stageH = Math.max(640, vh);
+
+  // ~1" breathing room below the subheading
   const EXTRA_PACE_GAP = 84;
 
+  // Layout slices
   const paceTop = headerH + EXTRA_PACE_GAP;
   const windowH = Math.max(360, stageH - paceTop);
   const treeH = Math.max(520, Math.min(820, Math.round(windowH * 0.75)));
 
-  // Timeline distances
-  const LEAD_IN = Math.max(220, Math.round(windowH * 0.22));
-  const START_FROM_BOTTOM = Math.round(windowH * 0.95);
+  // Timeline distances (how long we lock & animate)
+  const LEAD_IN = Math.max(220, Math.round(windowH * 0.22)); // see tree, then start cards
+  const START_FROM_BOTTOM = Math.round(windowH * 0.95);      // cards emerge from bottom
   const TRAVEL_CORE = Math.max(0, layout.containerHeight - windowH);
-  const EXIT_TAIL = Math.max(180, Math.round(windowH * 0.28));
+  const EXIT_TAIL = Math.max(220, Math.round(windowH * 0.32)); // small buffer before release
 
-  // Sentinel height ensures full animation travel + small trailing buffer
-  const SENTINEL = Math.max(
-    LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL,
-    Math.round(stageH * 2.6)
-  );
+  // Parent scroll driver — sticky child locks for this height
+  const SENTINEL = LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL;
 
   const sentinelRef = React.useRef<HTMLDivElement | null>(null);
   const { scrollYProgress } = useScroll({
@@ -571,7 +502,7 @@ function FixedStage({
     offset: ["start start", "end start"],
   });
 
-  // Collage Y mapping
+  // Collage Y mapping (stationary during lead-in, then travel, then done)
   const startFrac = LEAD_IN / SENTINEL || 0.0001;
   const collageY = useTransform(scrollYProgress, [0, startFrac, 1], [
     START_FROM_BOTTOM,
@@ -579,55 +510,37 @@ function FixedStage({
     -TRAVEL_CORE,
   ]);
 
-  // Overlay activation (instant on/off — no fading)
-  const [active, setActive] = React.useState(false);
-  useMotionValueEvent(scrollYProgress, "change", (v) => {
-    // Engage as soon as sentinel enters; release just before the tail ends
-    const releaseAt = 0.992;
-    setActive(v > 0 && v < releaseAt);
-  });
-
   return (
-    <>
-      {/* Scroll driver (below the static underlay, so arrival is formatted) */}
-      <div ref={sentinelRef} style={{ height: SENTINEL }} />
-
-      {/* FIXED overlay — locked while sentinel is in view */}
-      <div
-        className={[
-          "fixed inset-0 z-[60]",
-          active ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
-          "transition-opacity duration-0",
-        ].join(" ")}
-        aria-hidden={!active}
-      >
+    <div ref={sentinelRef} style={{ height: SENTINEL }} className="relative">
+      {/* Sticky = lock; remains identical before/after lock because it’s the same element */}
+      <div className="sticky top-0" style={{ height: stageH }}>
         <div className="absolute inset-0 bg-[#0d131d]" />
 
-        {/* Centered content column */}
+        {/* Center column mirrors the locked layout exactly */}
         <div className="relative h-full mx-auto max-w-7xl px-6">
-          {/* 2-col layout: rail + right content */}
+          {/* Two-column grid: left rail + right content */}
           <div className="absolute inset-0 md:grid md:grid-cols-[64px,1fr] md:gap-6">
-            {/* Left rail aligned to the PACE area */}
+            {/* Left rail sized to the PACE area */}
             <div className="hidden md:block">
               <LeftRail height={treeH} top={paceTop} />
             </div>
 
             {/* Right column */}
             <div className="relative h-full">
-              {/* Header in overlay (same spacing; measurement not needed here) */}
+              {/* Title/subheading; measured so the tree always begins below it */}
               <div className="pt-6 md:pt-8">
-                <StageHeader onMeasured={() => {}} />
+                <StageHeader onMeasured={setHeaderH} />
               </div>
 
-              {/* PACE tree — strictly below the header */}
+              {/* PACE tree — behind the collage window but visible at all times */}
               <PACEBackground topOffset={paceTop} height={treeH} />
 
-              {/* Collage window (scroll-controlled) */}
+              {/* Collage window — cards move through here */}
               <div
                 className="absolute inset-x-0 z-10 overflow-hidden"
                 style={{ top: paceTop, height: windowH }}
               >
-                {/* vignette mask for entry/exit */}
+                {/* vignette mask for elegant fade on entry/exit */}
                 <div
                   className="absolute inset-0 pointer-events-none"
                   style={{
@@ -669,9 +582,9 @@ function FixedStage({
         </div>
       </div>
 
-      {/* Trailing spacer so the unlock never lands on the next section */}
-      <div className="bg-[#0d131d]" style={{ height: Math.max(300, Math.round(vh * 0.3)) }} />
-    </>
+      {/* tiny neutral spacer inside the sentinel to ensure smooth unlock */}
+      <div className="bg-[#0d131d]" style={{ height: Math.max(120, Math.round(vh * 0.15)) }} />
+    </div>
   );
 }
 
@@ -689,9 +602,6 @@ export default function ProjectsHUD() {
     window.addEventListener("resize", onResize, { passive: true });
     return () => window.removeEventListener("resize", onResize);
   }, [vh]);
-
-  // Shared header measurement so static + overlay align perfectly (no jump)
-  const [headerH, setHeaderH] = React.useState(180);
 
   // Mobile: simple stack (unchanged)
   const mobile = (
@@ -747,12 +657,10 @@ export default function ProjectsHUD() {
       {/* Mobile content only */}
       {mobile}
 
-      {/* Desktop/tablet: static underlay + fixed overlay driven by sentinel */}
+      {/* Desktop/tablet: one sticky stage that handles pre-lock, lock, and release */}
       <div className="hidden md:block">
-        <StaticStage vh={vh} headerH={headerH} setHeaderH={setHeaderH} />
-        <FixedStage vh={vh} headerH={headerH} projects={projects} layout={LAYOUT.lg} />
+        <StickyStage vh={vh} projects={projects} layout={LAYOUT.lg} />
       </div>
     </section>
   );
 }
-
