@@ -426,22 +426,19 @@ export default function ProjectsHUD() {
 
       // ----- Sidebar visibility for the ENTIRE Projects section -----
       const postTop = Math.round(docTop(postStageRef.current!));
-      const postEnd = postTop + viewportH + 1100; // stage minHeight + spacer
+      const postEnd = postTop + viewportH + 320; // shortened spacer matches below
       const viewportBottom = y + viewportH;
 
       const railOn = viewportBottom >= preTop && y < postEnd;
       if (railOn !== railVisible) setRailVisible(railOn);
 
       // ----- Sidebar entrance REVEAL synced to the PACE tree's SECOND NODE (28%) -----
-      // Compute the absolute top of the second node within the section:
       const secondNodeTop = preTop + paceTop + Math.round(treeH * 0.28);
-      // Begin reveal when that node hits the bottom of the viewport; finish at lock start.
-      const revealStart = secondNodeTop - viewportH + 8; // +8px buffer so it's truly "in view"
+      const revealStart = secondNodeTop - viewportH + 8;
       const revealEnd = lockStart;
       const denom = Math.max(1, revealEnd - revealStart);
       const rp = Math.max(0, Math.min(1, (y - revealStart) / denom));
 
-      // Slide up from bottom & reveal with mask, driven by rp
       setRailRevealY(Math.round(railIntroOffset * (1 - rp)));
       setRailMaskPct(Math.round(rp * 100));
 
@@ -636,8 +633,8 @@ export default function ProjectsHUD() {
           {StaticPost}
         </div>
 
-        {/* Spacer so we don’t collide with Education */}
-        <div style={{ height: 1100 }} />
+        {/* Spacer so we don’t collide with Education — shortened */}
+        <div style={{ height: 320 }} />
 
         {/* LOCKED overlays */}
         {CollageOverlay}
