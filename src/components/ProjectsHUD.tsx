@@ -419,10 +419,11 @@ export default function ProjectsHUD() {
       }
 
       // ----- Sidebar visibility for the ENTIRE Projects section -----
-      // Start slightly before the section enters; end after the post-lock section + spacer.
+      // Make it visible as soon as the section *enters the viewport* (already in view when arriving).
+      const viewportBottom = y + (typeof window !== "undefined" ? window.innerHeight : 800);
       const postTop = Math.round(docTop(postStageRef.current!));
       const postEnd = postTop + (typeof window !== "undefined" ? window.innerHeight : 800) + 1100; // stage minHeight + spacer
-      const railOn = y >= preTop - 40 && y < postEnd;  // <-- changed to use preTop so it's visible in the section before lock
+      const railOn = viewportBottom >= preTop + 40 && y < postEnd; // << only change: use viewportBottom vs lock start
       if (railOn !== railVisible) setRailVisible(railOn);
 
       // Move the sidebar up at the same rate as the section after unlock
@@ -625,7 +626,7 @@ export default function ProjectsHUD() {
         {CollageOverlay}
         {ChromeOverlay}
 
-        {/* PERSISTENT LEFT RAIL — visible for the whole section; moves out after unlock */}
+        {/* PERSISTENT LEFT RAIL — visible early; moves with section after unlock */}
         <motion.div
           className="fixed inset-0 z-[62] pointer-events-none"
           aria-hidden
