@@ -381,10 +381,9 @@ export default function ProjectsHUD() {
   const [railRevealY, setRailRevealY] = React.useState(0);
   const [railMaskPct, setRailMaskPct] = React.useState(0);
 
-  // --- NEW: robust fast-scroll snap helpers (tiny change) ---
+  // Robust snap helpers
   const prevYRef = React.useRef(0);
   const snappingRef = React.useRef(false);
-
   const didSnapRef = React.useRef(false);
 
   useMotionValueEvent(scrollYProgress, "change", () => {});
@@ -401,25 +400,30 @@ export default function ProjectsHUD() {
       const lockStart = preTop;                                // lock begins when section top reaches viewport top
       const lockEnd = Math.round(docTop(lockEndRef.current!)); // unlock point
 
-      // ---- tiny, focused fix: robust snap even on fast scroll overshoot ----
-      // If user crosses the lock start between frames (prevY < lockStart && y >> lockStart),
-      // force a single-frame snap to lockStart so the lock feels solid.
+      // ===== Strong, jitter-free snap to lockStart =====
+      // Wider acceptance window catches "fling" overshoots; snap disables smooth behavior for 1 frame.
+      const LOCK_SNAP_WINDOW = 64; // px below lockStart considered "should be snapped"
       if (!snappingRef.current) {
-        const passedDownIntoLock = prevY < lockStart && y >= lockStart + 12 && y < lockEnd + viewportH; // overshot but still within section
-        const nearLockEdge = y > lockStart && y < lockStart + 12; // existing micro-jiggle case
-        if (passedDownIntoLock || (!didSnapRef.current && nearLockEdge)) {
+        const crossedDownIntoLock = prevY < lockStart && y >= lockStart + 1 && y <= lockStart + LOCK_SNAP_WINDOW;
+        const microNearLock = y > lockStart && y < lockStart + 12;
+
+        if (crossedDownIntoLock || (!didSnapRef.current && microNearLock)) {
           snappingRef.current = true;
           didSnapRef.current = true;
+          const docEl = document.documentElement;
+          const prevBehavior = docEl.style.scrollBehavior;
+          // ensure instantaneous snap (no CSS smooth-scroll)
+          docEl.style.scrollBehavior = "auto";
+          window.scrollTo(0, lockStart);
+          // restore next frame & release guard
           requestAnimationFrame(() => {
-            window.scrollTo({ top: lockStart, behavior: "auto" });
-            // release the guard on next frame
-            requestAnimationFrame(() => {
-              snappingRef.current = false;
-            });
+            docEl.style.scrollBehavior = prevBehavior;
+            snappingRef.current = false;
           });
         }
-        // reset micro-jiggle guard when far from the lock zone
-        if (y < lockStart - 24 || y > lockEnd + 24) {
+
+        // Reset guards when we’re clearly away from the lock zone
+        if (y < lockStart - 48 || y > lockEnd + 48) {
           didSnapRef.current = false;
         }
       }
@@ -693,3 +697,4 @@ export default function ProjectsHUD() {
     </section>
   );
 }
+
