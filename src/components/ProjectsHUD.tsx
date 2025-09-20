@@ -1,3 +1,4 @@
+// src/components/ProjectsHUD.tsx
 "use client";
 
 import * as React from "react";
@@ -65,7 +66,7 @@ const ASPECT: Record<string, string> = {
   "Python 101": "2 / 3",
 };
 
-/** Collage layout (your original positions) */
+/** Collage layout (original positions) */
 const LAYOUT = {
   md: {
     containerHeight: 1950,
@@ -235,7 +236,7 @@ function BlurbAndNote({
   );
 }
 
-/** PACE storyboard (centered vertically; behind collage) */
+/** PACE storyboard (centered; behind collage) */
 function PACEBackground() {
   return (
     <div className="pointer-events-none absolute inset-0 z-[5]">
@@ -310,10 +311,8 @@ function NodeWithBranches({
   );
 }
 
-/** Header block */
-function ProjectsHeader(
-  { headerRef }: { headerRef: React.RefObject<HTMLDivElement> }
-) {
+/** Header block (measured for offset) */
+function ProjectsHeader({ headerRef }: { headerRef: React.RefObject<HTMLDivElement> }) {
   return (
     <div ref={headerRef} className="mb-8 md:mb-10">
       <div className={`${oswald.className} leading-none tracking-tight`}>
@@ -332,7 +331,7 @@ function ProjectsHeader(
   );
 }
 
-/** LEFT RAIL — height comes from PACE tree so lengths match */
+/** LEFT RAIL — height follows the PACE tree so lengths match */
 function LeftRail({ height }: { height?: number | null }) {
   const [paused, setPaused] = React.useState(false);
   const TOP_FADE = 250;
@@ -447,38 +446,35 @@ function RailColumn({ rows, rowH }: { rows: number; rowH: number }) {
   );
 }
 
-/* -------------------- SCROLL-LOCKED COLLAGE (stage under header) -------------------- */
-function CollageScene({
-  stageVh,
+/* -------------------- LOCKED STAGE (locks both columns under header) -------------------- */
+function LockedProjectsStage({
   headerOffset,
+  stageVh,
   treeHeight,
-  containerHeight,
-  items,
-  note,
+  layout,
   projects,
   mode,
 }: {
-  stageVh: number;             // viewportHeight - headerHeight
-  headerOffset: number;        // px
-  treeHeight: number;
-  containerHeight: number;
-  items: Record<string, { left: string; top: number; width: string }>;
-  note: { left: string; top: number; width: string };
+  headerOffset: number;                   // header height (px)
+  stageVh: number;                        // viewportHeight - headerOffset
+  treeHeight: number;                     // height for the tree + left rail
+  layout: {
+    containerHeight: number;
+    items: Record<string, { left: string; top: number; width: string }>;
+    note: { left: string; top: number; width: string };
+  };
   projects: ReadonlyArray<Project>;
   mode: "md" | "lg";
 }) {
-  // Distance to scroll before locking so the tree is centered
+  // Lead-in until the PACE tree is centered in the stage
   const LEAD_IN = Math.max(0, Math.round((stageVh - treeHeight) / 2));
 
-  // Cards appear from the bottom after lock begins
+  // Collage travel
   const START_FROM_BOTTOM = Math.round(stageVh * 0.9);
-  const TRAVEL_CORE = Math.max(0, containerHeight - stageVh);
+  const TRAVEL_CORE = Math.max(0, layout.containerHeight - stageVh);
   const EXIT_TAIL = 140;
 
-  // Lock range = true motion path
   const TOTAL_PATH = START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL;
-
-  // Sentinel spans: lead-in (free scroll) + locked motion
   const SENTINEL_HEIGHT = Math.max(LEAD_IN + TOTAL_PATH, stageVh + 1);
 
   const sentinelRef = React.useRef<HTMLDivElement | null>(null);
@@ -487,7 +483,7 @@ function CollageScene({
     offset: ["start start", "end start"],
   });
 
-  // Keep collage still during lead-in, then animate across the locked span
+  // Animation mapping (hold still during lead-in; then sweep upward)
   const startFrac = LEAD_IN / SENTINEL_HEIGHT || 0;
   const y = useTransform(scrollYProgress, [0, startFrac, 1], [
     START_FROM_BOTTOM,
@@ -495,38 +491,32 @@ function CollageScene({
     -(TRAVEL_CORE + EXIT_TAIL),
   ]);
 
-  // Edge fades for cards only (tree stays fully visible)
   const TOP_FADE = 180;
   const BOTTOM_FADE = 110;
 
-  // ---------- Fixed-overlay lock for the whole section width under header ----------
-  const [lockActive, setLockActive] = React.useState(false);
-  React.useEffect(() => {
-    const unsub = scrollYProgress.on("change", (v) => {
-      setLockActive(v > startFrac && v < 0.999);
-    });
-    return () => unsub();
-  }, [scrollYProgress, startFrac]);
-
   return (
     <>
-      {/* Scroll driver (controls the timing and lock) */}
-      <div ref={sentinelRef} style={{ height: SENTINEL_HEIGHT }} className="relative">
-        {/* Free-scroll lead-in so the tree is fully visible BEFORE lock */}
+      {/* The sentinel *creates* the scrollable span for the lock */}
+      <div ref={sentinelRef} style={{ height: SENTINEL_HEIGHT }}>
+        {/* Lead-in so the tree reaches center before lock begins */}
         {LEAD_IN > 0 && <div style={{ height: LEAD_IN }} />}
 
-        {/* STAGE: we always render the sticky version (for correct measurements) */}
-        <div className={lockActive ? "invisible" : "visible"}>
-          <div className="sticky top-0 h-screen">
-            {/* Stage region under the header (opaque backdrop blocks other sections) */}
-            <div
-              className="absolute left-0 right-0"
-              style={{ top: headerOffset, height: `calc(100vh - ${headerOffset}px)` }}
-            >
-              <div className="absolute inset-0 bg-[#0d131d] z-[1]" />
+        {/* STICKY stage pinned under the header; covers BOTH columns */}
+        <div className="sticky" style={{ top: headerOffset, height: stageVh }}>
+          {/* Opaque backdrop so nothing bleeds from other sections */}
+          <div className="absolute inset-0 bg-[#0d131d] z-[1]" />
+
+          {/* Grid inside the container: left rail + right collage */}
+          <div className="relative z-[2] md:grid md:grid-cols-[64px,1fr] md:gap-6 h-full">
+            {/* Left rail (length equals tree height) */}
+            <div className="flex">
+              <LeftRail height={treeHeight} />
+            </div>
+
+            {/* Right side: PACE tree + masked collage */}
+            <div className="relative">
               <PACEBackground />
 
-              {/* Collage in front, masked at edges only */}
               <div className="absolute inset-0 z-10 overflow-hidden">
                 <div
                   className="absolute inset-0 pointer-events-none"
@@ -544,13 +534,13 @@ function CollageScene({
                   }}
                 />
                 <motion.div
-                  style={{ y, height: containerHeight, position: "relative" }}
+                  style={{ y, height: layout.containerHeight, position: "relative" }}
                   className="will-change-transform"
                 >
                   {TILE_ORDER.map((title) => {
                     const p = projects.find((x) => x.title === title);
                     if (!p) return null;
-                    const pos = items[title];
+                    const pos = layout.items[title];
                     return (
                       <ProjectTile
                         key={`${mode}-${title}`}
@@ -561,64 +551,19 @@ function CollageScene({
                       />
                     );
                   })}
-                  <BlurbAndNote left={note.left} top={note.top} width={note.width} />
+                  <BlurbAndNote
+                    left={layout.note.left}
+                    top={layout.note.top}
+                    width={layout.note.width}
+                  />
                 </motion.div>
               </div>
             </div>
           </div>
         </div>
-
-        {/* FIXED overlay (active only while locked) — spans full viewport under header */}
-        {lockActive && (
-          <div
-            className="fixed left-0 right-0 z-[50]"
-            style={{ top: headerOffset, height: `calc(100vh - ${headerOffset}px)` }}
-          >
-            <div className="absolute inset-0 bg-[#0d131d] z-[1]" />
-            <PACEBackground />
-
-            <div className="absolute inset-0 z-10 overflow-hidden">
-              <div
-                className="absolute inset-0 pointer-events-none"
-                style={{
-                  WebkitMaskImage: `linear-gradient(to bottom,
-                    transparent 0px,
-                    black ${BOTTOM_FADE}px,
-                    black calc(100% - ${TOP_FADE}px),
-                    transparent 100%)`,
-                  maskImage: `linear-gradient(to bottom,
-                    transparent 0px,
-                    black ${BOTTOM_FADE}px,
-                    black calc(100% - ${TOP_FADE}px),
-                    transparent 100%)`,
-                }}
-              />
-              <motion.div
-                style={{ y, height: containerHeight, position: "relative" }}
-                className="will-change-transform"
-              >
-                {TILE_ORDER.map((title) => {
-                  const p = projects.find((x) => x.title === title);
-                  if (!p) return null;
-                  const pos = items[title];
-                  return (
-                    <ProjectTile
-                      key={`fixed-${mode}-${title}`}
-                      p={p}
-                      left={pos.left}
-                      top={pos.top}
-                      width={pos.width}
-                    />
-                  );
-                })}
-                <BlurbAndNote left={note.left} top={note.top} width={note.width} />
-              </motion.div>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Tiny buffer so the next section sits closer (no long tail) */}
+      {/* Tiny buffer so the next section tucks closer; no long tail */}
       <div style={{ height: 12 }} />
     </>
   );
@@ -637,7 +582,7 @@ export default function ProjectsHUD() {
     return () => window.removeEventListener("resize", onResize);
   }, [vh]);
 
-  // Measure header to keep it visible while the stage locks underneath
+  // Measure header for correct stage offset
   const headerRef = React.useRef<HTMLDivElement>(null);
   const [headerH, setHeaderH] = React.useState(0);
   React.useEffect(() => {
@@ -657,12 +602,12 @@ export default function ProjectsHUD() {
   }, []);
 
   // Usable stage height (viewport minus header)
-  const stageVh = Math.max(200, vh - headerH);
+  const stageVh = Math.max(220, vh - headerH);
 
-  // PACE tree height (must match the rail length)
+  // PACE tree height (controls left rail length)
   const treeHeight = Math.max(520, Math.min(820, Math.round(stageVh * 0.7)));
 
-  // Mobile: simple stack (unchanged)
+  // Mobile: unchanged simple stack
   const mobile = (
     <div className="md:hidden space-y-10">
       {TILE_ORDER.map((title) => {
@@ -721,50 +666,35 @@ export default function ProjectsHUD() {
       className="relative w-full pt-20 md:pt-28 pb-0 scroll-mt-24 md:scroll-mt-28 bg-[#0d131d]"
     >
       <div className="mx-auto max-w-7xl px-6">
-        {/* Header (measured for offset) */}
+        {/* Header (measured for sticky offset) */}
         <ProjectsHeader headerRef={headerRef} />
 
-        {/* Two-column layout on md+: left rail + right content; mobile shows content full-width */}
-        <div className="md:grid md:grid-cols-[64px,1fr] md:gap-6">
-          {/* Left vertical scroller — height equals the PACE tree height */}
-          <LeftRail height={treeHeight} />
+        {/* Mobile content */}
+        <div className="md:hidden">{mobile}</div>
 
-          {/* Right column */}
-          <div>
-            {/* Mobile stacked */}
-            {mobile}
+        {/* Desktop/tablet: the entire stage below locks under the header */}
+        <div className="hidden md:block">
+          {/* md scene */}
+          <LockedProjectsStage
+            headerOffset={headerH}
+            stageVh={stageVh}
+            treeHeight={treeHeight}
+            layout={md}
+            projects={projects}
+            mode="md"
+          />
 
-            {/* md: locked collage scene */}
-            <div className="relative hidden md:block lg:hidden">
-              <CollageScene
-                stageVh={stageVh}
-                headerOffset={headerH}
-                treeHeight={treeHeight}
-                containerHeight={md.containerHeight}
-                items={md.items}
-                note={md.note}
-                projects={projects}
-                mode="md"
-              />
-            </div>
-
-            {/* lg: locked collage scene */}
-            <div className="relative hidden lg:block">
-              <CollageScene
-                stageVh={stageVh}
-                headerOffset={headerH}
-                treeHeight={treeHeight}
-                containerHeight={lg.containerHeight}
-                items={lg.items}
-                note={lg.note}
-                projects={projects}
-                mode="lg"
-              />
-            </div>
-          </div>
+          {/* lg scene */}
+          <LockedProjectsStage
+            headerOffset={headerH}
+            stageVh={stageVh}
+            treeHeight={treeHeight}
+            layout={lg}
+            projects={projects}
+            mode="lg"
+          />
         </div>
       </div>
     </section>
   );
 }
-
