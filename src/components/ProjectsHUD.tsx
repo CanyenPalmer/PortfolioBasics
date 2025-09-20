@@ -6,7 +6,7 @@ import TransitionLink from "@/components/TransitionLink";
 import { profile } from "@/content/profile";
 import { slugify } from "@/lib/slug";
 import { Oswald, Plus_Jakarta_Sans } from "next/font/google";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform, useMotionValueEvent } from "framer-motion";
 
 const oswald = Oswald({ subsets: ["latin"], weight: ["400", "500", "700"] });
 const plusJakarta = Plus_Jakarta_Sans({
@@ -236,7 +236,7 @@ function BlurbAndNote({
   );
 }
 
-/** Title block — now confined to the RIGHT column so it never overlaps the rail/tree */
+/** Title block — measured so the tree ALWAYS begins below it (no overlap) */
 function StageHeader({ onMeasured }: { onMeasured: (h: number) => void }) {
   const ref = React.useRef<HTMLDivElement>(null);
   React.useEffect(() => {
@@ -253,7 +253,7 @@ function StageHeader({ onMeasured }: { onMeasured: (h: number) => void }) {
   }, [onMeasured]);
 
   return (
-    <div ref={ref} className="px-0 md:px-0">
+    <div ref={ref}>
       <div className={`${oswald.className} leading-none tracking-tight`}>
         <div className="inline-block">
           <div className="text-xl md:text-2xl font-medium text-white/90">Palmer</div>
@@ -270,10 +270,16 @@ function StageHeader({ onMeasured }: { onMeasured: (h: number) => void }) {
   );
 }
 
-/** PACE storyboard (kept entirely **below** the title area, centered within remaining space) */
-function PACEBackground({ topOffset, availableHeight }: { topOffset: number; availableHeight: number }) {
+/** PACE storyboard */
+function PACEBackground({
+  topOffset,
+  height,
+}: {
+  topOffset: number;
+  height: number;
+}) {
   return (
-    <div className="pointer-events-none absolute inset-x-0 z-[5]" style={{ top: topOffset, height: availableHeight }}>
+    <div className="pointer-events-none absolute inset-x-0 z-[5]" style={{ top: topOffset, height }}>
       <div className="relative h-full w-full">
         <div className="absolute left-6 top-2 bottom-2 w-px bg-white/10" />
         <NodeWithBranches
@@ -340,7 +346,7 @@ function NodeWithBranches({
   );
 }
 
-/** LEFT RAIL — sized & positioned to the PACE area so it never collides with the title */
+/** LEFT RAIL — length & vertical position match the PACE area exactly */
 function LeftRail({ height, top }: { height: number; top: number }) {
   const [paused, setPaused] = React.useState(false);
   const TOP_FADE = 250;
@@ -391,40 +397,38 @@ function LeftRail({ height, top }: { height: number; top: number }) {
   }, [paused, rowH]);
 
   return (
-    <div className="hidden md:block h-full">
-      <div className="sticky top-28">
-        <div
-          className="relative w-16 overflow-hidden"
-          style={{
-            height: `${height}px`,
-            marginTop: top, // push the rail down to start where the PACE area begins
-            WebkitMaskImage: `linear-gradient(to bottom,
-              transparent 0px,
-              black ${TOP_FADE}px,
-              black calc(100% - ${BOTTOM_FADE}px),
-              transparent 100%)`,
-            maskImage: `linear-gradient(to bottom,
-              transparent 0px,
-              black ${TOP_FADE}px,
-              black calc(100% - ${BOTTOM_FADE}px),
-              transparent 100%)`,
-          }}
-          onMouseEnter={() => setPaused(true)}
-          onMouseLeave={() => setPaused(false)}
+    <div className="hidden md:block">
+      <div
+        className="relative w-16 overflow-hidden"
+        style={{
+          height: `${height}px`,
+          marginTop: top,
+          WebkitMaskImage: `linear-gradient(to bottom,
+            transparent 0px,
+            black ${TOP_FADE}px,
+            black calc(100% - ${BOTTOM_FADE}px),
+            transparent 100%)`,
+          maskImage: `linear-gradient(to bottom,
+            transparent 0px,
+            black ${TOP_FADE}px,
+            black calc(100% - ${BOTTOM_FADE}px),
+            transparent 100%)`,
+        }}
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
+      >
+        {/* hidden measurer */}
+        <span
+          ref={measureRef}
+          className={`${plusJakarta.className} text-[11px] tracking-[0.18em] absolute opacity-0 pointer-events-none whitespace-nowrap`}
         >
-          {/* hidden measurer */}
-          <span
-            ref={measureRef}
-            className={`${plusJakarta.className} text-[11px] tracking-[0.18em] absolute opacity-0 pointer-events-none whitespace-nowrap`}
-          >
-            Scroll to Explore
-          </span>
+          Scroll to Explore
+        </span>
 
-          {/* moving column */}
-          <div className="absolute inset-0">
-            <div ref={innerRef} className="will-change-transform">
-              <RailColumn rows={rows} rowH={rowH || 40} />
-            </div>
+        {/* moving column */}
+        <div className="absolute inset-0">
+          <div ref={innerRef} className="will-change-transform">
+            <RailColumn rows={rows} rowH={rowH || 40} />
           </div>
         </div>
       </div>
@@ -456,44 +460,43 @@ function RailColumn({ rows, rowH }: { rows: number; rowH: number }) {
   );
 }
 
-/* -------------------- Sticky “fake-locked” stage -------------------- */
-function StickyStage({
+/* -------------------- FIXED-STAGE IMPLEMENTATION -------------------- */
+/**
+ * We render a tall invisible sentinel that drives progress (0→1).
+ * While the sentinel is on screen, we display a FIXED overlay stage (inset-0)
+ * that contains the Title, PACE tree, Left Rail, and the Collage track.
+ * This guarantees the "locked" feel across browsers/containers.
+ */
+function FixedStage({
   vh,
-  layout,
   projects,
-  className,
+  layout,
 }: {
   vh: number;
+  projects: ReadonlyArray<Project>;
   layout: {
     containerHeight: number;
     items: Record<string, { left: string; top: number; width: string }>;
     note: { left: string; top: number; width: string };
   };
-  projects: ReadonlyArray<Project>;
-  className: string; // breakpoint visibility
 }) {
-  // Stage height = viewport (feels fixed)
-  const stageVh = Math.max(620, vh);
-
-  // Measure RIGHT-column header height so we can keep PACE below it
   const [headerH, setHeaderH] = React.useState(0);
 
-  // Remaining space (PACE + collage live here visually)
-  const available = Math.max(360, stageVh - headerH - 12);
-  const treeHeight = Math.max(520, Math.min(820, Math.round(available * 0.75)));
+  // Visible stage height
+  const stageH = Math.max(640, vh);
+  // Tree height + placement
+  const paceTop = headerH + 12;
+  const windowH = Math.max(360, stageH - paceTop);
+  const treeH = Math.max(520, Math.min(820, Math.round(windowH * 0.75)));
 
   // Timeline distances
-  const LEAD_IN = Math.max(220, Math.round(available * 0.22));     // show tree before cards
-  const START_FROM_BOTTOM = Math.round(available * 0.95);          // start nearly off-screen
-  const TRAVEL_CORE = Math.max(0, layout.containerHeight - available);
-  const EXIT_TAIL = Math.max(180, Math.round(available * 0.28));   // smooth release
+  const LEAD_IN = Math.max(220, Math.round(windowH * 0.22));
+  const START_FROM_BOTTOM = Math.round(windowH * 0.95);
+  const TRAVEL_CORE = Math.max(0, layout.containerHeight - windowH);
+  const EXIT_TAIL = Math.max(180, Math.round(windowH * 0.28));
 
-  // Tall sentinel drives the animation while the stage appears fixed
-  // Also add a guard to ensure long enough on tall displays
-  const SENTINEL_HEIGHT = Math.max(
-    LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL,
-    Math.round(stageVh * 2.4)
-  );
+  // Sentinel height ensures full animation travel + buffer
+  const SENTINEL = Math.max(LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL, Math.round(stageH * 2.6));
 
   const sentinelRef = React.useRef<HTMLDivElement | null>(null);
   const { scrollYProgress } = useScroll({
@@ -501,105 +504,111 @@ function StickyStage({
     offset: ["start start", "end start"],
   });
 
-  // Hold during lead-in, then move the collage upward through the visible window
-  const startFrac = LEAD_IN / SENTINEL_HEIGHT || 0;
-  const y = useTransform(scrollYProgress, [0, startFrac, 1], [
+  // Collage Y mapping
+  const startFrac = LEAD_IN / SENTINEL || 0.0001;
+  const collageY = useTransform(scrollYProgress, [0, startFrac, 1], [
     START_FROM_BOTTOM,
     START_FROM_BOTTOM,
     -TRAVEL_CORE,
   ]);
 
-  // Fade vignette at top/bottom of the visible window
-  const TOP_FADE = 180;
-  const BOTTOM_FADE = 110;
-
-  // Rail is aligned with the PACE area: it begins where the PACE starts
-  const paceTopOffset = headerH + 8; // small breathing room below title
+  // Show the fixed overlay only while we're within the sentinel range
+  const [active, setActive] = React.useState(false);
+  useMotionValueEvent(scrollYProgress, "change", (v) => {
+    setActive(v > 0 && v < 1);
+  });
 
   return (
-    <div className={className}>
-      {/* Scroll track */}
-      <div ref={sentinelRef} style={{ height: SENTINEL_HEIGHT }}>
-        {/* Sticky stage that *looks fixed* while the sentinel scrolls */}
-        <div className="sticky top-0" style={{ height: stageVh }}>
-          <div className="absolute inset-0 bg-[#0d131d]" />
+    <>
+      {/* Scroll driver */}
+      <div ref={sentinelRef} style={{ height: SENTINEL }} />
 
-          {/* Full stage content */}
-          <div className="relative z-[2] h-full">
-            {/* Two-column layout: left rail + right content (title is in the RIGHT column only) */}
-            <div className="absolute inset-0 md:grid md:grid-cols-[64px,1fr] md:gap-6">
-              {/* Left rail, pushed down so it starts where the PACE region begins */}
-              <div className="hidden md:block">
-                <LeftRail height={treeHeight} top={paceTopOffset} />
+      {/* FIXED overlay — appears "locked" while sentinel is in view */}
+      <div
+        className={[
+          "fixed inset-0 z-[60]",
+          active ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
+          "transition-opacity duration-200",
+        ].join(" ")}
+        aria-hidden={!active}
+      >
+        <div className="absolute inset-0 bg-[#0d131d]" />
+
+        {/* Centered content column */}
+        <div className="relative h-full mx-auto max-w-7xl px-6">
+          {/* 2-col layout: rail + right content, but the header lives ONLY in the right column */}
+          <div className="absolute inset-0 md:grid md:grid-cols-[64px,1fr] md:gap-6">
+            {/* Left rail aligned to the PACE area */}
+            <div className="hidden md:block">
+              <LeftRail height={treeH} top={paceTop} />
+            </div>
+
+            {/* Right column */}
+            <div className="relative h-full">
+              {/* Title/subheading (measured) — stays at the top of RIGHT column */}
+              <div className="pt-6 md:pt-8">
+                <StageHeader onMeasured={setHeaderH} />
               </div>
 
-              {/* Right column */}
-              <div className="relative h-full">
-                {/* Title/subheading (measured) */}
-                <div className="px-6 md:px-0 pt-6 md:pt-8">
-                  <StageHeader onMeasured={setHeaderH} />
-                </div>
+              {/* PACE tree — begins strictly below the header (no overlap) */}
+              <PACEBackground topOffset={paceTop} height={treeH} />
 
-                {/* PACE background below the title, vertically centered within remaining space */}
-                <PACEBackground topOffset={paceTopOffset} availableHeight={available} />
-
-                {/* Collage track (scroll-controlled) */}
-                <div className="absolute inset-0 z-10 overflow-hidden" style={{ top: paceTopOffset, height: available }}>
-                  {/* vignette fade for entry/exit */}
-                  <div
-                    className="absolute inset-0 pointer-events-none"
-                    style={{
-                      WebkitMaskImage: `linear-gradient(to bottom,
-                        transparent 0px,
-                        black ${BOTTOM_FADE}px,
-                        black calc(100% - ${TOP_FADE}px),
-                        transparent 100%)`,
-                      maskImage: `linear-gradient(to bottom,
-                        transparent 0px,
-                        black ${BOTTOM_FADE}px,
-                        black calc(100% - ${TOP_FADE}px),
-                        transparent 100%)`,
-                    }}
-                  />
-                  <motion.div
-                    style={{ y, height: layout.containerHeight, position: "relative" }}
-                    className="will-change-transform"
-                  >
-                    {TILE_ORDER.map((title) => {
-                      const p = projects.find((x) => x.title === title);
-                      if (!p) return null;
-                      const pos = layout.items[title];
-                      return (
-                        <ProjectTile
-                          key={`tile-${title}`}
-                          p={p}
-                          left={pos.left}
-                          top={pos.top}
-                          width={pos.width}
-                        />
-                      );
-                    })}
-                    <BlurbAndNote
-                      left={layout.note.left}
-                      top={layout.note.top}
-                      width={layout.note.width}
-                    />
-                  </motion.div>
-                </div>
+              {/* Collage window (scroll-controlled) */}
+              <div
+                className="absolute inset-x-0 z-10 overflow-hidden"
+                style={{ top: paceTop, height: windowH }}
+              >
+                {/* vignette mask for entry/exit */}
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    WebkitMaskImage: `linear-gradient(to bottom,
+                      transparent 0px,
+                      black 110px,
+                      black calc(100% - 180px),
+                      transparent 100%)`,
+                    maskImage: `linear-gradient(to bottom,
+                      transparent 0px,
+                      black 110px,
+                      black calc(100% - 180px),
+                      transparent 100%)`,
+                  }}
+                />
+                <motion.div
+                  style={{ y: collageY, height: layout.containerHeight, position: "relative" }}
+                  className="will-change-transform"
+                >
+                  {TILE_ORDER.map((title) => {
+                    const p = projects.find((x) => x.title === title);
+                    if (!p) return null;
+                    const pos = layout.items[title];
+                    return (
+                      <ProjectTile
+                        key={`tile-${title}`}
+                        p={p}
+                        left={pos.left}
+                        top={pos.top}
+                        width={pos.width}
+                      />
+                    );
+                  })}
+                  <BlurbAndNote left={layout.note.left} top={layout.note.top} width={layout.note.width} />
+                </motion.div>
               </div>
             </div>
           </div>
         </div>
-        {/* No extra spacers: sentinel length = exact animation window */}
       </div>
-    </div>
+    </>
   );
 }
+
+/* -------------------- Component entry -------------------- */
 
 export default function ProjectsHUD() {
   const projects = ((profile as any)?.projects ?? []) as ReadonlyArray<Project>;
 
-  // Viewport height for the sticky stage
+  // Viewport height
   const [vh, setVh] = React.useState<number>(
     typeof window === "undefined" ? 800 : window.innerHeight
   );
@@ -611,7 +620,7 @@ export default function ProjectsHUD() {
 
   // Mobile: simple stack (unchanged)
   const mobile = (
-    <div className="md:hidden space-y-10 px-6">
+    <div className="md:hidden space-y-10 px-6 py-10 bg-[#0d131d]">
       {TILE_ORDER.map((title) => {
         const p = projects.find((x) => x.title === title);
         if (!p) return null;
@@ -659,24 +668,13 @@ export default function ProjectsHUD() {
   );
 
   return (
-    <section
-      id="projects"
-      aria-label="Projects"
-      className="relative w-full bg-[#0d131d]"
-    >
-      {/* Mobile content */}
+    <section id="projects" aria-label="Projects" className="relative w-full bg-[#0d131d]">
+      {/* Mobile content only */}
       {mobile}
 
-      {/* Sticky “fake-locked” stage on md+ */}
+      {/* Desktop/tablet: fixed overlay driven by sentinel */}
       <div className="hidden md:block">
-        <div className="mx-auto max-w-7xl px-6">
-          <StickyStage
-            className="block"
-            vh={vh}
-            layout={LAYOUT.lg}
-            projects={projects}
-          />
-        </div>
+        <FixedStage vh={vh} projects={projects} layout={LAYOUT.lg} />
       </div>
     </section>
   );
