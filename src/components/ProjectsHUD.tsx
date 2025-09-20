@@ -349,7 +349,7 @@ export default function ProjectsHUD() {
   const LEAD_IN = 0;
   const START_FROM_BOTTOM = Math.round(windowH * 1.06); // lowered previously for quicker first tile
 
-  // Exit spacing — extended so projects clear the header before Education arrives
+  // Exit spacing — extended in prior step so projects clear the header before Education arrives
   const EXIT_TAIL = Math.max(560, Math.round(windowH * 0.72));
 
   const DRIVER_HEIGHT = LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL + 1;
@@ -357,23 +357,26 @@ export default function ProjectsHUD() {
   // Scroll progress across the driver (for collage)
   const { scrollYProgress } = useScroll({ target: driverRef, offset: ["start start", "end start"] });
 
-  // Start when locked, travel through to the final pose
+  // --- UPDATED: reach, then HOLD at the end before fading ---
+  // Projects finish their travel earlier, then we hold them on screen longer.
   const startFrac = LEAD_IN / DRIVER_HEIGHT || 0.0000001;
-  const rawY = useTransform(scrollYProgress, [0, startFrac, 1], [
-    START_FROM_BOTTOM,
-    START_FROM_BOTTOM,
-    -TRAVEL_CORE,
-  ]);
+  const REACH_FRAC = 0.80;       // when the collage reaches its final Y
+  const HOLD_END_FRAC = 0.985;   // how long we keep it fully visible before fading
+
+  const rawY = useTransform(
+    scrollYProgress,
+    [0, startFrac, REACH_FRAC, HOLD_END_FRAC, 1],
+    [START_FROM_BOTTOM, START_FROM_BOTTOM, -TRAVEL_CORE, -TRAVEL_CORE, -TRAVEL_CORE]
+  );
 
   // Clamp for no overshoot
   const collageY = useTransform(rawY, (v) =>
     Math.max(-TRAVEL_CORE, Math.min(START_FROM_BOTTOM, Math.round(v)))
   );
 
-  // Fade-out near the end of the driver
-  const FADE_START = 0.92;
-  const collageOpacity = useTransform(scrollYProgress, [0, FADE_START, 1], [1, 1, 0]);
-  const chromeOpacity  = useTransform(scrollYProgress, [0, FADE_START + 0.03, 1], [1, 1, 0]);
+  // Fade-out very late, after the hold completes
+  const collageOpacity = useTransform(scrollYProgress, [0, HOLD_END_FRAC, 1], [1, 1, 0]);
+  const chromeOpacity  = useTransform(scrollYProgress, [0, Math.min(1, HOLD_END_FRAC + 0.01), 1], [1, 1, 0]);
 
   // Lock + rail visibility
   const [lockActive, setLockActive] = React.useState(false);
@@ -521,8 +524,7 @@ export default function ProjectsHUD() {
     </div>
   );
 
-  // --- Sidebar: rise from the bottom of the viewport on lock ---
-  // Start with the rail's bottom at the viewport bottom, then slide to its resting position.
+  // Sidebar entrance offset (unchanged from your last request): rise from viewport bottom on lock
   const railIntroOffset = Math.max(0, windowH - (paceTop + treeH));
 
   return (
@@ -540,7 +542,7 @@ export default function ProjectsHUD() {
         {/* Driver: defines lock distance & progress */}
         <div ref={driverRef} style={{ height: DRIVER_HEIGHT }} />
 
-        {/* Neutral buffer for clean handoff — extended */}
+        {/* Neutral buffer for clean handoff (already extended previously) */}
         <div ref={afterDriverRef} style={{ height: 1100 }} />
 
         {/* Overlays (only while locked) */}
