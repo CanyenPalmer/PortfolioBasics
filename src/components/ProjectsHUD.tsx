@@ -376,9 +376,7 @@ export default function ProjectsHUD() {
   const [railVisible, setRailVisible] = React.useState(false);
   const didSnapRef = React.useRef(false);
 
-  useMotionValueEvent(scrollYProgress, "change", (v) => {
-    // no-op but keeps hook alive if you need thresholds later
-  });
+  useMotionValueEvent(scrollYProgress, "change", () => {});
 
   React.useEffect(() => {
     const onScroll = () => {
@@ -410,8 +408,7 @@ export default function ProjectsHUD() {
     };
   }, [lockActive, railVisible]);
 
-  /* ----------- STATIC IN-FLOW CHROME (ALWAYS MOUNTED) ----------- */
-  // Key: keep it in the layout the whole time; hide visually (not in layout) while locked.
+  /* ----------- STATIC IN-FLOW CHROME (ALWAYS MOUNTED, BEFORE DRIVER) ----------- */
   const StaticStage = (
     <div
       className="mx-auto max-w-7xl px-6"
@@ -435,7 +432,6 @@ export default function ProjectsHUD() {
   );
 
   /* ----------- LOCKED OVERLAYS ----------- */
-  // CHROME stays fixed during lock
   const ChromeOverlay = lockActive ? (
     <div className="fixed inset-0 z-[70] pointer-events-none">
       <div className="h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
@@ -461,7 +457,6 @@ export default function ProjectsHUD() {
     </div>
   ) : null;
 
-  // Cards move during lock
   const CollageOverlay = lockActive ? (
     <motion.div className="fixed inset-0 z-[75]">
       <div className="h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
@@ -499,6 +494,42 @@ export default function ProjectsHUD() {
       </div>
     </motion.div>
   ) : null;
+
+  /* ----------- POST-LOCK CHROME (ALWAYS MOUNTED, AFTER DRIVER) ----------- */
+  // Stays hidden during lock, becomes visible exactly when lock ends, so content
+  // continues in-flow with the user's scroll instead of "disappearing".
+  const PostLockChrome = (
+    <div
+      className="mx-auto max-w-7xl px-6"
+      style={{
+        minHeight: stageH,
+        visibility: lockActive ? "hidden" : "visible",
+        pointerEvents: lockActive ? "none" as const : "auto",
+      }}
+    >
+      <div className="h-full md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
+        <div className="hidden md:block" aria-hidden />
+        <div className="relative h-full">
+          <div className="pt-6 md:pt-8">
+            <div className={`${oswald.className} leading-none tracking-tight`}>
+              <div className="inline-block">
+                <div className="text-xl md:text-2xl font-medium text-white/90">Palmer</div>
+                <div className="h-[2px] bg-white/25 mt-1" />
+              </div>
+              <h2 className="mt-3 uppercase font-bold text-white/90 tracking-tight text-[12vw] md:text-[9vw] lg:text-[8vw]">
+                Projects
+              </h2>
+            </div>
+            <div className={`${plusJakarta.className} mt-3 text-sm md:text-base text-white/70`}>
+              Select a project to view the full details
+            </div>
+          </div>
+          <PACEBackground topOffset={paceTop} height={treeH} />
+          <div className="absolute inset-x-0" style={{ top: paceTop, height: windowH }} />
+        </div>
+      </div>
+    </div>
+  );
 
   // Mobile (unchanged)
   const mobile = (
@@ -544,13 +575,16 @@ export default function ProjectsHUD() {
 
       {/* Desktop / Tablet */}
       <div className="hidden md:block">
-        {/* In-flow static frame: ALWAYS mounted, hidden visually during lock */}
+        {/* In-flow static frame BEFORE driver (kept in layout; hidden during lock) */}
         <div ref={staticStageRef} className="relative">
           {StaticStage}
         </div>
 
-        {/* Driver (card animation distance = lock distance) */}
+        {/* Driver (card animation distance) */}
         <div ref={driverRef} style={{ height: DRIVER_HEIGHT }} />
+
+        {/* In-flow frame AFTER driver (kept in layout; visible after unlock) */}
+        {PostLockChrome}
 
         {/* Neutral buffer to separate next section */}
         <div ref={afterDriverRef} style={{ height: 1100 }} />
