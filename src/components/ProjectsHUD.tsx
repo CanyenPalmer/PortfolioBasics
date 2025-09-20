@@ -461,12 +461,6 @@ function RailColumn({ rows, rowH }: { rows: number; rowH: number }) {
 }
 
 /* -------------------- FIXED-STAGE IMPLEMENTATION -------------------- */
-/**
- * We render a tall invisible sentinel that drives progress (0→1).
- * While the sentinel is on screen, we display a FIXED overlay stage (inset-0)
- * that contains the Title, PACE tree, Left Rail, and the Collage track.
- * This guarantees the "locked" feel across browsers/containers.
- */
 function FixedStage({
   vh,
   projects,
@@ -484,8 +478,12 @@ function FixedStage({
 
   // Visible stage height
   const stageH = Math.max(640, vh);
+
+  // --- Only change: add a small safety gap so the PACE tree never sits under the subheading ---
+  const EXTRA_PACE_GAP = 28; // px
+
   // Tree height + placement
-  const paceTop = headerH + 12;
+  const paceTop = headerH + EXTRA_PACE_GAP;
   const windowH = Math.max(360, stageH - paceTop);
   const treeH = Math.max(520, Math.min(820, Math.round(windowH * 0.75)));
 
@@ -496,7 +494,10 @@ function FixedStage({
   const EXIT_TAIL = Math.max(180, Math.round(windowH * 0.28));
 
   // Sentinel height ensures full animation travel + buffer
-  const SENTINEL = Math.max(LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL, Math.round(stageH * 2.6));
+  const SENTINEL = Math.max(
+    LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL,
+    Math.round(stageH * 2.6)
+  );
 
   const sentinelRef = React.useRef<HTMLDivElement | null>(null);
   const { scrollYProgress } = useScroll({
@@ -536,7 +537,7 @@ function FixedStage({
 
         {/* Centered content column */}
         <div className="relative h-full mx-auto max-w-7xl px-6">
-          {/* 2-col layout: rail + right content, but the header lives ONLY in the right column */}
+          {/* 2-col layout: rail + right content */}
           <div className="absolute inset-0 md:grid md:grid-cols-[64px,1fr] md:gap-6">
             {/* Left rail aligned to the PACE area */}
             <div className="hidden md:block">
@@ -545,12 +546,12 @@ function FixedStage({
 
             {/* Right column */}
             <div className="relative h-full">
-              {/* Title/subheading (measured) — stays at the top of RIGHT column */}
+              {/* Title/subheading (measured) */}
               <div className="pt-6 md:pt-8">
                 <StageHeader onMeasured={setHeaderH} />
               </div>
 
-              {/* PACE tree — begins strictly below the header (no overlap) */}
+              {/* PACE tree — strictly below the header now */}
               <PACEBackground topOffset={paceTop} height={treeH} />
 
               {/* Collage window (scroll-controlled) */}
