@@ -345,15 +345,15 @@ export default function ProjectsHUD() {
   // Travel math
   const TRAVEL_CORE = Math.max(0, LAYOUT.lg.containerHeight - windowH);
 
-  // Starts immediately at lock and appears a bit sooner
+  // Starts immediately and appears a bit sooner
   const LEAD_IN = 0;
-  const START_FROM_BOTTOM = Math.round(windowH * 1.06); // quicker first tile
+  const START_FROM_BOTTOM = Math.round(windowH * 1.06);
 
-  // Extra travel so cards fully clear, with time to spare
+  // Extended travel to fully clear
   const OUT_EXTRA = Math.max(420, Math.round(windowH * 0.9));
   const END_Y = -TRAVEL_CORE - OUT_EXTRA;
 
-  // Extend driver so speed feels the same
+  // Keep speed constant by extending driver
   const EXIT_TAIL_BASE = Math.max(560, Math.round(windowH * 0.72));
   const EXIT_TAIL = EXIT_TAIL_BASE + OUT_EXTRA + 160;
 
@@ -369,18 +369,16 @@ export default function ProjectsHUD() {
     START_FROM_BOTTOM,
     END_Y,
   ]);
+  const collageY = useTransform(rawY, (v) => Math.max(END_Y, Math.min(START_FROM_BOTTOM, Math.round(v))));
 
-  // Clamp for no overshoot
-  const collageY = useTransform(rawY, (v) =>
-    Math.max(END_Y, Math.min(START_FROM_BOTTOM, Math.round(v)))
-  );
-
-  // Keep cards visible almost all the way; fade at the last breath
+  // Fade timing (cards just before end; chrome after)
   const collageOpacity = useTransform(scrollYProgress, [0, 0.9999, 1], [1, 1, 0]);
-  // Chrome fades just after cards to keep header visible as cards pass
   const chromeOpacity  = useTransform(scrollYProgress, [0, 0.99993, 1], [1, 1, 0]);
 
-  // Lock + rail visibility
+  // Cross-fade back to the in-flow static frame to avoid any jump
+  const staticOpacity  = useTransform(scrollYProgress, [0, 0.99993, 1], [0, 0, 1]);
+
+  // Lock + rail visibility (unchanged)
   const [lockActive, setLockActive] = React.useState(false);
   const [railVisible, setRailVisible] = React.useState(false);
 
@@ -405,15 +403,9 @@ export default function ProjectsHUD() {
     };
   }, [lockActive, railVisible]);
 
-  // PRE-LOCK static frame (kept in flow; hidden during lock)
+  // PRE-LOCK frame (kept in flow; now cross-faded instead of visibility toggle)
   const StaticStage = (
-    <div
-      className="mx-auto max-w-7xl px-6"
-      style={{
-        height: stageH,
-        visibility: lockActive ? ("hidden" as const) : ("visible" as const),
-      }}
-    >
+    <div className="mx-auto max-w-7xl px-6" style={{ height: stageH }}>
       <div className="h-full md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
         <div className="hidden md:block" aria-hidden />
         <div className="relative h-full">
@@ -526,7 +518,7 @@ export default function ProjectsHUD() {
     </div>
   );
 
-  // Sidebar entrance (kept)
+  // Sidebar entrance: rise from the bottom of the viewport on lock (kept)
   const railIntroOffset = Math.max(0, windowH - (paceTop + treeH));
 
   return (
@@ -536,9 +528,11 @@ export default function ProjectsHUD() {
 
       {/* Desktop / Tablet */}
       <div className="hidden md:block">
-        {/* Pre-lock frame (kept; hidden during lock) */}
+        {/* Pre-lock frame (in flow); cross-fade it in at unlock */}
         <div ref={staticStageRef} className="relative">
-          {StaticStage}
+          <motion.div style={{ opacity: staticOpacity }}>
+            {StaticStage}
+          </motion.div>
         </div>
 
         {/* Driver: defines lock distance & progress */}
