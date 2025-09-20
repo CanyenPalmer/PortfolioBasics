@@ -381,6 +381,10 @@ export default function ProjectsHUD() {
   const [railRevealY, setRailRevealY] = React.useState(0);
   const [railMaskPct, setRailMaskPct] = React.useState(0);
 
+  // --- NEW: robust fast-scroll snap helpers (tiny change) ---
+  const prevYRef = React.useRef(0);
+  const snappingRef = React.useRef(false);
+
   const didSnapRef = React.useRef(false);
 
   useMotionValueEvent(scrollYProgress, "change", () => {});
@@ -391,18 +395,33 @@ export default function ProjectsHUD() {
   React.useEffect(() => {
     const onScroll = () => {
       const y = window.scrollY || window.pageYOffset || 0;
+      const prevY = prevYRef.current;
       const viewportH = typeof window !== "undefined" ? window.innerHeight : 800;
       const preTop = Math.round(docTop(preStageRef.current!)); // section start (top of Projects)
       const lockStart = preTop;                                // lock begins when section top reaches viewport top
       const lockEnd = Math.round(docTop(lockEndRef.current!)); // unlock point
 
-      // Prevent tiny rebound jiggle exactly at lock
-      if (!didSnapRef.current && y > lockStart && y < lockStart + 12) {
-        didSnapRef.current = true;
-        window.scrollTo({ top: lockStart, behavior: "auto" });
-      }
-      if (y < lockStart - 24 || y > lockEnd + 24) {
-        didSnapRef.current = false;
+      // ---- tiny, focused fix: robust snap even on fast scroll overshoot ----
+      // If user crosses the lock start between frames (prevY < lockStart && y >> lockStart),
+      // force a single-frame snap to lockStart so the lock feels solid.
+      if (!snappingRef.current) {
+        const passedDownIntoLock = prevY < lockStart && y >= lockStart + 12 && y < lockEnd + viewportH; // overshot but still within section
+        const nearLockEdge = y > lockStart && y < lockStart + 12; // existing micro-jiggle case
+        if (passedDownIntoLock || (!didSnapRef.current && nearLockEdge)) {
+          snappingRef.current = true;
+          didSnapRef.current = true;
+          requestAnimationFrame(() => {
+            window.scrollTo({ top: lockStart, behavior: "auto" });
+            // release the guard on next frame
+            requestAnimationFrame(() => {
+              snappingRef.current = false;
+            });
+          });
+        }
+        // reset micro-jiggle guard when far from the lock zone
+        if (y < lockStart - 24 || y > lockEnd + 24) {
+          didSnapRef.current = false;
+        }
       }
 
       const inLock = y >= lockStart && y < lockEnd;
@@ -444,6 +463,9 @@ export default function ProjectsHUD() {
 
       // Move the sidebar up at the same rate as the section after unlock
       setPostDelta(afterLock ? Math.max(0, y - lockEnd) : 0);
+
+      // store for next frame
+      prevYRef.current = y;
     };
 
     onScroll();
