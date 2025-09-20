@@ -88,7 +88,7 @@ function docTop(el: HTMLElement | null) {
 /* -------------------- bits -------------------- */
 function ProjectTile({ p, left, top, width }: { p: Project; left: string; top: number; width: string }) {
   const img = IMAGE_BY_TITLE[p.title] ?? { src: "/images/portfolio-basics-avatar.png", alt: `${p.title} preview` };
-  the const slug = slugify(p.title);
+  const slug = slugify(p.title); // <-- fixed: removed stray "the"
   const aspect = ASPECT[p.title] ?? "3 / 4";
 
   return (
@@ -370,7 +370,7 @@ export default function ProjectsHUD() {
       const inLock = y >= sTop && y < dEnd;
       if (inLock !== lockActive) setLockActive(inLock);
 
-      // rail only while in/near the section, but ends exactly at unlock to avoid drag-on
+      // rail only while in/near the section, but ends exactly at unlock
       const railOn = y >= sTop - 40 && y < dEnd;
       if (railOn !== railVisible) setRailVisible(railOn);
     };
