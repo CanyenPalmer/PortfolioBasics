@@ -56,7 +56,6 @@ const KEYWORD_BY_TITLE: Record<string, string> = {
   "PortfolioBasics (This Site)": "frontend",
 };
 
-// Aspect ratios to keep tiles predictable
 const ASPECT: Record<string, string> = {
   "CGM Patient Analytics": "3 / 4",
   "MyCaddy — Physics Shot Calculator": "3 / 4",
@@ -66,7 +65,7 @@ const ASPECT: Record<string, string> = {
   "Python 101": "2 / 3",
 };
 
-/** Collage layout (your original positions) */
+/** Collage layout (original positions) */
 const LAYOUT = {
   md: {
     containerHeight: 1950,
@@ -236,7 +235,7 @@ function BlurbAndNote({
   );
 }
 
-/** PACE storyboard behind collage (kept perfectly centered in the stage) */
+/** PACE storyboard behind collage (centered vertically in the stage) */
 function PACEBackground() {
   return (
     <div className="pointer-events-none absolute inset-0 z-[5]">
@@ -446,7 +445,7 @@ function RailColumn({ rows, rowH }: { rows: number; rowH: number }) {
   );
 }
 
-/* -------------------- LOCKED SCENE (single sticky stage — no overlay swap) -------------------- */
+/* -------------------- LOCKED SCENE (single sticky stage) -------------------- */
 function LockedScene({
   headerOffset,
   stageVh,
@@ -468,17 +467,21 @@ function LockedScene({
   mode: "md" | "lg";
   className: string;
 }) {
-  // Center tree under the header before the lock actually starts
+  // Center the tree beneath the header before the lock begins
   const LEAD_IN = Math.max(0, Math.round((stageVh - treeHeight) / 2));
 
-  // Collage motion distances
+  // Collage travel
   const START_FROM_BOTTOM = Math.round(stageVh * 0.9);
   const TRAVEL_CORE = Math.max(0, layout.containerHeight - stageVh);
 
-  // Extra trailing space to prevent any "snap" into the next section
-  const EXIT_TAIL = 260;
+  // Small trailing buffer to avoid snap into next section (kept INSIDE sentinel only)
+  const EXIT_TAIL = 100;
 
-  const SENTINEL_HEIGHT = LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL;
+  // Sentinel defines the entire locked scroll span
+  const SENTINEL_HEIGHT = Math.max(
+    stageVh + 1, // guarantee lock time
+    LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL
+  );
 
   const sentinelRef = React.useRef<HTMLDivElement | null>(null);
   const { scrollYProgress } = useScroll({
@@ -488,11 +491,11 @@ function LockedScene({
 
   const startFrac = LEAD_IN / SENTINEL_HEIGHT || 0;
 
-  // Collage y: hold steady during the lead-in, then move through the stage
+  // Collage y: hold during lead-in, then sweep upward through the stage
   const y = useTransform(scrollYProgress, [0, startFrac, 1], [
     START_FROM_BOTTOM,
     START_FROM_BOTTOM,
-    -(TRAVEL_CORE),
+    -TRAVEL_CORE,
   ]);
 
   const TOP_FADE = 180;
@@ -501,10 +504,10 @@ function LockedScene({
   return (
     <div className={className}>
       <div ref={sentinelRef} style={{ height: SENTINEL_HEIGHT }}>
-        {/* Lead-in to place the tree perfectly centered under the header */}
+        {/* Lead-in so the tree is centered when the stage first sticks */}
         {LEAD_IN > 0 && <div style={{ height: LEAD_IN }} />}
 
-        {/* One sticky stage that never swaps (prevents any visual shift) */}
+        {/* One sticky stage (no overlay swap) */}
         <div className="sticky" style={{ top: headerOffset, height: stageVh }}>
           <div className="absolute inset-0 bg-[#0d131d] z-[1]" />
           <div className="relative z-[2] md:grid md:grid-cols-[64px,1fr] md:gap-6 h-full">
@@ -559,8 +562,7 @@ function LockedScene({
           </div>
         </div>
 
-        {/* Trailing space smooths the hand-off into the next section */}
-        <div style={{ height: EXIT_TAIL }} />
+        {/* The EXIT_TAIL time lives inside the sentinel; no extra bottom spacers. */}
       </div>
     </div>
   );
@@ -604,7 +606,7 @@ export default function ProjectsHUD() {
   // PACE tree height (also used by the left rail)
   const treeHeight = Math.max(520, Math.min(820, Math.round(stageVh * 0.7)));
 
-  // Mobile: unchanged simple stack
+  // Mobile: simple stack
   const mobile = (
     <div className="md:hidden space-y-10">
       {TILE_ORDER.map((title) => {
@@ -666,7 +668,7 @@ export default function ProjectsHUD() {
         {/* Mobile content */}
         {mobile}
 
-        {/* One scene at a time (no duplication across breakpoints) */}
+        {/* One scene per breakpoint */}
         <LockedScene
           className="hidden md:block lg:hidden"
           headerOffset={headerH}
