@@ -56,7 +56,7 @@ const KEYWORD_BY_TITLE: Record<string, string> = {
   "PortfolioBasics (This Site)": "frontend",
 };
 
-// Predictable heights via aspect-ratio wrappers (prevents overlaps)
+// Aspect ratios to keep tiles predictable
 const ASPECT: Record<string, string> = {
   "CGM Patient Analytics": "3 / 4",
   "MyCaddy — Physics Shot Calculator": "3 / 4",
@@ -236,7 +236,7 @@ function BlurbAndNote({
   );
 }
 
-/** PACE storyboard (centered vertically; behind collage) */
+/** PACE storyboard behind collage (kept perfectly centered in the stage) */
 function PACEBackground() {
   return (
     <div className="pointer-events-none absolute inset-0 z-[5]">
@@ -311,10 +311,8 @@ function NodeWithBranches({
   );
 }
 
-/** Header block: measured to offset the locked stage */
-function ProjectsHeader(
-  { headerRef }: { headerRef: React.RefObject<HTMLDivElement> }
-) {
+/** Header (measured to pin the stage right beneath it) */
+function ProjectsHeader({ headerRef }: { headerRef: React.RefObject<HTMLDivElement> }) {
   return (
     <div ref={headerRef} className="mb-8 md:mb-10">
       <div className={`${oswald.className} leading-none tracking-tight`}>
@@ -448,7 +446,7 @@ function RailColumn({ rows, rowH }: { rows: number; rowH: number }) {
   );
 }
 
-/* -------------------- LOCKED SCENE (sticky base + fixed overlay) -------------------- */
+/* -------------------- LOCKED SCENE (single sticky stage — no overlay swap) -------------------- */
 function LockedScene({
   headerOffset,
   stageVh,
@@ -458,9 +456,9 @@ function LockedScene({
   mode,
   className,
 }: {
-  headerOffset: number;                   // px
-  stageVh: number;                        // viewport - header
-  treeHeight: number;                     // px
+  headerOffset: number;
+  stageVh: number;
+  treeHeight: number;
   layout: {
     containerHeight: number;
     items: Record<string, { left: string; top: number; width: string }>;
@@ -468,18 +466,19 @@ function LockedScene({
   };
   projects: ReadonlyArray<Project>;
   mode: "md" | "lg";
-  className: string;                      // breakpoint show/hide classes
+  className: string;
 }) {
-  // Lead-in until tree is centered
+  // Center tree under the header before the lock actually starts
   const LEAD_IN = Math.max(0, Math.round((stageVh - treeHeight) / 2));
-  // Collage travel
+
+  // Collage motion distances
   const START_FROM_BOTTOM = Math.round(stageVh * 0.9);
   const TRAVEL_CORE = Math.max(0, layout.containerHeight - stageVh);
-  const EXIT_TAIL = 140;
-  const TOTAL_PATH = START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL;
 
-  // Sentinel height defines the whole locked scroll span
-  const SENTINEL_HEIGHT = Math.max(LEAD_IN + TOTAL_PATH, stageVh + 1);
+  // Extra trailing space to prevent any "snap" into the next section
+  const EXIT_TAIL = 260;
+
+  const SENTINEL_HEIGHT = LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL;
 
   const sentinelRef = React.useRef<HTMLDivElement | null>(null);
   const { scrollYProgress } = useScroll({
@@ -488,107 +487,81 @@ function LockedScene({
   });
 
   const startFrac = LEAD_IN / SENTINEL_HEIGHT || 0;
+
+  // Collage y: hold steady during the lead-in, then move through the stage
   const y = useTransform(scrollYProgress, [0, startFrac, 1], [
     START_FROM_BOTTOM,
     START_FROM_BOTTOM,
-    -(TRAVEL_CORE + EXIT_TAIL),
+    -(TRAVEL_CORE),
   ]);
-
-  // Turn on overlay only during the locked sweep (avoid any double-render look)
-  const [lockActive, setLockActive] = React.useState(false);
-  React.useEffect(() => {
-    const unsub = scrollYProgress.on("change", (v) => {
-      setLockActive(v > startFrac && v < 0.999);
-    });
-    return () => unsub();
-  }, [scrollYProgress, startFrac]);
 
   const TOP_FADE = 180;
   const BOTTOM_FADE = 110;
 
-  // The actual stage markup (grid = left rail + right collage + PACE)
-  const Stage = (
-    <div className="relative z-[2] md:grid md:grid-cols-[64px,1fr] md:gap-6 h-full">
-      <div className="flex">
-        <LeftRail height={treeHeight} />
-      </div>
-
-      <div className="relative">
-        <PACEBackground />
-        <div className="absolute inset-0 z-10 overflow-hidden">
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              WebkitMaskImage: `linear-gradient(to bottom,
-                transparent 0px,
-                black ${BOTTOM_FADE}px,
-                black calc(100% - ${TOP_FADE}px),
-                transparent 100%)`,
-              maskImage: `linear-gradient(to bottom,
-                transparent 0px,
-                black ${BOTTOM_FADE}px,
-                black calc(100% - ${TOP_FADE}px),
-                transparent 100%)`,
-            }}
-          />
-          <motion.div
-            style={{ y, height: layout.containerHeight, position: "relative" }}
-            className="will-change-transform"
-          >
-            {TILE_ORDER.map((title) => {
-              const p = projects.find((x) => x.title === title);
-              if (!p) return null;
-              const pos = layout.items[title];
-              return (
-                <ProjectTile
-                  key={`${mode}-${title}`}
-                  p={p}
-                  left={pos.left}
-                  top={pos.top}
-                  width={pos.width}
-                />
-              );
-            })}
-            <BlurbAndNote
-              left={layout.note.left}
-              top={layout.note.top}
-              width={layout.note.width}
-            />
-          </motion.div>
-        </div>
-      </div>
-    </div>
-  );
-
   return (
     <div className={className}>
-      {/* SCROLL DRIVER */}
       <div ref={sentinelRef} style={{ height: SENTINEL_HEIGHT }}>
-        {/* Lead-in until centered */}
+        {/* Lead-in to place the tree perfectly centered under the header */}
         {LEAD_IN > 0 && <div style={{ height: LEAD_IN }} />}
 
-        {/* STICKY BASE (hidden while overlay is active) */}
-        <div className={lockActive ? "invisible" : "visible"}>
-          <div className="sticky" style={{ top: headerOffset, height: stageVh }}>
-            <div className="absolute inset-0 bg-[#0d131d] z-[1]" />
-            {Stage}
+        {/* One sticky stage that never swaps (prevents any visual shift) */}
+        <div className="sticky" style={{ top: headerOffset, height: stageVh }}>
+          <div className="absolute inset-0 bg-[#0d131d] z-[1]" />
+          <div className="relative z-[2] md:grid md:grid-cols-[64px,1fr] md:gap-6 h-full">
+            <div className="flex">
+              <LeftRail height={treeHeight} />
+            </div>
+
+            <div className="relative">
+              <PACEBackground />
+              <div className="absolute inset-0 z-10 overflow-hidden">
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    WebkitMaskImage: `linear-gradient(to bottom,
+                      transparent 0px,
+                      black ${BOTTOM_FADE}px,
+                      black calc(100% - ${TOP_FADE}px),
+                      transparent 100%)`,
+                    maskImage: `linear-gradient(to bottom,
+                      transparent 0px,
+                      black ${BOTTOM_FADE}px,
+                      black calc(100% - ${TOP_FADE}px),
+                      transparent 100%)`,
+                  }}
+                />
+                <motion.div
+                  style={{ y, height: layout.containerHeight, position: "relative" }}
+                  className="will-change-transform"
+                >
+                  {TILE_ORDER.map((title) => {
+                    const p = projects.find((x) => x.title === title);
+                    if (!p) return null;
+                    const pos = layout.items[title];
+                    return (
+                      <ProjectTile
+                        key={`${mode}-${title}`}
+                        p={p}
+                        left={pos.left}
+                        top={pos.top}
+                        width={pos.width}
+                      />
+                    );
+                  })}
+                  <BlurbAndNote
+                    left={layout.note.left}
+                    top={layout.note.top}
+                    width={layout.note.width}
+                  />
+                </motion.div>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* FIXED OVERLAY (container-sized) */}
-        {lockActive && (
-          <div
-            className="fixed left-0 right-0 z-[60]"
-            style={{ top: headerOffset, height: stageVh }}
-          >
-            <div className="absolute inset-0 bg-[#0d131d]" />
-            <div className="mx-auto max-w-7xl h-full px-6">{Stage}</div>
-          </div>
-        )}
+        {/* Trailing space smooths the hand-off into the next section */}
+        <div style={{ height: EXIT_TAIL }} />
       </div>
-
-      {/* Tiny buffer so next section tucks closer */}
-      <div style={{ height: 12 }} />
     </div>
   );
 }
@@ -693,7 +666,7 @@ export default function ProjectsHUD() {
         {/* Mobile content */}
         {mobile}
 
-        {/* One scene at a time */}
+        {/* One scene at a time (no duplication across breakpoints) */}
         <LockedScene
           className="hidden md:block lg:hidden"
           headerOffset={headerH}
