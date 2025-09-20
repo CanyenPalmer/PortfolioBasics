@@ -71,7 +71,7 @@ const TILE_ORDER = [
   "Python 101",
 ];
 
-/* -------------------- small utils -------------------- */
+/* -------------------- utils -------------------- */
 function keywordFor(title: string, tech?: string[]) {
   if (KEYWORD_BY_TITLE[title]) return KEYWORD_BY_TITLE[title];
   if (tech?.some((t) => /scikit-learn|xgboost|lightgbm/i.test(t))) return "machine-learning";
@@ -341,7 +341,7 @@ export default function ProjectsHUD() {
   const windowH = Math.max(360, stageH - paceTop);
   const treeH = Math.max(520, Math.min(820, Math.round(windowH * 0.75)));
 
-  // Travel math (unchanged)
+  // Travel math
   const TRAVEL_CORE = Math.max(0, LAYOUT.lg.containerHeight - windowH);
   const LEAD_IN = 16;
   const START_FROM_BOTTOM = Math.round(windowH * 0.92);
@@ -357,13 +357,19 @@ export default function ProjectsHUD() {
     -TRAVEL_CORE,
   ]);
 
-  // Left-rail visibility while we're near the section
+  // Lock window detection — used to hide the intro stage content while locked (prevents duplication)
+  const [lockActive, setLockActive] = React.useState(false);
   const [railVisible, setRailVisible] = React.useState(false);
+
   React.useEffect(() => {
     const onScroll = () => {
       const y = window.scrollY || window.pageYOffset || 0;
       const sTop = Math.round(docTop(staticStageRef.current!));
       const dEnd = Math.round(docTop(afterDriverRef.current!));
+
+      const inLock = y >= sTop && y < dEnd;
+      if (inLock !== lockActive) setLockActive(inLock);
+
       const railOn = y >= sTop - 40 && y < dEnd + 40;
       if (railOn !== railVisible) setRailVisible(railOn);
     };
@@ -374,10 +380,14 @@ export default function ProjectsHUD() {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
     };
-  }, [railVisible]);
+  }, [lockActive, railVisible]);
 
-  // Pre-lock intro frame in normal flow
-  const StaticStage = (
+  // Pre-lock intro (hidden while lock is active to avoid duplication; leaves a spacer to preserve flow)
+  const StaticStage = lockActive ? (
+    <div className="mx-auto max-w-7xl px-6" style={{ height: stageH }}>
+      {/* spacer only during lock */}
+    </div>
+  ) : (
     <div className="mx-auto max-w-7xl px-6" style={{ height: stageH }}>
       <div className="h-full md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
         <div className="hidden md:block" aria-hidden />
@@ -392,7 +402,7 @@ export default function ProjectsHUD() {
     </div>
   );
 
-  // STICKY stage: pinned while scrolling through the driver; releases with final layout intact
+  // STICKY stage: pinned during the driver scroll; releases cleanly
   const StickyStage = (
     <div className="sticky top-0 z-[10]" style={{ height: stageH }}>
       <div className="h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6">
@@ -418,7 +428,6 @@ export default function ProjectsHUD() {
           <PACEBackground topOffset={paceTop} height={treeH} />
 
           <div className="absolute inset-x-0 z-10 overflow-hidden" style={{ top: paceTop, height: windowH }}>
-            {/* Gentle crop while sticky; disappears automatically when sticky leaves viewport */}
             <div
               className="absolute inset-0 pointer-events-none"
               style={{
@@ -485,17 +494,17 @@ export default function ProjectsHUD() {
 
       {/* Desktop / Tablet */}
       <div className="hidden md:block">
-        {/* Pre-lock intro */}
+        {/* Pre-lock intro (hidden while locked to avoid duplication) */}
         <div ref={staticStageRef} className="relative">
           {StaticStage}
         </div>
 
-        {/* Driver: provides scroll distance; sticky stage lives INSIDE here */}
+        {/* Driver: sticky stage lives INSIDE here and provides the lock range */}
         <div ref={driverRef} style={{ height: DRIVER_HEIGHT }}>
           {StickyStage}
         </div>
 
-        {/* Neutral buffer ensures a graceful handoff to the next section (no bleed) */}
+        {/* Neutral buffer to hand off to next section cleanly */}
         <div ref={afterDriverRef} style={{ height: 600 }} />
 
         {/* PERSISTENT LEFT RAIL */}
