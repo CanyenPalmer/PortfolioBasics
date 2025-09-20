@@ -365,6 +365,11 @@ export default function ProjectsHUD() {
     Math.max(-TRAVEL_CORE, Math.min(START_FROM_BOTTOM, Math.round(v)))
   );
 
+  // Fade-out near the end of the driver (projects should dissolve as next section arrives)
+  const FADE_START = 0.92; // start fading ~last 8% of the driver
+  const collageOpacity = useTransform(scrollYProgress, [0, FADE_START, 1], [1, 1, 0]);
+  const chromeOpacity  = useTransform(scrollYProgress, [0, FADE_START + 0.03, 1], [1, 1, 0]); // chrome lingers slightly longer
+
   // Lock + rail visibility
   const [lockActive, setLockActive] = React.useState(false);
   const [railVisible, setRailVisible] = React.useState(false);
@@ -412,9 +417,9 @@ export default function ProjectsHUD() {
     </div>
   );
 
-  // FIXED CHROME (pinned while locked, lets clicks pass through)
+  // FIXED CHROME (pinned while locked, fades out slightly after projects)
   const ChromeOverlay = lockActive ? (
-    <div className="fixed inset-0 z-[70] pointer-events-none">
+    <motion.div className="fixed inset-0 z-[70] pointer-events-none" style={{ opacity: chromeOpacity }}>
       <div className="h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
         <div className="hidden md:block" aria-hidden />
         <div className="relative h-full">
@@ -435,20 +440,17 @@ export default function ProjectsHUD() {
           <PACEBackground topOffset={paceTop} height={treeH} />
         </div>
       </div>
-    </div>
+    </motion.div>
   ) : null;
 
-  // NEW: FIXED COLLAGE OVERLAY (cards animate under the pinned chrome; start line is fixed)
+  // FIXED COLLAGE (now above chrome so projects dominate; fades out toward the end)
   const CollageOverlay = lockActive ? (
-    <div className="fixed inset-0 z-[50]">
+    <motion.div className="fixed inset-0 z-[75]" style={{ opacity: collageOpacity }}>
       <div className="h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
         <div className="hidden md:block" aria-hidden />
         <div className="relative h-full">
           {/* Collage viewport window pinned to the same start line */}
-          <div
-            className="absolute inset-x-0 overflow-hidden"
-            style={{ top: paceTop, height: windowH }}
-          >
+          <div className="absolute inset-x-0 overflow-hidden" style={{ top: paceTop, height: windowH }}>
             {/* Mask ONLY the collage */}
             <div
               className="absolute inset-0 pointer-events-none"
@@ -477,7 +479,7 @@ export default function ProjectsHUD() {
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   ) : null;
 
   // Mobile (unchanged)
@@ -526,13 +528,13 @@ export default function ProjectsHUD() {
           {StaticStage}
         </div>
 
-        {/* Driver defines the lock window and powers the animation progress */}
+        {/* Driver: defines lock distance & progress */}
         <div ref={driverRef} style={{ height: DRIVER_HEIGHT }} />
 
         {/* Neutral buffer for clean handoff */}
         <div ref={afterDriverRef} style={{ height: 600 }} />
 
-        {/* Pinned chrome and collage (both fixed, only while locked) */}
+        {/* Overlays (only while locked) */}
         {CollageOverlay}
         {ChromeOverlay}
 
