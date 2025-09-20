@@ -237,7 +237,6 @@ function LeftRail({ height, top }: { height: number; top: number }) {
   const [paused, setPaused] = React.useState(false);
   const TOP_FADE = 250;
   const BOTTOM_FADE = 96;
-  const SPEED = 22;
 
   const measureRef = React.useRef<HTMLSpanElement | null>(null);
   const [rowH, setRowH] = React.useState<number>(0);
@@ -360,16 +359,14 @@ export default function ProjectsHUD() {
   // Lock + persistent rail visibility logic
   const [active, setActive] = React.useState(false);
   const [railVisible, setRailVisible] = React.useState(false);
-
-  // NEW: track when we've passed the lock end to show a static final frame (no fade)
-  const [unlocked, setUnlocked] = React.useState(false);
+  const [unlocked, setUnlocked] = React.useState(false); // tracks when we've passed lock end
 
   React.useEffect(() => {
     const LOCK_EPS = 8;
     const onScroll = () => {
       const y = window.scrollY || window.pageYOffset || 0;
       const lockStart = Math.round(docTop(staticStageRef.current!));
-      const lockEnd = Math.round(docTop(afterDriverRef.current!)); // neutral buffer avoids jump
+      const lockEnd = Math.round(docTop(afterDriverRef.current!)); // stays constant now
 
       // clamp micro-overshoot at entry
       if (y > lockStart && y < lockStart + LOCK_EPS) {
@@ -379,11 +376,11 @@ export default function ProjectsHUD() {
       const nextActive = y >= lockStart && y < lockEnd;
       if (nextActive !== active) setActive(nextActive);
 
-      // show persistent rail slightly before & after section
+      // rail visibility around the locked section
       const railOn = y >= lockStart - 40 && y < lockEnd + 40;
       if (railOn !== railVisible) setRailVisible(railOn);
 
-      // NEW: mark when we've passed the lock end so we can hold the final frame (no fades)
+      // mark unlocked (based on a stable lockEnd)
       const nowUnlocked = y >= lockEnd;
       if (nowUnlocked !== unlocked) setUnlocked(nowUnlocked);
     };
@@ -396,11 +393,11 @@ export default function ProjectsHUD() {
     };
   }, [active, railVisible, unlocked]);
 
-  // Pre-lock static frame: **add a left placeholder column** to keep the grid aligned
+  // Pre-lock static frame
   const StaticStage = (
     <div className="mx-auto max-w-7xl px-6" style={{ height: stageH }}>
       <div className="h-full md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
-        <div className="hidden md:block" aria-hidden /> {/* placeholder keeps layout aligned */}
+        <div className="hidden md:block" aria-hidden />
         <div className="relative h-full">
           <div className="pt-6 md:pt-8">
             <StageHeader onMeasured={setHeaderH} />
@@ -412,12 +409,12 @@ export default function ProjectsHUD() {
     </div>
   );
 
-  // Locked overlay (unchanged), with mask to guide attention while locked
+  // Locked overlay during travel
   const Overlay = active ? (
     <div className="fixed inset-0 z-[60] pointer-events-none">
       <div className="absolute inset-0 bg-[#0d131d]" />
       <div className="relative h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6">
-        <div className="hidden md:block" aria-hidden /> {/* placeholder keeps layout aligned */}
+        <div className="hidden md:block" aria-hidden />
         <div className="relative h-full">
           {/* mirror header during lock */}
           <div className="pt-6 md:pt-8">
@@ -464,16 +461,13 @@ export default function ProjectsHUD() {
     </div>
   ) : null;
 
-  // NEW: Post-lock static frame (NO fade/mask, NO transforms) that holds the final visual after unlock
+  // Post-lock static frame (unchanged), but **moved BELOW afterDriverRef** to avoid shifting lockEnd
   const PostLockFrame = unlocked ? (
-    <div className="mx-auto max-w-7xl px-6" /* same container as StaticStage for alignment */>
+    <div className="mx-auto max-w-7xl px-6">
       <div className="md:grid md:grid-cols-[64px,1fr] md:gap-6">
         <div className="hidden md:block" aria-hidden />
         <div className="relative" style={{ minHeight: Math.max(windowH, 320) }}>
-          {/* Keep the same background tree without any edge masks */}
           <PACEBackground topOffset={paceTop} height={treeH} />
-
-          {/* Final collage pose locked in place (translateY = -TRAVEL_CORE) */}
           <div className="absolute inset-x-0 z-10" style={{ top: paceTop, height: windowH, overflow: "visible" }}>
             <div style={{ height: LAYOUT.lg.containerHeight, position: "relative", transform: `translateY(${-TRAVEL_CORE}px)` }}>
               {TILE_ORDER.map((title) => {
@@ -490,7 +484,7 @@ export default function ProjectsHUD() {
     </div>
   ) : null;
 
-  // Mobile (unchanged)
+  // Mobile
   const mobile = (
     <div className="md:hidden space-y-10 px-6 py-10 bg-[#0d131d]">
       {TILE_ORDER.map((title) => {
@@ -539,16 +533,16 @@ export default function ProjectsHUD() {
         {/* Driver distance for animation */}
         <div ref={driverRef} style={{ height: DRIVER_HEIGHT }} />
 
-        {/* NEW: Post-lock final frame that holds visuals exactly as they were at unlock */}
-        {PostLockFrame}
-
         {/* Neutral buffer avoids jump into Education */}
         <div ref={afterDriverRef} style={{ height: 600 }} />
 
         {/* Locked overlay */}
         {Overlay}
 
-        {/* PERSISTENT LEFT RAIL (unchanged), above overlay, pointer-events disabled */}
+        {/* Post-lock final frame now below the buffer so lockEnd never moves */}
+        {PostLockFrame}
+
+        {/* PERSISTENT LEFT RAIL */}
         <div
           className={[
             "fixed inset-0 z-[62] pointer-events-none transition-opacity duration-150",
@@ -561,7 +555,6 @@ export default function ProjectsHUD() {
               <div className="hidden md:block">
                 <LeftRail height={treeH} top={paceTop} />
               </div>
-              {/* right column intentionally empty here */}
               <div aria-hidden className="hidden md:block" />
             </div>
           </div>
