@@ -460,7 +460,7 @@ function RailColumn({ rows, rowH }: { rows: number; rowH: number }) {
   );
 }
 
-/* -------------------- STICKY-STAGE (single, stable lock — no jumps) -------------------- */
+/* -------------------- STICKY-STAGE (lock that actually locks) -------------------- */
 function StickyStage({
   vh,
   projects,
@@ -476,24 +476,24 @@ function StickyStage({
 }) {
   const [headerH, setHeaderH] = React.useState(0);
 
-  // Visible stage height (locks while parent sentinel scrolls)
+  // Stage visible height
   const stageH = Math.max(640, vh);
 
   // ~1" breathing room below the subheading
   const EXTRA_PACE_GAP = 84;
 
-  // Layout slices
+  // Layout slices (tree + window)
   const paceTop = headerH + EXTRA_PACE_GAP;
   const windowH = Math.max(360, stageH - paceTop);
   const treeH = Math.max(520, Math.min(820, Math.round(windowH * 0.75)));
 
-  // Timeline distances (how long we lock & animate)
-  const LEAD_IN = Math.max(220, Math.round(windowH * 0.22)); // see tree, then start cards
-  const START_FROM_BOTTOM = Math.round(windowH * 0.95);      // cards emerge from bottom
+  // Timeline distances
+  const LEAD_IN = Math.max(220, Math.round(windowH * 0.22));
+  const START_FROM_BOTTOM = Math.round(windowH * 0.95);
   const TRAVEL_CORE = Math.max(0, layout.containerHeight - windowH);
-  const EXIT_TAIL = Math.max(220, Math.round(windowH * 0.32)); // small buffer before release
+  const EXIT_TAIL = Math.max(220, Math.round(windowH * 0.32));
 
-  // Parent scroll driver — sticky child locks for this height
+  // Parent scroll driver — must be > stageH or sticky won’t appear to lock
   const SENTINEL = LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL;
 
   const sentinelRef = React.useRef<HTMLDivElement | null>(null);
@@ -502,7 +502,7 @@ function StickyStage({
     offset: ["start start", "end start"],
   });
 
-  // Collage Y mapping (stationary during lead-in, then travel, then done)
+  // Collage Y mapping
   const startFrac = LEAD_IN / SENTINEL || 0.0001;
   const collageY = useTransform(scrollYProgress, [0, startFrac, 1], [
     START_FROM_BOTTOM,
@@ -511,36 +511,38 @@ function StickyStage({
   ]);
 
   return (
-    <div ref={sentinelRef} style={{ height: SENTINEL }} className="relative">
-      {/* Sticky = lock; remains identical before/after lock because it’s the same element */}
-      <div className="sticky top-0" style={{ height: stageH }}>
-        <div className="absolute inset-0 bg-[#0d131d]" />
+    <>
+      {/* Sentinel creates the vertical space for the sticky stage to "lock" within */}
+      <div ref={sentinelRef} style={{ minHeight: SENTINEL }} className="relative">
+        {/* Sticky child that locks to the top of the viewport for the entire sentinel */}
+        <div className="sticky top-0 h-screen">
+          <div className="absolute inset-0 bg-[#0d131d]" />
 
-        {/* Center column mirrors the locked layout exactly */}
-        <div className="relative h-full mx-auto max-w-7xl px-6">
-          {/* Two-column grid: left rail + right content */}
-          <div className="absolute inset-0 md:grid md:grid-cols-[64px,1fr] md:gap-6">
-            {/* Left rail sized to the PACE area */}
-            <div className="hidden md:block">
-              <LeftRail height={treeH} top={paceTop} />
+          {/* Full-height two-column grid (no absolute fill — avoids sticky bugs) */}
+          <div className="h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6">
+            {/* Left rail sized to tree area */}
+            <div className="hidden md:flex">
+              <div className="relative w-16">
+                <LeftRail height={treeH} top={paceTop} />
+              </div>
             </div>
 
             {/* Right column */}
             <div className="relative h-full">
-              {/* Title/subheading; measured so the tree always begins below it */}
+              {/* Title/subheading (measured) */}
               <div className="pt-6 md:pt-8">
                 <StageHeader onMeasured={setHeaderH} />
               </div>
 
-              {/* PACE tree — behind the collage window but visible at all times */}
+              {/* PACE tree (behind) */}
               <PACEBackground topOffset={paceTop} height={treeH} />
 
-              {/* Collage window — cards move through here */}
+              {/* Collage window (scroll-controlled) */}
               <div
                 className="absolute inset-x-0 z-10 overflow-hidden"
                 style={{ top: paceTop, height: windowH }}
               >
-                {/* vignette mask for elegant fade on entry/exit */}
+                {/* vignette mask for entry/exit */}
                 <div
                   className="absolute inset-0 pointer-events-none"
                   style={{
@@ -582,9 +584,9 @@ function StickyStage({
         </div>
       </div>
 
-      {/* tiny neutral spacer inside the sentinel to ensure smooth unlock */}
-      <div className="bg-[#0d131d]" style={{ height: Math.max(120, Math.round(vh * 0.15)) }} />
-    </div>
+      {/* Gentle buffer after release so we never "snap" into Education */}
+      <div className="bg-[#0d131d]" style={{ height: Math.max(140, Math.round(vh * 0.18)) }} />
+    </>
   );
 }
 
@@ -657,7 +659,7 @@ export default function ProjectsHUD() {
       {/* Mobile content only */}
       {mobile}
 
-      {/* Desktop/tablet: one sticky stage that handles pre-lock, lock, and release */}
+      {/* Desktop/tablet: single sticky stage with reliable lock */}
       <div className="hidden md:block">
         <StickyStage vh={vh} projects={projects} layout={LAYOUT.lg} />
       </div>
