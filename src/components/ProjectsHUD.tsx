@@ -376,10 +376,10 @@ export default function ProjectsHUD() {
   const [postVisible, setPostVisible] = React.useState(false);
   const [railVisible, setRailVisible] = React.useState(false);
 
-  // Sidebar motion: after-unlock delta & entrance reveal
+  // Sidebar motion: after-unlock delta & entrance reveal (mask)
   const [postDelta, setPostDelta] = React.useState(0);
   const [railRevealY, setRailRevealY] = React.useState(0);
-  const [railRevealOpacity, setRailRevealOpacity] = React.useState(0);
+  const [railMaskPct, setRailMaskPct] = React.useState(0);
 
   const didSnapRef = React.useRef(false);
 
@@ -392,8 +392,8 @@ export default function ProjectsHUD() {
     const onScroll = () => {
       const y = window.scrollY || window.pageYOffset || 0;
       const viewportH = typeof window !== "undefined" ? window.innerHeight : 800;
-      const preTop = Math.round(docTop(preStageRef.current!)); // section start
-      const lockStart = preTop;                                // lock starts at section start
+      const preTop = Math.round(docTop(preStageRef.current!)); // section start (top of Projects)
+      const lockStart = preTop;                                // lock begins when section top reaches viewport top
       const lockEnd = Math.round(docTop(lockEndRef.current!)); // unlock point
 
       // Prevent tiny rebound jiggle exactly at lock
@@ -429,19 +429,19 @@ export default function ProjectsHUD() {
       const postEnd = postTop + viewportH + 1100; // stage minHeight + spacer
       const viewportBottom = y + viewportH;
 
-      // Make it visible as soon as the section starts to enter, but control *how much* is revealed:
       const railOn = viewportBottom >= preTop && y < postEnd;
       if (railOn !== railVisible) setRailVisible(railOn);
 
-      // Reveal progress: 0 when just touching, 1 when the section fully occupies the viewport (or maxed)
-      const visiblePx = Math.max(0, viewportBottom - preTop);
-      const revealDenom = Math.max(1, Math.min(stageH, viewportH));
-      const revealProgress = Math.max(0, Math.min(1, visiblePx / revealDenom));
+      // ----- Sidebar entrance REVEAL (bottom -> top) up to the LOCK start -----
+      // Start revealing when the section top hits the bottom of the viewport,
+      // finish revealing exactly when the section top reaches the top (lock start).
+      const revealStart = preTop - viewportH; // top at bottom of viewport
+      const revealEnd = lockStart;            // top at top of viewport
+      const rp = Math.max(0, Math.min(1, (y - revealStart) / Math.max(1, revealEnd - revealStart)));
 
-      // Sidebar should rise from the bottom proportionally with the section’s reveal
-      const yReveal = Math.round(railIntroOffset * (1 - revealProgress));
-      setRailRevealY(yReveal);
-      setRailRevealOpacity(revealProgress);
+      // Slide up from bottom and reveal with a dynamic mask (no pure fade)
+      setRailRevealY(Math.round(railIntroOffset * (1 - rp)));
+      setRailMaskPct(Math.round(rp * 100));
 
       // Move the sidebar up at the same rate as the section after unlock
       setPostDelta(afterLock ? Math.max(0, y - lockEnd) : 0);
@@ -641,24 +641,25 @@ export default function ProjectsHUD() {
         {CollageOverlay}
         {ChromeOverlay}
 
-        {/* PERSISTENT LEFT RAIL — reveals with section; moves out after unlock */}
+        {/* PERSISTENT LEFT RAIL — reveals bottom→top until lock; moves with section after unlock */}
         <motion.div
           className="fixed inset-0 z-[62] pointer-events-none"
           aria-hidden
           initial={false}
           animate={{ opacity: railVisible ? 1 : 0 }}
           transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-          style={{ transform: `translateY(${-postDelta}px)` }} // move with post section after unlock
+          style={{ transform: `translateY(${-postDelta}px)` }}
         >
           <div className="h-full mx-auto max-w-7xl px-6">
             <div className="relative h-full md:grid md:grid-cols-[64px,1fr] md:gap-6">
               <div className="hidden md:block">
-                {/* Entrance reveal controlled continuously by railRevealY / railRevealOpacity */}
                 <div
                   style={{
                     transform: `translateY(${railRevealY}px)`,
-                    opacity: railRevealOpacity,
-                    willChange: "transform, opacity",
+                    // Dynamic mask reveals from bottom to top as we approach lock
+                    WebkitMaskImage: `linear-gradient(to top, black 0%, black ${railMaskPct}%, transparent ${railMaskPct}%)`,
+                    maskImage: `linear-gradient(to top, black 0%, black ${railMaskPct}%, transparent ${railMaskPct}%)`,
+                    willChange: "transform, mask-image, -webkit-mask-image",
                   }}
                 >
                   <LeftRail height={treeH} top={paceTop} />
