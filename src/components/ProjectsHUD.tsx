@@ -56,7 +56,7 @@ const KEYWORD_BY_TITLE: Record<string, string> = {
   "PortfolioBasics (This Site)": "frontend",
 };
 
-// Predictable heights for tiles
+// predictable tile heights
 const ASPECT: Record<string, string> = {
   "CGM Patient Analytics": "3 / 4",
   "MyCaddy — Physics Shot Calculator": "3 / 4",
@@ -270,16 +270,22 @@ function StageHeader({ onMeasured }: { onMeasured: (h: number) => void }) {
   );
 }
 
-/** PACE storyboard */
+/** PACE storyboard (can be used in static or overlay) */
 function PACEBackground({
   topOffset,
   height,
+  absolute = true,
 }: {
   topOffset: number;
   height: number;
+  absolute?: boolean;
 }) {
+  const wrapperCls = absolute
+    ? "pointer-events-none absolute inset-x-0 z-[5]"
+    : "pointer-events-none relative z-[5]";
+
   return (
-    <div className="pointer-events-none absolute inset-x-0 z-[5]" style={{ top: topOffset, height }}>
+    <div className={wrapperCls} style={{ top: absolute ? topOffset : undefined, height }}>
       <div className="relative h-full w-full">
         <div className="absolute left-6 top-2 bottom-2 w-px bg-white/10" />
         <NodeWithBranches
@@ -402,7 +408,7 @@ function LeftRail({ height, top }: { height: number; top: number }) {
         className="relative w-16 overflow-hidden"
         style={{
           height: `${height}px`,
-          marginTop: top,
+          marginTop: top, // aligns with PACE top
           WebkitMaskImage: `linear-gradient(to bottom,
             transparent 0px,
             black ${TOP_FADE}px,
@@ -417,7 +423,6 @@ function LeftRail({ height, top }: { height: number; top: number }) {
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
       >
-        {/* hidden measurer */}
         <span
           ref={measureRef}
           className={`${plusJakarta.className} text-[11px] tracking-[0.18em] absolute opacity-0 pointer-events-none whitespace-nowrap`}
@@ -425,7 +430,6 @@ function LeftRail({ height, top }: { height: number; top: number }) {
           Scroll to Explore
         </span>
 
-        {/* moving column */}
         <div className="absolute inset-0">
           <div ref={innerRef} className="will-change-transform">
             <RailColumn rows={rows} rowH={rowH || 40} />
@@ -460,13 +464,15 @@ function RailColumn({ rows, rowH }: { rows: number; rowH: number }) {
   );
 }
 
-/* -------------------- FIXED-STAGE IMPLEMENTATION -------------------- */
+/* -------------------- FIXED-STAGE OVERLAY -------------------- */
 function FixedStage({
   vh,
+  headerH,
   projects,
   layout,
 }: {
   vh: number;
+  headerH: number;
   projects: ReadonlyArray<Project>;
   layout: {
     containerHeight: number;
@@ -474,15 +480,13 @@ function FixedStage({
     note: { left: string; top: number; width: string };
   };
 }) {
-  const [headerH, setHeaderH] = React.useState(0);
-
-  // Visible stage height
+  // visible stage height
   const stageH = Math.max(640, vh);
 
-  // 1) EXTRA breathing room (~1 inch ≈ 96px) between subheading and PACE tree
-  const EXTRA_PACE_GAP = 96; // breathing room
+  // 1-inch breathing room (~96px)
+  const EXTRA_PACE_GAP = 96;
 
-  // Tree height + placement
+  // Tree geometry identical to static layer
   const paceTop = headerH + EXTRA_PACE_GAP;
   const windowH = Math.max(520, stageH - paceTop);
   const treeH = Math.max(520, Math.min(820, Math.round(windowH * 0.75)));
@@ -499,9 +503,9 @@ function FixedStage({
     Math.round(stageH * 2.6)
   );
 
-  // 2) Release-pad: fade the overlay out *before* the sentinel fully ends
+  // Release pad so unlock is gentle (no snap)
   const RELEASE_PAD = 160; // px
-  const unlockFrac = Math.max(0.85, Math.min(0.99, 1 - RELEASE_PAD / SENTINEL));
+  const unlockFrac = Math.max(0.88, Math.min(0.99, 1 - RELEASE_PAD / SENTINEL));
 
   const sentinelRef = React.useRef<HTMLDivElement | null>(null);
   const { scrollYProgress } = useScroll({
@@ -509,7 +513,7 @@ function FixedStage({
     offset: ["start start", "end start"],
   });
 
-  // Collage Y mapping: finish motion by `unlockFrac`
+  // Collage Y mapping: start fixed then travel upward, finishing by unlockFrac
   const startFrac = LEAD_IN / SENTINEL || 0.0001;
   const collageY = useTransform(scrollYProgress, [0, startFrac, unlockFrac], [
     START_FROM_BOTTOM,
@@ -523,15 +527,15 @@ function FixedStage({
     setActive(v > 0 && v < 1);
   });
 
-  // Overlay opacity: 0 → 1 as we enter; 1 → 0 across the release-pad
-  const overlayOpacity = useTransform(scrollYProgress, [0, 0.0001, unlockFrac, 1], [0, 1, 1, 0]);
+  // Overlay opacity: keep fully visible across the lock; fade out smoothly at the end
+  const overlayOpacity = useTransform(scrollYProgress, [0, 0.02, unlockFrac, 1], [0, 1, 1, 0]);
 
   return (
     <>
       {/* Scroll driver */}
       <div ref={sentinelRef} style={{ height: SENTINEL }} />
 
-      {/* FIX: motion.div so opacity MotionValue is valid */}
+      {/* Fixed overlay that runs the card animation */}
       <motion.div
         className="fixed inset-0 z-[60]"
         style={{ opacity: overlayOpacity, pointerEvents: active ? "auto" : "none" }}
@@ -539,23 +543,33 @@ function FixedStage({
       >
         <div className="absolute inset-0 bg-[#0d131d]" />
 
-        {/* Centered content column */}
+        {/* Center column */}
         <div className="relative h-full mx-auto max-w-7xl px-6">
-          {/* 2-col layout: rail + right content */}
           <div className="absolute inset-0 md:grid md:grid-cols-[64px,1fr] md:gap-6">
-            {/* Left rail aligned to the PACE area */}
-            <div className="hidden md:block">
-              <LeftRail height={treeH} top={paceTop} />
-            </div>
+            {/* Left rail (aligned to PACE area) */}
+            <LeftRail height={treeH} top={paceTop} />
 
             {/* Right column */}
             <div className="relative h-full">
-              {/* Title/subheading (measured) */}
+              {/* Header (visual only here; static layer underneath is identical) */}
               <div className="pt-6 md:pt-8">
-                <StageHeader onMeasured={setHeaderH} />
+                <div>
+                  <div className={`${oswald.className} leading-none tracking-tight`}>
+                    <div className="inline-block">
+                      <div className="text-xl md:text-2xl font-medium text-white/90">Palmer</div>
+                      <div className="h-[2px] bg-white/25 mt-1" />
+                    </div>
+                    <h2 className="mt-3 uppercase font-bold text-white/90 tracking-tight text-[12vw] md:text-[9vw] lg:text-[8vw]">
+                      Projects
+                    </h2>
+                  </div>
+                  <div className={`${plusJakarta.className} mt-3 text-sm md:text-base text-white/70`}>
+                    Select a project to view the full details
+                  </div>
+                </div>
               </div>
 
-              {/* PACE tree — starts below the header with gap */}
+              {/* PACE tree in overlay — purely visual mirror of static */}
               <PACEBackground topOffset={paceTop} height={treeH} />
 
               {/* Collage window (scroll-controlled) */}
@@ -613,7 +627,7 @@ function FixedStage({
 export default function ProjectsHUD() {
   const projects = ((profile as any)?.projects ?? []) as ReadonlyArray<Project>;
 
-  // Viewport height
+  // viewport height
   const [vh, setVh] = React.useState<number>(
     typeof window === "undefined" ? 800 : window.innerHeight
   );
@@ -622,6 +636,16 @@ export default function ProjectsHUD() {
     window.addEventListener("resize", onResize, { passive: true });
     return () => window.removeEventListener("resize", onResize);
   }, [vh]);
+
+  // Header measurement kept at the section level (used by both static + overlay)
+  const [headerH, setHeaderH] = React.useState(0);
+
+  // geometry shared by static and overlay
+  const stageH = Math.max(640, vh);
+  const EXTRA_PACE_GAP = 96; // ~1 inch breathing room
+  const paceTop = headerH + EXTRA_PACE_GAP;
+  const windowH = Math.max(520, stageH - paceTop);
+  const treeH = Math.max(520, Math.min(820, Math.round(windowH * 0.75)));
 
   // Mobile: simple stack (unchanged)
   const mobile = (
@@ -637,14 +661,7 @@ export default function ProjectsHUD() {
         const aspect = ASPECT[p.title] ?? "3 / 4";
         return (
           <article key={title}>
-            <TransitionLink
-              href={`/projects/${slug}?via=projects`}
-              className="block group"
-              onClick={() =>
-                typeof window !== "undefined" &&
-                window.sessionStorage.setItem("cameFromProjects", "1")
-              }
-            >
+            <TransitionLink href={`/projects/${slug}?via=projects`} className="block group">
               <div style={{ aspectRatio: aspect }} className="w-full overflow-hidden">
                 <img
                   src={img.src}
@@ -655,10 +672,7 @@ export default function ProjectsHUD() {
             </TransitionLink>
             <div className="mt-3 flex items-baseline justify-between gap-3">
               <h3 className="text-lg font-medium tracking-tight">
-                <TransitionLink
-                  href={`/projects/${slug}?via=projects`}
-                  className="hover:underline"
-                >
+                <TransitionLink href={`/projects/${slug}?via=projects`} className="hover:underline">
                   {p.title}
                 </TransitionLink>
               </h3>
@@ -672,14 +686,36 @@ export default function ProjectsHUD() {
     </div>
   );
 
+  const lg = LAYOUT.lg;
+
   return (
     <section id="projects" aria-label="Projects" className="relative w-full bg-[#0d131d]">
       {/* Mobile content only */}
       {mobile}
 
-      {/* Desktop/tablet: fixed overlay driven by sentinel */}
+      {/* Desktop/tablet: STATIC BASE LAYER (prevents any jump in/out) */}
       <div className="hidden md:block">
-        <FixedStage vh={Math.max(400, vh)} projects={projects} layout={LAYOUT.lg} />
+        <div className="mx-auto max-w-7xl px-6 pt-6 md:pt-8">
+          {/* Title/subheading — measured here once */}
+          <StageHeader onMeasured={setHeaderH} />
+        </div>
+
+        {/* Two-column grid that renders the rail + PACE tree in normal flow */}
+        <div className="mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6">
+          {/* Left rail aligned to the PACE area */}
+          <LeftRail height={treeH} top={paceTop} />
+
+          {/* Right column: only the PACE tree (no cards here) */}
+          <div className="relative" style={{ minHeight: paceTop + treeH }}>
+            {/* Reserve space above for the header gap */}
+            <div style={{ height: paceTop }} />
+            {/* PACE tree in normal flow */}
+            <PACEBackground topOffset={0} height={treeH} absolute={false} />
+          </div>
+        </div>
+
+        {/* FIXED OVERLAY that runs the lock + collage animation */}
+        <FixedStage vh={Math.max(400, vh)} headerH={headerH} projects={projects} layout={lg} />
       </div>
     </section>
   );
