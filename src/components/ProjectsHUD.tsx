@@ -371,19 +371,29 @@ export default function ProjectsHUD() {
   ]);
   const collageY = useTransform(rawY, (v) => Math.max(END_Y, Math.min(START_FROM_BOTTOM, Math.round(v))));
 
-  // Fade timing (cards just before end; chrome after)
-  const collageOpacity = useTransform(scrollYProgress, [0, 0.9999, 1], [1, 1, 0]);
-  const chromeOpacity  = useTransform(scrollYProgress, [0, 0.99993, 1], [1, 1, 0]);
+  // CHROME: translate up and out (no fade) as we approach unlock
+  const chromeY = useTransform(scrollYProgress, [0, 0.98, 1], [0, 0, -stageH]);
 
-  // Lock + rail visibility
+  // Lock/rail visibility + one-time snap to avoid rebound jitter
   const [lockActive, setLockActive] = React.useState(false);
   const [railVisible, setRailVisible] = React.useState(false);
+  const didSnapRef = React.useRef(false);
 
   React.useEffect(() => {
     const onScroll = () => {
       const y = window.scrollY || window.pageYOffset || 0;
       const lockStart = Math.round(docTop(staticStageRef.current!));
       const lockEnd = Math.round(docTop(afterDriverRef.current!));
+
+      // One-time snap when entering lock to prevent small rebound shake
+      if (!didSnapRef.current && y > lockStart && y < lockStart + 12) {
+        didSnapRef.current = true;
+        window.scrollTo({ top: lockStart, behavior: "auto" });
+      }
+      // Reset snap when clearly outside the lock zone
+      if (y < lockStart - 24 || y > lockEnd + 24) {
+        didSnapRef.current = false;
+      }
 
       const inLock = y >= lockStart && y < lockEnd;
       if (inLock !== lockActive) setLockActive(inLock);
@@ -400,7 +410,7 @@ export default function ProjectsHUD() {
     };
   }, [lockActive, railVisible]);
 
-  // PRE-LOCK frame (kept in flow). It fades OUT while locked, then fades back IN after unlock.
+  // PRE-LOCK frame (kept in flow). Fades OUT during lock; fades IN after.
   const StaticStage = (
     <motion.div
       className="mx-auto max-w-7xl px-6"
@@ -422,35 +432,40 @@ export default function ProjectsHUD() {
     </motion.div>
   );
 
-  // FIXED CHROME (pinned while locked)
+  // FIXED CHROME (pinned while locked; slides up and out instead of fading)
   const ChromeOverlay = lockActive ? (
-    <motion.div className="fixed inset-0 z-[70] pointer-events-none" style={{ opacity: chromeOpacity }}>
-      <div className="h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
-        <div className="hidden md:block" aria-hidden />
-        <div className="relative h-full">
-          <div className="pt-6 md:pt-8">
-            <div className={`${oswald.className} leading-none tracking-tight`}>
-              <div className="inline-block">
-                <div className="text-xl md:text-2xl font-medium text-white/90">Palmer</div>
-                <div className="h-[2px] bg-white/25 mt-1" />
+    <motion.div className="fixed inset-0 z-[70] pointer-events-none">
+      <motion.div
+        style={{ y: chromeY }}
+        className="h-full"
+      >
+        <div className="h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
+          <div className="hidden md:block" aria-hidden />
+          <div className="relative h-full">
+            <div className="pt-6 md:pt-8">
+              <div className={`${oswald.className} leading-none tracking-tight`}>
+                <div className="inline-block">
+                  <div className="text-xl md:text-2xl font-medium text-white/90">Palmer</div>
+                  <div className="h-[2px] bg-white/25 mt-1" />
+                </div>
+                <h2 className="mt-3 uppercase font-bold text-white/90 tracking-tight text-[12vw] md:text-[9vw] lg:text-[8vw]">
+                  Projects
+                </h2>
               </div>
-              <h2 className="mt-3 uppercase font-bold text-white/90 tracking-tight text-[12vw] md:text-[9vw] lg:text-[8vw]">
-                Projects
-              </h2>
+              <div className={`${plusJakarta.className} mt-3 text-sm md:text-base text-white/70`}>
+                Select a project to view the full details
+              </div>
             </div>
-            <div className={`${plusJakarta.className} mt-3 text-sm md:text-base text-white/70`}>
-              Select a project to view the full details
-            </div>
+            <PACEBackground topOffset={paceTop} height={treeH} />
           </div>
-          <PACEBackground topOffset={paceTop} height={treeH} />
         </div>
-      </div>
+      </motion.div>
     </motion.div>
   ) : null;
 
   // FIXED COLLAGE (viewport spans the full screen so cards can pass above the header)
   const CollageOverlay = lockActive ? (
-    <motion.div className="fixed inset-0 z-[75]" style={{ opacity: collageOpacity }}>
+    <motion.div className="fixed inset-0 z-[75]">
       <div className="h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
         <div className="hidden md:block" aria-hidden />
         <div className="relative h-full">
@@ -521,7 +536,7 @@ export default function ProjectsHUD() {
     </div>
   );
 
-  // Sidebar entrance: rise from the bottom of the viewport on lock (kept)
+  // Sidebar entrance: rise from the bottom of the viewport on lock (unchanged)
   const railIntroOffset = Math.max(0, windowH - (paceTop + treeH));
 
   return (
@@ -531,7 +546,7 @@ export default function ProjectsHUD() {
 
       {/* Desktop / Tablet */}
       <div className="hidden md:block">
-        {/* Pre-lock frame in flow (now fades out during lock, fades back in after) */}
+        {/* Pre-lock frame in flow (fades out while locked, fades in after) */}
         <div ref={staticStageRef} className="relative">
           {StaticStage}
         </div>
