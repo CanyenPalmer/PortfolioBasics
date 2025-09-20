@@ -349,8 +349,8 @@ export default function ProjectsHUD() {
   const LEAD_IN = 0;
   const START_FROM_BOTTOM = Math.round(windowH * 1.06);
 
-  // ----- EXTENDED RUN-OUT so cards fully clear the top -----
-  const OUT_EXTRA = Math.max(700, Math.round(windowH * 1.45)); // was ~0.9; extended for full exit
+  // Extended run-out so cards fully clear the top
+  const OUT_EXTRA = Math.max(700, Math.round(windowH * 1.45));
   const END_Y = -TRAVEL_CORE - OUT_EXTRA;
 
   // Keep speed constant by extending driver distance
@@ -371,12 +371,13 @@ export default function ProjectsHUD() {
   ]);
   const collageY = useTransform(rawY, (v) => Math.max(END_Y, Math.min(START_FROM_BOTTOM, Math.round(v))));
 
-  // ----- CHROME (title/subheader/PACE) moves at the SAME RATE as cards -----
+  // CHROME moves at same rate BUT only as far as needed so the
+  // bottom of the tree exits exactly when the last card clears.
+  const CHROME_END = -(paceTop + treeH + 8); // extra 8px to ensure clean exit
   const chromeY = useTransform(rawY, (y) => {
-    // y goes from START_FROM_BOTTOM down to END_Y (negative)
     const t = (y - START_FROM_BOTTOM) / (END_Y - START_FROM_BOTTOM); // 0 -> 1
     const clamped = Math.max(0, Math.min(1, t));
-    return -stageH * clamped; // slide up in equal proportion
+    return CHROME_END * clamped;
   });
 
   // Lock/rail visibility + small entry snap to avoid rebound
@@ -435,7 +436,7 @@ export default function ProjectsHUD() {
     </motion.div>
   );
 
-  // FIXED CHROME (moves with chromeY; no fading)
+  // FIXED CHROME
   const ChromeOverlay = lockActive ? (
     <motion.div className="fixed inset-0 z-[70] pointer-events-none">
       <motion.div style={{ y: chromeY }} className="h-full">
@@ -536,7 +537,7 @@ export default function ProjectsHUD() {
     </div>
   );
 
-  // Sidebar entrance: rise from the bottom of the viewport on lock (unchanged)
+  // Sidebar entrance
   const railIntroOffset = Math.max(0, windowH - (paceTop + treeH));
 
   return (
