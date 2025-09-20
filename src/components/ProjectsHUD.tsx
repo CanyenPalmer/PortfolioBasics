@@ -355,7 +355,7 @@ export default function ProjectsHUD() {
 
   // Driver height: ends exactly when cards reach END_Y (unlock right as cards finish)
   const EXIT_TAIL_BASE = Math.max(560, Math.round(windowH * 0.72));
-  const EXIT_TAIL = EXIT_TAIL_BASE; // tight tail => unlock at last card exit
+  const EXIT_TAIL = EXIT_TAIL_BASE;
 
   const DRIVER_HEIGHT = LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL + 1;
 
@@ -374,11 +374,9 @@ export default function ProjectsHUD() {
   // ---- Lock & rail visibility; prevent tiny rebound at lock start
   const [lockActive, setLockActive] = React.useState(false);
   const [railVisible, setRailVisible] = React.useState(false);
-  const [enteredLock, setEnteredLock] = React.useState(false);
-  const [cardsDone, setCardsDone] = React.useState(false); // becomes true when last card exits (scrollYProgress ~ 1)
+  const [cardsDone, setCardsDone] = React.useState(false);
   const didSnapRef = React.useRef(false);
 
-  // update cardsDone when driver reaches end
   useMotionValueEvent(scrollYProgress, "change", (v) => {
     if (v >= 0.999 && !cardsDone) setCardsDone(true);
   });
@@ -398,10 +396,7 @@ export default function ProjectsHUD() {
       }
 
       const inLock = y >= lockStart && y < lockEnd;
-      if (inLock !== lockActive) {
-        setLockActive(inLock);
-        if (inLock) setEnteredLock(true);
-      }
+      if (inLock !== lockActive) setLockActive(inLock);
 
       const railOn = y >= lockStart - 40 && y < lockEnd;
       if (railOn !== railVisible) setRailVisible(railOn);
@@ -415,32 +410,32 @@ export default function ProjectsHUD() {
     };
   }, [lockActive, railVisible]);
 
-  /* ----------- PRE-LOCK in-flow frame (visible only before first lock) ----------- */
+  /* ----------- STATIC IN-FLOW CHROME (visible before lock AND AFTER lock) ----------- */
+  // Key change: opacity ties directly to lockActive (not first-visit),
+  // so it fades back IN after the cards finish and then scrolls with the page.
   const StaticStage = (
     <motion.div
       className="mx-auto max-w-7xl px-6"
       style={{ height: stageH, pointerEvents: lockActive ? "none" : "auto" }}
       initial={false}
-      animate={{ opacity: !enteredLock ? 1 : 0 }}
-      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      animate={{ opacity: lockActive ? 0 : 1 }}
+      transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
     >
-      {!enteredLock && (
-        <div className="h-full md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
-          <div className="hidden md:block" aria-hidden />
-          <div className="relative h-full">
-            <div className="pt-6 md:pt-8">
-              <StageHeader onMeasured={setHeaderH} />
-            </div>
-            <PACEBackground topOffset={paceTop} height={treeH} />
-            <div className="absolute inset-x-0" style={{ top: paceTop, height: windowH }} />
+      <div className="h-full md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
+        <div className="hidden md:block" aria-hidden />
+        <div className="relative h-full">
+          <div className="pt-6 md:pt-8">
+            <StageHeader onMeasured={setHeaderH} />
           </div>
+          <PACEBackground topOffset={paceTop} height={treeH} />
+          <div className="absolute inset-x-0" style={{ top: paceTop, height: windowH }} />
         </div>
-      )}
+      </div>
     </motion.div>
   );
 
   /* ----------- LOCKED OVERLAYS ----------- */
-  // CHROME stays fixed (no translate) during lock
+  // CHROME stays perfectly fixed during lock (no translate)
   const ChromeOverlay = lockActive ? (
     <div className="fixed inset-0 z-[70] pointer-events-none">
       <div className="h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
@@ -505,34 +500,6 @@ export default function ProjectsHUD() {
     </motion.div>
   ) : null;
 
-  /* ----------- POST-LOCK CHROME (starts scrolling ONLY after cards finish) ----------- */
-  const PostLockChrome = (!lockActive && cardsDone) ? (
-    <div className="mx-auto max-w-7xl px-6" style={{ minHeight: stageH }}>
-      <div className="h-full md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
-        <div className="hidden md:block" aria-hidden />
-        <div className="relative h-full">
-          <div className="pt-6 md:pt-8">
-            <div className={`${oswald.className} leading-none tracking-tight`}>
-              <div className="inline-block">
-                <div className="text-xl md:text-2xl font-medium text-white/90">Palmer</div>
-                <div className="h-[2px] bg-white/25 mt-1" />
-              </div>
-              <h2 className="mt-3 uppercase font-bold text-white/90 tracking-tight text-[12vw] md:text-[9vw] lg:text-[8vw]">
-                Projects
-              </h2>
-            </div>
-            <div className={`${plusJakarta.className} mt-3 text-sm md:text-base text-white/70`}>
-              Select a project to view the full details
-            </div>
-          </div>
-          {/* The same PACE tree in flow so it scrolls naturally out AFTER cards are done */}
-          <PACEBackground topOffset={paceTop} height={treeH} />
-          <div className="absolute inset-x-0" style={{ top: paceTop, height: windowH }} />
-        </div>
-      </div>
-    </div>
-  ) : null;
-
   // Mobile (unchanged)
   const mobile = (
     <div className="md:hidden space-y-10 px-6 py-10 bg-[#0d131d]">
@@ -567,7 +534,7 @@ export default function ProjectsHUD() {
     </div>
   );
 
-  // Sidebar entrance: rises from bottom on lock, as before
+  // Sidebar entrance: rises from bottom on lock
   const railIntroOffset = Math.max(0, windowH - (paceTop + treeH));
 
   return (
@@ -577,7 +544,7 @@ export default function ProjectsHUD() {
 
       {/* Desktop / Tablet */}
       <div className="hidden md:block">
-        {/* Pre-lock (only before first lock) */}
+        {/* In-flow static frame: visible pre-lock and post-lock */}
         <div ref={staticStageRef} className="relative">
           {StaticStage}
         </div>
@@ -585,17 +552,14 @@ export default function ProjectsHUD() {
         {/* Driver (lock distance = card animation distance) */}
         <div ref={driverRef} style={{ height: DRIVER_HEIGHT }} />
 
-        {/* Post-lock chrome that scrolls naturally AFTER cards are gone */}
-        {PostLockChrome}
-
-        {/* Buffer so the next section starts after post-lock chrome */}
+        {/* Buffer after lock so the next section starts after projects */}
         <div ref={afterDriverRef} style={{ height: 1100 }} />
 
         {/* Locked overlays */}
         {CollageOverlay}
         {ChromeOverlay}
 
-        {/* PERSISTENT LEFT RAIL (unchanged behavior) */}
+        {/* PERSISTENT LEFT RAIL */}
         <motion.div
           className="fixed inset-0 z-[62] pointer-events-none"
           aria-hidden
