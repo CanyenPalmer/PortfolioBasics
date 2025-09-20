@@ -71,7 +71,7 @@ const TILE_ORDER = [
   "Python 101",
 ];
 
-/* -------------------- utils -------------------- */
+/* -------------------- small utils -------------------- */
 function keywordFor(title: string, tech?: string[]) {
   if (KEYWORD_BY_TITLE[title]) return KEYWORD_BY_TITLE[title];
   if (tech?.some((t) => /scikit-learn|xgboost|lightgbm/i.test(t))) return "machine-learning";
@@ -336,6 +336,7 @@ export default function ProjectsHUD() {
 
   const [headerH, setHeaderH] = React.useState(0);
 
+  // Layout measures
   const EXTRA_PACE_GAP = 84; // spacing under subheading
   const paceTop = headerH + EXTRA_PACE_GAP;
   const windowH = Math.max(360, stageH - paceTop);
@@ -348,7 +349,7 @@ export default function ProjectsHUD() {
   const EXIT_TAIL = Math.max(220, Math.round(windowH * 0.32));
   const DRIVER_HEIGHT = LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL + 1;
 
-  // Scroll progress across the driver (for sticky stage)
+  // Scroll progress across the driver
   const { scrollYProgress } = useScroll({ target: driverRef, offset: ["start start", "end start"] });
   const startFrac = LEAD_IN / DRIVER_HEIGHT || 0.0001;
   const collageY = useTransform(scrollYProgress, [0, startFrac, 1], [
@@ -357,7 +358,7 @@ export default function ProjectsHUD() {
     -TRAVEL_CORE,
   ]);
 
-  // Track lock window — prevents duplication and drives rail visibility
+  // Lock window — used to toggle visibility (no reflow)
   const [lockActive, setLockActive] = React.useState(false);
   const [railVisible, setRailVisible] = React.useState(false);
 
@@ -370,7 +371,6 @@ export default function ProjectsHUD() {
       const inLock = y >= sTop && y < dEnd;
       if (inLock !== lockActive) setLockActive(inLock);
 
-      // rail only while in/near the section, ends exactly at unlock
       const railOn = y >= sTop - 40 && y < dEnd;
       if (railOn !== railVisible) setRailVisible(railOn);
     };
@@ -383,11 +383,15 @@ export default function ProjectsHUD() {
     };
   }, [lockActive, railVisible]);
 
-  // Pre-lock intro (turns into spacer while locked to avoid duplication)
-  const StaticStage = lockActive ? (
-    <div className="mx-auto max-w-7xl px-6" style={{ height: stageH }} />
-  ) : (
-    <div className="mx-auto max-w-7xl px-6" style={{ height: stageH }}>
+  // Pre-lock intro (kept in flow; we only hide its visibility during lock to avoid duplication)
+  const StaticStage = (
+    <div
+      className="mx-auto max-w-7xl px-6"
+      style={{
+        height: stageH,
+        visibility: lockActive ? "hidden" as const : "visible" as const,
+      }}
+    >
       <div className="h-full md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
         <div className="hidden md:block" aria-hidden />
         <div className="relative h-full">
@@ -401,15 +405,15 @@ export default function ProjectsHUD() {
     </div>
   );
 
-  // STICKY stage: only rendered WHILE locked (prevents double-vision and guarantees release)
+  // Sticky stage: chrome is sticky & pinned; collage scrolls underneath
   const StickyStage = (
-    <div className="sticky top-0 z-[10]" style={{ height: stageH }}>
-      <div className="relative h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6">
+    <div className="sticky top-0" style={{ height: stageH }}>
+      <div className="h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
         <div className="hidden md:block" aria-hidden />
         <div className="relative h-full">
-          {/* PINNED CHROME — title, subheader, and PACE stay on top while collage scrolls under */}
-          <div className="absolute inset-0 z-[30] pointer-events-none">
-            <div className="pt-6 md:pt-8 pointer-events-none">
+          {/* Pinned chrome (title, subheader, PACE) */}
+          <div className="sticky top-0 z-[30]">
+            <div className="pt-6 md:pt-8">
               <div className={`${oswald.className} leading-none tracking-tight`}>
                 <div className="inline-block">
                   <div className="text-xl md:text-2xl font-medium text-white/90">Palmer</div>
@@ -423,14 +427,16 @@ export default function ProjectsHUD() {
                 Select a project to view the full details
               </div>
             </div>
+            {/* PACE tree pinned in place */}
             <div className="relative">
-              {/* PACE tree pinned as well */}
               <PACEBackground topOffset={paceTop} height={treeH} />
+              {/* an invisible block to reserve the collage window height under the PACE tree */}
+              <div style={{ height: windowH }} />
             </div>
           </div>
 
-          {/* COLLAGE WINDOW — sits under the pinned chrome and moves only itself */}
-          <div className="absolute inset-x-0 z-[10] overflow-hidden" style={{ top: paceTop, height: windowH }}>
+          {/* Collage layer (moves under the pinned chrome) */}
+          <div className="absolute inset-x-0 z-[10]" style={{ top: paceTop, height: windowH, overflow: "hidden" }}>
             <div
               className="absolute inset-0 pointer-events-none"
               style={{
@@ -497,17 +503,17 @@ export default function ProjectsHUD() {
 
       {/* Desktop / Tablet */}
       <div className="hidden md:block">
-        {/* Pre-lock intro (turns into spacer while locked) */}
+        {/* Pre-lock intro (visibility toggled, not removed) */}
         <div ref={staticStageRef} className="relative">
           {StaticStage}
         </div>
 
-        {/* Driver: sticky renders ONLY during lock */}
+        {/* Driver: sticky stage is always present; visibility of intro prevents duplication */}
         <div ref={driverRef} style={{ height: DRIVER_HEIGHT }}>
-          {lockActive ? StickyStage : null}
+          {StickyStage}
         </div>
 
-        {/* Neutral buffer to hand off cleanly to the next section */}
+        {/* Neutral buffer for clean handoff to the next section */}
         <div ref={afterDriverRef} style={{ height: 600 }} />
 
         {/* PERSISTENT LEFT RAIL */}
@@ -531,4 +537,3 @@ export default function ProjectsHUD() {
     </section>
   );
 }
-
