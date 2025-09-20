@@ -236,63 +236,70 @@ function BlurbAndNote({
   );
 }
 
-/** Title block (now inside the sticky stage so it “feels fixed”) */
-function StageHeader() {
+/** Title block — now confined to the RIGHT column so it never overlaps the rail/tree */
+function StageHeader({ onMeasured }: { onMeasured: (h: number) => void }) {
+  const ref = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    if (!ref.current) return;
+    const measure = () => onMeasured(Math.round(ref.current!.getBoundingClientRect().height));
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(ref.current);
+    window.addEventListener("resize", measure, { passive: true });
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [onMeasured]);
+
   return (
-    <div className="absolute left-0 right-0 top-6 md:top-8 z-30">
-      <div className="px-6">
-        <div className={`${oswald.className} leading-none tracking-tight`}>
-          <div className="inline-block">
-            <div className="text-xl md:text-2xl font-medium text-white/90">Palmer</div>
-            <div className="h-[2px] bg-white/25 mt-1" />
-          </div>
-          <h2 className="mt-3 uppercase font-bold text-white/90 tracking-tight text-[12vw] md:text-[9vw] lg:text-[8vw]">
-            Projects
-          </h2>
+    <div ref={ref} className="px-0 md:px-0">
+      <div className={`${oswald.className} leading-none tracking-tight`}>
+        <div className="inline-block">
+          <div className="text-xl md:text-2xl font-medium text-white/90">Palmer</div>
+          <div className="h-[2px] bg-white/25 mt-1" />
         </div>
-        <div className={`${plusJakarta.className} mt-3 text-sm md:text-base text-white/70`}>
-          Select a project to view the full details
-        </div>
+        <h2 className="mt-3 uppercase font-bold text-white/90 tracking-tight text-[12vw] md:text-[9vw] lg:text-[8vw]">
+          Projects
+        </h2>
+      </div>
+      <div className={`${plusJakarta.className} mt-3 text-sm md:text-base text-white/70`}>
+        Select a project to view the full details
       </div>
     </div>
   );
 }
 
-/** PACE storyboard (centered in the stage; sits behind collage) */
-function PACEBackground() {
+/** PACE storyboard (kept entirely **below** the title area, centered within remaining space) */
+function PACEBackground({ topOffset, availableHeight }: { topOffset: number; availableHeight: number }) {
   return (
-    <div className="pointer-events-none absolute inset-0 z-[5]">
-      <div
-        className="absolute left-0 right-0 top-1/2 -translate-y-1/2"
-        style={{ height: "70vh", minHeight: 520, maxHeight: 820 }}
-      >
-        <div className="relative h-full w-full">
-          <div className="absolute left-6 top-2 bottom-2 w-px bg-white/10" />
-          <NodeWithBranches
-            top="0%"
-            label="PLAN"
-            sub="Scope for outcomes"
-            branches={["Storyboard", "Framework", "Deadline"]}
-          />
-          <NodeWithBranches
-            top="28%"
-            label="ANALYZE"
-            sub="Turn data into direction"
-            branches={["Data audit", "Hypotheses", "Methods"]}
-          />
-          <NodeWithBranches
-            top="58%"
-            label="CONSTRUCT"
-            sub="Build, iterate, instrument"
-            branches={["Prototype", "Feedback", "Instrumentation"]}
-          />
-          <NodeWithBranches
-            top="88%"
-            label="EXECUTE"
-            sub="Ship, train, measure"
-            branches={["Deploy", "Enablement", "Impact"]}
-          />
-        </div>
+    <div className="pointer-events-none absolute inset-x-0 z-[5]" style={{ top: topOffset, height: availableHeight }}>
+      <div className="relative h-full w-full">
+        <div className="absolute left-6 top-2 bottom-2 w-px bg-white/10" />
+        <NodeWithBranches
+          top="0%"
+          label="PLAN"
+          sub="Scope for outcomes"
+          branches={["Storyboard", "Framework", "Deadline"]}
+        />
+        <NodeWithBranches
+          top="28%"
+          label="ANALYZE"
+          sub="Turn data into direction"
+          branches={["Data audit", "Hypotheses", "Methods"]}
+        />
+        <NodeWithBranches
+          top="58%"
+          label="CONSTRUCT"
+          sub="Build, iterate, instrument"
+          branches={["Prototype", "Feedback", "Instrumentation"]}
+        />
+        <NodeWithBranches
+          top="88%"
+          label="EXECUTE"
+          sub="Ship, train, measure"
+          branches={["Deploy", "Enablement", "Impact"]}
+        />
       </div>
     </div>
   );
@@ -333,8 +340,8 @@ function NodeWithBranches({
   );
 }
 
-/** LEFT RAIL — matches PACE height; moves with the stage */
-function LeftRail({ height }: { height?: number | null }) {
+/** LEFT RAIL — sized & positioned to the PACE area so it never collides with the title */
+function LeftRail({ height, top }: { height: number; top: number }) {
   const [paused, setPaused] = React.useState(false);
   const TOP_FADE = 250;
   const BOTTOM_FADE = 96;
@@ -389,7 +396,8 @@ function LeftRail({ height }: { height?: number | null }) {
         <div
           className="relative w-16 overflow-hidden"
           style={{
-            height: height ? `${height}px` : "100%",
+            height: `${height}px`,
+            marginTop: top, // push the rail down to start where the PACE area begins
             WebkitMaskImage: `linear-gradient(to bottom,
               transparent 0px,
               black ${TOP_FADE}px,
@@ -464,20 +472,28 @@ function StickyStage({
   projects: ReadonlyArray<Project>;
   className: string; // breakpoint visibility
 }) {
-  // Stage height is the viewport (feels fixed)
-  const stageVh = Math.max(560, vh);
+  // Stage height = viewport (feels fixed)
+  const stageVh = Math.max(620, vh);
 
-  // PACE tree height (for rail & visual balance)
-  const treeHeight = Math.max(520, Math.min(820, Math.round(stageVh * 0.7)));
+  // Measure RIGHT-column header height so we can keep PACE below it
+  const [headerH, setHeaderH] = React.useState(0);
+
+  // Remaining space (PACE + collage live here visually)
+  const available = Math.max(360, stageVh - headerH - 12);
+  const treeHeight = Math.max(520, Math.min(820, Math.round(available * 0.75)));
 
   // Timeline distances
-  const LEAD_IN = Math.round(stageVh * 0.16); // show the tree/title before cards appear
-  const START_FROM_BOTTOM = Math.round(stageVh * 0.9);
-  const TRAVEL_CORE = Math.max(0, layout.containerHeight - stageVh);
-  const EXIT_TAIL = Math.round(stageVh * 0.18); // gentle release, no snap
+  const LEAD_IN = Math.max(220, Math.round(available * 0.22));     // show tree before cards
+  const START_FROM_BOTTOM = Math.round(available * 0.95);          // start nearly off-screen
+  const TRAVEL_CORE = Math.max(0, layout.containerHeight - available);
+  const EXIT_TAIL = Math.max(180, Math.round(available * 0.28));   // smooth release
 
   // Tall sentinel drives the animation while the stage appears fixed
-  const SENTINEL_HEIGHT = LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL;
+  // Also add a guard to ensure long enough on tall displays
+  const SENTINEL_HEIGHT = Math.max(
+    LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL,
+    Math.round(stageVh * 2.4)
+  );
 
   const sentinelRef = React.useRef<HTMLDivElement | null>(null);
   const { scrollYProgress } = useScroll({
@@ -485,7 +501,7 @@ function StickyStage({
     offset: ["start start", "end start"],
   });
 
-  // Hold during lead-in, then move the collage upward
+  // Hold during lead-in, then move the collage upward through the visible window
   const startFrac = LEAD_IN / SENTINEL_HEIGHT || 0;
   const y = useTransform(scrollYProgress, [0, startFrac, 1], [
     START_FROM_BOTTOM,
@@ -493,9 +509,12 @@ function StickyStage({
     -TRAVEL_CORE,
   ]);
 
-  // Fade in/out of cards as they enter/exit the stage window
+  // Fade vignette at top/bottom of the visible window
   const TOP_FADE = 180;
   const BOTTOM_FADE = 110;
+
+  // Rail is aligned with the PACE area: it begins where the PACE starts
+  const paceTopOffset = headerH + 8; // small breathing room below title
 
   return (
     <div className={className}>
@@ -506,25 +525,26 @@ function StickyStage({
           <div className="absolute inset-0 bg-[#0d131d]" />
 
           {/* Full stage content */}
-          <div className="relative z-[2] h-full mx-auto max-w-7xl">
-            {/* Header lives inside the stage so it moves with it (appears fixed) */}
-            <StageHeader />
-
-            {/* Two-column layout: left rail + right content */}
+          <div className="relative z-[2] h-full">
+            {/* Two-column layout: left rail + right content (title is in the RIGHT column only) */}
             <div className="absolute inset-0 md:grid md:grid-cols-[64px,1fr] md:gap-6">
-              {/* Left rail (length = PACE height) */}
+              {/* Left rail, pushed down so it starts where the PACE region begins */}
               <div className="hidden md:block">
-                <div className="absolute left-0 top-1/2 -translate-y-1/2">
-                  <LeftRail height={treeHeight} />
-                </div>
+                <LeftRail height={treeHeight} top={paceTopOffset} />
               </div>
 
-              {/* Right content */}
-              <div className="relative">
-                <PACEBackground />
+              {/* Right column */}
+              <div className="relative h-full">
+                {/* Title/subheading (measured) */}
+                <div className="px-6 md:px-0 pt-6 md:pt-8">
+                  <StageHeader onMeasured={setHeaderH} />
+                </div>
 
-                {/* Collage track */}
-                <div className="absolute inset-0 z-10 overflow-hidden">
+                {/* PACE background below the title, vertically centered within remaining space */}
+                <PACEBackground topOffset={paceTopOffset} availableHeight={available} />
+
+                {/* Collage track (scroll-controlled) */}
+                <div className="absolute inset-0 z-10 overflow-hidden" style={{ top: paceTopOffset, height: available }}>
                   {/* vignette fade for entry/exit */}
                   <div
                     className="absolute inset-0 pointer-events-none"
@@ -570,7 +590,7 @@ function StickyStage({
             </div>
           </div>
         </div>
-        {/* No extra spacers here; the sentinel length is exactly the animation length */}
+        {/* No extra spacers: sentinel length = exact animation window */}
       </div>
     </div>
   );
@@ -591,7 +611,7 @@ export default function ProjectsHUD() {
 
   // Mobile: simple stack (unchanged)
   const mobile = (
-    <div className="md:hidden space-y-10">
+    <div className="md:hidden space-y-10 px-6">
       {TILE_ORDER.map((title) => {
         const p = projects.find((x) => x.title === title);
         if (!p) return null;
@@ -644,17 +664,19 @@ export default function ProjectsHUD() {
       aria-label="Projects"
       className="relative w-full bg-[#0d131d]"
     >
-      <div className="mx-auto max-w-7xl px-6">
-        {/* Mobile content (unchanged) */}
-        {mobile}
+      {/* Mobile content */}
+      {mobile}
 
-        {/* Sticky “fake-locked” stage on md+ */}
-        <StickyStage
-          className="hidden md:block"
-          vh={vh}
-          layout={LAYOUT.lg}
-          projects={projects}
-        />
+      {/* Sticky “fake-locked” stage on md+ */}
+      <div className="hidden md:block">
+        <div className="mx-auto max-w-7xl px-6">
+          <StickyStage
+            className="block"
+            vh={vh}
+            layout={LAYOUT.lg}
+            projects={projects}
+          />
+        </div>
       </div>
     </section>
   );
