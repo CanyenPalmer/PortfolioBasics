@@ -341,13 +341,14 @@ export default function ProjectsHUD() {
   const windowH = Math.max(360, stageH - paceTop);
   const treeH = Math.max(520, Math.min(820, Math.round(windowH * 0.75)));
 
-  // Start very soon after lock
+  // Travel math (unchanged)
   const TRAVEL_CORE = Math.max(0, LAYOUT.lg.containerHeight - windowH);
   const LEAD_IN = 16;
   const START_FROM_BOTTOM = Math.round(windowH * 0.92);
   const EXIT_TAIL = Math.max(220, Math.round(windowH * 0.32));
   const DRIVER_HEIGHT = LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL + 1;
 
+  // Scroll progress across the driver (for sticky stage)
   const { scrollYProgress } = useScroll({ target: driverRef, offset: ["start start", "end start"] });
   const startFrac = LEAD_IN / DRIVER_HEIGHT || 0.0001;
   const collageY = useTransform(scrollYProgress, [0, startFrac, 1], [
@@ -356,33 +357,15 @@ export default function ProjectsHUD() {
     -TRAVEL_CORE,
   ]);
 
-  // Lock + persistent rail visibility logic
-  const [active, setActive] = React.useState(false);
+  // Left-rail visibility while we're near the section
   const [railVisible, setRailVisible] = React.useState(false);
-  const [unlocked, setUnlocked] = React.useState(false); // tracks when we've passed lock end
-
   React.useEffect(() => {
-    const LOCK_EPS = 8;
     const onScroll = () => {
       const y = window.scrollY || window.pageYOffset || 0;
-      const lockStart = Math.round(docTop(staticStageRef.current!));
-      const lockEnd = Math.round(docTop(afterDriverRef.current!)); // stays constant now
-
-      // clamp micro-overshoot at entry
-      if (y > lockStart && y < lockStart + LOCK_EPS) {
-        window.scrollTo({ top: lockStart, behavior: "auto" });
-      }
-
-      const nextActive = y >= lockStart && y < lockEnd;
-      if (nextActive !== active) setActive(nextActive);
-
-      // rail visibility around the locked section
-      const railOn = y >= lockStart - 40 && y < lockEnd + 40;
+      const sTop = Math.round(docTop(staticStageRef.current!));
+      const dEnd = Math.round(docTop(afterDriverRef.current!));
+      const railOn = y >= sTop - 40 && y < dEnd + 40;
       if (railOn !== railVisible) setRailVisible(railOn);
-
-      // mark unlocked (based on a stable lockEnd)
-      const nowUnlocked = y >= lockEnd;
-      if (nowUnlocked !== unlocked) setUnlocked(nowUnlocked);
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -391,9 +374,9 @@ export default function ProjectsHUD() {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
     };
-  }, [active, railVisible, unlocked]);
+  }, [railVisible]);
 
-  // Pre-lock static frame
+  // Pre-lock intro frame in normal flow
   const StaticStage = (
     <div className="mx-auto max-w-7xl px-6" style={{ height: stageH }}>
       <div className="h-full md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
@@ -409,14 +392,13 @@ export default function ProjectsHUD() {
     </div>
   );
 
-  // Locked overlay during travel
-  const Overlay = active ? (
-    <div className="fixed inset-0 z-[60] pointer-events-none">
-      <div className="absolute inset-0 bg-[#0d131d]" />
-      <div className="relative h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6">
+  // STICKY stage: pinned while scrolling through the driver; releases with final layout intact
+  const StickyStage = (
+    <div className="sticky top-0 z-[10]" style={{ height: stageH }}>
+      <div className="h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6">
         <div className="hidden md:block" aria-hidden />
         <div className="relative h-full">
-          {/* mirror header during lock */}
+          {/* Header stays visible during sticky travel */}
           <div className="pt-6 md:pt-8">
             <div className={`${oswald.className} leading-none tracking-tight`}>
               <div className="inline-block">
@@ -432,10 +414,11 @@ export default function ProjectsHUD() {
             </div>
           </div>
 
+          {/* Background + collage window */}
           <PACEBackground topOffset={paceTop} height={treeH} />
 
           <div className="absolute inset-x-0 z-10 overflow-hidden" style={{ top: paceTop, height: windowH }}>
-            {/* masked edges while LOCKED */}
+            {/* Gentle crop while sticky; disappears automatically when sticky leaves viewport */}
             <div
               className="absolute inset-0 pointer-events-none"
               style={{
@@ -459,32 +442,9 @@ export default function ProjectsHUD() {
         </div>
       </div>
     </div>
-  ) : null;
+  );
 
-  // Post-lock static frame (unchanged), but **moved BELOW afterDriverRef** to avoid shifting lockEnd
-  const PostLockFrame = unlocked ? (
-    <div className="mx-auto max-w-7xl px-6">
-      <div className="md:grid md:grid-cols-[64px,1fr] md:gap-6">
-        <div className="hidden md:block" aria-hidden />
-        <div className="relative" style={{ minHeight: Math.max(windowH, 320) }}>
-          <PACEBackground topOffset={paceTop} height={treeH} />
-          <div className="absolute inset-x-0 z-10" style={{ top: paceTop, height: windowH, overflow: "visible" }}>
-            <div style={{ height: LAYOUT.lg.containerHeight, position: "relative", transform: `translateY(${-TRAVEL_CORE}px)` }}>
-              {TILE_ORDER.map((title) => {
-                const p = projects.find((x) => x.title === title);
-                if (!p) return null;
-                const pos = LAYOUT.lg.items[title];
-                return <ProjectTile key={`post-tile-${title}`} p={p} left={pos.left} top={pos.top} width={pos.width} />;
-              })}
-              <BlurbAndNote left={LAYOUT.lg.note.left} top={LAYOUT.lg.note.top} width={LAYOUT.lg.note.width} />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  ) : null;
-
-  // Mobile
+  // Mobile list (unchanged)
   const mobile = (
     <div className="md:hidden space-y-10 px-6 py-10 bg-[#0d131d]">
       {TILE_ORDER.map((title) => {
@@ -525,22 +485,18 @@ export default function ProjectsHUD() {
 
       {/* Desktop / Tablet */}
       <div className="hidden md:block">
-        {/* Pre-lock frame */}
+        {/* Pre-lock intro */}
         <div ref={staticStageRef} className="relative">
           {StaticStage}
         </div>
 
-        {/* Driver distance for animation */}
-        <div ref={driverRef} style={{ height: DRIVER_HEIGHT }} />
+        {/* Driver: provides scroll distance; sticky stage lives INSIDE here */}
+        <div ref={driverRef} style={{ height: DRIVER_HEIGHT }}>
+          {StickyStage}
+        </div>
 
-        {/* Neutral buffer avoids jump into Education */}
+        {/* Neutral buffer ensures a graceful handoff to the next section (no bleed) */}
         <div ref={afterDriverRef} style={{ height: 600 }} />
-
-        {/* Locked overlay */}
-        {Overlay}
-
-        {/* Post-lock final frame now below the buffer so lockEnd never moves */}
-        {PostLockFrame}
 
         {/* PERSISTENT LEFT RAIL */}
         <div
