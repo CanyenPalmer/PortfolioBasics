@@ -347,10 +347,10 @@ export default function ProjectsHUD() {
 
   // Starts immediately at lock and appears a bit sooner
   const LEAD_IN = 0;
-  const START_FROM_BOTTOM = Math.round(windowH * 1.06); // lowered from 1.12
+  const START_FROM_BOTTOM = Math.round(windowH * 1.06); // lowered previously for quicker first tile
 
-  // Exit spacing
-  const EXIT_TAIL = Math.max(420, Math.round(windowH * 0.5));
+  // Exit spacing — extended so projects clear the header before Education arrives
+  const EXIT_TAIL = Math.max(560, Math.round(windowH * 0.72));
 
   const DRIVER_HEIGHT = LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL + 1;
 
@@ -521,10 +521,9 @@ export default function ProjectsHUD() {
     </div>
   );
 
-  // --- Make the rail rise from the bottom fade line on lock ---
-  const BOTTOM_FADE_PX = 180; // matches collage mask bottom fade
-  // Offset so the rail's bottom starts at the fade line: (windowH - fade) - treeH
-  const railIntroOffset = Math.max(0, (windowH - BOTTOM_FADE_PX) - treeH);
+  // --- Sidebar: rise from the bottom of the viewport on lock ---
+  // Start with the rail's bottom at the viewport bottom, then slide to its resting position.
+  const railIntroOffset = Math.max(0, windowH - (paceTop + treeH));
 
   return (
     <section id="projects" aria-label="Projects" className="relative w-full bg-[#0d131d]">
@@ -541,14 +540,14 @@ export default function ProjectsHUD() {
         {/* Driver: defines lock distance & progress */}
         <div ref={driverRef} style={{ height: DRIVER_HEIGHT }} />
 
-        {/* Neutral buffer for clean handoff */}
-        <div ref={afterDriverRef} style={{ height: 920 }} />
+        {/* Neutral buffer for clean handoff — extended */}
+        <div ref={afterDriverRef} style={{ height: 1100 }} />
 
         {/* Overlays (only while locked) */}
         {CollageOverlay}
         {ChromeOverlay}
 
-        {/* PERSISTENT LEFT RAIL — wrapper fades, inner slides up from bottom fade line */}
+        {/* PERSISTENT LEFT RAIL — wrapper fades; inner slides up from viewport bottom */}
         <motion.div
           className="fixed inset-0 z-[62] pointer-events-none"
           aria-hidden
