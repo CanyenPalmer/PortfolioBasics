@@ -375,7 +375,7 @@ export default function ProjectsHUD() {
   const collageOpacity = useTransform(scrollYProgress, [0, 0.9999, 1], [1, 1, 0]);
   const chromeOpacity  = useTransform(scrollYProgress, [0, 0.99993, 1], [1, 1, 0]);
 
-  // Lock + rail visibility (unchanged)
+  // Lock + rail visibility
   const [lockActive, setLockActive] = React.useState(false);
   const [railVisible, setRailVisible] = React.useState(false);
 
@@ -400,9 +400,15 @@ export default function ProjectsHUD() {
     };
   }, [lockActive, railVisible]);
 
-  // PRE-LOCK frame (kept in flow — always visible; overlays sit above during lock)
+  // PRE-LOCK frame (kept in flow). It fades OUT while locked, then fades back IN after unlock.
   const StaticStage = (
-    <div className="mx-auto max-w-7xl px-6" style={{ height: stageH }}>
+    <motion.div
+      className="mx-auto max-w-7xl px-6"
+      style={{ height: stageH, pointerEvents: lockActive ? "none" : "auto" }}
+      initial={false}
+      animate={{ opacity: lockActive ? 0 : 1 }}
+      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+    >
       <div className="h-full md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
         <div className="hidden md:block" aria-hidden />
         <div className="relative h-full">
@@ -413,7 +419,7 @@ export default function ProjectsHUD() {
           <div className="absolute inset-x-0" style={{ top: paceTop, height: windowH }} />
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 
   // FIXED CHROME (pinned while locked)
@@ -525,7 +531,7 @@ export default function ProjectsHUD() {
 
       {/* Desktop / Tablet */}
       <div className="hidden md:block">
-        {/* Pre-lock frame in flow (VISIBLE) */}
+        {/* Pre-lock frame in flow (now fades out during lock, fades back in after) */}
         <div ref={staticStageRef} className="relative">
           {StaticStage}
         </div>
