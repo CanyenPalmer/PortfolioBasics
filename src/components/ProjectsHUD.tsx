@@ -21,30 +21,12 @@ type Project = {
 };
 
 const IMAGE_BY_TITLE: Record<string, { src: string; alt: string }> = {
-  "CGM Patient Analytics": {
-    src: "/images/cgm-patient-avatar.png",
-    alt: "CGM Patient Analytics preview",
-  },
-  "Logistic Regression & Tree-Based ML": {
-    src: "/images/logistic-regression-avatar.png",
-    alt: "Logistic & Tree-Based ML preview",
-  },
-  "Real Estate Conditions Comparison (R)": {
-    src: "/images/real-estate-avatar.png",
-    alt: "Real Estate GLM (R) preview",
-  },
-  "Python 101": {
-    src: "/images/python-101-avatar.png",
-    alt: "Python 101 preview",
-  },
-  "MyCaddy — Physics Shot Calculator": {
-    src: "/images/mycaddy-avatar.png",
-    alt: "MyCaddy app preview",
-  },
-  "PortfolioBasics (This Site)": {
-    src: "/images/portfolio-basics-avatar.png",
-    alt: "Portfolio website preview",
-  },
+  "CGM Patient Analytics": { src: "/images/cgm-patient-avatar.png", alt: "CGM Patient Analytics preview" },
+  "Logistic Regression & Tree-Based ML": { src: "/images/logistic-regression-avatar.png", alt: "Logistic & Tree-Based ML preview" },
+  "Real Estate Conditions Comparison (R)": { src: "/images/real-estate-avatar.png", alt: "Real Estate GLM (R) preview" },
+  "Python 101": { src: "/images/python-101-avatar.png", alt: "Python 101 preview" },
+  "MyCaddy — Physics Shot Calculator": { src: "/images/mycaddy-avatar.png", alt: "MyCaddy app preview" },
+  "PortfolioBasics (This Site)": { src: "/images/portfolio-basics-avatar.png", alt: "Portfolio website preview" },
 };
 
 const KEYWORD_BY_TITLE: Record<string, string> = {
@@ -56,7 +38,6 @@ const KEYWORD_BY_TITLE: Record<string, string> = {
   "PortfolioBasics (This Site)": "frontend",
 };
 
-// Predictable heights for tiles
 const ASPECT: Record<string, string> = {
   "CGM Patient Analytics": "3 / 4",
   "MyCaddy — Physics Shot Calculator": "3 / 4",
@@ -103,6 +84,8 @@ const TILE_ORDER = [
   "Python 101",
 ];
 
+/* -------------------- Small helpers -------------------- */
+
 function keywordFor(title: string, tech?: string[]) {
   if (KEYWORD_BY_TITLE[title]) return KEYWORD_BY_TITLE[title];
   if (tech?.some((t) => /scikit-learn|xgboost|lightgbm/i.test(t))) return "machine-learning";
@@ -110,6 +93,15 @@ function keywordFor(title: string, tech?: string[]) {
   if (tech?.some((t) => /sql|sqlite|postgres/i.test(t))) return "data-pipeline";
   return "project";
 }
+
+/** Get absolute Y of an element */
+function getDocY(el: HTMLElement | null) {
+  if (!el) return 0;
+  const r = el.getBoundingClientRect();
+  return r.top + (window.scrollY || window.pageYOffset);
+}
+
+/* -------------------- Bits -------------------- */
 
 function ProjectTile({
   p,
@@ -188,7 +180,6 @@ function ProjectTile({
   );
 }
 
-/** Blurb + reference-style note (md+ only). */
 function BlurbAndNote({
   left,
   top,
@@ -199,10 +190,7 @@ function BlurbAndNote({
   width: string;
 }) {
   return (
-    <div
-      className="absolute hidden md:block pointer-events-none z-0"
-      style={{ left, top, width }}
-    >
+    <div className="absolute hidden md:block pointer-events-none z-0" style={{ left, top, width }}>
       <p className="text-[15px] leading-tight text-white/85 mb-4">
         I carry projects from messy data to maintainable tools—analyses, models, and apps that are
         rigorous, documented, and usable.
@@ -215,21 +203,11 @@ function BlurbAndNote({
         </div>
 
         <div className="flex flex-col gap-2 text-[14px] leading-snug text-white/85">
-          <div>
-            <span className="font-semibold">96.2% accuracy (AUC 93.8%)</span> on employee-retention models
-          </div>
-          <div>
-            <span className="font-semibold">$317k patient responsibility</span> surfaced; CSV → Python → Excel export
-          </div>
-          <div>
-            <span className="font-semibold">2.3k-home pricing model (R)</span> — 60+ features, RMSE-driven selection
-          </div>
-          <div>
-            <span className="font-semibold">Physics-based golf yardage</span> calculator (wind, temp, lie)
-          </div>
-          <div>
-            <span className="font-semibold">Next.js portfolio</span> with README-driven project pages
-          </div>
+          <div><span className="font-semibold">96.2% accuracy (AUC 93.8%)</span> on employee-retention models</div>
+          <div><span className="font-semibold">$317k patient responsibility</span> surfaced; CSV → Python → Excel export</div>
+          <div><span className="font-semibold">2.3k-home pricing model (R)</span> — 60+ features, RMSE-driven selection</div>
+          <div><span className="font-semibold">Physics-based golf yardage</span> calculator (wind, temp, lie)</div>
+          <div><span className="font-semibold">Next.js portfolio</span> with README-driven project pages</div>
         </div>
       </div>
     </div>
@@ -282,30 +260,10 @@ function PACEBackground({
     <div className="pointer-events-none absolute inset-x-0 z-[5]" style={{ top: topOffset, height }}>
       <div className="relative h-full w-full">
         <div className="absolute left-6 top-2 bottom-2 w-px bg-white/10" />
-        <NodeWithBranches
-          top="0%"
-          label="PLAN"
-          sub="Scope for outcomes"
-          branches={["Storyboard", "Framework", "Deadline"]}
-        />
-        <NodeWithBranches
-          top="28%"
-          label="ANALYZE"
-          sub="Turn data into direction"
-          branches={["Data audit", "Hypotheses", "Methods"]}
-        />
-        <NodeWithBranches
-          top="58%"
-          label="CONSTRUCT"
-          sub="Build, iterate, instrument"
-          branches={["Prototype", "Feedback", "Instrumentation"]}
-        />
-        <NodeWithBranches
-          top="88%"
-          label="EXECUTE"
-          sub="Ship, train, measure"
-          branches={["Deploy", "Enablement", "Impact"]}
-        />
+        <NodeWithBranches top="0%"  label="PLAN"      sub="Scope for outcomes"            branches={["Storyboard", "Framework", "Deadline"]} />
+        <NodeWithBranches top="28%" label="ANALYZE"   sub="Turn data into direction"      branches={["Data audit", "Hypotheses", "Methods"]} />
+        <NodeWithBranches top="58%" label="CONSTRUCT" sub="Build, iterate, instrument"    branches={["Prototype", "Feedback", "Instrumentation"]} />
+        <NodeWithBranches top="88%" label="EXECUTE"   sub="Ship, train, measure"          branches={["Deploy", "Enablement", "Impact"]} />
       </div>
     </div>
   );
@@ -333,10 +291,7 @@ function NodeWithBranches({
         <div className="absolute left-16 top-[1.6rem] h-px w-10 bg-white/12" />
         <div className="ml-24 flex flex-wrap gap-3 mt-1">
           {branches.map((b) => (
-            <div
-              key={b}
-              className="rounded-md border border-white/15 px-3 py-1 text-[11px] md:text-xs text-white/70"
-            >
+            <div key={b} className="rounded-md border border-white/15 px-3 py-1 text-[11px] md:text-xs text-white/70">
               {b}
             </div>
           ))}
@@ -346,7 +301,7 @@ function NodeWithBranches({
   );
 }
 
-/** LEFT RAIL — length & vertical position match the PACE area exactly */
+/** LEFT RAIL — matches the PACE area */
 function LeftRail({ height, top }: { height: number; top: number }) {
   const [paused, setPaused] = React.useState(false);
   const TOP_FADE = 250;
@@ -439,19 +394,10 @@ function LeftRail({ height, top }: { height: number; top: number }) {
 function RailColumn({ rows, rowH }: { rows: number; rowH: number }) {
   const lines = new Array(rows).fill("Scroll to Explore");
   return (
-    <div
-      className="box-border flex flex-col items-center"
-      style={{ paddingTop: rowH, paddingBottom: rowH }}
-    >
+    <div className="box-border flex flex-col items-center" style={{ paddingTop: rowH, paddingBottom: rowH }}>
       {lines.map((txt, i) => (
-        <div
-          key={`${txt}-${i}`}
-          className="flex items-center justify-center overflow-hidden"
-          style={{ height: rowH, width: "100%" }}
-        >
-          <span
-            className={`${plusJakarta.className} inline-block rotate-90 origin-center whitespace-nowrap text-[11px] tracking-[0.18em] text-white/40 select-none`}
-          >
+        <div key={`${txt}-${i}`} className="flex items-center justify-center overflow-hidden" style={{ height: rowH, width: "100%" }}>
+          <span className={`${plusJakarta.className} inline-block rotate-90 origin-center whitespace-nowrap text-[11px] tracking-[0.18em] text-white/40 select-none`}>
             {txt}
           </span>
         </div>
@@ -460,140 +406,194 @@ function RailColumn({ rows, rowH }: { rows: number; rowH: number }) {
   );
 }
 
-/* -------------------- STICKY-STAGE (reliable scroll lock) -------------------- */
-function StickyStage({
+/* -------------------- Stages -------------------- */
+
+/** Static stage — what you see BEFORE the lock engages (no animation). */
+function StaticStage({
+  stageH,
+  setHeaderH,
+}: {
+  stageH: number;
+  setHeaderH: (n: number) => void;
+}) {
+  // ~1" breathing room below the subheading
+  const EXTRA_PACE_GAP = 84;
+  const paceTop = React.useMemo(() => 0 /* computed after we know headerH */, []);
+  // We set tree height in the overlay (same math). For static, just make a good looking placeholder window.
+  return (
+    <div className="mx-auto max-w-7xl px-6" style={{ height: stageH }}>
+      <div className="h-full md:grid md:grid-cols-[64px,1fr] md:gap-6">
+        <div className="hidden md:block" />
+        <div className="relative h-full">
+          <div className="pt-6 md:pt-8">
+            <StageHeader onMeasured={setHeaderH} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Fixed overlay — the real animation while locked. */
+function FixedOverlay({
+  active,
+  stageH,
+  headerH,
   projects,
   layout,
+  driverRef,
+  progress,
 }: {
+  active: boolean;
+  stageH: number;
+  headerH: number;
   projects: ReadonlyArray<Project>;
   layout: {
     containerHeight: number;
     items: Record<string, { left: string; top: number; width: string }>;
     note: { left: string; top: number; width: string };
   };
+  driverRef: React.RefObject<HTMLDivElement>;
+  progress: { collageY: any };
 }) {
-  // Fixed stage height so sticky truly locks
-  const STAGE_H = typeof window === "undefined" ? 800 : window.innerHeight;
-
-  // Header measurement (to keep tree below subheading)
-  const [headerH, setHeaderH] = React.useState(0);
-
-  // ~1" breathing room below the subheading
-  const EXTRA_PACE_GAP = 84;
-
+  const EXTRA_PACE_GAP = 84; // about an inch
   const paceTop = headerH + EXTRA_PACE_GAP;
-  const windowH = Math.max(360, STAGE_H - paceTop);
+  const windowH = Math.max(360, stageH - paceTop);
   const treeH = Math.max(520, Math.min(820, Math.round(windowH * 0.75)));
 
-  // Timeline distances
+  return (
+    <div
+      className={[
+        "fixed inset-0 z-[60] transition-opacity duration-200",
+        active ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
+      ].join(" ")}
+      aria-hidden={!active}
+    >
+      <div className="absolute inset-0 bg-[#0d131d]" />
+
+      <div className="relative h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6">
+        {/* Left rail */}
+        <div className="hidden md:block">
+          <LeftRail height={treeH} top={paceTop} />
+        </div>
+
+        {/* Right side */}
+        <div className="relative h-full">
+          <div className="pt-6 md:pt-8">
+            <StageHeader onMeasured={() => { /* no-op in overlay */ }} />
+          </div>
+
+          <PACEBackground topOffset={paceTop} height={treeH} />
+
+          {/* Animation window */}
+          <div className="absolute inset-x-0 z-10 overflow-hidden" style={{ top: paceTop, height: windowH }}>
+            {/* gradient mask for entry/exit */}
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                WebkitMaskImage: `linear-gradient(to bottom,
+                  transparent 0px,
+                  black 110px,
+                  black calc(100% - 180px),
+                  transparent 100%)`,
+                maskImage: `linear-gradient(to bottom,
+                  transparent 0px,
+                  black 110px,
+                  black calc(100% - 180px),
+                  transparent 100%)`,
+              }}
+            />
+            <motion.div
+              style={{ y: progress.collageY, height: layout.containerHeight, position: "relative" }}
+              className="will-change-transform"
+            >
+              {TILE_ORDER.map((title) => {
+                const p = projects.find((x) => x.title === title);
+                if (!p) return null;
+                const pos = layout.items[title];
+                return (
+                  <ProjectTile key={`tile-${title}`} p={p} left={pos.left} top={pos.top} width={pos.width} />
+                );
+              })}
+              <BlurbAndNote left={layout.note.left} top={layout.note.top} width={layout.note.width} />
+            </motion.div>
+          </div>
+        </div>
+      </div>
+
+      {/* For accessibility (keeps the overlay in the a11y tree while active) */}
+      <div ref={driverRef} className="absolute inset-0 pointer-events-none" aria-hidden />
+    </div>
+  );
+}
+
+/* -------------------- Main Component -------------------- */
+
+export default function ProjectsHUD() {
+  const projects = ((profile as any)?.projects ?? []) as ReadonlyArray<Project>;
+
+  const stageH = typeof window === "undefined" ? 800 : window.innerHeight;
+
+  // --- static stage (what you see as you arrive) ---
+  const staticStageRef = React.useRef<HTMLDivElement>(null);
+  const [headerH, setHeaderH] = React.useState(0);
+
+  // --- driver (scroll distance for the animation) ---
+  const driverRef = React.useRef<HTMLDivElement>(null);
+  const afterDriverRef = React.useRef<HTMLDivElement>(null); // end boundary for the overlay
+
+  // Geometry for the collage travel
+  const EXTRA_PACE_GAP = 84;
+  const paceTop = headerH + EXTRA_PACE_GAP;
+  const windowH = Math.max(360, stageH - paceTop);
+
+  const TRAVEL_CORE = Math.max(0, LAYOUT.lg.containerHeight - windowH);
   const LEAD_IN = Math.max(220, Math.round(windowH * 0.22));
   const START_FROM_BOTTOM = Math.round(windowH * 0.95);
-  const TRAVEL_CORE = Math.max(0, layout.containerHeight - windowH);
   const EXIT_TAIL = Math.max(220, Math.round(windowH * 0.32));
+  const DRIVER_HEIGHT = LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL + 1;
 
-  // Sentinel height MUST exceed stage height; otherwise sticky won't appear to lock
-  const SENTINEL = LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL + 1;
-
-  const sentinelRef = React.useRef<HTMLDivElement | null>(null);
+  // Map driver scroll → collage Y
   const { scrollYProgress } = useScroll({
-    target: sentinelRef,
+    target: driverRef,
     offset: ["start start", "end start"],
   });
-
-  // Collage Y mapping across the sentinel range
-  const startFrac = LEAD_IN / SENTINEL || 0.0001;
+  const startFrac = LEAD_IN / DRIVER_HEIGHT || 0.0001;
   const collageY = useTransform(scrollYProgress, [0, startFrac, 1], [
     START_FROM_BOTTOM,
     START_FROM_BOTTOM,
     -TRAVEL_CORE,
   ]);
 
-  return (
-    <>
-      {/* This block creates the vertical space for the sticky stage to lock within */}
-      <div ref={sentinelRef} style={{ height: SENTINEL }} className="relative">
-        {/* This child is the thing that locks. Keep it simple: sticky + h-screen. */}
-        <div className="sticky top-0 h-screen">
-          <div className="absolute inset-0 bg-[#0d131d]" />
+  // Lock activation: active when scroll is between the top of the static stage
+  // and the bottom of the driver region — this prevents snap/jump.
+  const [active, setActive] = React.useState(false);
+  React.useEffect(() => {
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        const startY = getDocY(staticStageRef.current!);
+        const endY = getDocY(afterDriverRef.current!);
+        const y = window.scrollY || window.pageYOffset || 0;
+        // engage when the static stage top has reached the top of the viewport
+        // and we haven't passed the end of the driver yet
+        const inRange = y >= startY && y < endY;
+        if (inRange !== active) setActive(inRange);
+      });
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [active]);
 
-          {/* Full-height grid (no absolute filling on the grid itself) */}
-          <div className="h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6">
-            {/* Left rail sized to the PACE area */}
-            <div className="hidden md:flex">
-              <div className="relative w-16">
-                <LeftRail height={treeH} top={paceTop} />
-              </div>
-            </div>
-
-            {/* Right column */}
-            <div className="relative h-full">
-              {/* Title/subheading (measured) */}
-              <div className="pt-6 md:pt-8">
-                <StageHeader onMeasured={setHeaderH} />
-              </div>
-
-              {/* PACE tree (below header, behind collage window) */}
-              <PACEBackground topOffset={paceTop} height={treeH} />
-
-              {/* Collage window (scroll-controlled) */}
-              <div
-                className="absolute inset-x-0 z-10 overflow-hidden"
-                style={{ top: paceTop, height: windowH }}
-              >
-                {/* vignette mask for entry/exit */}
-                <div
-                  className="absolute inset-0 pointer-events-none"
-                  style={{
-                    WebkitMaskImage: `linear-gradient(to bottom,
-                      transparent 0px,
-                      black 110px,
-                      black calc(100% - 180px),
-                      transparent 100%)`,
-                    maskImage: `linear-gradient(to bottom,
-                      transparent 0px,
-                      black 110px,
-                      black calc(100% - 180px),
-                      transparent 100%)`,
-                  }}
-                />
-                <motion.div
-                  style={{ y: collageY, height: layout.containerHeight, position: "relative" }}
-                  className="will-change-transform"
-                >
-                  {TILE_ORDER.map((title) => {
-                    const p = projects.find((x) => x.title === title);
-                    if (!p) return null;
-                    const pos = layout.items[title];
-                    return (
-                      <ProjectTile
-                        key={`tile-${title}`}
-                        p={p}
-                        left={pos.left}
-                        top={pos.top}
-                        width={pos.width}
-                      />
-                    );
-                  })}
-                  <BlurbAndNote left={layout.note.left} top={layout.note.top} width={layout.note.width} />
-                </motion.div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Small buffer so release never snaps into the next section */}
-      <div className="bg-[#0d131d]" style={{ height: Math.max(140, Math.round(STAGE_H * 0.18)) }} />
-    </>
-  );
-}
-
-/* -------------------- Component entry -------------------- */
-
-export default function ProjectsHUD() {
-  const projects = ((profile as any)?.projects ?? []) as ReadonlyArray<Project>;
-
-  // Mobile: simple stack (unchanged)
+  // Mobile (unchanged)
   const mobile = (
     <div className="md:hidden space-y-10 px-6 py-10 bg-[#0d131d]">
       {TILE_ORDER.map((title) => {
@@ -625,10 +625,7 @@ export default function ProjectsHUD() {
             </TransitionLink>
             <div className="mt-3 flex items-baseline justify-between gap-3">
               <h3 className="text-lg font-medium tracking-tight">
-                <TransitionLink
-                  href={`/projects/${slug}?via=projects`}
-                  className="hover:underline"
-                >
+                <TransitionLink href={`/projects/${slug}?via=projects`} className="hover:underline">
                   {p.title}
                 </TransitionLink>
               </h3>
@@ -644,12 +641,32 @@ export default function ProjectsHUD() {
 
   return (
     <section id="projects" aria-label="Projects" className="relative w-full bg-[#0d131d]">
-      {/* Mobile content only */}
+      {/* Mobile */}
       {mobile}
 
-      {/* Desktop/tablet: single sticky stage that actually locks */}
+      {/* Desktop / Tablet */}
       <div className="hidden md:block">
-        <StickyStage projects={projects} layout={LAYOUT.lg} />
+        {/* 1) Static stage — already formatted exactly like the locked view */}
+        <div ref={staticStageRef} className="relative">
+          <StaticStage stageH={stageH} setHeaderH={setHeaderH} />
+        </div>
+
+        {/* 2) Driver — provides the scroll distance for the animation */}
+        <div ref={driverRef} style={{ height: DRIVER_HEIGHT }} />
+
+        {/* 3) End bound — when we pass this, overlay releases (no snap to next section) */}
+        <div ref={afterDriverRef} style={{ height: Math.max(140, Math.round(stageH * 0.18)) }} />
+
+        {/* 4) Fixed overlay — only visible while "active" range is true */}
+        <FixedOverlay
+          active={active}
+          stageH={stageH}
+          headerH={headerH}
+          projects={projects}
+          layout={LAYOUT.lg}
+          driverRef={driverRef}
+          progress={{ collageY }}
+        />
       </div>
     </section>
   );
