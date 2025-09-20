@@ -411,12 +411,14 @@ export default function ProjectsHUD() {
       } else /* afterLock */ {
         if (preVisible) setPreVisible(false);
         if (lockActive) setLockActive(false);
-        // show the post section ONLY after unlock so it appears perfectly overlapped
         if (!postVisible) setPostVisible(true);
       }
 
-      // sidebar only during lock
-      const railOn = inLock;
+      // ---- Sidebar visibility: keep it visible for the entire Projects section.
+      // Start slightly before lockStart; end after the post-lock section + spacer.
+      const postTop = Math.round(docTop(postStageRef.current!));
+      const postEnd = postTop + (typeof window !== "undefined" ? window.innerHeight : 800) + 1100; // stage minHeight + spacer
+      const railOn = y >= lockStart - 40 && y < postEnd;
       if (railOn !== railVisible) setRailVisible(railOn);
     };
     onScroll();
@@ -583,7 +585,7 @@ export default function ProjectsHUD() {
     </div>
   );
 
-  // Sidebar entrance: only while locked
+  // Sidebar entrance offset (so it rises from the bottom on its FIRST appearance)
   const railIntroOffset = Math.max(0, windowH - (paceTop + treeH));
 
   return (
@@ -604,7 +606,7 @@ export default function ProjectsHUD() {
         {/* Lock end marker */}
         <div ref={lockEndRef} style={{ height: 0 }} />
 
-        {/* POST-LOCK in-flow (becomes visible only after unlock to ensure perfect overlap) */}
+        {/* POST-LOCK in-flow */}
         <div ref={postStageRef} className="relative">
           {StaticPost}
         </div>
@@ -616,7 +618,7 @@ export default function ProjectsHUD() {
         {CollageOverlay}
         {ChromeOverlay}
 
-        {/* PERSISTENT LEFT RAIL (only while locked, enters from bottom) */}
+        {/* PERSISTENT LEFT RAIL — now visible the ENTIRE Projects section */}
         <motion.div
           className="fixed inset-0 z-[62] pointer-events-none"
           aria-hidden
