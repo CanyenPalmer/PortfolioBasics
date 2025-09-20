@@ -375,9 +375,6 @@ export default function ProjectsHUD() {
   const collageOpacity = useTransform(scrollYProgress, [0, 0.9999, 1], [1, 1, 0]);
   const chromeOpacity  = useTransform(scrollYProgress, [0, 0.99993, 1], [1, 1, 0]);
 
-  // Cross-fade back to the in-flow static frame to avoid any jump
-  const staticOpacity  = useTransform(scrollYProgress, [0, 0.99993, 1], [0, 0, 1]);
-
   // Lock + rail visibility (unchanged)
   const [lockActive, setLockActive] = React.useState(false);
   const [railVisible, setRailVisible] = React.useState(false);
@@ -403,7 +400,7 @@ export default function ProjectsHUD() {
     };
   }, [lockActive, railVisible]);
 
-  // PRE-LOCK frame (kept in flow; now cross-faded instead of visibility toggle)
+  // PRE-LOCK frame (kept in flow — always visible; overlays sit above during lock)
   const StaticStage = (
     <div className="mx-auto max-w-7xl px-6" style={{ height: stageH }}>
       <div className="h-full md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
@@ -528,11 +525,9 @@ export default function ProjectsHUD() {
 
       {/* Desktop / Tablet */}
       <div className="hidden md:block">
-        {/* Pre-lock frame (in flow); cross-fade it in at unlock */}
+        {/* Pre-lock frame in flow (VISIBLE) */}
         <div ref={staticStageRef} className="relative">
-          <motion.div style={{ opacity: staticOpacity }}>
-            {StaticStage}
-          </motion.div>
+          {StaticStage}
         </div>
 
         {/* Driver: defines lock distance & progress */}
