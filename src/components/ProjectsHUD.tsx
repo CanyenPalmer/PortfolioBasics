@@ -376,19 +376,25 @@ export default function ProjectsHUD() {
   const [postVisible, setPostVisible] = React.useState(false);
   const [railVisible, setRailVisible] = React.useState(false);
 
-  // After-unlock delta for sidebar to move up with the section
+  // Sidebar motion: after-unlock delta & entrance reveal
   const [postDelta, setPostDelta] = React.useState(0);
+  const [railRevealY, setRailRevealY] = React.useState(0);
+  const [railRevealOpacity, setRailRevealOpacity] = React.useState(0);
 
   const didSnapRef = React.useRef(false);
 
   useMotionValueEvent(scrollYProgress, "change", () => {});
 
+  // Sidebar entrance offset (rise-from-bottom on first appearance)
+  const railIntroOffset = Math.max(0, windowH - (paceTop + treeH));
+
   React.useEffect(() => {
     const onScroll = () => {
       const y = window.scrollY || window.pageYOffset || 0;
-      const preTop = Math.round(docTop(preStageRef.current!));     // section start
-      const lockStart = preTop;                                    // lock starts at section start
-      const lockEnd = Math.round(docTop(lockEndRef.current!));     // unlock point
+      const viewportH = typeof window !== "undefined" ? window.innerHeight : 800;
+      const preTop = Math.round(docTop(preStageRef.current!)); // section start
+      const lockStart = preTop;                                // lock starts at section start
+      const lockEnd = Math.round(docTop(lockEndRef.current!)); // unlock point
 
       // Prevent tiny rebound jiggle exactly at lock
       if (!didSnapRef.current && y > lockStart && y < lockStart + 12) {
@@ -419,16 +425,28 @@ export default function ProjectsHUD() {
       }
 
       // ----- Sidebar visibility for the ENTIRE Projects section -----
-      // Make it visible as soon as the section *enters the viewport* (already in view when arriving).
-      const viewportBottom = y + (typeof window !== "undefined" ? window.innerHeight : 800);
       const postTop = Math.round(docTop(postStageRef.current!));
-      const postEnd = postTop + (typeof window !== "undefined" ? window.innerHeight : 800) + 1100; // stage minHeight + spacer
-      const railOn = viewportBottom >= preTop + 40 && y < postEnd; // << only change: use viewportBottom vs lock start
+      const postEnd = postTop + viewportH + 1100; // stage minHeight + spacer
+      const viewportBottom = y + viewportH;
+
+      // Make it visible as soon as the section starts to enter, but control *how much* is revealed:
+      const railOn = viewportBottom >= preTop && y < postEnd;
       if (railOn !== railVisible) setRailVisible(railOn);
+
+      // Reveal progress: 0 when just touching, 1 when the section fully occupies the viewport (or maxed)
+      const visiblePx = Math.max(0, viewportBottom - preTop);
+      const revealDenom = Math.max(1, Math.min(stageH, viewportH));
+      const revealProgress = Math.max(0, Math.min(1, visiblePx / revealDenom));
+
+      // Sidebar should rise from the bottom proportionally with the section’s reveal
+      const yReveal = Math.round(railIntroOffset * (1 - revealProgress));
+      setRailRevealY(yReveal);
+      setRailRevealOpacity(revealProgress);
 
       // Move the sidebar up at the same rate as the section after unlock
       setPostDelta(afterLock ? Math.max(0, y - lockEnd) : 0);
     };
+
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll, { passive: true });
@@ -436,7 +454,7 @@ export default function ProjectsHUD() {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
     };
-  }, [preVisible, lockActive, postVisible, railVisible]);
+  }, [preVisible, lockActive, postVisible, railVisible, stageH, windowH, paceTop, treeH, railIntroOffset]);
 
   /* ----------- PRE-LOCK in-flow stage ----------- */
   const StaticPre = (
@@ -593,9 +611,6 @@ export default function ProjectsHUD() {
     </div>
   );
 
-  // Sidebar entrance offset (rise-from-bottom on first appearance)
-  const railIntroOffset = Math.max(0, windowH - (paceTop + treeH));
-
   return (
     <section id="projects" aria-label="Projects" className="relative w-full bg-[#0d131d]">
       {/* Mobile */}
@@ -626,26 +641,28 @@ export default function ProjectsHUD() {
         {CollageOverlay}
         {ChromeOverlay}
 
-        {/* PERSISTENT LEFT RAIL — visible early; moves with section after unlock */}
+        {/* PERSISTENT LEFT RAIL — reveals with section; moves out after unlock */}
         <motion.div
           className="fixed inset-0 z-[62] pointer-events-none"
           aria-hidden
           initial={false}
           animate={{ opacity: railVisible ? 1 : 0 }}
-          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-          style={{ transform: `translateY(${-postDelta}px)` }}
+          transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+          style={{ transform: `translateY(${-postDelta}px)` }} // move with post section after unlock
         >
           <div className="h-full mx-auto max-w-7xl px-6">
             <div className="relative h-full md:grid md:grid-cols-[64px,1fr] md:gap-6">
               <div className="hidden md:block">
-                <motion.div
-                  initial={false}
-                  animate={railVisible ? { y: 0, opacity: 1 } : { y: railIntroOffset, opacity: 0 }}
-                  transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-                  style={{ willChange: "transform, opacity" }}
+                {/* Entrance reveal controlled continuously by railRevealY / railRevealOpacity */}
+                <div
+                  style={{
+                    transform: `translateY(${railRevealY}px)`,
+                    opacity: railRevealOpacity,
+                    willChange: "transform, opacity",
+                  }}
                 >
                   <LeftRail height={treeH} top={paceTop} />
-                </motion.div>
+                </div>
               </div>
               <div aria-hidden className="hidden md:block" />
             </div>
@@ -655,4 +672,3 @@ export default function ProjectsHUD() {
     </section>
   );
 }
-
