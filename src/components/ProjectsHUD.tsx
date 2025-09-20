@@ -47,20 +47,7 @@ const ASPECT: Record<string, string> = {
   "Python 101": "2 / 3",
 };
 
-/** Collage layout (original positions) */
 const LAYOUT = {
-  md: {
-    containerHeight: 1950,
-    items: {
-      "CGM Patient Analytics": { left: "3%", top: 0, width: "28%" },
-      "MyCaddy — Physics Shot Calculator": { left: "36%", top: 110, width: "26%" },
-      "PortfolioBasics (This Site)": { left: "66%", top: 200, width: "31%" },
-      "Real Estate Conditions Comparison (R)": { left: "3%", top: 480, width: "28%" },
-      "Logistic Regression & Tree-Based ML": { left: "36%", top: 880, width: "56%" },
-      "Python 101": { left: "3%", top: 1080, width: "28%" },
-    } as Record<string, { left: string; top: number; width: string }>,
-    note: { left: "55%", top: 1380, width: "34%" },
-  },
   lg: {
     containerHeight: 1750,
     items: {
@@ -84,8 +71,6 @@ const TILE_ORDER = [
   "Python 101",
 ];
 
-/* -------------------- Small helpers -------------------- */
-
 function keywordFor(title: string, tech?: string[]) {
   if (KEYWORD_BY_TITLE[title]) return KEYWORD_BY_TITLE[title];
   if (tech?.some((t) => /scikit-learn|xgboost|lightgbm/i.test(t))) return "machine-learning";
@@ -94,30 +79,8 @@ function keywordFor(title: string, tech?: string[]) {
   return "project";
 }
 
-/** Get absolute Y of an element */
-function getDocY(el: HTMLElement | null) {
-  if (!el) return 0;
-  const r = el.getBoundingClientRect();
-  return r.top + (window.scrollY || window.pageYOffset);
-}
-
-/* -------------------- Bits -------------------- */
-
-function ProjectTile({
-  p,
-  left,
-  top,
-  width,
-}: {
-  p: Project;
-  left: string;
-  top: number;
-  width: string;
-}) {
-  const img = IMAGE_BY_TITLE[p.title] ?? {
-    src: "/images/portfolio-basics-avatar.png",
-    alt: `${p.title} preview`,
-  };
+function ProjectTile({ p, left, top, width }: { p: Project; left: string; top: number; width: string }) {
+  const img = IMAGE_BY_TITLE[p.title] ?? { src: "/images/portfolio-basics-avatar.png", alt: `${p.title} preview` };
   const slug = slugify(p.title);
   const aspect = ASPECT[p.title] ?? "3 / 4";
 
@@ -126,10 +89,9 @@ function ProjectTile({
       <TransitionLink
         href={`/projects/${slug}?via=projects`}
         className="block group"
-        onClick={() =>
-          typeof window !== "undefined" &&
-          window.sessionStorage.setItem("cameFromProjects", "1")
-        }
+        onClick={() => {
+          if (typeof window !== "undefined") window.sessionStorage.setItem("cameFromProjects", "1");
+        }}
       >
         <div style={{ aspectRatio: aspect }} className="w-full overflow-hidden">
           <img
@@ -139,8 +101,7 @@ function ProjectTile({
             loading="lazy"
             decoding="async"
             onError={(e) => {
-              (e.currentTarget as HTMLImageElement).src =
-                "/images/portfolio-basics-avatar.png";
+              (e.currentTarget as HTMLImageElement).src = "/images/portfolio-basics-avatar.png";
             }}
           />
         </div>
@@ -151,57 +112,30 @@ function ProjectTile({
           <TransitionLink
             href={`/projects/${slug}?via=projects`}
             className="hover:underline"
-            onClick={() =>
-              typeof window !== "undefined" &&
-              window.sessionStorage.setItem("cameFromProjects", "1")
-            }
+            onClick={() => {
+              if (typeof window !== "undefined") window.sessionStorage.setItem("cameFromProjects", "1");
+            }}
           >
             {p.title}
           </TransitionLink>
         </h3>
-        <span className="text-[11px] md:text-xs uppercase tracking-wide text-white/60">
-          {keywordFor(p.title, p.tech)}
-        </span>
+        <span className="text-[11px] md:text-xs uppercase tracking-wide text-white/60">{keywordFor(p.title, p.tech)}</span>
       </div>
-
-      {Array.isArray(p.tech) && p.tech.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-2">
-          {p.tech.slice(0, 4).map((t) => (
-            <span
-              key={t}
-              className="text-[10px] md:text-[11px] px-2 py-0.5 rounded-full bg-white/5 text-white/70"
-            >
-              {t}
-            </span>
-          ))}
-        </div>
-      )}
     </article>
   );
 }
 
-function BlurbAndNote({
-  left,
-  top,
-  width,
-}: {
-  left: string;
-  top: number;
-  width: string;
-}) {
+function BlurbAndNote({ left, top, width }: { left: string; top: number; width: string }) {
   return (
     <div className="absolute hidden md:block pointer-events-none z-0" style={{ left, top, width }}>
       <p className="text-[15px] leading-tight text-white/85 mb-4">
-        I carry projects from messy data to maintainable tools—analyses, models, and apps that are
-        rigorous, documented, and usable.
+        I carry projects from messy data to maintainable tools—analyses, models, and apps that are rigorous, documented, and usable.
       </p>
-
       <div className="grid grid-cols-[8.5rem,1fr] gap-x-6">
         <div className="text-[12px] leading-tight text-white/60 font-medium">
           <div>Showcase</div>
           <div>Highlights</div>
         </div>
-
         <div className="flex flex-col gap-2 text-[14px] leading-snug text-white/85">
           <div><span className="font-semibold">96.2% accuracy (AUC 93.8%)</span> on employee-retention models</div>
           <div><span className="font-semibold">$317k patient responsibility</span> surfaced; CSV → Python → Excel export</div>
@@ -214,7 +148,6 @@ function BlurbAndNote({
   );
 }
 
-/** Title block — measured so the tree ALWAYS begins below it (no overlap) */
 function StageHeader({ onMeasured }: { onMeasured: (h: number) => void }) {
   const ref = React.useRef<HTMLDivElement>(null);
   React.useEffect(() => {
@@ -237,9 +170,7 @@ function StageHeader({ onMeasured }: { onMeasured: (h: number) => void }) {
           <div className="text-xl md:text-2xl font-medium text-white/90">Palmer</div>
           <div className="h-[2px] bg-white/25 mt-1" />
         </div>
-        <h2 className="mt-3 uppercase font-bold text-white/90 tracking-tight text-[12vw] md:text-[9vw] lg:text-[8vw]">
-          Projects
-        </h2>
+        <h2 className="mt-3 uppercase font-bold text-white/90 tracking-tight text-[12vw] md:text-[9vw] lg:text-[8vw]">Projects</h2>
       </div>
       <div className={`${plusJakarta.className} mt-3 text-sm md:text-base text-white/70`}>
         Select a project to view the full details
@@ -248,22 +179,15 @@ function StageHeader({ onMeasured }: { onMeasured: (h: number) => void }) {
   );
 }
 
-/** PACE storyboard */
-function PACEBackground({
-  topOffset,
-  height,
-}: {
-  topOffset: number;
-  height: number;
-}) {
+function PACEBackground({ topOffset, height }: { topOffset: number; height: number }) {
   return (
     <div className="pointer-events-none absolute inset-x-0 z-[5]" style={{ top: topOffset, height }}>
       <div className="relative h-full w-full">
         <div className="absolute left-6 top-2 bottom-2 w-px bg-white/10" />
-        <NodeWithBranches top="0%"  label="PLAN"      sub="Scope for outcomes"            branches={["Storyboard", "Framework", "Deadline"]} />
-        <NodeWithBranches top="28%" label="ANALYZE"   sub="Turn data into direction"      branches={["Data audit", "Hypotheses", "Methods"]} />
-        <NodeWithBranches top="58%" label="CONSTRUCT" sub="Build, iterate, instrument"    branches={["Prototype", "Feedback", "Instrumentation"]} />
-        <NodeWithBranches top="88%" label="EXECUTE"   sub="Ship, train, measure"          branches={["Deploy", "Enablement", "Impact"]} />
+        <NodeWithBranches top="0%"  label="PLAN"      sub="Scope for outcomes"         branches={["Storyboard", "Framework", "Deadline"]} />
+        <NodeWithBranches top="28%" label="ANALYZE"   sub="Turn data into direction"   branches={["Data audit", "Hypotheses", "Methods"]} />
+        <NodeWithBranches top="58%" label="CONSTRUCT" sub="Build, iterate, instrument" branches={["Prototype", "Feedback", "Instrumentation"]} />
+        <NodeWithBranches top="88%" label="EXECUTE"   sub="Ship, train, measure"       branches={["Deploy", "Enablement", "Impact"]} />
       </div>
     </div>
   );
@@ -301,7 +225,201 @@ function NodeWithBranches({
   );
 }
 
-/** LEFT RAIL — matches the PACE area */
+/* ───────────────────────── Helpers ───────────────────────── */
+
+function docTop(el: HTMLElement | null) {
+  if (!el) return 0;
+  const r = el.getBoundingClientRect();
+  return r.top + (window.scrollY || window.pageYOffset || 0);
+}
+
+/* ───────────────────────── Main ───────────────────────── */
+
+export default function ProjectsHUD() {
+  const projects = ((profile as any)?.projects ?? []) as ReadonlyArray<Project>;
+  const stageH = typeof window === "undefined" ? 800 : window.innerHeight;
+
+  // static stage (what you see before lock)
+  const staticStageRef = React.useRef<HTMLDivElement>(null);
+  const [headerH, setHeaderH] = React.useState(0);
+
+  // driver (how long the animation runs)
+  const driverRef = React.useRef<HTMLDivElement>(null);
+  const afterDriverRef = React.useRef<HTMLDivElement>(null);
+
+  // geometry / timing
+  const EXTRA_PACE_GAP = 84;               // ~1" under subheading
+  const paceTop = headerH + EXTRA_PACE_GAP;
+  const windowH = Math.max(360, stageH - paceTop);
+
+  const TRAVEL_CORE = Math.max(0, LAYOUT.lg.containerHeight - windowH);
+  const LEAD_IN = Math.max(220, Math.round(windowH * 0.22));
+  const START_FROM_BOTTOM = Math.round(windowH * 0.95);
+  const EXIT_TAIL = Math.max(220, Math.round(windowH * 0.32));
+  const DRIVER_HEIGHT = LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL + 1;
+
+  // progress → collage Y
+  const { scrollYProgress } = useScroll({ target: driverRef, offset: ["start start", "end start"] });
+  const startFrac = LEAD_IN / DRIVER_HEIGHT || 0.0001;
+  const collageY = useTransform(scrollYProgress, [0, startFrac, 1], [
+    START_FROM_BOTTOM,
+    START_FROM_BOTTOM,
+    -TRAVEL_CORE,
+  ]);
+
+  // robust lock timing:
+  // lockStart: when the static stage is fully on screen (its top reaches the viewport top)
+  // lockEnd:   when we've scrolled past the driver region (plus a small buffer);
+  const [active, setActive] = React.useState(false);
+  React.useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY || window.pageYOffset || 0;
+
+      // When the stage is fully in view: its top equals the current scroll position
+      const lockStart = Math.round(docTop(staticStageRef.current!));
+
+      // End when we've passed the driver and the small tail buffer
+      const lockEnd = Math.round(docTop(afterDriverRef.current!));
+
+      // Engage immediately at or after lockStart; release strictly after lockEnd
+      const nextActive = y >= lockStart && y < lockEnd;
+      if (nextActive !== active) setActive(nextActive);
+    };
+
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, [active]);
+
+  // static (pre-lock) markup – keeps the section formatted before lock begins
+  const StaticStage = (
+    <div className="mx-auto max-w-7xl px-6" style={{ height: stageH }}>
+      <div className="h-full md:grid md:grid-cols-[64px,1fr] md:gap-6">
+        <div className="hidden md:block" />
+        <div className="relative h-full">
+          <div className="pt-6 md:pt-8">
+            <StageHeader onMeasured={setHeaderH} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // overlay (locked) — no fade, no pointer interception so scroll drives the driver cleanly
+  const Overlay = active ? (
+    <div className="fixed inset-0 z-[60] pointer-events-none">
+      <div className="absolute inset-0 bg-[#0d131d]" />
+
+      <div className="relative h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6">
+        {/* left rail */}
+        <div className="hidden md:block">
+          <LeftRail height={Math.max(520, Math.min(820, Math.round(windowH * 0.75)))} top={paceTop} />
+        </div>
+
+        {/* right side */}
+        <div className="relative h-full">
+          <div className="pt-6 md:pt-8">
+            {/* header re-render (visual match, no measuring during lock) */}
+            <div className={`${oswald.className} leading-none tracking-tight`}>
+              <div className="inline-block">
+                <div className="text-xl md:text-2xl font-medium text-white/90">Palmer</div>
+                <div className="h-[2px] bg-white/25 mt-1" />
+              </div>
+              <h2 className="mt-3 uppercase font-bold text-white/90 tracking-tight text-[12vw] md:text-[9vw] lg:text-[8vw]">Projects</h2>
+            </div>
+            <div className={`${plusJakarta.className} mt-3 text-sm md:text-base text-white/70`}>
+              Select a project to view the full details
+            </div>
+          </div>
+
+          <PACEBackground topOffset={paceTop} height={Math.max(520, Math.min(820, Math.round(windowH * 0.75)))} />
+
+          <div className="absolute inset-x-0 z-10 overflow-hidden" style={{ top: paceTop, height: windowH }}>
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                WebkitMaskImage: `linear-gradient(to bottom, transparent 0px, black 110px, black calc(100% - 180px), transparent 100%)`,
+                maskImage: `linear-gradient(to bottom, transparent 0px, black 110px, black calc(100% - 180px), transparent 100%)`,
+              }}
+            />
+            <motion.div
+              style={{ y: collageY, height: LAYOUT.lg.containerHeight, position: "relative" }}
+              className="will-change-transform"
+            >
+              {TILE_ORDER.map((title) => {
+                const p = projects.find((x) => x.title === title);
+                if (!p) return null;
+                const pos = LAYOUT.lg.items[title];
+                return <ProjectTile key={`tile-${title}`} p={p} left={pos.left} top={pos.top} width={pos.width} />;
+              })}
+              <BlurbAndNote left={LAYOUT.lg.note.left} top={LAYOUT.lg.note.top} width={LAYOUT.lg.note.width} />
+            </motion.div>
+          </div>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
+  // mobile stack (unchanged)
+  const mobile = (
+    <div className="md:hidden space-y-10 px-6 py-10 bg-[#0d131d]">
+      {TILE_ORDER.map((title) => {
+        const p = projects.find((x) => x.title === title);
+        if (!p) return null;
+        const img = IMAGE_BY_TITLE[p.title] ?? { src: "/images/portfolio-basics-avatar.png", alt: `${p.title} preview` };
+        const slug = slugify(p.title);
+        const aspect = ASPECT[p.title] ?? "3 / 4";
+        return (
+          <article key={title}>
+            <TransitionLink href={`/projects/${slug}?via=projects`} className="block group">
+              <div style={{ aspectRatio: aspect }} className="w-full overflow-hidden">
+                <img src={img.src} alt={img.alt} className="w-full h-full object-contain transition-transform duration-300 ease-out group-hover:scale-[1.03] will-change-transform" />
+              </div>
+            </TransitionLink>
+            <div className="mt-3 flex items-baseline justify-between gap-3">
+              <h3 className="text-lg font-medium tracking-tight">
+                <TransitionLink href={`/projects/${slug}?via=projects`} className="hover:underline">
+                  {p.title}
+                </TransitionLink>
+              </h3>
+              <span className="text-xs uppercase tracking-wide text-white/60">{KEYWORD_BY_TITLE[p.title] ?? "project"}</span>
+            </div>
+          </article>
+        );
+      })}
+    </div>
+  );
+
+  return (
+    <section id="projects" aria-label="Projects" className="relative w-full bg-[#0d131d]">
+      {/* Mobile */}
+      {mobile}
+
+      {/* Desktop / Tablet */}
+      <div className="hidden md:block">
+        {/* 1) Static stage (what you see as you arrive) */}
+        <div ref={staticStageRef} className="relative">
+          {StaticStage}
+        </div>
+
+        {/* 2) Driver (scroll distance for the animation) */}
+        <div ref={driverRef} style={{ height: DRIVER_HEIGHT }} />
+
+        {/* 3) End boundary – small spacer to release naturally (no snap/fade) */}
+        <div ref={afterDriverRef} style={{ height: Math.max(140, Math.round(stageH * 0.18)) }} />
+
+        {/* 4) Overlay (locked) */}
+        {Overlay}
+      </div>
+    </section>
+  );
+}
+
+/* left rail & helpers (kept as-is) */
 function LeftRail({ height, top }: { height: number; top: number }) {
   const [paused, setPaused] = React.useState(false);
   const TOP_FADE = 250;
@@ -358,16 +476,8 @@ function LeftRail({ height, top }: { height: number; top: number }) {
         style={{
           height: `${height}px`,
           marginTop: top,
-          WebkitMaskImage: `linear-gradient(to bottom,
-            transparent 0px,
-            black ${TOP_FADE}px,
-            black calc(100% - ${BOTTOM_FADE}px),
-            transparent 100%)`,
-          maskImage: `linear-gradient(to bottom,
-            transparent 0px,
-            black ${TOP_FADE}px,
-            black calc(100% - ${BOTTOM_FADE}px),
-            transparent 100%)`,
+          WebkitMaskImage: `linear-gradient(to bottom, transparent 0px, black ${TOP_FADE}px, black calc(100% - ${BOTTOM_FADE}px), transparent 100%)`,
+          maskImage: `linear-gradient(to bottom, transparent 0px, black ${TOP_FADE}px, black calc(100% - ${BOTTOM_FADE}px), transparent 100%)`,
         }}
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
@@ -403,271 +513,5 @@ function RailColumn({ rows, rowH }: { rows: number; rowH: number }) {
         </div>
       ))}
     </div>
-  );
-}
-
-/* -------------------- Stages -------------------- */
-
-/** Static stage — what you see BEFORE the lock engages (no animation). */
-function StaticStage({
-  stageH,
-  setHeaderH,
-}: {
-  stageH: number;
-  setHeaderH: (n: number) => void;
-}) {
-  // ~1" breathing room below the subheading
-  const EXTRA_PACE_GAP = 84;
-  const paceTop = React.useMemo(() => 0 /* computed after we know headerH */, []);
-  // We set tree height in the overlay (same math). For static, just make a good looking placeholder window.
-  return (
-    <div className="mx-auto max-w-7xl px-6" style={{ height: stageH }}>
-      <div className="h-full md:grid md:grid-cols-[64px,1fr] md:gap-6">
-        <div className="hidden md:block" />
-        <div className="relative h-full">
-          <div className="pt-6 md:pt-8">
-            <StageHeader onMeasured={setHeaderH} />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/** Fixed overlay — the real animation while locked. */
-function FixedOverlay({
-  active,
-  stageH,
-  headerH,
-  projects,
-  layout,
-  driverRef,
-  progress,
-}: {
-  active: boolean;
-  stageH: number;
-  headerH: number;
-  projects: ReadonlyArray<Project>;
-  layout: {
-    containerHeight: number;
-    items: Record<string, { left: string; top: number; width: string }>;
-    note: { left: string; top: number; width: string };
-  };
-  driverRef: React.RefObject<HTMLDivElement>;
-  progress: { collageY: any };
-}) {
-  const EXTRA_PACE_GAP = 84; // about an inch
-  const paceTop = headerH + EXTRA_PACE_GAP;
-  const windowH = Math.max(360, stageH - paceTop);
-  const treeH = Math.max(520, Math.min(820, Math.round(windowH * 0.75)));
-
-  return (
-    <div
-      className={[
-        "fixed inset-0 z-[60] transition-opacity duration-200",
-        active ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
-      ].join(" ")}
-      aria-hidden={!active}
-    >
-      <div className="absolute inset-0 bg-[#0d131d]" />
-
-      <div className="relative h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6">
-        {/* Left rail */}
-        <div className="hidden md:block">
-          <LeftRail height={treeH} top={paceTop} />
-        </div>
-
-        {/* Right side */}
-        <div className="relative h-full">
-          <div className="pt-6 md:pt-8">
-            <StageHeader onMeasured={() => { /* no-op in overlay */ }} />
-          </div>
-
-          <PACEBackground topOffset={paceTop} height={treeH} />
-
-          {/* Animation window */}
-          <div className="absolute inset-x-0 z-10 overflow-hidden" style={{ top: paceTop, height: windowH }}>
-            {/* gradient mask for entry/exit */}
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                WebkitMaskImage: `linear-gradient(to bottom,
-                  transparent 0px,
-                  black 110px,
-                  black calc(100% - 180px),
-                  transparent 100%)`,
-                maskImage: `linear-gradient(to bottom,
-                  transparent 0px,
-                  black 110px,
-                  black calc(100% - 180px),
-                  transparent 100%)`,
-              }}
-            />
-            <motion.div
-              style={{ y: progress.collageY, height: layout.containerHeight, position: "relative" }}
-              className="will-change-transform"
-            >
-              {TILE_ORDER.map((title) => {
-                const p = projects.find((x) => x.title === title);
-                if (!p) return null;
-                const pos = layout.items[title];
-                return (
-                  <ProjectTile key={`tile-${title}`} p={p} left={pos.left} top={pos.top} width={pos.width} />
-                );
-              })}
-              <BlurbAndNote left={layout.note.left} top={layout.note.top} width={layout.note.width} />
-            </motion.div>
-          </div>
-        </div>
-      </div>
-
-      {/* For accessibility (keeps the overlay in the a11y tree while active) */}
-      <div ref={driverRef} className="absolute inset-0 pointer-events-none" aria-hidden />
-    </div>
-  );
-}
-
-/* -------------------- Main Component -------------------- */
-
-export default function ProjectsHUD() {
-  const projects = ((profile as any)?.projects ?? []) as ReadonlyArray<Project>;
-
-  const stageH = typeof window === "undefined" ? 800 : window.innerHeight;
-
-  // --- static stage (what you see as you arrive) ---
-  const staticStageRef = React.useRef<HTMLDivElement>(null);
-  const [headerH, setHeaderH] = React.useState(0);
-
-  // --- driver (scroll distance for the animation) ---
-  const driverRef = React.useRef<HTMLDivElement>(null);
-  const afterDriverRef = React.useRef<HTMLDivElement>(null); // end boundary for the overlay
-
-  // Geometry for the collage travel
-  const EXTRA_PACE_GAP = 84;
-  const paceTop = headerH + EXTRA_PACE_GAP;
-  const windowH = Math.max(360, stageH - paceTop);
-
-  const TRAVEL_CORE = Math.max(0, LAYOUT.lg.containerHeight - windowH);
-  const LEAD_IN = Math.max(220, Math.round(windowH * 0.22));
-  const START_FROM_BOTTOM = Math.round(windowH * 0.95);
-  const EXIT_TAIL = Math.max(220, Math.round(windowH * 0.32));
-  const DRIVER_HEIGHT = LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL + 1;
-
-  // Map driver scroll → collage Y
-  const { scrollYProgress } = useScroll({
-    target: driverRef,
-    offset: ["start start", "end start"],
-  });
-  const startFrac = LEAD_IN / DRIVER_HEIGHT || 0.0001;
-  const collageY = useTransform(scrollYProgress, [0, startFrac, 1], [
-    START_FROM_BOTTOM,
-    START_FROM_BOTTOM,
-    -TRAVEL_CORE,
-  ]);
-
-  // Lock activation: active when scroll is between the top of the static stage
-  // and the bottom of the driver region — this prevents snap/jump.
-  const [active, setActive] = React.useState(false);
-  React.useEffect(() => {
-    let raf = 0;
-    const onScroll = () => {
-      if (raf) return;
-      raf = requestAnimationFrame(() => {
-        raf = 0;
-        const startY = getDocY(staticStageRef.current!);
-        const endY = getDocY(afterDriverRef.current!);
-        const y = window.scrollY || window.pageYOffset || 0;
-        // engage when the static stage top has reached the top of the viewport
-        // and we haven't passed the end of the driver yet
-        const inRange = y >= startY && y < endY;
-        if (inRange !== active) setActive(inRange);
-      });
-    };
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, [active]);
-
-  // Mobile (unchanged)
-  const mobile = (
-    <div className="md:hidden space-y-10 px-6 py-10 bg-[#0d131d]">
-      {TILE_ORDER.map((title) => {
-        const p = projects.find((x) => x.title === title);
-        if (!p) return null;
-        const img = IMAGE_BY_TITLE[p.title] ?? {
-          src: "/images/portfolio-basics-avatar.png",
-          alt: `${p.title} preview`,
-        };
-        const slug = slugify(p.title);
-        const aspect = ASPECT[p.title] ?? "3 / 4";
-        return (
-          <article key={title}>
-            <TransitionLink
-              href={`/projects/${slug}?via=projects`}
-              className="block group"
-              onClick={() =>
-                typeof window !== "undefined" &&
-                window.sessionStorage.setItem("cameFromProjects", "1")
-              }
-            >
-              <div style={{ aspectRatio: aspect }} className="w-full overflow-hidden">
-                <img
-                  src={img.src}
-                  alt={img.alt}
-                  className="w-full h-full object-contain transition-transform duration-300 ease-out group-hover:scale-[1.03] will-change-transform"
-                />
-              </div>
-            </TransitionLink>
-            <div className="mt-3 flex items-baseline justify-between gap-3">
-              <h3 className="text-lg font-medium tracking-tight">
-                <TransitionLink href={`/projects/${slug}?via=projects`} className="hover:underline">
-                  {p.title}
-                </TransitionLink>
-              </h3>
-              <span className="text-xs uppercase tracking-wide text-white/60">
-                {KEYWORD_BY_TITLE[p.title] ?? "project"}
-              </span>
-            </div>
-          </article>
-        );
-      })}
-    </div>
-  );
-
-  return (
-    <section id="projects" aria-label="Projects" className="relative w-full bg-[#0d131d]">
-      {/* Mobile */}
-      {mobile}
-
-      {/* Desktop / Tablet */}
-      <div className="hidden md:block">
-        {/* 1) Static stage — already formatted exactly like the locked view */}
-        <div ref={staticStageRef} className="relative">
-          <StaticStage stageH={stageH} setHeaderH={setHeaderH} />
-        </div>
-
-        {/* 2) Driver — provides the scroll distance for the animation */}
-        <div ref={driverRef} style={{ height: DRIVER_HEIGHT }} />
-
-        {/* 3) End bound — when we pass this, overlay releases (no snap to next section) */}
-        <div ref={afterDriverRef} style={{ height: Math.max(140, Math.round(stageH * 0.18)) }} />
-
-        {/* 4) Fixed overlay — only visible while "active" range is true */}
-        <FixedOverlay
-          active={active}
-          stageH={stageH}
-          headerH={headerH}
-          projects={projects}
-          layout={LAYOUT.lg}
-          driverRef={driverRef}
-          progress={{ collageY }}
-        />
-      </div>
-    </section>
   );
 }
