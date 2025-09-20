@@ -376,6 +376,9 @@ export default function ProjectsHUD() {
   const [postVisible, setPostVisible] = React.useState(false);
   const [railVisible, setRailVisible] = React.useState(false);
 
+  // NEW: after-unlock delta for sidebar to move up with the section
+  const [postDelta, setPostDelta] = React.useState(0);
+
   const didSnapRef = React.useRef(false);
 
   useMotionValueEvent(scrollYProgress, "change", () => {});
@@ -414,12 +417,14 @@ export default function ProjectsHUD() {
         if (!postVisible) setPostVisible(true);
       }
 
-      // ---- Sidebar visibility: keep it visible for the entire Projects section.
-      // Start slightly before lockStart; end after the post-lock section + spacer.
+      // Sidebar: visible from just before the section until it ends
       const postTop = Math.round(docTop(postStageRef.current!));
       const postEnd = postTop + (typeof window !== "undefined" ? window.innerHeight : 800) + 1100; // stage minHeight + spacer
       const railOn = y >= lockStart - 40 && y < postEnd;
       if (railOn !== railVisible) setRailVisible(railOn);
+
+      // NEW — move the sidebar up at the same rate as the section after unlock
+      setPostDelta(afterLock ? Math.max(0, y - lockEnd) : 0);
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -585,7 +590,7 @@ export default function ProjectsHUD() {
     </div>
   );
 
-  // Sidebar entrance offset (so it rises from the bottom on its FIRST appearance)
+  // Sidebar entrance offset (so it rises from the bottom on first appearance)
   const railIntroOffset = Math.max(0, windowH - (paceTop + treeH));
 
   return (
@@ -618,13 +623,15 @@ export default function ProjectsHUD() {
         {CollageOverlay}
         {ChromeOverlay}
 
-        {/* PERSISTENT LEFT RAIL — now visible the ENTIRE Projects section */}
+        {/* PERSISTENT LEFT RAIL — now moves up with the section after unlock */}
         <motion.div
           className="fixed inset-0 z-[62] pointer-events-none"
           aria-hidden
           initial={false}
           animate={{ opacity: railVisible ? 1 : 0 }}
           transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+          // NEW: translate the entire sidebar wrapper upward by postDelta
+          style={{ transform: `translateY(${-postDelta}px)` }}
         >
           <div className="h-full mx-auto max-w-7xl px-6">
             <div className="relative h-full md:grid md:grid-cols-[64px,1fr] md:gap-6">
