@@ -345,24 +345,24 @@ export default function ProjectsHUD() {
   // Travel math
   const TRAVEL_CORE = Math.max(0, LAYOUT.lg.containerHeight - windowH);
 
-  // Starts immediately and appears a bit sooner
+  // Start immediately; cards begin slightly below to ensure full section is visible first
   const LEAD_IN = 0;
   const START_FROM_BOTTOM = Math.round(windowH * 1.06);
 
-  // Extended travel to fully clear
-  const OUT_EXTRA = Math.max(420, Math.round(windowH * 0.9));
+  // ----- EXTENDED RUN-OUT so cards fully clear the top -----
+  const OUT_EXTRA = Math.max(700, Math.round(windowH * 1.45)); // was ~0.9; extended for full exit
   const END_Y = -TRAVEL_CORE - OUT_EXTRA;
 
-  // Keep speed constant by extending driver
+  // Keep speed constant by extending driver distance
   const EXIT_TAIL_BASE = Math.max(560, Math.round(windowH * 0.72));
-  const EXIT_TAIL = EXIT_TAIL_BASE + OUT_EXTRA + 160;
+  const EXIT_TAIL = EXIT_TAIL_BASE + OUT_EXTRA + 240;
 
   const DRIVER_HEIGHT = LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL + 1;
 
   // Scroll progress
   const { scrollYProgress } = useScroll({ target: driverRef, offset: ["start start", "end start"] });
 
-  // Continuous travel to END_Y
+  // Cards travel to END_Y (clamped)
   const startFrac = LEAD_IN / DRIVER_HEIGHT || 0.0000001;
   const rawY = useTransform(scrollYProgress, [0, startFrac, 1], [
     START_FROM_BOTTOM,
@@ -371,10 +371,15 @@ export default function ProjectsHUD() {
   ]);
   const collageY = useTransform(rawY, (v) => Math.max(END_Y, Math.min(START_FROM_BOTTOM, Math.round(v))));
 
-  // CHROME: translate up and out (no fade) as we approach unlock
-  const chromeY = useTransform(scrollYProgress, [0, 0.98, 1], [0, 0, -stageH]);
+  // ----- CHROME (title/subheader/PACE) moves at the SAME RATE as cards -----
+  const chromeY = useTransform(rawY, (y) => {
+    // y goes from START_FROM_BOTTOM down to END_Y (negative)
+    const t = (y - START_FROM_BOTTOM) / (END_Y - START_FROM_BOTTOM); // 0 -> 1
+    const clamped = Math.max(0, Math.min(1, t));
+    return -stageH * clamped; // slide up in equal proportion
+  });
 
-  // Lock/rail visibility + one-time snap to avoid rebound jitter
+  // Lock/rail visibility + small entry snap to avoid rebound
   const [lockActive, setLockActive] = React.useState(false);
   const [railVisible, setRailVisible] = React.useState(false);
   const didSnapRef = React.useRef(false);
@@ -385,12 +390,10 @@ export default function ProjectsHUD() {
       const lockStart = Math.round(docTop(staticStageRef.current!));
       const lockEnd = Math.round(docTop(afterDriverRef.current!));
 
-      // One-time snap when entering lock to prevent small rebound shake
       if (!didSnapRef.current && y > lockStart && y < lockStart + 12) {
         didSnapRef.current = true;
         window.scrollTo({ top: lockStart, behavior: "auto" });
       }
-      // Reset snap when clearly outside the lock zone
       if (y < lockStart - 24 || y > lockEnd + 24) {
         didSnapRef.current = false;
       }
@@ -410,7 +413,7 @@ export default function ProjectsHUD() {
     };
   }, [lockActive, railVisible]);
 
-  // PRE-LOCK frame (kept in flow). Fades OUT during lock; fades IN after.
+  // PRE-LOCK frame in-flow (fades out during lock; back in after)
   const StaticStage = (
     <motion.div
       className="mx-auto max-w-7xl px-6"
@@ -432,13 +435,10 @@ export default function ProjectsHUD() {
     </motion.div>
   );
 
-  // FIXED CHROME (pinned while locked; slides up and out instead of fading)
+  // FIXED CHROME (moves with chromeY; no fading)
   const ChromeOverlay = lockActive ? (
     <motion.div className="fixed inset-0 z-[70] pointer-events-none">
-      <motion.div
-        style={{ y: chromeY }}
-        className="h-full"
-      >
+      <motion.div style={{ y: chromeY }} className="h-full">
         <div className="h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
           <div className="hidden md:block" aria-hidden />
           <div className="relative h-full">
@@ -463,7 +463,7 @@ export default function ProjectsHUD() {
     </motion.div>
   ) : null;
 
-  // FIXED COLLAGE (viewport spans the full screen so cards can pass above the header)
+  // FIXED COLLAGE (cards)
   const CollageOverlay = lockActive ? (
     <motion.div className="fixed inset-0 z-[75]">
       <div className="h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
@@ -546,22 +546,22 @@ export default function ProjectsHUD() {
 
       {/* Desktop / Tablet */}
       <div className="hidden md:block">
-        {/* Pre-lock frame in flow (fades out while locked, fades in after) */}
+        {/* Pre-lock frame */}
         <div ref={staticStageRef} className="relative">
           {StaticStage}
         </div>
 
-        {/* Driver: defines lock distance & progress */}
+        {/* Driver */}
         <div ref={driverRef} style={{ height: DRIVER_HEIGHT }} />
 
-        {/* Neutral buffer for clean handoff */}
+        {/* Buffer */}
         <div ref={afterDriverRef} style={{ height: 1100 }} />
 
         {/* Overlays (only while locked) */}
         {CollageOverlay}
         {ChromeOverlay}
 
-        {/* PERSISTENT LEFT RAIL — wrapper fades; inner slides up from viewport bottom */}
+        {/* PERSISTENT LEFT RAIL */}
         <motion.div
           className="fixed inset-0 z-[62] pointer-events-none"
           aria-hidden
