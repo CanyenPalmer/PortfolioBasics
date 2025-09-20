@@ -376,7 +376,7 @@ export default function ProjectsHUD() {
   const [postVisible, setPostVisible] = React.useState(false);
   const [railVisible, setRailVisible] = React.useState(false);
 
-  // NEW: after-unlock delta for sidebar to move up with the section
+  // After-unlock delta for sidebar to move up with the section
   const [postDelta, setPostDelta] = React.useState(0);
 
   const didSnapRef = React.useRef(false);
@@ -386,8 +386,9 @@ export default function ProjectsHUD() {
   React.useEffect(() => {
     const onScroll = () => {
       const y = window.scrollY || window.pageYOffset || 0;
-      const lockStart = Math.round(docTop(preStageRef.current!));
-      const lockEnd = Math.round(docTop(lockEndRef.current!)); // unlock point
+      const preTop = Math.round(docTop(preStageRef.current!));     // section start
+      const lockStart = preTop;                                    // lock starts at section start
+      const lockEnd = Math.round(docTop(lockEndRef.current!));     // unlock point
 
       // Prevent tiny rebound jiggle exactly at lock
       if (!didSnapRef.current && y > lockStart && y < lockStart + 12) {
@@ -417,13 +418,14 @@ export default function ProjectsHUD() {
         if (!postVisible) setPostVisible(true);
       }
 
-      // Sidebar: visible from just before the section until it ends
+      // ----- Sidebar visibility for the ENTIRE Projects section -----
+      // Start slightly before the section enters; end after the post-lock section + spacer.
       const postTop = Math.round(docTop(postStageRef.current!));
       const postEnd = postTop + (typeof window !== "undefined" ? window.innerHeight : 800) + 1100; // stage minHeight + spacer
-      const railOn = y >= lockStart - 40 && y < postEnd;
+      const railOn = y >= preTop - 40 && y < postEnd;  // <-- changed to use preTop so it's visible in the section before lock
       if (railOn !== railVisible) setRailVisible(railOn);
 
-      // NEW — move the sidebar up at the same rate as the section after unlock
+      // Move the sidebar up at the same rate as the section after unlock
       setPostDelta(afterLock ? Math.max(0, y - lockEnd) : 0);
     };
     onScroll();
@@ -590,7 +592,7 @@ export default function ProjectsHUD() {
     </div>
   );
 
-  // Sidebar entrance offset (so it rises from the bottom on first appearance)
+  // Sidebar entrance offset (rise-from-bottom on first appearance)
   const railIntroOffset = Math.max(0, windowH - (paceTop + treeH));
 
   return (
@@ -623,14 +625,13 @@ export default function ProjectsHUD() {
         {CollageOverlay}
         {ChromeOverlay}
 
-        {/* PERSISTENT LEFT RAIL — now moves up with the section after unlock */}
+        {/* PERSISTENT LEFT RAIL — visible for the whole section; moves out after unlock */}
         <motion.div
           className="fixed inset-0 z-[62] pointer-events-none"
           aria-hidden
           initial={false}
           animate={{ opacity: railVisible ? 1 : 0 }}
           transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-          // NEW: translate the entire sidebar wrapper upward by postDelta
           style={{ transform: `translateY(${-postDelta}px)` }}
         >
           <div className="h-full mx-auto max-w-7xl px-6">
@@ -653,3 +654,4 @@ export default function ProjectsHUD() {
     </section>
   );
 }
+
