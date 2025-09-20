@@ -346,9 +346,9 @@ export default function ProjectsHUD() {
   // Travel math
   const TRAVEL_CORE = Math.max(0, LAYOUT.lg.containerHeight - windowH);
 
-  // Start immediately; cards begin low so full section is visible first
+  // Start immediately; cards begin lower but **closer** now so they appear sooner
   const LEAD_IN = 0;
-  const START_FROM_BOTTOM = Math.round(windowH * 1.06);
+  const START_FROM_BOTTOM = Math.round(windowH * 0.82); // ↓ from 1.06 to 0.82 so first card appears sooner
 
   // Extended run-out so cards fully clear the top
   const OUT_EXTRA = Math.max(700, Math.round(windowH * 1.45));
@@ -401,8 +401,7 @@ export default function ProjectsHUD() {
       const lockEnd = Math.round(docTop(lockEndRef.current!)); // unlock point
 
       // ===== Strong, jitter-free snap to lockStart =====
-      // Wider acceptance window catches "fling" overshoots; snap disables smooth behavior for 1 frame.
-      const LOCK_SNAP_WINDOW = 64; // px below lockStart considered "should be snapped"
+      const LOCK_SNAP_WINDOW = 64;
       if (!snappingRef.current) {
         const crossedDownIntoLock = prevY < lockStart && y >= lockStart + 1 && y <= lockStart + LOCK_SNAP_WINDOW;
         const microNearLock = y > lockStart && y < lockStart + 12;
@@ -412,17 +411,14 @@ export default function ProjectsHUD() {
           didSnapRef.current = true;
           const docEl = document.documentElement;
           const prevBehavior = docEl.style.scrollBehavior;
-          // ensure instantaneous snap (no CSS smooth-scroll)
           docEl.style.scrollBehavior = "auto";
           window.scrollTo(0, lockStart);
-          // restore next frame & release guard
           requestAnimationFrame(() => {
             docEl.style.scrollBehavior = prevBehavior;
             snappingRef.current = false;
           });
         }
 
-        // Reset guards when we’re clearly away from the lock zone
         if (y < lockStart - 48 || y > lockEnd + 48) {
           didSnapRef.current = false;
         }
