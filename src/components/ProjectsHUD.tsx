@@ -432,13 +432,12 @@ export default function ProjectsHUD() {
       const railOn = viewportBottom >= preTop && y < postEnd;
       if (railOn !== railVisible) setRailVisible(railOn);
 
-      // ----- Sidebar entrance REVEAL synced to the PACE tree -----
-      // PACE tree top in document coordinates:
-      const paceAnchor = preTop + paceTop;
-      // Reveal begins when PACE top hits the bottom of the viewport,
-      // ends (fully revealed) right at lock start.
-      const revealStart = paceAnchor - viewportH; // PACE top at viewport bottom
-      const revealEnd = lockStart;                // section top at viewport top (lock)
+      // ----- Sidebar entrance REVEAL synced to the PACE tree's SECOND NODE (28%) -----
+      // Compute the absolute top of the second node within the section:
+      const secondNodeTop = preTop + paceTop + Math.round(treeH * 0.28);
+      // Begin reveal when that node hits the bottom of the viewport; finish at lock start.
+      const revealStart = secondNodeTop - viewportH + 8; // +8px buffer so it's truly "in view"
+      const revealEnd = lockStart;
       const denom = Math.max(1, revealEnd - revealStart);
       const rp = Math.max(0, Math.min(1, (y - revealStart) / denom));
 
@@ -644,7 +643,7 @@ export default function ProjectsHUD() {
         {CollageOverlay}
         {ChromeOverlay}
 
-        {/* PERSISTENT LEFT RAIL — reveals bottom→top synced with PACE; moves with section after unlock */}
+        {/* PERSISTENT LEFT RAIL — reveals bottom→top synced with PACE node 2; moves with section after unlock */}
         <motion.div
           className="fixed inset-0 z-[62] pointer-events-none"
           aria-hidden
