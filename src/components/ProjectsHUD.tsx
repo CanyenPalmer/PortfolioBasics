@@ -107,7 +107,7 @@ function ProjectTile({ p, left, top, width }: { p: Project; left: string; top: n
         </div>
       </TransitionLink>
 
-      <div className="mt-3 flex items-baseline justify-between gap-3">
+        <div className="mt-3 flex items-baseline justify-between gap-3">
         <h3 className="text-base md:text-lg font-medium tracking-tight">
           <TransitionLink
             href={`/projects/${slug}?via=projects`}
@@ -225,7 +225,7 @@ function NodeWithBranches({
   );
 }
 
-/* ───────────────────────── Helpers ───────────────────────── */
+/* ───────────────────────── helpers ───────────────────────── */
 
 function docTop(el: HTMLElement | null) {
   if (!el) return 0;
@@ -233,33 +233,39 @@ function docTop(el: HTMLElement | null) {
   return r.top + (window.scrollY || window.pageYOffset || 0);
 }
 
-/* ───────────────────────── Main ───────────────────────── */
+/* ───────────────────────── component ───────────────────────── */
 
 export default function ProjectsHUD() {
   const projects = ((profile as any)?.projects ?? []) as ReadonlyArray<Project>;
   const stageH = typeof window === "undefined" ? 800 : window.innerHeight;
 
-  // static stage (what you see before lock)
+  // static stage (pre-lock)
   const staticStageRef = React.useRef<HTMLDivElement>(null);
   const [headerH, setHeaderH] = React.useState(0);
 
-  // driver region spans the animation distance
+  // driver region (controls animation progress)
   const driverRef = React.useRef<HTMLDivElement>(null);
   const afterDriverRef = React.useRef<HTMLDivElement>(null);
 
-  // geometry (shared by static + overlay)
-  const EXTRA_PACE_GAP = 84;            // ~1" breathing room
+  // geometry (shared)
+  const EXTRA_PACE_GAP = 84; // breathing room between subheading and tree
   const paceTop = headerH + EXTRA_PACE_GAP;
   const windowH = Math.max(360, stageH - paceTop);
   const treeH = Math.max(520, Math.min(820, Math.round(windowH * 0.75)));
 
+  // === CHANGE #2: start the collage a couple scroll ticks after lock ===
   const TRAVEL_CORE = Math.max(0, LAYOUT.lg.containerHeight - windowH);
-  const LEAD_IN = Math.max(220, Math.round(windowH * 0.22));
+  const LEAD_IN = 64; // was ~220 → now starts almost immediately after lock
   const START_FROM_BOTTOM = Math.round(windowH * 0.95);
   const EXIT_TAIL = Math.max(220, Math.round(windowH * 0.32));
-  const DRIVER_HEIGHT = LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL + 1;
 
-  // progress → collage Y
+  const DRIVER_HEIGHT = LEAVEN(TRAVEL_CORE, LEAD_IN, START_FROM_BOTTOM, EXIT_TAIL);
+
+  function LEAVEN(core: number, lead: number, startFromBottom: number, tail: number) {
+    return lead + startFromBottom + core + tail + 1;
+  }
+
+  // progress mapping
   const { scrollYProgress } = useScroll({ target: driverRef, offset: ["start start", "end start"] });
   const startFrac = LEAD_IN / DRIVER_HEIGHT || 0.0001;
   const collageY = useTransform(scrollYProgress, [0, startFrac, 1], [
@@ -268,13 +274,20 @@ export default function ProjectsHUD() {
     -TRAVEL_CORE,
   ]);
 
-  // robust lock timing based on document positions
+  // === CHANGE #1: firm lock at entry (no overshoot then bounce back) ===
   const [active, setActive] = React.useState(false);
   React.useEffect(() => {
+    const LOCK_EPS = 8; // clamp tiny momentum right at the frame
     const onScroll = () => {
       const y = window.scrollY || window.pageYOffset || 0;
-      const lockStart = Math.round(docTop(staticStageRef.current!)); // top of static stage reaches viewport top
-      const lockEnd = Math.round(docTop(afterDriverRef.current!));   // end boundary (driver + tail)
+      const lockStart = Math.round(docTop(staticStageRef.current!));
+      const lockEnd = Math.round(docTop(afterDriverRef.current!));
+
+      // clamp micro-overshoot exactly to the lock frame
+      if (y > lockStart && y < lockStart + LOCK_EPS) {
+        window.scrollTo({ top: lockStart, behavior: "auto" });
+      }
+
       const nextActive = y >= lockStart && y < lockEnd;
       if (nextActive !== active) setActive(nextActive);
     };
@@ -287,50 +300,42 @@ export default function ProjectsHUD() {
     };
   }, [active]);
 
-  // static (pre-lock): now shows header + PACE tree + left rail (no collage)
+  // static (pre-lock): header + tree + left rail, no collage content
   const StaticStage = (
     <div className="mx-auto max-w-7xl px-6" style={{ height: stageH }}>
       <div className="h-full md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
-        {/* Left rail (same geometry as locked) */}
         <div className="hidden md:block">
           <LeftRail height={treeH} top={paceTop} />
         </div>
-
-        {/* Right column */}
         <div className="relative h-full">
           <div className="pt-6 md:pt-8">
             <StageHeader onMeasured={setHeaderH} />
           </div>
-
-          {/* PACE tree positioned and sized identically to locked view */}
           <PACEBackground topOffset={paceTop} height={treeH} />
-
-          {/* Collage window placeholder to match layout (no content pre-lock) */}
           <div className="absolute inset-x-0" style={{ top: paceTop, height: windowH }} />
         </div>
       </div>
     </div>
   );
 
-  // overlay (locked): no fade, pointer-events off so scrolling feels natural
   const Overlay = active ? (
     <div className="fixed inset-0 z-[60] pointer-events-none">
       <div className="absolute inset-0 bg-[#0d131d]" />
-
       <div className="relative h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6">
         <div className="hidden md:block">
           <LeftRail height={treeH} top={paceTop} />
         </div>
-
         <div className="relative h-full">
           <div className="pt-6 md:pt-8">
-            {/* Header clone for visual consistency during lock */}
+            {/* mirror header during lock */}
             <div className={`${oswald.className} leading-none tracking-tight`}>
               <div className="inline-block">
                 <div className="text-xl md:text-2xl font-medium text-white/90">Palmer</div>
                 <div className="h-[2px] bg-white/25 mt-1" />
               </div>
-              <h2 className="mt-3 uppercase font-bold text-white/90 tracking-tight text-[12vw] md:text-[9vw] lg:text-[8vw]">Projects</h2>
+              <h2 className="mt-3 uppercase font-bold text-white/90 tracking-tight text-[12vw] md:text-[9vw] lg:text-[8vw]">
+                Projects
+              </h2>
             </div>
             <div className={`${plusJakarta.className} mt-3 text-sm md:text-base text-white/70`}>
               Select a project to view the full details
@@ -365,7 +370,7 @@ export default function ProjectsHUD() {
     </div>
   ) : null;
 
-  // mobile stack (unchanged)
+  // mobile (unchanged)
   const mobile = (
     <div className="md:hidden space-y-10 px-6 py-10 bg-[#0d131d]">
       {TILE_ORDER.map((title) => {
@@ -402,25 +407,25 @@ export default function ProjectsHUD() {
 
       {/* Desktop / Tablet */}
       <div className="hidden md:block">
-        {/* 1) Static stage (now shows header + PACE tree + left rail) */}
+        {/* Pre-lock frame */}
         <div ref={staticStageRef} className="relative">
           {StaticStage}
         </div>
 
-        {/* 2) Driver (scroll distance for the animation) */}
+        {/* Driver distance for animation */}
         <div ref={driverRef} style={{ height: DRIVER_HEIGHT }} />
 
-        {/* 3) End boundary – small spacer for a natural release (no snap) */}
-        <div ref={afterDriverRef} style={{ height: Math.max(140, Math.round(stageH * 0.18)) }} />
+        {/* === CHANGE #3: slightly larger neutral buffer to avoid “jump to Education” on release === */}
+        <div ref={afterDriverRef} style={{ height: 240 }} />
 
-        {/* 4) Overlay (locked) */}
+        {/* Locked overlay */}
         {Overlay}
       </div>
     </section>
   );
 }
 
-/* left rail & helpers (same as before) */
+/* left rail & rail column (unchanged) */
 function LeftRail({ height, top }: { height: number; top: number }) {
   const [paused, setPaused] = React.useState(false);
   const TOP_FADE = 250;
@@ -516,3 +521,4 @@ function RailColumn({ rows, rowH }: { rows: number; rowH: number }) {
     </div>
   );
 }
+
