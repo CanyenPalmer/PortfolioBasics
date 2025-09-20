@@ -237,6 +237,7 @@ function LeftRail({ height, top }: { height: number; top: number }) {
   const [paused, setPaused] = React.useState(false);
   const TOP_FADE = 250;
   const BOTTOM_FADE = 96;
+  const SPEED = 22;
 
   const measureRef = React.useRef<HTMLSpanElement | null>(null);
   const [rowH, setRowH] = React.useState<number>(0);
@@ -269,7 +270,7 @@ function LeftRail({ height, top }: { height: number; top: number }) {
       lastRef.current = ts;
       if (!paused && innerRef.current && rowH > 0) {
         const dt = (ts - last) / 1000;
-        let y = yRef.current - 22 * dt;
+        let y = yRef.current - SPEED * dt;
         const wrapRows = Math.floor(-y / rowH);
         if (wrapRows > 0) y += wrapRows * rowH;
         yRef.current = y;
@@ -336,7 +337,6 @@ export default function ProjectsHUD() {
 
   const [headerH, setHeaderH] = React.useState(0);
 
-  // Layout measures
   const EXTRA_PACE_GAP = 84; // spacing under subheading
   const paceTop = headerH + EXTRA_PACE_GAP;
   const windowH = Math.max(360, stageH - paceTop);
@@ -349,7 +349,7 @@ export default function ProjectsHUD() {
   const EXIT_TAIL = Math.max(220, Math.round(windowH * 0.32));
   const DRIVER_HEIGHT = LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL + 1;
 
-  // Scroll progress across the driver
+  // Scroll progress across the driver (for animated collage)
   const { scrollYProgress } = useScroll({ target: driverRef, offset: ["start start", "end start"] });
   const startFrac = LEAD_IN / DRIVER_HEIGHT || 0.0001;
   const collageY = useTransform(scrollYProgress, [0, startFrac, 1], [
@@ -358,20 +358,20 @@ export default function ProjectsHUD() {
     -TRAVEL_CORE,
   ]);
 
-  // Lock window — used to toggle visibility (no reflow)
+  // Lock + rail visibility
   const [lockActive, setLockActive] = React.useState(false);
   const [railVisible, setRailVisible] = React.useState(false);
 
   React.useEffect(() => {
     const onScroll = () => {
       const y = window.scrollY || window.pageYOffset || 0;
-      const sTop = Math.round(docTop(staticStageRef.current!));
-      const dEnd = Math.round(docTop(afterDriverRef.current!));
+      const lockStart = Math.round(docTop(staticStageRef.current!));
+      const lockEnd = Math.round(docTop(afterDriverRef.current!));
 
-      const inLock = y >= sTop && y < dEnd;
+      const inLock = y >= lockStart && y < lockEnd;
       if (inLock !== lockActive) setLockActive(inLock);
 
-      const railOn = y >= sTop - 40 && y < dEnd;
+      const railOn = y >= lockStart - 40 && y < lockEnd;
       if (railOn !== railVisible) setRailVisible(railOn);
     };
     onScroll();
@@ -383,13 +383,13 @@ export default function ProjectsHUD() {
     };
   }, [lockActive, railVisible]);
 
-  // Pre-lock intro (kept in flow; we only hide its visibility during lock to avoid duplication)
+  // Pre-lock static frame (kept in flow; hidden during lock to avoid duplication and reflow)
   const StaticStage = (
     <div
       className="mx-auto max-w-7xl px-6"
       style={{
         height: stageH,
-        visibility: lockActive ? "hidden" as const : "visible" as const,
+        visibility: lockActive ? ("hidden" as const) : ("visible" as const),
       }}
     >
       <div className="h-full md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
@@ -405,13 +405,15 @@ export default function ProjectsHUD() {
     </div>
   );
 
-  // Sticky stage: chrome is sticky & pinned; collage scrolls underneath
-  const StickyStage = (
+  // Sticky stage rendered ONLY while locked:
+  // - Pinned chrome (title, subheader, PACE) stays visible.
+  // - Collage scrolls underneath.
+  const StickyStage = lockActive ? (
     <div className="sticky top-0" style={{ height: stageH }}>
-      <div className="h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
+      <div className="relative h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6">
         <div className="hidden md:block" aria-hidden />
         <div className="relative h-full">
-          {/* Pinned chrome (title, subheader, PACE) */}
+          {/* Pinned chrome */}
           <div className="sticky top-0 z-[30]">
             <div className="pt-6 md:pt-8">
               <div className={`${oswald.className} leading-none tracking-tight`}>
@@ -427,16 +429,15 @@ export default function ProjectsHUD() {
                 Select a project to view the full details
               </div>
             </div>
-            {/* PACE tree pinned in place */}
             <div className="relative">
               <PACEBackground topOffset={paceTop} height={treeH} />
-              {/* an invisible block to reserve the collage window height under the PACE tree */}
+              {/* reserve the collage viewport height under the PACE area */}
               <div style={{ height: windowH }} />
             </div>
           </div>
 
-          {/* Collage layer (moves under the pinned chrome) */}
-          <div className="absolute inset-x-0 z-[10]" style={{ top: paceTop, height: windowH, overflow: "hidden" }}>
+          {/* Collage viewport (only moving layer) */}
+          <div className="absolute inset-x-0 z-[10] overflow-hidden" style={{ top: paceTop, height: windowH }}>
             <div
               className="absolute inset-0 pointer-events-none"
               style={{
@@ -460,9 +461,9 @@ export default function ProjectsHUD() {
         </div>
       </div>
     </div>
-  );
+  ) : null;
 
-  // Mobile list (unchanged)
+  // Mobile (unchanged)
   const mobile = (
     <div className="md:hidden space-y-10 px-6 py-10 bg-[#0d131d]">
       {TILE_ORDER.map((title) => {
@@ -503,17 +504,17 @@ export default function ProjectsHUD() {
 
       {/* Desktop / Tablet */}
       <div className="hidden md:block">
-        {/* Pre-lock intro (visibility toggled, not removed) */}
+        {/* Pre-lock frame (kept; hidden during lock) */}
         <div ref={staticStageRef} className="relative">
           {StaticStage}
         </div>
 
-        {/* Driver: sticky stage is always present; visibility of intro prevents duplication */}
+        {/* Driver (hosts sticky stage and defines lock window) */}
         <div ref={driverRef} style={{ height: DRIVER_HEIGHT }}>
           {StickyStage}
         </div>
 
-        {/* Neutral buffer for clean handoff to the next section */}
+        {/* Neutral buffer for clean handoff to next section */}
         <div ref={afterDriverRef} style={{ height: 600 }} />
 
         {/* PERSISTENT LEFT RAIL */}
