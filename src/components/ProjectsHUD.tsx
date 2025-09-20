@@ -432,14 +432,17 @@ export default function ProjectsHUD() {
       const railOn = viewportBottom >= preTop && y < postEnd;
       if (railOn !== railVisible) setRailVisible(railOn);
 
-      // ----- Sidebar entrance REVEAL (bottom -> top) up to the LOCK start -----
-      // Start revealing when the section top hits the bottom of the viewport,
-      // finish revealing exactly when the section top reaches the top (lock start).
-      const revealStart = preTop - viewportH; // top at bottom of viewport
-      const revealEnd = lockStart;            // top at top of viewport
-      const rp = Math.max(0, Math.min(1, (y - revealStart) / Math.max(1, revealEnd - revealStart)));
+      // ----- Sidebar entrance REVEAL synced to the PACE tree -----
+      // PACE tree top in document coordinates:
+      const paceAnchor = preTop + paceTop;
+      // Reveal begins when PACE top hits the bottom of the viewport,
+      // ends (fully revealed) right at lock start.
+      const revealStart = paceAnchor - viewportH; // PACE top at viewport bottom
+      const revealEnd = lockStart;                // section top at viewport top (lock)
+      const denom = Math.max(1, revealEnd - revealStart);
+      const rp = Math.max(0, Math.min(1, (y - revealStart) / denom));
 
-      // Slide up from bottom and reveal with a dynamic mask (no pure fade)
+      // Slide up from bottom & reveal with mask, driven by rp
       setRailRevealY(Math.round(railIntroOffset * (1 - rp)));
       setRailMaskPct(Math.round(rp * 100));
 
@@ -641,7 +644,7 @@ export default function ProjectsHUD() {
         {CollageOverlay}
         {ChromeOverlay}
 
-        {/* PERSISTENT LEFT RAIL — reveals bottom→top until lock; moves with section after unlock */}
+        {/* PERSISTENT LEFT RAIL — reveals bottom→top synced with PACE; moves with section after unlock */}
         <motion.div
           className="fixed inset-0 z-[62] pointer-events-none"
           aria-hidden
@@ -656,7 +659,6 @@ export default function ProjectsHUD() {
                 <div
                   style={{
                     transform: `translateY(${railRevealY}px)`,
-                    // Dynamic mask reveals from bottom to top as we approach lock
                     WebkitMaskImage: `linear-gradient(to top, black 0%, black ${railMaskPct}%, transparent ${railMaskPct}%)`,
                     maskImage: `linear-gradient(to top, black 0%, black ${railMaskPct}%, transparent ${railMaskPct}%)`,
                     willChange: "transform, mask-image, -webkit-mask-image",
