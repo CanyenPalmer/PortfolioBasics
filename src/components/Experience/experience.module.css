@@ -5,7 +5,7 @@
 }
 
 /* Impact subheader:
-   - Defaults to sticky (pre-lock), we override to fixed inline while locked.
+   - Defaults to sticky (pre-lock), becomes fixed inline while locked.
    - When fixed, top is computed inline (topOffset + subShift). */
 .subheaderSticky {
   position: sticky;
