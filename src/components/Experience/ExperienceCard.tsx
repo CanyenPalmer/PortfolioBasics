@@ -24,6 +24,33 @@ type Props = {
   onCollapse: () => void;
 };
 
+function deriveCreationLabel(c: any): string {
+  const direct =
+    c?.label ?? c?.title ?? c?.name ?? c?.id ?? "";
+  if (direct) return String(direct);
+
+  const href = c?.href ?? c?.link ?? "";
+  if (href && typeof href === "string") {
+    try {
+      const u = new URL(href);
+      const last =
+        u.pathname.split("/").filter(Boolean).pop() || u.hostname;
+      return decodeURIComponent(last).replace(/[-_]/g, " ");
+    } catch {
+      const last = href.split("/").pop() || href;
+      return decodeURIComponent(String(last)).replace(/[-_]/g, " ");
+    }
+  }
+
+  const desc = c?.desc ?? c?.description ?? "";
+  if (desc) {
+    const first = String(desc).split(/[.?!]/)[0] ?? String(desc);
+    return first.length > 64 ? first.slice(0, 61) + "…" : first;
+  }
+
+  return "Creation";
+}
+
 const ExperienceCard = forwardRef<HTMLDivElement, Props>(function ExperienceCard(
   { refCallback, experience, isFocused, isExpanded, metrics = [], onExpand, onCollapse },
   _ref
@@ -39,9 +66,7 @@ const ExperienceCard = forwardRef<HTMLDivElement, Props>(function ExperienceCard
   const location = experience?.location ?? "";
   const highlights: string[] = Array.isArray(experience?.highlights) ? experience.highlights : [];
 
-  // Creations can be:
-  // - array of strings
-  // - array of { label?: string; href?: string; desc?: string }
+  // Creations can be strings or objects with optional href/desc
   const creations: any[] = Array.isArray(experience?.creations) ? experience.creations : [];
 
   const stateClass = isExpanded
@@ -138,7 +163,6 @@ const ExperienceCard = forwardRef<HTMLDivElement, Props>(function ExperienceCard
                 </div>
                 <ul className="space-y-2">
                   {creations.map((c: any, i: number) => {
-                    // string form
                     if (typeof c === "string") {
                       return (
                         <li key={i} className="text-sm opacity-90">
@@ -146,10 +170,10 @@ const ExperienceCard = forwardRef<HTMLDivElement, Props>(function ExperienceCard
                         </li>
                       );
                     }
-                    // object form
-                    const label = c.label ?? c.title ?? "Creation";
-                    const desc = c.desc ?? c.description ?? "";
-                    const href = c.href ?? c.link ?? "";
+                    const label = deriveCreationLabel(c);
+                    const desc = c?.desc ?? c?.description ?? "";
+                    const href = c?.href ?? c?.link ?? "";
+
                     return (
                       <li key={i} className="text-sm opacity-90">
                         {href ? (
@@ -179,3 +203,4 @@ const ExperienceCard = forwardRef<HTMLDivElement, Props>(function ExperienceCard
 });
 
 export default ExperienceCard;
+
