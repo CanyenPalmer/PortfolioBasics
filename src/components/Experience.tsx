@@ -12,7 +12,7 @@ import styles from "@/components/Experience/experience.module.css";
  * Experience — right→center→left card flow with teaser + true lock.
  * - Teaser: first card “peeks” in and animates as the section approaches.
  * - Lock: subheader + cards pin when section spans the viewport.
- * - Subheader moves down with user during lock and ONLY fades out on unlock.
+ * - Subheader (Impact bar) stays in view, moves down with user during lock, and ONLY fades out on unlock.
  * - Click-to-center: clicking a card scrolls to center it.
  * - No vertical jump on lock (flow + fixed share geometry; we toggle visibility).
  */
@@ -190,8 +190,8 @@ export default function Experience() {
     return clamp01(viewed / cardCount);
   }, [pDuring, cardCount]);
 
-  // >>> Subheader vertical shift tied to lock progress (moves down with the user)
-  const shiftMax = Math.min(64, Math.round((vh || 480) * 0.12)); // cap ~64px, ~12vh feel
+  // Subheader vertical shift tied to lock progress (moves down with the user)
+  const shiftMax = Math.min(64, Math.round((vh || 480) * 0.12)); // cap ~64px
   const subShift = isLocked ? lp * shiftMax : 0;
 
   // Click-to-center helper: compute target scroll for a given index
@@ -230,22 +230,28 @@ export default function Experience() {
           ["--sub-shift" as any]: `${Math.max(0, Math.round(subShift))}px`, // expose to CSS for stage geometry
         }}
       >
-        {/* Sticky SUBHEADER INSIDE the lock:
-            - Instantly visible while locked (no fade-in)
-            - Moves down with user as cards advance
-            - Smoothly fades OUT when the lock releases */}
+        {/* Impact bar:
+            - Fixed while locked so it's always in view (no more "not visible")
+            - Moves down with user via top = topOffset + subShift
+            - ONLY fades out on unlock */}
         <div
           ref={subheaderRef}
           className={styles.subheaderSticky}
           style={{
+            position: isLocked ? "fixed" as const : "sticky",
+            top: isLocked
+              ? `calc(${topOffset}px + ${Math.max(0, Math.round(subShift))}px)`
+              : undefined, // sticky top from CSS when not locked
+            left: isLocked ? 0 : undefined,
+            right: isLocked ? 0 : undefined,
+            width: isLocked ? "100%" : undefined,
             opacity: isLocked ? 1 : 0,
-            transform: `translateY(${Math.max(0, Math.round(subShift))}px)`,
             // Prevent fade-in when lock engages; only animate on unlock
             transition: isLocked
-              ? "transform .2s ease, opacity 0s linear"
+              ? "top .2s ease, opacity 0s linear"
               : justUnlocked
-              ? "transform .2s ease, opacity .35s ease"
-              : "transform .2s ease, opacity 0s linear",
+              ? "opacity .35s ease"
+              : "opacity 0s linear",
           }}
         >
           <div className={styles.subheaderRow}>
