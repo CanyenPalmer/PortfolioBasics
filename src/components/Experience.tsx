@@ -13,14 +13,15 @@ import styles from "@/components/Experience/experience.module.css";
  * - Teaser: first card “peeks” in and animates as the section approaches.
  * - Lock: subheader + cards pin when section spans the viewport.
  * - Click-to-center: clicking a card scrolls to center it.
- * - No vertical jump on lock (flow + fixed share geometry, we toggle visibility).
+ * - No vertical jump on lock (flow + fixed share geometry; we toggle visibility).
+ * - NEW: Subheader (“Impact over titles”) stays visible during lock and fades out on unlock.
  */
 
 export type Metric = {
   label: string;
   value: number;
   format?: "currency" | "number" | "percent";
-  type?: "counter" | "bar" | "ring";
+  type?: "counter" | "ring" | "bar";
   icon?: string;
   suffix?: string; // e.g., "+"
 };
@@ -62,7 +63,7 @@ export default function Experience() {
   const experiences = profile.experience ?? [];
   const cardCount = experiences.length || 1;
 
-  // Title outside the lock (you asked to lock only the subheader)
+  // Title outside the lock; only the subheader is part of the lock.
   const TitleBlock = (
     <div className="pt-8 pb-2">
       <SectionPanel title="Experience">
@@ -132,6 +133,19 @@ export default function Experience() {
     };
   }, []);
 
+  // Detect just-after-unlock to trigger a smooth fade-out
+  const wasLockedRef = useRef(false);
+  const [justUnlocked, setJustUnlocked] = useState(false);
+  useEffect(() => {
+    let t: any;
+    if (wasLockedRef.current && !isLocked) {
+      setJustUnlocked(true);                    // begin fade-out
+      t = setTimeout(() => setJustUnlocked(false), 450); // cleanup after fade duration
+    }
+    wasLockedRef.current = isLocked;
+    return () => clearTimeout(t);
+  }, [isLocked]);
+
   // Deck progress during LOCK: first card centered when lp=0
   const pDuring = 1 + lp * cardCount;
 
@@ -175,8 +189,15 @@ export default function Experience() {
           ["--sub-h" as any]: `${subH}px`,
         }}
       >
-        {/* Sticky SUBHEADER INSIDE the lock (always visible while locked) */}
-        <div ref={subheaderRef} className={styles.subheaderSticky}>
+        {/* Sticky SUBHEADER INSIDE the lock (visible through lock; fades on unlock) */}
+        <div
+          ref={subheaderRef}
+          className={styles.subheaderSticky}
+          style={{
+            // Visible while locked; fades out right after unlock (transition via CSS)
+            opacity: isLocked ? 1 : justUnlocked ? 0 : 0,
+          }}
+        >
           <div className={styles.subheaderRow}>
             <span className="text-sm opacity-80">
               <span className="text-[var(--accent,_#7dd3fc)] font-medium">Impact</span> over titles
@@ -203,7 +224,6 @@ export default function Experience() {
                 const tPre = idx === 0 ? -0.5 + 0.5 * q : 2; // -0.5 → 0 as q:0→1
                 const tClamped = Math.max(-2, Math.min(2, tPre));
 
-                // Use measured viewport width from state (no direct window usage)
                 const xPx = -tClamped * 0.60 * vw;
                 const edge = Math.min(1, Math.abs(tClamped));
                 const scale = 0.94 + (1 - edge) * 0.10;
@@ -244,7 +264,6 @@ export default function Experience() {
                 const t = pDuring - (idx + 1);
                 const tClamped = Math.max(-2, Math.min(2, t));
 
-                // Use measured viewport width from state (no direct window usage)
                 const xPx = -tClamped * 0.60 * vw;
                 const edge = Math.min(1, Math.abs(tClamped));
                 const scale = 0.94 + (1 - edge) * 0.10;
