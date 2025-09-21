@@ -12,9 +12,9 @@ import styles from "@/components/Experience/experience.module.css";
  * Experience — right→center→left card flow with teaser + true lock.
  * - Teaser: first card “peeks” in and animates as the section approaches.
  * - Lock: subheader + cards pin when section spans the viewport.
+ * - Subheader moves down with user during lock and ONLY fades out on unlock.
  * - Click-to-center: clicking a card scrolls to center it.
  * - No vertical jump on lock (flow + fixed share geometry; we toggle visibility).
- * - Subheader sticks at the TOP of the user’s view for the entire lock, and ONLY fades out on unlock.
  */
 
 export type Metric = {
@@ -90,10 +90,14 @@ export default function Experience() {
     return () => window.removeEventListener("resize", measure);
   }, []);
 
-  // Viewport width for pixel-based X transforms (client-only)
+  // Viewport width/height for transforms (client-only)
   const [vw, setVw] = useState(0);
+  const [vh, setVh] = useState(0);
   useEffect(() => {
-    const update = () => setVw(window.innerWidth || 0);
+    const update = () => {
+      setVw(window.innerWidth || 0);
+      setVh(window.innerHeight || 0);
+    };
     update();
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
@@ -186,6 +190,10 @@ export default function Experience() {
     return clamp01(viewed / cardCount);
   }, [pDuring, cardCount]);
 
+  // >>> Subheader vertical shift tied to lock progress (moves down with the user)
+  const shiftMax = Math.min(64, Math.round((vh || 480) * 0.12)); // cap ~64px, ~12vh feel
+  const subShift = isLocked ? lp * shiftMax : 0;
+
   // Click-to-center helper: compute target scroll for a given index
   const centerCard = React.useCallback(
     (idx: number) => {
@@ -219,22 +227,25 @@ export default function Experience() {
           height: `calc(${cardCount + 1} * 100vh)`,
           ["--sub-h" as any]: `${subH}px`,
           ["--top-offset" as any]: `${topOffset}px`,
+          ["--sub-shift" as any]: `${Math.max(0, Math.round(subShift))}px`, // expose to CSS for stage geometry
         }}
       >
         {/* Sticky SUBHEADER INSIDE the lock:
             - Instantly visible while locked (no fade-in)
+            - Moves down with user as cards advance
             - Smoothly fades OUT when the lock releases */}
         <div
           ref={subheaderRef}
           className={styles.subheaderSticky}
           style={{
             opacity: isLocked ? 1 : 0,
+            transform: `translateY(${Math.max(0, Math.round(subShift))}px)`,
             // Prevent fade-in when lock engages; only animate on unlock
             transition: isLocked
-              ? "opacity 0s linear"
+              ? "transform .2s ease, opacity 0s linear"
               : justUnlocked
-              ? "opacity .35s ease"
-              : "opacity 0s linear",
+              ? "transform .2s ease, opacity .35s ease"
+              : "transform .2s ease, opacity 0s linear",
           }}
         >
           <div className={styles.subheaderRow}>
