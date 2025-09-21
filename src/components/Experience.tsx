@@ -337,5 +337,3 @@ export default function Experience() {
     </section>
   );
 }
-
-/*please work*/
