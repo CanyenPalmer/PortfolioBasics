@@ -45,7 +45,7 @@ export default function MetricTile({ metric, preview, autoplay }: Props) {
   const ringProgress = useTransform(raw, [0, 100], [0, circumference]);
   const ringDashOffset = useTransform(ringProgress, (v) => circumference - v);
 
-  // Bar can overshoot 100% using scaleX
+  // Bar can overshoot 100% using scaleX; we'll clip it in the container.
   const barScale = useTransform(raw, (v) => Math.max(0, v / 100));
   const barWidthPct = useTransform(raw, [0, 100], ["0%", "100%"]); // used for baseline line
 
@@ -138,7 +138,8 @@ export default function MetricTile({ metric, preview, autoplay }: Props) {
           </svg>
         </div>
       ) : metric.type === "bar" ? (
-        <div className="mt-2 h-2 w-full rounded-full bg-white/10">
+        // ✅ Clip any >100% overfill inside the pill so it never bleeds outside the card
+        <div className="mt-2 h-2 w-full rounded-full bg-white/10 overflow-hidden">
           <motion.div
             className="h-full rounded-full bg-[var(--accent,_#7dd3fc)]"
             style={{ width: "100%", scaleX: barScale, transformOrigin: "left" }}
@@ -156,3 +157,4 @@ export default function MetricTile({ metric, preview, autoplay }: Props) {
     </div>
   );
 }
+
