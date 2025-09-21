@@ -80,3 +80,5 @@
   .metricsGrid { grid-template-columns: 1fr; }
   .card { width: min(96vw, 960px); padding: .95rem; }
 }
+
+/*i hope this works*/
