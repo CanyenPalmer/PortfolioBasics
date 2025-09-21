@@ -346,25 +346,27 @@ export default function ProjectsHUD() {
   // Travel math
   const TRAVEL_CORE = Math.max(0, LAYOUT.lg.containerHeight - windowH);
 
-  // Cards begin immediately on lock and sit just below the viewport initially
-  const LEAD_IN = 0;
+  // Cards: appear at bottom; start moving once we scroll past the subheading timing
   const START_FROM_BOTTOM = Math.round(windowH * 0.98);
-
-  // Extended run-out so cards fully clear the top
   const OUT_EXTRA = Math.max(700, Math.round(windowH * 1.45));
   const END_Y = -TRAVEL_CORE - OUT_EXTRA;
 
   // Driver height: ends exactly when cards reach END_Y (unlock right as cards finish)
   const EXIT_TAIL_BASE = Math.max(560, Math.round(windowH * 0.72));
   const EXIT_TAIL = EXIT_TAIL_BASE;
+  const DRIVER_HEIGHT = START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL + 1;
 
-  const DRIVER_HEIGHT = LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL + 1;
-
-  // Scroll progress for card motion — no flat spot; moves immediately with scroll
+  // Scroll progress for card motion — start when past subheading
   const { scrollYProgress } = useScroll({ target: driverRef, offset: ["start start", "end start"] });
-  const rawY = useTransform(scrollYProgress, [0, 1], [
+
+  // Begin card motion slightly after the user scrolls past the header+subheading height
+  const startPx = Math.max(8, Math.round(headerH * 0.9)); // “past subheading” threshold
+  const startFrac = Math.min(0.35, startPx / DRIVER_HEIGHT); // cap to avoid huge delays on very tall headers
+
+  const rawY = useTransform(scrollYProgress, [0, startFrac, 1], [
     START_FROM_BOTTOM,
-    END_Y,
+    START_FROM_BOTTOM, // hold until past subheading
+    END_Y,             // then move with scroll
   ]);
   const collageY = useTransform(rawY, (v) => Math.max(END_Y, Math.min(START_FROM_BOTTOM, v)));
 
