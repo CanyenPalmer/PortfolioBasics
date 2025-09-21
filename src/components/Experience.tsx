@@ -10,13 +10,10 @@ import styles from "@/components/Experience/experience.module.css";
 
 /**
  * Experience — right→center→left card flow with teaser + true lock.
- *
- * What this implements:
- * - Teaser: as the section approaches, the first card “peeks” in (≈half visible) and animates.
- * - Lock: once the lock window spans the viewport, the subheader + cards pin and continue
- *         to be driven by vertical scroll (true scroll lock).
- * - No vertical jump: pre-lock and locked stages share identical geometry; we toggle visibility only.
- * - Click-to-center: clicking a card scrolls to center it in full view.
+ * - Teaser: first card “peeks” in and animates as the section approaches.
+ * - Lock: subheader + cards pin when section spans the viewport.
+ * - Click-to-center: clicking a card scrolls to center it.
+ * - No vertical jump on lock (flow + fixed share geometry, we toggle visibility).
  */
 
 export type Metric = {
@@ -65,11 +62,10 @@ export default function Experience() {
   const experiences = profile.experience ?? [];
   const cardCount = experiences.length || 1;
 
-  // Top title (not part of the lock; you asked to lock only the subheader)
+  // Title outside the lock (you asked to lock only the subheader)
   const TitleBlock = (
     <div className="pt-8 pb-2">
       <SectionPanel title="Experience">
-        {/* accessible child to satisfy required 'children' */}
         <span className="sr-only">Experience section</span>
       </SectionPanel>
     </div>
@@ -82,7 +78,7 @@ export default function Experience() {
   const subheaderRef = useRef<HTMLDivElement | null>(null);
 
   // Measure subheader height so the stage sits directly beneath it (no jump)
-  const [subH, setSubH] = useState(56); // default approx height
+  const [subH, setSubH] = useState(56);
   useEffect(() => {
     const measure = () => {
       const h = Math.round(subheaderRef.current?.getBoundingClientRect().height || 56);
@@ -93,7 +89,7 @@ export default function Experience() {
     return () => window.removeEventListener("resize", measure);
   }, []);
 
-  // Viewport width for pixel-based X transforms
+  // Viewport width for pixel-based X transforms (client-only)
   const [vw, setVw] = useState(0);
   useEffect(() => {
     const update = () => setVw(window.innerWidth || 0);
@@ -102,11 +98,7 @@ export default function Experience() {
     return () => window.removeEventListener("resize", update);
   }, []);
 
-  /**
-   * PRE-LOCK TEASER:
-   * q ∈ [0..1] from when the section top is at 80% viewport to when it hits top (lock ready).
-   * tPre for the first card goes from -0.5 (≈half visible) → 0 (center) across q=0→1.
-   */
+  // PRE-LOCK TEASER: first card peeks in (≈half visible) and glides toward center
   const { scrollYProgress: preProg } = useScroll({
     target: lockRef,
     offset: ["start 80%", "start start"],
@@ -114,11 +106,7 @@ export default function Experience() {
   const [q, setQ] = useState(0);
   useMotionValueEvent(preProg, "change", (v) => setQ(clamp01(v)));
 
-  /**
-   * LOCK PROGRESS:
-   * lp ∈ [0..1] while the lock window spans the viewport (true pin).
-   * Map so card 0 is centered when lp=0, and the last card exits by lp=1.
-   */
+  // LOCK PROGRESS: active while the lock window spans the viewport
   const { scrollYProgress: lockProgress } = useScroll({
     target: lockRef,
     offset: ["start start", "end end"],
@@ -144,16 +132,12 @@ export default function Experience() {
     };
   }, []);
 
-  /**
-   * Deck progress during LOCK:
-   * pDuring = 1 + lp * cardCount
-   * -> t = pDuring - (idx + 1); t=0 means centered.
-   */
+  // Deck progress during LOCK: first card centered when lp=0
   const pDuring = 1 + lp * cardCount;
 
   // Subheader underline progress (increments as cards center)
   const underlinePct = useMemo(() => {
-    const viewed = Math.min(cardCount, Math.max(0, pDuring)); // 0..cardCount
+    const viewed = Math.min(cardCount, Math.max(0, pDuring));
     return clamp01(viewed / cardCount);
   }, [pDuring, cardCount]);
 
@@ -179,7 +163,7 @@ export default function Experience() {
 
   return (
     <section data-section="experience" className="relative w-full">
-      {/* Title outside the lock; you asked to keep only the subheader in the lock */}
+      {/* Title outside the lock; only the subheader is sticky/locked */}
       {TitleBlock}
 
       {/* Lock window wraps the sticky subheader + stage; it provides the scroll budget */}
@@ -216,10 +200,10 @@ export default function Experience() {
                 const metrics = (metricsMap as any)[k] ?? (metricsByIndex as any)[idx] ?? [];
 
                 // Only the first card peeks pre-lock; others stay off to the right
-                const tPre = idx === 0 ? (-0.5 + 0.5 * q) : 2; // -0.5 → 0 as q:0→1
+                const tPre = idx === 0 ? -0.5 + 0.5 * q : 2; // -0.5 → 0 as q:0→1
                 const tClamped = Math.max(-2, Math.min(2, tPre));
 
-                const vw = window.innerWidth || 0;
+                // Use measured viewport width from state (no direct window usage)
                 const xPx = -tClamped * 0.60 * vw;
                 const edge = Math.min(1, Math.abs(tClamped));
                 const scale = 0.94 + (1 - edge) * 0.10;
@@ -260,7 +244,7 @@ export default function Experience() {
                 const t = pDuring - (idx + 1);
                 const tClamped = Math.max(-2, Math.min(2, t));
 
-                const vw = window.innerWidth || 0;
+                // Use measured viewport width from state (no direct window usage)
                 const xPx = -tClamped * 0.60 * vw;
                 const edge = Math.min(1, Math.abs(tClamped));
                 const scale = 0.94 + (1 - edge) * 0.10;
@@ -293,4 +277,3 @@ export default function Experience() {
     </section>
   );
 }
-
