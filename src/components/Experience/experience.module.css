@@ -1,6 +1,5 @@
 .stage {
   position: relative;
-  /* Creates long scroll room while the cards animate through */
   padding-bottom: 40vh;
 }
 
@@ -8,25 +7,24 @@
 .card {
   position: relative;
   margin: 10vh auto;
-  padding: 1rem 1rem 1rem 1rem;
-  border-radius: 1rem; /* tailwind rounded-2xl */
+  padding: 1rem;
+  border-radius: 1rem;
   border: 1px solid rgba(255,255,255,0.1);
-  background: rgba(13,19,29,0.65); /* subtle translucent panel to match theme */
+  background: rgba(13,19,29,0.65);
   backdrop-filter: blur(6px);
   box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-  max-width: 56rem; /* ~max-w-4xl parity */
+  max-width: 56rem;
   will-change: transform, opacity;
 }
 
-/* States: collapsed, focused, expanded */
 .cardCollapsed {
-  transform: translateY(12px) scale(0.98);
-  opacity: 0.7;
+  transform: translateY(12px) scale(0.985);
+  opacity: 0.78;
 }
 .cardFocused {
   transform: translateY(0) scale(1);
   opacity: 1;
-  border-color: rgba(125, 211, 252, 0.45); /* accent */
+  border-color: rgba(125, 211, 252, 0.45);
   box-shadow: 0 0 0 1px rgba(125,211,252,0.25), 0 12px 40px rgba(0,0,0,0.35);
 }
 .cardExpanded {
@@ -40,7 +38,7 @@
 .metricsGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.75rem; /* ~gap-3 */
+  gap: 0.75rem;
 }
 
 /* Bullet points: console-like feel */
