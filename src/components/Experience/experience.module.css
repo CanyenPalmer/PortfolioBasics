@@ -1,26 +1,49 @@
-/* Lock window holds the sticky header and the sticky stage */
+/* Lock window holds the sticky header and the stage */
 .lockWindow {
   position: relative;
   width: 100%;
 }
 
-/* Sticky header remains visible during the entire lock window */
+/* Sticky header that stays visible during the entire lock window */
 .pinHeader {
   position: sticky;
   top: 0;
   z-index: 50;                 /* above the stage */
-  background: transparent;     /* respect page background */
+  background: transparent;     /* respect page bg */
   padding-top: 2rem;
   padding-bottom: 1rem;
 }
 
-/* Sticky stage: sits directly under the header; never toggles position */
-.stageSticky {
-  position: sticky;
+/* Holder reserves the exact stage height below the header so there's no jump */
+.stageHolder {
+  position: relative;
+  height: calc(100vh - var(--header-h, 96px));
+  z-index: 20;                 /* below header, above page */
+  box-sizing: border-box;
+}
+
+/* Stage in normal flow (before/after lock) — same metrics as fixed */
+.stageFlow {
+  position: relative;
+  top: 0;
+  height: calc(100vh - var(--header-h, 96px));
+  box-sizing: border-box;
+}
+
+/* Stage when locked: fixed just under the sticky header */
+.stageFixed {
+  position: fixed;
   top: var(--header-h, 96px);
+  left: 0;
+  right: 0;
   height: calc(100vh - var(--header-h, 96px));
   z-index: 30;                 /* below header (z-50) */
+  box-sizing: border-box;
 }
+
+/* Toggle visibility only (keep layout stable) */
+.isHidden { visibility: hidden; }
+.isVisible { visibility: visible; }
 
 /* Centered stack that holds the motion-transformed cards */
 .stack {
