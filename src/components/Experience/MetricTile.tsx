@@ -9,6 +9,7 @@ export type Metric = {
   format?: "currency" | "number" | "percent";
   type?: "counter" | "bar" | "ring";
   icon?: string;
+  suffix?: string; // e.g., "+"
 };
 
 type Props = {
@@ -43,12 +44,15 @@ export default function MetricTile({ metric, preview, autoplay }: Props) {
   // Derived transforms
   const ringProgress = useTransform(raw, [0, 100], [0, circumference]);
   const ringDashOffset = useTransform(ringProgress, (v) => circumference - v);
-  const barWidthPct = useTransform(raw, [0, 100], ["0%", "100%"]);
+
+  // Bar can overshoot 100% using scaleX
+  const barScale = useTransform(raw, (v) => Math.max(0, v / 100));
+  const barWidthPct = useTransform(raw, [0, 100], ["0%", "100%"]); // used for baseline line
 
   // Number display
   const display = useTransform(raw, (v) => {
-    const capped = metric.format === "percent" ? Math.min(v, 100) : v;
-    return formatValue(Math.round(capped), metric.format);
+    // allow >100% for bars (e.g., 150%)
+    return formatValue(v, metric.format);
   });
 
   // Hover/preview: mouse sets 0..target (full), Expanded: animate to target
@@ -69,8 +73,7 @@ export default function MetricTile({ metric, preview, autoplay }: Props) {
     const el = ref.current;
     if (!el) return;
 
-    // Full preview to the metric's target (no 40–60% cap)
-    const cap = metric.format === "percent" ? Math.min(target, 100) : target;
+    const cap = target; // full target, no cap
     let raf = 0;
 
     const onMove = (e: MouseEvent) => {
@@ -91,20 +94,21 @@ export default function MetricTile({ metric, preview, autoplay }: Props) {
       el.removeEventListener("mousemove", onMove);
       el.removeEventListener("mouseleave", onLeave);
     };
-  }, [preview, target, metric.format, raw]);
+  }, [preview, target, raw]);
 
   return (
     <div
       ref={ref}
       className="rounded-2xl border border-white/10 bg-white/5 p-3 backdrop-blur-sm hover:border-[var(--accent,_#7dd3fc)]/60 transition-colors"
       style={{ willChange: "transform, opacity" }}
-      aria-label={`${metric.label} ${formatValue(metric.value, metric.format)}`}
+      aria-label={`${metric.label} ${formatValue(metric.value, metric.format)}${metric.suffix ?? ""}`}
     >
       <div className="flex items-center justify-between gap-3">
         <div className="text-xs uppercase tracking-wide opacity-80">{metric.label}</div>
-        <motion.div className="text-right text-base font-semibold tabular-nums">
-          {display}
-        </motion.div>
+        <div className="text-right text-base font-semibold tabular-nums">
+          <motion.span>{display}</motion.span>
+          {metric.suffix ? <span>{metric.suffix}</span> : null}
+        </div>
       </div>
 
       {/* Visualizer */}
@@ -134,14 +138,14 @@ export default function MetricTile({ metric, preview, autoplay }: Props) {
           </svg>
         </div>
       ) : metric.type === "bar" ? (
-        <div className="mt-2 h-2 w-full rounded-full bg-white/10 overflow-hidden">
+        <div className="mt-2 h-2 w-full rounded-full bg-white/10">
           <motion.div
             className="h-full rounded-full bg-[var(--accent,_#7dd3fc)]"
-            style={{ width: barWidthPct }}
+            style={{ width: "100%", scaleX: barScale, transformOrigin: "left" }}
           />
         </div>
       ) : (
-        // counter-only: baseline progress line
+        // counter-only: baseline progress line (clamped to 0..100)
         <div className="mt-2 h-[2px] w-full bg-white/10 overflow-hidden">
           <motion.div
             className="h-full bg-[var(--accent,_#7dd3fc)]"
