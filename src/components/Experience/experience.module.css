@@ -4,17 +4,20 @@
   width: 100%;
 }
 
-/* Stage holder reserves space so switching to fixed doesn't shift layout */
+/* Holder keeps a constant offset for the title area so switching to fixed
+   does NOT change the stage's visual Y position. */
 .stageHolder {
   position: relative;
-  height: calc(100vh - var(--title-offset, 96px));
-  z-index: 20;
+  height: 100vh;                                 /* full viewport height */
+  padding-top: var(--title-offset, 96px);        /* reserve space for the title */
+  z-index: 20;                                   /* under the title (which is z-50) */
+  box-sizing: border-box;
 }
 
-/* Stage in normal flow (before/after lock) */
+/* Stage in normal flow (before/after lock) — same visual offset as fixed */
 .stageFlow {
   position: relative;
-  height: 100%;
+  height: calc(100vh - var(--title-offset, 96px));
 }
 
 /* Stage when locked: fixed just under the sticky title */
@@ -24,6 +27,7 @@
   left: 0;
   right: 0;
   height: calc(100vh - var(--title-offset, 96px));
+  z-index: 30;                                   /* below the sticky title (z-50) */
 }
 
 /* Centered stack that holds the motion-transformed cards */
