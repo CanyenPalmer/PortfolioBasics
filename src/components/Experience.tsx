@@ -131,9 +131,9 @@ export default function Experience() {
 
   // Direction-aware lock with hysteresis to remove boundary jitter
   const lastYRef = useRef(0);
-  const ENTER_EPS = 2; // px tolerance to enter lock (prevents early flip)
-  const EXIT_EPS_TOP = 0; // exit immediately when top lifts above viewport on upward scroll
-  const EXIT_EPS_BOTTOM = 2; // small tolerance at bottom
+  const ENTER_EPS = 2; // px tolerance to enter lock
+  const EXIT_EPS_TOP = 0; // exit quickly on upward scroll
+  const EXIT_EPS_BOTTOM = 2;
 
   const [isLocked, setIsLocked] = useState(false);
   useEffect(() => {
@@ -149,15 +149,11 @@ export default function Experience() {
       let nowLocked = isLocked;
 
       if (!isLocked) {
-        // ENTER: require both edges to cover viewport with small tolerance
         nowLocked = r.top <= ENTER_EPS && r.bottom >= vh - ENTER_EPS;
       } else {
-        // EXIT: direction-aware to feel snappy but not shaky
         if (dirDown) {
-          // scrolling DOWN: keep locked until the bottom edge actually lifts
           nowLocked = !(r.bottom < vh - EXIT_EPS_BOTTOM);
         } else {
-          // scrolling UP: unlock as soon as the top edge drops below the top
           nowLocked = !(r.top > EXIT_EPS_TOP);
         }
       }
@@ -173,29 +169,38 @@ export default function Experience() {
     };
   }, [isLocked]);
 
-  // Fade-out on unlock (no flicker; quicker reaction when leaving upward)
+  // Fade-out on unlock (freeze underline; cancel immediately if re-lock happens)
   const wasLockedRef = useRef(false);
   const [justUnlocked, setJustUnlocked] = useState(false);
-  const FADE_MS = 260; // quicker fade per your feedback
+  const FADE_MS = 260;
+  const fadeTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
-    let t: any;
-    if (wasLockedRef.current && !isLocked) {
+    if (isLocked) {
+      // If we re-lock during a fade, cancel the fade and show immediately.
+      if (fadeTimerRef.current) {
+        window.clearTimeout(fadeTimerRef.current);
+        fadeTimerRef.current = null;
+      }
+      setJustUnlocked(false);
+    } else if (wasLockedRef.current && !isLocked) {
       setJustUnlocked(true);
-      t = setTimeout(() => setJustUnlocked(false), FADE_MS);
+      fadeTimerRef.current = window.setTimeout(() => {
+        setJustUnlocked(false);
+        fadeTimerRef.current = null;
+      }, FADE_MS);
     }
     wasLockedRef.current = isLocked;
-    return () => clearTimeout(t);
   }, [isLocked]);
 
   // Card progression during lock
   const pDuring = 1 + lp * cardCount;
 
-  // Underline fill (freeze during fade-out to avoid any reset feel)
+  // Underline fill (freeze during fade-out)
   const underlineLive = useMemo(() => {
     if (!isLocked) return 0.5 * clamp01(q); // 0 → 50% pre-lock
     if (cardCount <= 1) return 1;
-    const pb = clamp01((pDuring - 1) / (cardCount - 1)); // 0 at first center → 1 at last
+    const pb = clamp01((pDuring - 1) / (cardCount - 1));
     return 0.5 + 0.5 * pb;
   }, [isLocked, q, pDuring, cardCount]);
 
@@ -234,7 +239,7 @@ export default function Experience() {
           ["--sub-shift" as any]: `0px`, // pinned bar: no dynamic vertical shift
         }}
       >
-        {/* Impact bar — always sticky; identical geometry; quick fade on unlock */}
+        {/* Impact bar — always visible during lock; quick fade on unlock; cancels fade if re-locking */}
         <div
           ref={subheaderRef}
           className={styles.subheaderSticky}
@@ -244,7 +249,8 @@ export default function Experience() {
             left: 0,
             right: 0,
             width: "100%",
-            opacity: justUnlocked ? 0 : 1, // only fades out when unlocking
+            // Visible while locked; only hide during the brief unlock fade:
+            opacity: isLocked ? 1 : (justUnlocked ? 0 : 1),
             transition: `opacity ${FADE_MS}ms ease`,
           }}
         >
@@ -337,3 +343,4 @@ export default function Experience() {
     </section>
   );
 }
+
