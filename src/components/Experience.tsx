@@ -5,8 +5,8 @@ import { useMemo, useRef, useState, useEffect, useCallback } from "react";
 import { AnimatePresence, motion, useScroll, useTransform } from "framer-motion";
 import SectionPanel from "@/components/ui/SectionPanel";
 import { profile } from "@/content/profile";
-import ExperienceCard from "./Experience/ExperienceCard";
-import styles from "./Experience/experience.module.css";
+import ExperienceCard from "@/components/Experience/ExperienceCard";
+import styles from "@/components/Experience/experience.module.css";
 
 /**
  * Experience — scroll-driven deck with expandable cards and metric tiles.
@@ -20,7 +20,7 @@ type Metric = {
   value: number;
   format?: "currency" | "number" | "percent";
   type?: "counter" | "bar" | "ring";
-  icon?: string; // optional icon name if you later want to use lucide or similar
+  icon?: string;
 };
 
 type MetricsMap = Record<string, Metric[]>;
@@ -98,7 +98,6 @@ export default function Experience() {
 
   // Title underline width as fraction of cards viewed (purely cosmetic)
   const titleUnderlinePct = useMemo(() => {
-    // Map focusIndex to progress across total cards (0..1)
     if (cardCount <= 1) return 1;
     return (focusIndex + 1) / cardCount;
   }, [focusIndex, cardCount]);
@@ -112,7 +111,10 @@ export default function Experience() {
     <section data-section="experience" ref={sectionRef} className="relative w-full">
       {/* Sticky Title (Experience) */}
       <div className="sticky top-0 z-20 bg-transparent pt-8 pb-4">
-        <SectionPanel title="Experience" subtitle="Impact over titles">
+        <SectionPanel title="Experience">
+          <p className="mt-1 text-sm opacity-80">
+            <span className="text-[var(--accent,_#7dd3fc)] font-medium">Impact</span> over titles
+          </p>
           <div className="mt-3 h-1 w-full bg-transparent">
             <div
               className="h-[2px] bg-[var(--accent,_#7dd3fc)] transition-[width]"
