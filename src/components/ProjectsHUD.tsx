@@ -346,12 +346,11 @@ export default function ProjectsHUD() {
   // Travel math
   const TRAVEL_CORE = Math.max(0, LAYOUT.lg.containerHeight - windowH);
 
-  // Start immediately; cards begin lower so they were delayed before.
-  // Change: raise visibility by bringing the stack a bit closer (appear sooner + move immediately with scroll).
+  // Cards appear after a few scrolls (as previously tuned)
   const LEAD_IN = 0;
-  const START_FROM_BOTTOM = Math.round(windowH * 0.94); // was 1.02 — now reveals earlier and moves with scroll right after lock
+  const START_FROM_BOTTOM = Math.round(windowH * 0.94);
 
-  // Extended run-out so cards fully clear the top (unchanged)
+  // Extended run-out so cards fully clear the top
   const OUT_EXTRA = Math.max(700, Math.round(windowH * 1.45));
   const END_Y = -TRAVEL_CORE - OUT_EXTRA;
 
@@ -361,15 +360,16 @@ export default function ProjectsHUD() {
 
   const DRIVER_HEIGHT = LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL + 1;
 
-  // Scroll progress for card motion
+  // Scroll progress for card motion — remove initial “freeze” by giving the first segment a tiny slope,
+  // and keep sub-pixel movement (no rounding).
   const { scrollYProgress } = useScroll({ target: driverRef, offset: ["start start", "end start"] });
   const startFrac = LEAD_IN / DRIVER_HEIGHT || 0.0000001;
   const rawY = useTransform(scrollYProgress, [0, startFrac, 1], [
     START_FROM_BOTTOM,
-    START_FROM_BOTTOM,
+    START_FROM_BOTTOM - 1, // <- tiny nudge so motion begins immediately when visible
     END_Y,
   ]);
-  const collageY = useTransform(rawY, (v) => Math.max(END_Y, Math.min(START_FROM_BOTTOM, Math.round(v))));
+  const collageY = useTransform(rawY, (v) => Math.max(END_Y, Math.min(START_FROM_BOTTOM, v)));
 
   // Visibility states (mutually exclusive)
   const [preVisible, setPreVisible] = React.useState(true);
@@ -663,7 +663,7 @@ export default function ProjectsHUD() {
         {CollageOverlay}
         {ChromeOverlay}
 
-        {/* PERSISTENT LEFT RAIL — reveals bottom→top synced with PACE node 2; moves with section after unlock */}
+        {/* PERSISTENT LEFT RAIL */}
         <motion.div
           className="fixed inset-0 z-[62] pointer-events-none"
           aria-hidden
@@ -683,7 +683,7 @@ export default function ProjectsHUD() {
                     willChange: "transform, mask-image, -webkit-mask-image",
                   }}
                 >
-                  <LeftRail height={treeH} top={paceTop} />
+                    <LeftRail height={treeH} top={paceTop} />
                 </div>
               </div>
               <div aria-hidden className="hidden md:block" />
