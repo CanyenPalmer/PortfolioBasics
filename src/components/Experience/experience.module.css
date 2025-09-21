@@ -4,19 +4,10 @@
   width: 100%;
 }
 
-/* Stage: normal flow before/after lock */
-.stageFlow {
-  position: relative;
-  height: calc(100vh - var(--title-offset, 96px));
-  z-index: 20;
-}
-
-/* Stage: fixed while locked (true scroll lock) */
-.stageFixed {
-  position: fixed;
-  top: var(--title-offset, 96px);   /* sits just under the sticky title */
-  left: 0;
-  right: 0;
+/* Pinned stage (sticky) under the sticky title — no class toggle, so no shift */
+.stagePin {
+  position: sticky;
+  top: var(--title-offset, 96px);                 /* sits just under the title */
   height: calc(100vh - var(--title-offset, 96px));
   z-index: 20;
 }
