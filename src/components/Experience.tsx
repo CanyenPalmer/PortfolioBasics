@@ -14,7 +14,7 @@ import styles from "@/components/Experience/experience.module.css";
  * - Lock: subheader + cards pin when section spans the viewport.
  * - Click-to-center: clicking a card scrolls to center it.
  * - No vertical jump on lock (flow + fixed share geometry; we toggle visibility).
- * - Subheader (“Impact over titles”) sticks during lock and ONLY fades out on unlock.
+ * - Subheader sticks at the TOP of the user’s view for the entire lock, and ONLY fades out on unlock.
  */
 
 export type Metric = {
@@ -97,6 +97,37 @@ export default function Experience() {
     update();
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
+  }, []);
+
+  // Detect any fixed top header height so our subheader truly sits at the top of the user's view
+  const [topOffset, setTopOffset] = useState(0);
+  useEffect(() => {
+    const computeTopOffset = () => {
+      let max = 0;
+      const nodes = Array.from(
+        document.querySelectorAll<HTMLElement>(
+          'header, nav, [data-fixed-header], [data-sticky="header"], [data-header]'
+        )
+      );
+      nodes.forEach((el) => {
+        const cs = window.getComputedStyle(el);
+        if (cs.position === "fixed") {
+          const r = el.getBoundingClientRect();
+          if (Math.abs(r.top) < 2) {
+            const h = Math.round(r.height);
+            if (h > max) max = h;
+          }
+        }
+      });
+      setTopOffset(max); // 0 if none found
+    };
+    computeTopOffset();
+    window.addEventListener("resize", computeTopOffset);
+    window.addEventListener("scroll", computeTopOffset, { passive: true });
+    return () => {
+      window.removeEventListener("resize", computeTopOffset);
+      window.removeEventListener("scroll", computeTopOffset);
+    };
   }, []);
 
   // PRE-LOCK TEASER: first card peeks in (≈half visible) and glides toward center
@@ -187,6 +218,7 @@ export default function Experience() {
         style={{
           height: `calc(${cardCount + 1} * 100vh)`,
           ["--sub-h" as any]: `${subH}px`,
+          ["--top-offset" as any]: `${topOffset}px`,
         }}
       >
         {/* Sticky SUBHEADER INSIDE the lock:
@@ -198,7 +230,11 @@ export default function Experience() {
           style={{
             opacity: isLocked ? 1 : 0,
             // Prevent fade-in when lock engages; only animate on unlock
-            transition: isLocked ? "opacity 0s linear" : (justUnlocked ? "opacity .35s ease" : "opacity 0s linear"),
+            transition: isLocked
+              ? "opacity 0s linear"
+              : justUnlocked
+              ? "opacity .35s ease"
+              : "opacity 0s linear",
           }}
         >
           <div className={styles.subheaderRow}>
@@ -299,4 +335,3 @@ export default function Experience() {
     </section>
   );
 }
-
