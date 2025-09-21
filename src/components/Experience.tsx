@@ -66,11 +66,12 @@ export default function Experience() {
   const cardCount = experiences.length || 1;
 
   // Top title (not part of the lock; you asked to lock only the subheader)
-  // Keep the same look/formatting, just not sticky in the lock.
-  // If you prefer the title sticky again, we can toggle it back easily.
   const TitleBlock = (
     <div className="pt-8 pb-2">
-      <SectionPanel title="Experience" />
+      <SectionPanel title="Experience">
+        {/* accessible child to satisfy required 'children' */}
+        <span className="sr-only">Experience section</span>
+      </SectionPanel>
     </div>
   );
 
@@ -212,12 +213,13 @@ export default function Experience() {
             <div className={styles.stack}>
               {experiences.map((exp: any, idx: number) => {
                 const k = keyFor(exp);
-                const metrics = metricsMap[k] ?? metricsByIndex[idx] ?? [];
+                const metrics = (metricsMap as any)[k] ?? (metricsByIndex as any)[idx] ?? [];
 
                 // Only the first card peeks pre-lock; others stay off to the right
                 const tPre = idx === 0 ? (-0.5 + 0.5 * q) : 2; // -0.5 → 0 as q:0→1
                 const tClamped = Math.max(-2, Math.min(2, tPre));
 
+                const vw = window.innerWidth || 0;
                 const xPx = -tClamped * 0.60 * vw;
                 const edge = Math.min(1, Math.abs(tClamped));
                 const scale = 0.94 + (1 - edge) * 0.10;
@@ -251,13 +253,14 @@ export default function Experience() {
             <div className={styles.stack}>
               {experiences.map((exp: any, idx: number) => {
                 const k = keyFor(exp);
-                const metrics = metricsMap[k] ?? metricsByIndex[idx] ?? [];
+                const metrics = (metricsMap as any)[k] ?? (metricsByIndex as any)[idx] ?? [];
 
                 // Deck mapping during lock:
                 // t = pDuring - (idx + 1); t=0 means perfectly centered.
                 const t = pDuring - (idx + 1);
                 const tClamped = Math.max(-2, Math.min(2, t));
 
+                const vw = window.innerWidth || 0;
                 const xPx = -tClamped * 0.60 * vw;
                 const edge = Math.min(1, Math.abs(tClamped));
                 const scale = 0.94 + (1 - edge) * 0.10;
@@ -290,3 +293,4 @@ export default function Experience() {
     </section>
   );
 }
+
