@@ -1,7 +1,13 @@
 /* Lock window hosts the sticky/fixed subheader and the stage */
 .lockWindow { position: relative; width: 100%; }
 
-/* Impact subheader — identical geometry at all times; prevent micro-jiggle */
+/* Wrapper so the spacer sits exactly where the bar would be in flow */
+.subheaderWrapper {
+  position: relative;
+  contain: layout paint; /* isolates tiny repaints */
+}
+
+/* Impact subheader — identical geometry; GPU compositing to avoid jiggle */
 .subheaderSticky {
   position: sticky;
   top: var(--top-offset, 0px);
@@ -12,10 +18,14 @@
   background: transparent;
   padding-bottom: 0.5rem;
 
-  /* Reduce any subpixel repaint noise on threshold switch */
   backface-visibility: hidden;
   transform: translateZ(0);
   will-change: opacity;
+}
+
+/* Spacer that preserves layout when bar becomes fixed */
+.subheaderSpacer {
+  width: 100%;
 }
 
 /* Subheader row + underline */
@@ -23,6 +33,7 @@
 .underlineTrack { flex: 1; height: 2px; background: transparent; position: relative; overflow: hidden; }
 .underlineFill { height: 2px; background: var(--accent, #7dd3fc); width: 0%; transition: width .2s ease; }
 
+/* Stage geometry (bar is pinned; no vertical shift) */
 .stageHolder {
   position: relative;
   height: calc(100vh - var(--sub-h, 56px) - var(--top-offset, 0px) - var(--sub-shift, 0px));
