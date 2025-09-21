@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useMemo, useRef, useState, useEffect, useCallback } from "react";
 import { AnimatePresence, motion, useScroll, useTransform } from "framer-motion";
-import { SectionPanel } from "@/components/ui/SectionPanel";
+import SectionPanel from "@/components/ui/SectionPanel";
 import { profile } from "@/content/profile";
 import ExperienceCard from "./Experience/ExperienceCard";
 import styles from "./Experience/experience.module.css";
