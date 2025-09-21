@@ -4,13 +4,14 @@
   width: 100%;
 }
 
-/* Sticky SUBHEADER that stays visible during the lock */
+/* Sticky SUBHEADER that stays visible during the lock and fades on unlock */
 .subheaderSticky {
   position: sticky;
   top: 0;
   z-index: 50;                 /* above the stage */
   background: transparent;     /* match page bg */
   padding-bottom: 0.5rem;
+  transition: opacity .35s ease;  /* <-- smooth fade on unlock */
 }
 
 /* Subheader content row and underline */
@@ -158,4 +159,5 @@
     padding: 0.95rem;
   }
 }
+
 
