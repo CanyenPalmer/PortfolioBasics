@@ -1,18 +1,19 @@
-/* Lock window hosts the sticky subheader and the stage */
+/* Lock window hosts the sticky/fixed subheader and the stage */
 .lockWindow {
   position: relative;
   width: 100%;
 }
 
-/* Sticky SUBHEADER that stays visible during the lock.
-   Sits at exact top of user's view, and JS applies translateY via --sub-shift. */
+/* Impact subheader:
+   - Defaults to sticky (pre-lock), we override to fixed inline while locked.
+   - When fixed, top is computed inline (topOffset + subShift). */
 .subheaderSticky {
   position: sticky;
-  top: var(--top-offset, 0px);     /* accounts for any fixed site header */
-  z-index: 50;                     /* above the stage */
-  background: transparent;         /* match page bg */
+  top: var(--top-offset, 0px);
+  z-index: 50;                  /* above the stage */
+  background: transparent;      /* match page bg */
   padding-bottom: 0.5rem;
-  /* opacity/transform transitions are controlled inline to prevent fade-in */
+  /* opacity/top transitions controlled inline to avoid fade-in */
 }
 
 /* Subheader content row and underline */
@@ -48,7 +49,7 @@
   position: relative;
   height: calc(100vh - var(--sub-h, 56px) - var(--top-offset, 0px) - var(--sub-shift, 0px));
   box-sizing: border-box;
-  z-index: 30;                     /* below subheader */
+  z-index: 30;                  /* below subheader */
 }
 
 /* Locked stage: fixed under the (possibly shifted) subheader (true scroll lock) */
@@ -59,7 +60,7 @@
   right: 0;
   height: calc(100vh - var(--sub-h, 56px) - var(--top-offset, 0px) - var(--sub-shift, 0px));
   box-sizing: border-box;
-  z-index: 40;                     /* below subheader (z-50) */
+  z-index: 40;                  /* below subheader (z-50) */
 }
 
 /* Visibility toggles — keep layout stable */
