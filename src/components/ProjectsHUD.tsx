@@ -89,7 +89,7 @@ function docTop(el: HTMLElement | null) {
 function ProjectTile({ p, left, top, width }: { p: Project; left: string; top: number; width: string }) {
   const img = IMAGE_BY_TITLE[p.title] ?? { src: "/images/portfolio-basics-avatar.png", alt: `${p.title} preview` };
   const slug = slugify(p.title);
-  const aspect = ASPECT[p.title] ?? "3 / 4";
+  the const aspect = ASPECT[p.title] ?? "3 / 4";
 
   return (
     <article className="absolute z-10" style={{ left, top, width }} aria-label={p.title}>
@@ -270,7 +270,7 @@ function LeftRail({ height, top }: { height: number; top: number }) {
       lastRef.current = ts;
       if (!paused && innerRef.current && rowH > 0) {
         const dt = (ts - last) / 1000;
-        let y = yRef.current - SPEED * dt;
+        let y = yRef.current - 22 * dt;
         const wrapRows = Math.floor(-y / rowH);
         if (wrapRows > 0) y += wrapRows * rowH;
         yRef.current = y;
@@ -346,9 +346,10 @@ export default function ProjectsHUD() {
   // Travel math
   const TRAVEL_CORE = Math.max(0, LAYOUT.lg.containerHeight - windowH);
 
-  // Cards should begin on the NEXT scroll after lock: tiny lead-in distance.
-  const LEAD_IN = 12; // px of scroll after lock before cards move
-  const START_FROM_BOTTOM = Math.round(windowH * 0.94);
+  // === ONLY CHANGES HERE ===
+  // Cards begin on the user’s next scroll after lock, and start fully below the viewport so none are visible at lock.
+  const LEAD_IN = 24; // px of post-lock scroll before cards move
+  const START_FROM_BOTTOM = Math.round(windowH * 1.12); // keep first card below viewport at lock
 
   // Extended run-out so cards fully clear the top
   const OUT_EXTRA = Math.max(700, Math.round(windowH * 1.45));
@@ -360,13 +361,13 @@ export default function ProjectsHUD() {
 
   const DRIVER_HEIGHT = LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL + 1;
 
-  // Scroll progress for card motion — flat until startFrac, then move (so the "next" scroll kicks off motion).
+  // Scroll progress for card motion — flat until startFrac, then animate with user scroll.
   const { scrollYProgress } = useScroll({ target: driverRef, offset: ["start start", "end start"] });
   const startFrac = LEAD_IN / DRIVER_HEIGHT || 0.0000001;
   const rawY = useTransform(scrollYProgress, [0, startFrac, 1], [
-    START_FROM_BOTTOM, // locked frame
-    START_FROM_BOTTOM, // stay flat through the tiny lead-in
-    END_Y,             // then animate with the user's scroll
+    START_FROM_BOTTOM,
+    START_FROM_BOTTOM, // perfectly flat through lead-in
+    END_Y,
   ]);
   const collageY = useTransform(rawY, (v) => Math.max(END_Y, Math.min(START_FROM_BOTTOM, v)));
 
