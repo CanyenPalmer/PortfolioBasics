@@ -365,7 +365,7 @@ export default function ProjectsHUD() {
   // We still keep this to power other pieces (rail timing, etc.)
   const { scrollYProgress } = useScroll({ target: driverRef, offset: ["start start", "end start"] });
 
-  // === NEW: cards y driven by actual window scroll so it can start BEFORE lock (when 2nd node enters) ===
+  // Cards y driven by actual window scroll so it can start BEFORE lock when EXECUTE bottom enters
   const collageY = useMotionValue(START_FROM_BOTTOM);
 
   // Visibility states
@@ -451,7 +451,7 @@ export default function ProjectsHUD() {
       const railOn = viewportBottom >= preTop && y < postEnd;
       if (railOn !== railVisible) setRailVisible(railOn);
 
-      // Sidebar reveal synced to second node (28%)
+      // Sidebar reveal synced to second node (28%) — unchanged
       const secondNodeTop = preTop + paceTop + Math.round(treeH * 0.28);
       const revealStart = secondNodeTop - viewportH + 8; // when node just enters from bottom
       const revealEnd = lockStart;
@@ -460,9 +460,14 @@ export default function ProjectsHUD() {
       setRailRevealY(Math.round(railIntroOffset * (1 - rp)));
       setRailMaskPct(Math.round(rp * 100));
 
-      // === Cards: start BEFORE lock when second node enters ===
-      const appearStartY = revealStart; // align with node entering viewport
-      const appearEndY = lockEnd;       // finish by unlock
+      // === Cards: start BEFORE lock when the BOTTOM of EXECUTE (4th) node enters viewport ===
+      const executeNodeTop = preTop + paceTop + Math.round(treeH * 0.88); // EXECUTE node is at 88%
+      const EXEC_NODE_BLOCK_H = 120; // approximate node block height (label + branches)
+      const executeBottom = executeNodeTop + EXEC_NODE_BLOCK_H;
+
+      // Start when bottom enters viewport from the bottom edge:
+      const appearStartY = executeBottom - viewportH + 8;
+      const appearEndY = lockEnd; // finish by unlock
 
       if (y < appearStartY) {
         collageY.set(START_FROM_BOTTOM);
@@ -541,7 +546,7 @@ export default function ProjectsHUD() {
     </div>
   ) : null;
 
-  // Cards overlay is visible EITHER once second node appears (preCardsActive) OR during lock
+  // Cards overlay is visible EITHER once EXECUTE bottom appears (preCardsActive) OR during lock
   const CollageOverlay = (preCardsActive || lockActive) ? (
     <motion.div className="fixed inset-0 z-[75]">
       <div className="h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
@@ -709,3 +714,4 @@ export default function ProjectsHUD() {
     </section>
   );
 }
+
