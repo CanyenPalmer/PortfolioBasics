@@ -11,8 +11,8 @@ import styles from "@/components/Experience/experience.module.css";
 /**
  * Experience — pinned section with horizontal right→left card flow.
  * Fixes:
- * - True scroll lock without vertical slide when lock engages.
- * - Title + subtitle stay visible above the cards during the lock.
+ *  - Title is part of the pinned section and remains visible during lock.
+ *  - No vertical position shift when the stage becomes fixed.
  */
 
 export type Metric = {
@@ -61,25 +61,25 @@ export default function Experience() {
   const experiences = profile.experience ?? [];
   const cardCount = experiences.length || 1;
 
-  // Sticky title (always visible above the stage)
-  const titleRef = useRef<HTMLDivElement | null>(null);
-
   // Lock window that drives progress
   const lockRef = useRef<HTMLDivElement | null>(null);
 
-  // Measure title height to reserve space under it (consistent in both states)
-  const [titleH, setTitleH] = useState(96);
+  // Sticky header inside the lock window (so it stays visible with the cards)
+  const headerRef = useRef<HTMLDivElement | null>(null);
+
+  // Measure header height; stage uses this to avoid any vertical jump
+  const [headerH, setHeaderH] = useState(96);
   useEffect(() => {
     const measure = () => {
-      const h = Math.round(titleRef.current?.getBoundingClientRect().height || 96);
-      setTitleH(h);
+      const h = Math.round(headerRef.current?.getBoundingClientRect().height || 96);
+      setHeaderH(h);
     };
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
   }, []);
 
-  // Progress ONLY while lock window is engaged
+  // Progress ONLY while the lock window is engaged
   const { scrollYProgress: lockProgress } = useScroll({
     target: lockRef,
     offset: ["start start", "end end"],
@@ -87,7 +87,7 @@ export default function Experience() {
   const [lp, setLp] = useState(0);
   useMotionValueEvent(lockProgress, "change", (v) => setLp(clamp01(v)));
 
-  // Determine "locked" by whether the lock window fully spans the viewport
+  // Determine whether the lock window fully spans the viewport
   const [isLocked, setIsLocked] = useState(false);
   useEffect(() => {
     const onScroll = () => {
@@ -132,34 +132,34 @@ export default function Experience() {
 
   return (
     <section data-section="experience" className="relative w-full">
-      {/* Sticky Title (kept ABOVE cards) */}
-      <div ref={titleRef} className="sticky top-0 z-50 bg-transparent pt-8 pb-4">
-        <SectionPanel title="Experience">
-          <p className="mt-1 text-sm opacity-80">
-            <span className="text-[var(--accent,_#7dd3fc)] font-medium">Impact</span> over titles
-          </p>
-          <div className="mt-3 h-1 w-full bg-transparent">
-            <div
-              className="h-[2px] bg-[var(--accent,_#7dd3fc)] transition-[width]"
-              style={{ width: `${Math.max(0, Math.min(1, titleUnderlinePct)) * 100}%` }}
-              aria-hidden
-            />
-          </div>
-        </SectionPanel>
-      </div>
-
-      {/* Lock window — consumes scroll and controls the deck */}
+      {/* Lock window holds both the sticky header and the pinned stage */}
       <div
         ref={lockRef}
         className={styles.lockWindow}
         style={{ height: `calc(${cardCount + 1} * 100vh)` }}
       >
-        {/* Holder reserves space + consistent top padding so no vertical jump */}
+        {/* Sticky header INSIDE the lock window (always visible during lock) */}
+        <div ref={headerRef} className={styles.pinHeader}>
+          <SectionPanel title="Experience">
+            <p className="mt-1 text-sm opacity-80">
+              <span className="text-[var(--accent,_#7dd3fc)] font-medium">Impact</span> over titles
+            </p>
+            <div className="mt-3 h-1 w-full bg-transparent">
+              <div
+                className="h-[2px] bg-[var(--accent,_#7dd3fc)] transition-[width]"
+                style={{ width: `${Math.max(0, Math.min(1, titleUnderlinePct)) * 100}%` }}
+                aria-hidden
+              />
+            </div>
+          </SectionPanel>
+        </div>
+
+        {/* Holder reserves the exact stage height below the sticky header */}
         <div
           className={styles.stageHolder}
-          style={{ ["--title-offset" as any]: `${titleH}px` }}
+          style={{ ["--header-h" as any]: `${headerH}px` }}
         >
-          {/* Stage is fixed only while locked and always rendered under the title */}
+          {/* Stage is fixed ONLY while locked, using the same top/height as flow → no jump */}
           <div className={isLocked ? styles.stageFixed : styles.stageFlow}>
             <div className={styles.stack}>
               {experiences.map((exp: any, idx: number) => {
@@ -207,3 +207,4 @@ export default function Experience() {
     </section>
   );
 }
+
