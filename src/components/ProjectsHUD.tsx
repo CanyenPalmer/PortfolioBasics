@@ -6,7 +6,13 @@ import TransitionLink from "@/components/TransitionLink";
 import { profile } from "@/content/profile";
 import { slugify } from "@/lib/slug";
 import { Oswald, Plus_Jakarta_Sans } from "next/font/google";
-import { motion, useScroll, useTransform, useMotionValueEvent } from "framer-motion";
+import {
+  motion,
+  useScroll,
+  useTransform,
+  useMotionValue,
+  useMotionValueEvent,
+} from "framer-motion";
 
 const oswald = Oswald({ subsets: ["latin"], weight: ["400", "500", "700"] });
 const plusJakarta = Plus_Jakarta_Sans({
@@ -237,7 +243,6 @@ function LeftRail({ height, top }: { height: number; top: number }) {
   const [paused, setPaused] = React.useState(false);
   const TOP_FADE = 250;
   const BOTTOM_FADE = 96;
-  const SPEED = 22;
 
   const measureRef = React.useRef<HTMLSpanElement | null>(null);
   const [rowH, setRowH] = React.useState<number>(0);
@@ -265,12 +270,13 @@ function LeftRail({ height, top }: { height: number; top: number }) {
   const lastRef = React.useRef<number | null>(null);
   React.useEffect(() => {
     let raf = 0;
+    const SPEED = 22;
     const tick = (ts: number) => {
       const last = lastRef.current ?? ts;
       lastRef.current = ts;
       if (!paused && innerRef.current && rowH > 0) {
         const dt = (ts - last) / 1000;
-        let y = yRef.current - 22 * dt;
+        let y = yRef.current - SPEED * dt;
         const wrapRows = Math.floor(-y / rowH);
         if (wrapRows > 0) y += wrapRows * rowH;
         yRef.current = y;
@@ -346,61 +352,56 @@ export default function ProjectsHUD() {
   // Travel math
   const TRAVEL_CORE = Math.max(0, LAYOUT.lg.containerHeight - windowH);
 
-  // Cards: appear at bottom; start moving once we scroll shortly past the subheading timing
+  // Cards appear from bottom
   const START_FROM_BOTTOM = Math.round(windowH * 0.98);
   const OUT_EXTRA = Math.max(700, Math.round(windowH * 1.45));
   const END_Y = -TRAVEL_CORE - OUT_EXTRA;
 
-  // Driver height: ends exactly when cards reach END_Y (unlock right as cards finish)
+  // Driver height used by other timings; keep as-is
   const EXIT_TAIL_BASE = Math.max(560, Math.round(windowH * 0.72));
   const EXIT_TAIL = EXIT_TAIL_BASE;
   const DRIVER_HEIGHT = START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL + 1;
 
-  // Scroll progress for card motion — start a bit sooner past subheading
+  // We still keep this to power other pieces (rail timing, etc.)
   const { scrollYProgress } = useScroll({ target: driverRef, offset: ["start start", "end start"] });
 
-  // >>> Earlier start threshold (this change) <<<
-  const startPx = Math.max(4, Math.round(headerH * 0.55)); // earlier than before so it kicks in sooner
-  const startFrac = Math.max(0.015, Math.min(0.12, startPx / DRIVER_HEIGHT));
+  // === NEW: cards y driven by actual window scroll so it can start BEFORE lock (when 2nd node enters) ===
+  const collageY = useMotionValue(START_FROM_BOTTOM);
 
-  const rawY = useTransform(scrollYProgress, [0, startFrac, 1], [
-    START_FROM_BOTTOM,
-    START_FROM_BOTTOM, // hold until threshold
-    END_Y,             // then move with scroll
-  ]);
-  const collageY = useTransform(rawY, (v) => Math.max(END_Y, Math.min(START_FROM_BOTTOM, v)));
-
-  // Visibility states (mutually exclusive)
+  // Visibility states
   const [preVisible, setPreVisible] = React.useState(true);
   const [lockActive, setLockActive] = React.useState(false);
   const [postVisible, setPostVisible] = React.useState(false);
   const [railVisible, setRailVisible] = React.useState(false);
 
-  // Sidebar motion: after-unlock delta & entrance reveal (mask)
+  // Sidebar motion / reveal
   const [postDelta, setPostDelta] = React.useState(0);
   const [railRevealY, setRailRevealY] = React.useState(0);
   const [railMaskPct, setRailMaskPct] = React.useState(0);
 
-  // Robust snap helpers
+  // Helpers for snapping/jitter
   const prevYRef = React.useRef(0);
   const snappingRef = React.useRef(false);
   const didSnapRef = React.useRef(false);
 
   useMotionValueEvent(scrollYProgress, "change", () => {});
 
-  // Sidebar entrance offset (rise-from-bottom on first appearance)
   const railIntroOffset = Math.max(0, windowH - (paceTop + treeH));
+
+  // Pre-lock cards overlay trigger
+  const [preCardsActive, setPreCardsActive] = React.useState(false);
 
   React.useEffect(() => {
     const onScroll = () => {
       const y = window.scrollY || window.pageYOffset || 0;
       const prevY = prevYRef.current;
       const viewportH = typeof window !== "undefined" ? window.innerHeight : 800;
-      const preTop = Math.round(docTop(preStageRef.current!)); // section start (top of Projects)
-      const lockStart = preTop;                                // lock begins when section top reaches viewport top
-      const lockEnd = Math.round(docTop(lockEndRef.current!)); // unlock point
 
-      // ===== Strong, jitter-free snap to lockStart =====
+      const preTop = Math.round(docTop(preStageRef.current!));   // section start (Projects top)
+      const lockStart = preTop;                                  // lock begins when section top hits viewport top
+      const lockEnd = Math.round(docTop(lockEndRef.current!));   // unlock point
+
+      // Jitter-free snap to lockStart
       const LOCK_SNAP_WINDOW = 64;
       if (!snappingRef.current) {
         const crossedDownIntoLock = prevY < lockStart && y >= lockStart + 1 && y <= lockStart + LOCK_SNAP_WINDOW;
@@ -437,34 +438,48 @@ export default function ProjectsHUD() {
         if (preVisible) setPreVisible(false);
         if (!lockActive) setLockActive(true);
         if (postVisible) setPostVisible(false);
-      } else /* afterLock */ {
+      } else {
         if (preVisible) setPreVisible(false);
         if (lockActive) setLockActive(false);
         if (!postVisible) setPostVisible(true);
       }
 
-      // ----- Sidebar visibility for the ENTIRE Projects section -----
+      // Sidebar visibility across the whole Projects span
       const postTop = Math.round(docTop(postStageRef.current!));
-      const postEnd = postTop + viewportH + 320; // shortened spacer matches below
+      const postEnd = postTop + viewportH + 320;
       const viewportBottom = y + viewportH;
-
       const railOn = viewportBottom >= preTop && y < postEnd;
       if (railOn !== railVisible) setRailVisible(railOn);
 
-      // ----- Sidebar entrance REVEAL synced to the PACE tree's SECOND NODE (28%) -----
+      // Sidebar reveal synced to second node (28%)
       const secondNodeTop = preTop + paceTop + Math.round(treeH * 0.28);
-      const revealStart = secondNodeTop - viewportH + 8;
+      const revealStart = secondNodeTop - viewportH + 8; // when node just enters from bottom
       const revealEnd = lockStart;
       const denom = Math.max(1, revealEnd - revealStart);
       const rp = Math.max(0, Math.min(1, (y - revealStart) / denom));
-
       setRailRevealY(Math.round(railIntroOffset * (1 - rp)));
       setRailMaskPct(Math.round(rp * 100));
 
-      // Move the sidebar up at the same rate as the section after unlock
+      // === Cards: start BEFORE lock when second node enters ===
+      const appearStartY = revealStart; // align with node entering viewport
+      const appearEndY = lockEnd;       // finish by unlock
+
+      if (y < appearStartY) {
+        collageY.set(START_FROM_BOTTOM);
+        if (preCardsActive) setPreCardsActive(false);
+      } else if (y >= appearEndY) {
+        collageY.set(END_Y);
+        if (!afterLock && !preCardsActive) setPreCardsActive(true); // ensure visible if we overshoot quickly
+      } else {
+        const p = (y - appearStartY) / Math.max(1, appearEndY - appearStartY);
+        const newY = Math.round(START_FROM_BOTTOM + (END_Y - START_FROM_BOTTOM) * Math.min(1, Math.max(0, p)));
+        collageY.set(newY);
+        if (!preCardsActive) setPreCardsActive(true);
+      }
+
+      // Move the sidebar with the section after unlock
       setPostDelta(afterLock ? Math.max(0, y - lockEnd) : 0);
 
-      // store for next frame
       prevYRef.current = y;
     };
 
@@ -475,7 +490,7 @@ export default function ProjectsHUD() {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
     };
-  }, [preVisible, lockActive, postVisible, railVisible, stageH, windowH, paceTop, treeH, railIntroOffset]);
+  }, [preVisible, lockActive, postVisible, railVisible, stageH, windowH, paceTop, treeH, railIntroOffset, collageY]);
 
   /* ----------- PRE-LOCK in-flow stage ----------- */
   const StaticPre = (
@@ -526,7 +541,8 @@ export default function ProjectsHUD() {
     </div>
   ) : null;
 
-  const CollageOverlay = lockActive ? (
+  // Cards overlay is visible EITHER once second node appears (preCardsActive) OR during lock
+  const CollageOverlay = (preCardsActive || lockActive) ? (
     <motion.div className="fixed inset-0 z-[75]">
       <div className="h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
         <div className="hidden md:block" aria-hidden />
@@ -644,7 +660,7 @@ export default function ProjectsHUD() {
           {StaticPre}
         </div>
 
-        {/* DRIVER (card animation distance) */}
+        {/* DRIVER (kept for section distances / unlock math) */}
         <div ref={driverRef} style={{ height: DRIVER_HEIGHT }} />
 
         {/* Lock end marker */}
@@ -693,4 +709,3 @@ export default function ProjectsHUD() {
     </section>
   );
 }
-
