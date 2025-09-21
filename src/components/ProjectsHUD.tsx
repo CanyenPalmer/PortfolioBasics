@@ -347,8 +347,8 @@ export default function ProjectsHUD() {
   const TRAVEL_CORE = Math.max(0, LAYOUT.lg.containerHeight - windowH);
 
   // Cards begin on next scroll after lock; hidden at lock.
-  const LEAD_IN = 4; // ↓ was 12 — next scroll shows cards
-  const START_FROM_BOTTOM = Math.round(windowH * 1.02); // ↓ was 1.06 — sits just below viewport
+  const LEAD_IN = 0; // was 4 — next scroll immediately starts movement
+  const START_FROM_BOTTOM = Math.round(windowH * 0.98); // was 1.02 — just below the bottom edge
 
   // Extended run-out so cards fully clear the top
   const OUT_EXTRA = Math.max(700, Math.round(windowH * 1.45));
@@ -365,7 +365,7 @@ export default function ProjectsHUD() {
   const startFrac = LEAD_IN / DRIVER_HEIGHT || 0.0000001;
   const rawY = useTransform(scrollYProgress, [0, startFrac, 1], [
     START_FROM_BOTTOM,
-    START_FROM_BOTTOM, // stay flat through the (tiny) lead-in
+    START_FROM_BOTTOM, // basically zero lead-in
     END_Y,             // then animate with the user's scroll
   ]);
   const collageY = useTransform(rawY, (v) => Math.max(END_Y, Math.min(START_FROM_BOTTOM, v)));
@@ -693,3 +693,4 @@ export default function ProjectsHUD() {
     </section>
   );
 }
+
