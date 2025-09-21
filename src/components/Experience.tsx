@@ -12,8 +12,8 @@ import styles from "@/components/Experience/experience.module.css";
  * Experience — right→center→left card flow with teaser + true lock.
  * - Teaser: first card “peeks” in and animates as the section approaches.
  * - Lock: subheader + cards pin when section spans the viewport.
- * - Impact bar: visible pre-lock (no fill), hits 50% when first card is centered,
- *               then grows toward 100% by the last card; fades out on unlock.
+ * - Impact bar: visible pre-lock, underline fills 0%→50% before lock, then 50%→100% during lock,
+ *               and ONLY fades out when the lock releases.
  * - Click-to-center: clicking a card scrolls to center it.
  * - No vertical jump on lock (flow + fixed share geometry; we toggle visibility).
  */
@@ -60,10 +60,9 @@ function clamp01(v: number) {
   return Math.max(0, Math.min(1, v));
 }
 
-// Gentle progress curve so the bar doesn't move down too quickly (ease-in)
+// Slower (gentler) progress curve so the bar doesn't move down too quickly
 function gentleProgress(lp: number) {
-  const s = Math.min(1, lp * 0.9);
-  return s * s; // ease-in quad
+  return Math.pow(clamp01(lp), 3); // ease-in cubic: very slow at start, reaches 1 by end
 }
 
 export default function Experience() {
@@ -93,8 +92,10 @@ export default function Experience() {
       setSubH(h);
     };
     measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
+    if (typeof window !== "undefined") {
+      window.addEventListener("resize", measure);
+      return () => window.removeEventListener("resize", measure);
+    }
   }, []);
 
   // Viewport width/height for transforms (client-only)
@@ -192,15 +193,16 @@ export default function Experience() {
   const pDuring = 1 + lp * cardCount;
 
   // ---- Impact underline fill:
-  // - Before lock: 0%.
-  // - At first-card center (start of lock): 50%.
-  // - Grows from 50% → 100% as subsequent cards center.
+  // Pre-lock: show progress 0% → 50% as we approach lock (q:0→1).
+  // Lock:     50% at first center, then 50% → 100% through last center.
   const underlinePct = useMemo(() => {
-    if (!isLocked) return 0;
+    if (!isLocked) {
+      return 0.5 * clamp01(q); // show pre-lock progression up to 50%
+    }
     if (cardCount <= 1) return 1;
     const pb = clamp01((pDuring - 1) / (cardCount - 1)); // 0 at first center → 1 at last center
     return 0.5 + 0.5 * pb;
-  }, [isLocked, pDuring, cardCount]);
+  }, [isLocked, q, pDuring, cardCount]);
 
   // Subheader vertical shift — gentler so it doesn't move too quickly
   const shiftMax = Math.min(64, Math.round((vh || 480) * 0.12)); // cap ~64px
@@ -243,8 +245,8 @@ export default function Experience() {
         }}
       >
         {/* Impact bar:
-            - Visible pre-lock (opacity 1), underline starts at 0%.
-            - During lock, underline = 50% at first center, →100% by last center.
+            - Visible pre-lock (opacity 1), underline shows 0%→50% progression.
+            - During lock, underline continues 50%→100% as cards center.
             - Bar fades OUT on unlock only. */}
         <div
           ref={subheaderRef}
