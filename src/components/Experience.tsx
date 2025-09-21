@@ -12,7 +12,8 @@ import styles from "@/components/Experience/experience.module.css";
  * Experience — right→center→left card flow with teaser + true lock.
  * - Teaser: first card “peeks” in and animates as the section approaches.
  * - Lock: subheader + cards pin when section spans the viewport.
- * - Subheader (Impact bar) stays in view, moves down with user during lock, and ONLY fades out on unlock.
+ * - Impact bar: visible pre-lock, stays in view during lock, shifts down quickly,
+ *               and ONLY fades out when the lock releases.
  * - Click-to-center: clicking a card scrolls to center it.
  * - No vertical jump on lock (flow + fixed share geometry; we toggle visibility).
  */
@@ -57,6 +58,12 @@ function keyFor(exp: any) {
 }
 function clamp01(v: number) {
   return Math.max(0, Math.min(1, v));
+}
+
+// Fast, front-loaded progress curve (finishes most movement early in the lock)
+function fastProgress(lp: number) {
+  const s = Math.min(1, lp * 3.2);            // complete by ~31% of lock
+  return 1 - Math.pow(1 - s, 3);              // ease-out cubic
 }
 
 export default function Experience() {
@@ -190,9 +197,9 @@ export default function Experience() {
     return clamp01(viewed / cardCount);
   }, [pDuring, cardCount]);
 
-  // Subheader vertical shift tied to lock progress (moves down with the user)
+  // Subheader vertical shift — front-loaded so it doesn't creep slowly
   const shiftMax = Math.min(64, Math.round((vh || 480) * 0.12)); // cap ~64px
-  const subShift = isLocked ? lp * shiftMax : 0;
+  const subShift = isLocked ? fastProgress(lp) * shiftMax : 0;
 
   // Click-to-center helper: compute target scroll for a given index
   const centerCard = React.useCallback(
@@ -231,9 +238,8 @@ export default function Experience() {
         }}
       >
         {/* Impact bar:
-            - Fixed while locked so it's always in view (no more "not visible")
-            - Moves down with user via top = topOffset + subShift
-            - ONLY fades out on unlock */}
+            - Visible pre-lock (no fade-in), remains in view during lock,
+            - Moves quickly to its resting offset, and ONLY fades OUT on unlock */}
         <div
           ref={subheaderRef}
           className={styles.subheaderSticky}
@@ -241,14 +247,13 @@ export default function Experience() {
             position: isLocked ? "fixed" as const : "sticky",
             top: isLocked
               ? `calc(${topOffset}px + ${Math.max(0, Math.round(subShift))}px)`
-              : undefined, // sticky top from CSS when not locked
+              : undefined,
             left: isLocked ? 0 : undefined,
             right: isLocked ? 0 : undefined,
             width: isLocked ? "100%" : undefined,
-            opacity: isLocked ? 1 : 0,
-            // Prevent fade-in when lock engages; only animate on unlock
+            opacity: justUnlocked ? 0 : 1, // always visible except right after unlock (fade-out)
             transition: isLocked
-              ? "top .2s ease, opacity 0s linear"
+              ? "top .18s ease, opacity 0s linear"
               : justUnlocked
               ? "opacity .35s ease"
               : "opacity 0s linear",
