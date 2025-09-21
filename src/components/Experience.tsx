@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useMemo, useRef, useState, useEffect, useCallback } from "react";
-import { AnimatePresence, motion, useScroll, useTransform } from "framer-motion";
+import { useScroll } from "framer-motion";
 import SectionPanel from "@/components/ui/SectionPanel";
 import { profile } from "@/content/profile";
 import ExperienceCard from "@/components/Experience/ExperienceCard";
@@ -15,7 +15,7 @@ import styles from "@/components/Experience/experience.module.css";
  * - Metrics preview respond to cursor when a card is in focus; autoplay in expanded view.
  */
 
-type Metric = {
+export type Metric = {
   label: string;
   value: number;
   format?: "currency" | "number" | "percent";
@@ -24,19 +24,26 @@ type Metric = {
 };
 
 type MetricsMap = Record<string, Metric[]>;
+type MetricsByIndex = Record<number, Metric[]>;
 
 /** 
  * Internal metrics map, keyed by `${company}::${role}`.
- * Keep profile.tsx untouched; add/adjust entries here as you like.
+ * We also support a by-index fallback to avoid key mismatches.
  */
 const metricsMap: MetricsMap = {
-  // Example: Iconic Care — Lead Analyst
-  "Iconic Care::Lead Analyst": [
-    { label: "Funds Discovered", value: 20000, format: "currency", type: "counter", icon: "wallet" },
-    { label: "Hours Saved / Week", value: 12, format: "number", type: "bar", icon: "timer" },
-    { label: "Rep Efficiency", value: 100, format: "percent", type: "ring", icon: "gauge" },
+  "Iconic Care Inc.::Lead Analyst": [
+    { label: "Funds Discovered", value: 20000, format: "currency", type: "counter" },
+    { label: "Hours Saved / Week", value: 12, format: "number", type: "bar" },
+    { label: "Rep Efficiency", value: 100, format: "percent", type: "ring" },
   ],
-  // Add more by copying the pattern above, or leave absent to hide metrics for that card.
+};
+
+const metricsByIndex: MetricsByIndex = {
+  0: [
+    { label: "Funds Discovered", value: 20000, format: "currency", type: "counter" },
+    { label: "Hours Saved / Week", value: 12, format: "number", type: "bar" },
+    { label: "Rep Efficiency", value: 100, format: "percent", type: "ring" },
+  ],
 };
 
 function keyFor(exp: any) {
@@ -48,27 +55,20 @@ function keyFor(exp: any) {
 export default function Experience() {
   const experiences = profile.experience ?? [];
 
-  // Refs + scroll progress for section
+  // Section scroll & refs
   const sectionRef = useRef<HTMLDivElement | null>(null);
-  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start end", "end start"] });
-
-  // Sticky title underline progress (advances as user browses cards)
-  const cardCount = experiences.length || 1;
-  const titleUnderline = useTransform(scrollYProgress, [0, 1], [0, 1]);
+  useScroll({ target: sectionRef, offset: ["start end", "end start"] }); // reserved if you want a progress later
 
   // Track which card is currently "focused"
   const [focusIndex, setFocusIndex] = useState(0);
-
-  // Expanded card index, or null if none
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
-  // Keep measurements to determine focus by scroll position
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
   const onSetRef = useCallback((el: HTMLDivElement | null, idx: number) => {
     itemRefs.current[idx] = el;
   }, []);
 
-  // Determine focusIndex on scroll by closest card to the center of the viewport
+  // Determine focusIndex on scroll by closest card to center
   useEffect(() => {
     const handler = () => {
       const viewportCenter = window.innerHeight / 2;
@@ -86,7 +86,6 @@ export default function Experience() {
       });
       setFocusIndex(bestIdx);
     };
-
     handler();
     window.addEventListener("scroll", handler, { passive: true });
     window.addEventListener("resize", handler);
@@ -96,20 +95,18 @@ export default function Experience() {
     };
   }, []);
 
-  // Title underline width as fraction of cards viewed (purely cosmetic)
+  // Title underline progress (cosmetic)
   const titleUnderlinePct = useMemo(() => {
-    if (cardCount <= 1) return 1;
-    return (focusIndex + 1) / cardCount;
-  }, [focusIndex, cardCount]);
+    const total = experiences.length || 1;
+    return Math.min(1, (focusIndex + 1) / total);
+  }, [focusIndex, experiences.length]);
 
-  // Safe expand/collapse
   const handleExpand = (idx: number) => setExpandedIndex(idx);
   const handleCollapse = () => setExpandedIndex(null);
 
-  // Render
   return (
     <section data-section="experience" ref={sectionRef} className="relative w-full">
-      {/* Sticky Title (Experience) */}
+      {/* Sticky Title */}
       <div className="sticky top-0 z-20 bg-transparent pt-8 pb-4">
         <SectionPanel title="Experience">
           <p className="mt-1 text-sm opacity-80">
@@ -125,14 +122,16 @@ export default function Experience() {
         </SectionPanel>
       </div>
 
-      {/* Sticky stage that cards move through */}
+      {/* Cards */}
       <div className={`${styles.stage} relative`}>
         <ul className="relative mx-auto max-w-4xl">
           {experiences.map((exp: any, idx: number) => {
             const k = keyFor(exp);
-            const metrics: Metric[] | undefined = metricsMap[k];
+            const metrics =
+              metricsMap[k] ??
+              metricsByIndex[idx] ?? // fallback by index (ensures you see tiles immediately)
+              [];
 
-            // State helpers
             const isFocused = idx === focusIndex;
             const isExpanded = expandedIndex === idx;
 
@@ -156,3 +155,4 @@ export default function Experience() {
     </section>
   );
 }
+
