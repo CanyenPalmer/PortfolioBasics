@@ -88,7 +88,6 @@ const ExperienceCard = forwardRef<HTMLDivElement, Props>(function ExperienceCard
   const creations: any[] = Array.isArray(experience?.creations) ? experience.creations : [];
 
   const handleClick: React.MouseEventHandler<HTMLDivElement> = (e) => {
-    // Let links/buttons behave normally; only center on plain-card clicks
     const target = e.target as HTMLElement;
     if (target.closest("a, button")) return;
     onCenter?.();
