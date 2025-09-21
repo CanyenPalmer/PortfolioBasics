@@ -13,7 +13,7 @@
   z-index: 50;                  /* above the stage */
   background: transparent;      /* match page bg */
   padding-bottom: 0.5rem;
-  /* opacity/top transitions controlled inline to avoid fade-in */
+  /* opacity/top transitions controlled inline */
 }
 
 /* Subheader content row and underline */
