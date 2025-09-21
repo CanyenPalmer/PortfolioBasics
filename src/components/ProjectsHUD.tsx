@@ -53,17 +53,17 @@ const ASPECT: Record<string, string> = {
   "Python 101": "2 / 3",
 };
 
-// Tonal solids per project — higher opacity to fully mask background
+// Tonal solids per project — now fully opaque backgrounds
 const TONE_BY_TITLE: Record<string, string> = {
-  "CGM Patient Analytics": "bg-emerald-500/70 ring-emerald-400/40",
-  "Logistic Regression & Tree-Based ML": "bg-sky-500/70 ring-sky-400/40",
-  "Real Estate Conditions Comparison (R)": "bg-amber-500/70 ring-amber-400/40",
-  "Python 101": "bg-indigo-500/70 ring-indigo-400/40",
-  "MyCaddy — Physics Shot Calculator": "bg-lime-500/70 ring-lime-400/40",
-  "PortfolioBasics (This Site)": "bg-fuchsia-500/70 ring-fuchsia-400/40",
+  "CGM Patient Analytics": "bg-emerald-600 ring-emerald-400/40",
+  "Logistic Regression & Tree-Based ML": "bg-sky-600 ring-sky-400/40",
+  "Real Estate Conditions Comparison (R)": "bg-amber-600 ring-amber-400/40",
+  "Python 101": "bg-indigo-600 ring-indigo-400/40",
+  "MyCaddy — Physics Shot Calculator": "bg-lime-600 ring-lime-400/40",
+  "PortfolioBasics (This Site)": "bg-fuchsia-600 ring-fuchsia-400/40",
 };
 function toneFor(title: string) {
-  return TONE_BY_TITLE[title] ?? "bg-white/70 ring-white/40";
+  return TONE_BY_TITLE[title] ?? "bg-white ring-white/40";
 }
 
 const LAYOUT = {
@@ -114,7 +114,7 @@ function ProjectTile({ p, left, top, width }: { p: Project; left: string; top: n
 
   return (
     <article className="absolute z-10" style={{ left, top, width }} aria-label={p.title}>
-      {/* Tinted panel wrapper: uniform padding on ALL sides */}
+      {/* Opaque panel wrapper: uniform padding on ALL sides */}
       <div className={`rounded-2xl ring-1 ${tone} shadow-lg shadow-black/30`}>
         <TransitionLink
           href={`/projects/${slug}?via=projects`}
@@ -124,7 +124,7 @@ function ProjectTile({ p, left, top, width }: { p: Project; left: string; top: n
           }}
         >
           <div className="p-3 md:p-4">
-            <div style={{ aspectRatio: aspect }} className="w-full overflow-hidden rounded-xl">
+            <div style={{ aspectRatio: aspect }} className="w-full overflow-hidden rounded-xl bg-black/5">
               <img
                 src={img.src}
                 alt={img.alt}
@@ -348,7 +348,7 @@ function RailColumn({ rows, rowH }: { rows: number; rowH: number }) {
     <div className="box-border flex flex-col items-center" style={{ paddingTop: rowH, paddingBottom: rowH }}>
       {lines.map((txt, i) => (
         <div key={`${txt}-${i}`} className="flex items-center justify-center overflow-hidden" style={{ height: rowH, width: "100%" }}>
-          <span className={`${plusJakarta.className} inline-block rotate-90 origin-center whitespace-nowrap text-[11px] tracking-[0.18em] text-white/40 select-none`}>
+        <span className={`${plusJakarta.className} inline-block rotate-90 origin-center whitespace-nowrap text-[11px] tracking-[0.18em] text-white/40 select-none`}>
             {txt}
           </span>
         </div>
@@ -380,7 +380,7 @@ export default function ProjectsHUD() {
   // Cards appear from bottom
   const START_FROM_BOTTOM = Math.round(windowH * 0.98);
 
-  // >>> Increased extra-out travel so ALL cards clear the top fully
+  // Extra-out travel so ALL cards clear the top fully
   const OUT_EXTRA = Math.max(1100, Math.round(windowH * 2.2));
   const END_Y = -TRAVEL_CORE - OUT_EXTRA;
 
@@ -438,8 +438,7 @@ export default function ProjectsHUD() {
           snappingRef.current = true;
           didSnapRef.current = true;
           const docEl = document.documentElement;
-          const prevBehavior = docEl.style.scrollBehavior;
-          docEl.style.scrollBehavior = "auto";
+          const prevBehavior = docEl.style.scrollBehavior = "auto";
           window.scrollTo(0, lockStart);
           requestAnimationFrame(() => {
             docEl.style.scrollBehavior = prevBehavior;
@@ -478,7 +477,7 @@ export default function ProjectsHUD() {
       const railOn = viewportBottom >= preTop && y < postEnd;
       if (railOn !== railVisible) setRailVisible(railOn);
 
-      // Sidebar reveal synced to second node (28%) — unchanged
+      // Sidebar reveal synced to second node (28%)
       const secondNodeTop = preTop + paceTop + Math.round(treeH * 0.28);
       const revealStart = secondNodeTop - viewportH + 8; // when node just enters from bottom
       const revealEnd = lockStart;
@@ -659,7 +658,7 @@ export default function ProjectsHUD() {
           <article key={title} className={`rounded-2xl ring-1 ${toneFor(title)} shadow-lg shadow-black/30`}>
             <TransitionLink href={`/projects/${slug}?via=projects`} className="block group">
               <div className="p-4">
-                <div style={{ aspectRatio: aspect }} className="w-full overflow-hidden rounded-xl">
+                <div style={{ aspectRatio: aspect }} className="w-full overflow-hidden rounded-xl bg-black/5">
                   <img
                     src={img.src}
                     alt={img.alt}
@@ -712,7 +711,7 @@ export default function ProjectsHUD() {
         {CollageOverlay}
         {ChromeOverlay}
 
-        {/* PERSISTENT LEFT RAIL (unchanged) */}
+        {/* PERSISTENT LEFT RAIL */}
         <motion.div
           className="fixed inset-0 z-[62] pointer-events-none"
           aria-hidden
@@ -743,3 +742,4 @@ export default function ProjectsHUD() {
     </section>
   );
 }
+
