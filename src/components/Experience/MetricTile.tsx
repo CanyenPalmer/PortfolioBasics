@@ -45,15 +45,12 @@ export default function MetricTile({ metric, preview, autoplay }: Props) {
   const ringProgress = useTransform(raw, [0, 100], [0, circumference]);
   const ringDashOffset = useTransform(ringProgress, (v) => circumference - v);
 
-  // Bar can overshoot 100% using scaleX; we'll clip it in the container.
+  // Bar can overshoot 100% using scaleX; we clip it in the container.
   const barScale = useTransform(raw, (v) => Math.max(0, v / 100));
-  const barWidthPct = useTransform(raw, [0, 100], ["0%", "100%"]); // used for baseline line
+  const barWidthPct = useTransform(raw, [0, 100], ["0%", "100%"]); // baseline line
 
-  // Number display
-  const display = useTransform(raw, (v) => {
-    // allow >100% for bars (e.g., 150%)
-    return formatValue(v, metric.format);
-  });
+  // Number display (allow >100% for bars, e.g., 150%)
+  const display = useTransform(raw, (v) => formatValue(v, metric.format));
 
   // Hover/preview: mouse sets 0..target (full), Expanded: animate to target
   const ref = React.useRef<HTMLDivElement | null>(null);
@@ -63,7 +60,6 @@ export default function MetricTile({ metric, preview, autoplay }: Props) {
       const controls = animate(raw, target, { duration: 1.2, ease: "easeOut" });
       return () => controls.stop();
     }
-    // Reset when leaving autoplay
     raw.set(0);
   }, [autoplay, target, raw]);
 
@@ -111,7 +107,6 @@ export default function MetricTile({ metric, preview, autoplay }: Props) {
         </div>
       </div>
 
-      {/* Visualizer */}
       {metric.type === "ring" ? (
         <div className="mt-2 flex items-center justify-center">
           <svg width="64" height="64" viewBox="0 0 64 64" className="block">
@@ -132,13 +127,13 @@ export default function MetricTile({ metric, preview, autoplay }: Props) {
               stroke="var(--accent, currentColor)"
               strokeWidth="6"
               strokeDasharray={circumference}
-              style={{ strokeDashoffset: ringDashOffset }}
+              style={{ strokeDashoffset: useTransform(ringProgress, (v) => circumference - v) }}
               transform="rotate(-90 32 32)"
             />
           </svg>
         </div>
       ) : metric.type === "bar" ? (
-        // ✅ Clip any >100% overfill inside the pill so it never bleeds outside the card
+        // Clipped pill so >100% never bleeds outside
         <div className="mt-2 h-2 w-full rounded-full bg-white/10 overflow-hidden">
           <motion.div
             className="h-full rounded-full bg-[var(--accent,_#7dd3fc)]"
@@ -146,7 +141,7 @@ export default function MetricTile({ metric, preview, autoplay }: Props) {
           />
         </div>
       ) : (
-        // counter-only: baseline progress line (clamped to 0..100)
+        // counter-only: baseline progress (0..100)
         <div className="mt-2 h-[2px] w-full bg-white/10 overflow-hidden">
           <motion.div
             className="h-full bg-[var(--accent,_#7dd3fc)]"
