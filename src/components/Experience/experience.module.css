@@ -4,14 +4,15 @@
   width: 100%;
 }
 
-/* Sticky SUBHEADER that stays visible during the lock (sits at exact top of user's view) */
+/* Sticky SUBHEADER that stays visible during the lock.
+   Sits at exact top of user's view, and JS applies translateY via --sub-shift. */
 .subheaderSticky {
   position: sticky;
-  top: var(--top-offset, 0px);  /* <-- accounts for any fixed site header */
-  z-index: 50;                  /* above the stage */
-  background: transparent;      /* match page bg */
+  top: var(--top-offset, 0px);     /* accounts for any fixed site header */
+  z-index: 50;                     /* above the stage */
+  background: transparent;         /* match page bg */
   padding-bottom: 0.5rem;
-  /* transition controlled inline to avoid fade-in */
+  /* opacity/transform transitions are controlled inline to prevent fade-in */
 }
 
 /* Subheader content row and underline */
@@ -34,30 +35,31 @@
   transition: width .2s ease;
 }
 
-/* Stage holder keeps identical geometry pre-lock and locked → no vertical jump */
+/* Stage holder keeps identical geometry pre-lock and locked → no vertical jump.
+   It also accounts for the dynamic subheader shift so cards never get overlapped. */
 .stageHolder {
   position: relative;
-  height: calc(100vh - var(--sub-h, 56px) - var(--top-offset, 0px)); /* <-- subtract top offset */
+  height: calc(100vh - var(--sub-h, 56px) - var(--top-offset, 0px) - var(--sub-shift, 0px));
   box-sizing: border-box;
 }
 
 /* Pre-lock stage (normal flow) */
 .stageFlow {
   position: relative;
-  height: calc(100vh - var(--sub-h, 56px) - var(--top-offset, 0px));
+  height: calc(100vh - var(--sub-h, 56px) - var(--top-offset, 0px) - var(--sub-shift, 0px));
   box-sizing: border-box;
-  z-index: 30;                  /* below subheader */
+  z-index: 30;                     /* below subheader */
 }
 
-/* Locked stage: fixed under the subheader (true scroll lock) */
+/* Locked stage: fixed under the (possibly shifted) subheader (true scroll lock) */
 .stageFixed {
   position: fixed;
-  top: calc(var(--top-offset, 0px) + var(--sub-h, 56px)); /* <-- below the sticky subheader */
+  top: calc(var(--top-offset, 0px) + var(--sub-h, 56px) + var(--sub-shift, 0px));
   left: 0;
   right: 0;
-  height: calc(100vh - var(--sub-h, 56px) - var(--top-offset, 0px));
+  height: calc(100vh - var(--sub-h, 56px) - var(--top-offset, 0px) - var(--sub-shift, 0px));
   box-sizing: border-box;
-  z-index: 40;                  /* below subheader (z-50) */
+  z-index: 40;                     /* below subheader (z-50) */
 }
 
 /* Visibility toggles — keep layout stable */
