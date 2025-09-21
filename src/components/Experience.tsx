@@ -129,17 +129,41 @@ export default function Experience() {
   const [lp, setLp] = useState(0);
   useMotionValueEvent(lockProgress, "change", (v) => setLp(clamp01(v)));
 
-  // Lock state with small hysteresis to prevent pixel-boundary jitter
-  const LOCK_EPS = 2; // px
+  // Direction-aware lock with hysteresis to remove boundary jitter
+  const lastYRef = useRef(0);
+  const ENTER_EPS = 2; // px tolerance to enter lock (prevents early flip)
+  const EXIT_EPS_TOP = 0; // exit immediately when top lifts above viewport on upward scroll
+  const EXIT_EPS_BOTTOM = 2; // small tolerance at bottom
+
   const [isLocked, setIsLocked] = useState(false);
   useEffect(() => {
     const onScroll = () => {
       const el = lockRef.current;
       if (!el) return;
       const r = el.getBoundingClientRect();
-      const nowLocked = r.top <= LOCK_EPS && r.bottom >= window.innerHeight - LOCK_EPS;
+      const vh = window.innerHeight;
+      const y = window.scrollY || 0;
+      const dirDown = y > lastYRef.current;
+      lastYRef.current = y;
+
+      let nowLocked = isLocked;
+
+      if (!isLocked) {
+        // ENTER: require both edges to cover viewport with small tolerance
+        nowLocked = r.top <= ENTER_EPS && r.bottom >= vh - ENTER_EPS;
+      } else {
+        // EXIT: direction-aware to feel snappy but not shaky
+        if (dirDown) {
+          // scrolling DOWN: keep locked until the bottom edge actually lifts
+          nowLocked = !(r.bottom < vh - EXIT_EPS_BOTTOM);
+        } else {
+          // scrolling UP: unlock as soon as the top edge drops below the top
+          nowLocked = !(r.top > EXIT_EPS_TOP);
+        }
+      }
       setIsLocked(nowLocked);
     };
+
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll);
@@ -147,47 +171,41 @@ export default function Experience() {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
     };
-  }, []);
+  }, [isLocked]);
 
-  // Fade-out on unlock (hold in place; no flicker)
+  // Fade-out on unlock (no flicker; quicker reaction when leaving upward)
   const wasLockedRef = useRef(false);
   const [justUnlocked, setJustUnlocked] = useState(false);
-  const [holdFixed, setHoldFixed] = useState(false);
+  const FADE_MS = 260; // quicker fade per your feedback
+
   useEffect(() => {
-    let t1: any, t2: any;
+    let t: any;
     if (wasLockedRef.current && !isLocked) {
-      setHoldFixed(true);
       setJustUnlocked(true);
-      t1 = setTimeout(() => setJustUnlocked(false), 420);
-      t2 = setTimeout(() => setHoldFixed(false), 420);
+      t = setTimeout(() => setJustUnlocked(false), FADE_MS);
     }
     wasLockedRef.current = isLocked;
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
+    return () => clearTimeout(t);
   }, [isLocked]);
 
   // Card progression during lock
   const pDuring = 1 + lp * cardCount;
 
-  // Underline fill (freeze during fade-out)
+  // Underline fill (freeze during fade-out to avoid any reset feel)
   const underlineLive = useMemo(() => {
-    if (!isLocked) return 0.5 * clamp01(q);
+    if (!isLocked) return 0.5 * clamp01(q); // 0 → 50% pre-lock
     if (cardCount <= 1) return 1;
-    const pb = clamp01((pDuring - 1) / (cardCount - 1));
+    const pb = clamp01((pDuring - 1) / (cardCount - 1)); // 0 at first center → 1 at last
     return 0.5 + 0.5 * pb;
   }, [isLocked, q, pDuring, cardCount]);
 
   const lastUnderlineRef = useRef(0);
   useEffect(() => {
-    if (!holdFixed) lastUnderlineRef.current = underlineLive;
-  }, [underlineLive, holdFixed]);
-  const underlineForRender = holdFixed ? lastUnderlineRef.current : underlineLive;
+    if (!justUnlocked) lastUnderlineRef.current = underlineLive;
+  }, [underlineLive, justUnlocked]);
+  const underlineForRender = justUnlocked ? lastUnderlineRef.current : underlineLive;
 
-  const fixedNow = isLocked || holdFixed;
-
-  // Click-to-center
+  // Click-to-center (unchanged)
   const centerCard = React.useCallback(
     (idx: number) => {
       const el = lockRef.current;
@@ -213,21 +231,21 @@ export default function Experience() {
           height: `calc(${cardCount + 1} * 100vh)`,
           ["--sub-h" as any]: `${subH}px`,
           ["--top-offset" as any]: `${topOffset}px`,
-          ["--sub-shift" as any]: `0px`,
+          ["--sub-shift" as any]: `0px`, // pinned bar: no dynamic vertical shift
         }}
       >
-        {/* Impact bar — identical geometry sticky/fixed to avoid any jiggle */}
+        {/* Impact bar — always sticky; identical geometry; quick fade on unlock */}
         <div
           ref={subheaderRef}
           className={styles.subheaderSticky}
           style={{
-            position: fixedNow ? ("fixed" as const) : "sticky",
-            top: `${topOffset}px`,         // same value in both modes
-            left: 0,                       // keep consistent layout
+            position: "sticky",
+            top: `${topOffset}px`,
+            left: 0,
             right: 0,
             width: "100%",
-            opacity: justUnlocked ? 0 : 1, // fade only on unlock
-            transition: "opacity .38s ease",
+            opacity: justUnlocked ? 0 : 1, // only fades out when unlocking
+            transition: `opacity ${FADE_MS}ms ease`,
           }}
         >
           <div className={styles.subheaderRow}>
