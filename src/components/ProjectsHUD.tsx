@@ -53,6 +53,19 @@ const ASPECT: Record<string, string> = {
   "Python 101": "2 / 3",
 };
 
+// NEW: per-project tonal panels (solid, desaturated tints)
+const TONE_BY_TITLE: Record<string, string> = {
+  "CGM Patient Analytics": "bg-emerald-500/14 ring-emerald-400/20",
+  "Logistic Regression & Tree-Based ML": "bg-sky-500/14 ring-sky-400/20",
+  "Real Estate Conditions Comparison (R)": "bg-amber-500/14 ring-amber-400/20",
+  "Python 101": "bg-indigo-500/14 ring-indigo-400/20",
+  "MyCaddy — Physics Shot Calculator": "bg-lime-500/14 ring-lime-400/20",
+  "PortfolioBasics (This Site)": "bg-fuchsia-500/14 ring-fuchsia-400/20",
+};
+function toneFor(title: string) {
+  return TONE_BY_TITLE[title] ?? "bg-white/10 ring-white/15";
+}
+
 const LAYOUT = {
   lg: {
     containerHeight: 1750,
@@ -96,65 +109,76 @@ function ProjectTile({ p, left, top, width }: { p: Project; left: string; top: n
   const img = IMAGE_BY_TITLE[p.title] ?? { src: "/images/portfolio-basics-avatar.png", alt: `${p.title} preview` };
   const slug = slugify(p.title);
   const aspect = ASPECT[p.title] ?? "3 / 4";
+  const tone = toneFor(p.title);
 
   return (
     <article className="absolute z-10" style={{ left, top, width }} aria-label={p.title}>
-      <TransitionLink
-        href={`/projects/${slug}?via=projects`}
-        className="block group"
-        onClick={() => {
-          if (typeof window !== "undefined") window.sessionStorage.setItem("cameFromProjects", "1");
-        }}
-      >
-        <div style={{ aspectRatio: aspect }} className="w-full overflow-hidden">
-          <img
-            src={img.src}
-            alt={img.alt}
-            className="w-full h-full object-contain select-none transition-transform duration-300 ease-out group-hover:scale-[1.03] will-change-transform"
-            loading="lazy"
-            decoding="async"
-            onError={(e) => {
-              (e.currentTarget as HTMLImageElement).src = "/images/portfolio-basics-avatar.png";
-            }}
-          />
-        </div>
-      </TransitionLink>
+      {/* Tinted panel wrapper */}
+      <div className={`rounded-2xl ring-1 ${tone} shadow-md shadow-black/25 backdrop-saturate-150`}>
+        <TransitionLink
+          href={`/projects/${slug}?via=projects`}
+          className="block group"
+          onClick={() => {
+            if (typeof window !== "undefined") window.sessionStorage.setItem("cameFromProjects", "1");
+          }}
+        >
+          <div style={{ aspectRatio: aspect }} className="w-full overflow-hidden rounded-xl m-3 md:m-4">
+            <img
+              src={img.src}
+              alt={img.alt}
+              className="w-full h-full object-contain select-none transition-transform duration-300 ease-out group-hover:scale-[1.03] will-change-transform"
+              loading="lazy"
+              decoding="async"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).src = "/images/portfolio-basics-avatar.png";
+              }}
+            />
+          </div>
+        </TransitionLink>
 
-      <div className="mt-3 flex items-baseline justify-between gap-3">
-        <h3 className="text-base md:text-lg font-medium tracking-tight">
-          <TransitionLink
-            href={`/projects/${slug}?via=projects`}
-            className="hover:underline"
-            onClick={() => {
-              if (typeof window !== "undefined") window.sessionStorage.setItem("cameFromProjects", "1");
-            }}
-          >
-            {p.title}
-          </TransitionLink>
-        </h3>
-        <span className="text-[11px] md:text-xs uppercase tracking-wide text-white/60">{keywordFor(p.title, p.tech)}</span>
+        <div className="px-3 pb-3 md:px-4 md:pb-4">
+          <div className="mt-1 flex items-baseline justify-between gap-3">
+            <h3 className="text-base md:text-lg font-medium tracking-tight text-white/90">
+              <TransitionLink
+                href={`/projects/${slug}?via=projects`}
+                className="hover:underline"
+                onClick={() => {
+                  if (typeof window !== "undefined") window.sessionStorage.setItem("cameFromProjects", "1");
+                }}
+              >
+                {p.title}
+              </TransitionLink>
+            </h3>
+            <span className="text-[11px] md:text-xs uppercase tracking-wide text-white/70">
+              {keywordFor(p.title, p.tech)}
+            </span>
+          </div>
+        </div>
       </div>
     </article>
   );
 }
 
 function BlurbAndNote({ left, top, width }: { left: string; top: number; width: string }) {
+  // Neutral but readable panel for the moving “detail passage”
   return (
-    <div className="absolute hidden md:block pointer-events-none z-0" style={{ left, top, width }}>
-      <p className="text-[15px] leading-tight text-white/85 mb-4">
-        I carry projects from messy data to maintainable tools—analyses, models, and apps that are rigorous, documented, and usable.
-      </p>
-      <div className="grid grid-cols-[8.5rem,1fr] gap-x-6">
-        <div className="text-[12px] leading-tight text-white/60 font-medium">
-          <div>Showcase</div>
-          <div>Highlights</div>
-        </div>
-        <div className="flex flex-col gap-2 text-[14px] leading-snug text-white/85">
-          <div><span className="font-semibold">96.2% accuracy (AUC 93.8%)</span> on employee-retention models</div>
-          <div><span className="font-semibold">$317k patient responsibility</span> surfaced; CSV → Python → Excel export</div>
-          <div><span className="font-semibold">2.3k-home pricing model (R)</span> — 60+ features, RMSE-driven selection</div>
-          <div><span className="font-semibold">Physics-based golf yardage</span> calculator (wind, temp, lie)</div>
-          <div><span className="font-semibold">Next.js portfolio</span> with README-driven project pages</div>
+    <div className="absolute hidden md:block z-0" style={{ left, top, width }}>
+      <div className="rounded-2xl ring-1 ring-white/15 bg-white/10 shadow-md shadow-black/25 px-4 py-3 md:px-5 md:py-4 pointer-events-none">
+        <p className="text-[15px] leading-tight text-white/85 mb-4">
+          I carry projects from messy data to maintainable tools—analyses, models, and apps that are rigorous, documented, and usable.
+        </p>
+        <div className="grid grid-cols-[8.5rem,1fr] gap-x-6">
+          <div className="text-[12px] leading-tight text-white/70 font-medium">
+            <div>Showcase</div>
+            <div>Highlights</div>
+          </div>
+          <div className="flex flex-col gap-2 text-[14px] leading-snug text-white/90">
+            <div><span className="font-semibold">96.2% accuracy (AUC 93.8%)</span> on employee-retention models</div>
+            <div><span className="font-semibold">$317k patient responsibility</span> surfaced; CSV → Python → Excel export</div>
+            <div><span className="font-semibold">2.3k-home pricing model (R)</span> — 60+ features, RMSE-driven selection</div>
+            <div><span className="font-semibold">Physics-based golf yardage</span> calculator (wind, temp, lie)</div>
+            <div><span className="font-semibold">Next.js portfolio</span> with README-driven project pages</div>
+          </div>
         </div>
       </div>
     </div>
@@ -629,9 +653,9 @@ export default function ProjectsHUD() {
         const slug = slugify(p.title);
         const aspect = ASPECT[p.title] ?? "3 / 4";
         return (
-          <article key={title}>
+          <article key={title} className={`rounded-2xl ring-1 ${toneFor(title)} shadow-md shadow-black/25`}>
             <TransitionLink href={`/projects/${slug}?via=projects`} className="block group">
-              <div style={{ aspectRatio: aspect }} className="w-full overflow-hidden">
+              <div style={{ aspectRatio: aspect }} className="w-full overflow-hidden rounded-xl m-3 md:m-4">
                 <img
                   src={img.src}
                   alt={img.alt}
@@ -639,13 +663,13 @@ export default function ProjectsHUD() {
                 />
               </div>
             </TransitionLink>
-            <div className="mt-3 flex items-baseline justify-between gap-3">
-              <h3 className="text-lg font-medium tracking-tight">
+            <div className="px-3 pb-3 md:px-4 md:pb-4 mt-1 flex items-baseline justify-between gap-3">
+              <h3 className="text-lg font-medium tracking-tight text-white/90">
                 <TransitionLink href={`/projects/${slug}?via=projects`} className="hover:underline">
                   {p.title}
                 </TransitionLink>
               </h3>
-              <span className="text-xs uppercase tracking-wide text-white/60">{KEYWORD_BY_TITLE[p.title] ?? "project"}</span>
+              <span className="text-xs uppercase tracking-wide text-white/70">{KEYWORD_BY_TITLE[p.title] ?? "project"}</span>
             </div>
           </article>
         );
@@ -714,4 +738,5 @@ export default function ProjectsHUD() {
     </section>
   );
 }
+
 
