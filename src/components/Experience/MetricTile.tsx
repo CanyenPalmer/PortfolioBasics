@@ -20,7 +20,11 @@ type Props = {
 function formatValue(v: number, fmt: Metric["format"]) {
   switch (fmt) {
     case "currency":
-      return v.toLocaleString(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+      return v.toLocaleString(undefined, {
+        style: "currency",
+        currency: "USD",
+        maximumFractionDigits: 0,
+      });
     case "percent":
       return `${Math.round(v)}%`;
     default:
@@ -38,7 +42,7 @@ export default function MetricTile({ metric, preview, autoplay }: Props) {
 
   // Derived transforms
   const ringProgress = useTransform(raw, [0, 100], [0, circumference]);
-  const ringDashOffset = useTransform(ringProgress, (v) => circumference - v); // ✅ replaces .to(...)
+  const ringDashOffset = useTransform(ringProgress, (v) => circumference - v);
   const barWidthPct = useTransform(raw, [0, 100], ["0%", "100%"]);
 
   // Number display
@@ -101,7 +105,9 @@ export default function MetricTile({ metric, preview, autoplay }: Props) {
       aria-label={`${metric.label} ${formatValue(metric.value, metric.format)}`}
     >
       <div className="flex items-center justify-between gap-3">
-        <div className="text-xs uppercase tracking-wide opacity-80">{metric.label}</div>
+        <div className="text-xs uppercase tracking-wide opacity-80">
+          {metric.label}
+        </div>
         <motion.div className="text-right text-base font-semibold tabular-nums">
           {display}
         </motion.div>
@@ -128,7 +134,7 @@ export default function MetricTile({ metric, preview, autoplay }: Props) {
               stroke="var(--accent, currentColor)"
               strokeWidth="6"
               strokeDasharray={circumference}
-              style={{ strokeDashoffset: ringDashOffset }} {/* ✅ fixed */}
+              style={{ strokeDashoffset: ringDashOffset }}
               transform="rotate(-90 32 32)"
             />
           </svg>
