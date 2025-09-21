@@ -347,8 +347,8 @@ export default function ProjectsHUD() {
   const TRAVEL_CORE = Math.max(0, LAYOUT.lg.containerHeight - windowH);
 
   // Cards begin on next scroll after lock; hidden at lock.
-  const LEAD_IN = 24; // px after lock before cards move
-  const START_FROM_BOTTOM = Math.round(windowH * 1.12); // start below viewport
+  const LEAD_IN = 12; // ↓ was 24 — user scrolls less before cards start
+  const START_FROM_BOTTOM = Math.round(windowH * 1.06); // ↓ was 1.12 — start closer, still off-screen
 
   // Extended run-out so cards fully clear the top
   const OUT_EXTRA = Math.max(700, Math.round(windowH * 1.45));
