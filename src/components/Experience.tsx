@@ -54,7 +54,6 @@ export default function Experience() {
   const experiences = profile.experience ?? [];
   const cardCount = experiences.length || 1;
 
-  // Title (unchanged)
   const TitleBlock = (
     <div className="pt-8 pb-2">
       <SectionPanel title="Experience">
@@ -63,11 +62,9 @@ export default function Experience() {
     </div>
   );
 
-  // Refs
   const lockRef = useRef<HTMLDivElement | null>(null);
   const subheaderRef = useRef<HTMLDivElement | null>(null);
 
-  // Measure subheader height
   const [subH, setSubH] = useState(56);
   useEffect(() => {
     const measure = () => {
@@ -79,7 +76,6 @@ export default function Experience() {
     return () => window.removeEventListener("resize", measure);
   }, []);
 
-  // Viewport width for transforms
   const [vw, setVw] = useState(0);
   useEffect(() => {
     const update = () => setVw(window.innerWidth || 0);
@@ -88,7 +84,7 @@ export default function Experience() {
     return () => window.removeEventListener("resize", update);
   }, []);
 
-  // Fixed header offset — compute on mount + resize (NOT on scroll to avoid drift)
+  // Fixed header offset — compute on mount + resize only (avoid drift)
   const [topOffset, setTopOffset] = useState(0);
   useEffect(() => {
     const computeTopOffset = () => {
@@ -117,7 +113,7 @@ export default function Experience() {
     };
   }, []);
 
-  // Pre-lock progress
+  // Pre-lock progress (teaser + prefill underline)
   const { scrollYProgress: preProg } = useScroll({
     target: lockRef,
     offset: ["start 80%", "start start"],
@@ -133,14 +129,16 @@ export default function Experience() {
   const [lp, setLp] = useState(0);
   useMotionValueEvent(lockProgress, "change", (v) => setLp(clamp01(v)));
 
-  // Lock state
+  // Lock state with small hysteresis to prevent pixel-boundary jitter
+  const LOCK_EPS = 2; // px
   const [isLocked, setIsLocked] = useState(false);
   useEffect(() => {
     const onScroll = () => {
       const el = lockRef.current;
       if (!el) return;
       const r = el.getBoundingClientRect();
-      setIsLocked(r.top <= 0 && r.bottom >= window.innerHeight);
+      const nowLocked = r.top <= LOCK_EPS && r.bottom >= window.innerHeight - LOCK_EPS;
+      setIsLocked(nowLocked);
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -215,21 +213,21 @@ export default function Experience() {
           height: `calc(${cardCount + 1} * 100vh)`,
           ["--sub-h" as any]: `${subH}px`,
           ["--top-offset" as any]: `${topOffset}px`,
-          ["--sub-shift" as any]: `0px`, // pinned bar: no dynamic vertical shift
+          ["--sub-shift" as any]: `0px`,
         }}
       >
-        {/* Impact bar: pinned at the exact same pixel in both modes */}
+        {/* Impact bar — identical geometry sticky/fixed to avoid any jiggle */}
         <div
           ref={subheaderRef}
           className={styles.subheaderSticky}
           style={{
             position: fixedNow ? ("fixed" as const) : "sticky",
-            top: `${topOffset}px`, // << identical top in both fixed & sticky
-            left: fixedNow ? 0 : undefined,
-            right: fixedNow ? 0 : undefined,
-            width: fixedNow ? "100%" : undefined,
-            opacity: justUnlocked ? 0 : 1,
-            transition: "opacity .38s ease", // no top transition → no sliding
+            top: `${topOffset}px`,         // same value in both modes
+            left: 0,                       // keep consistent layout
+            right: 0,
+            width: "100%",
+            opacity: justUnlocked ? 0 : 1, // fade only on unlock
+            transition: "opacity .38s ease",
           }}
         >
           <div className={styles.subheaderRow}>
@@ -321,3 +319,4 @@ export default function Experience() {
     </section>
   );
 }
+
