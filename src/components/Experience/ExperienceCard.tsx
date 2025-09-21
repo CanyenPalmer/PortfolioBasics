@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { forwardRef, useEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import MetricTile, { Metric } from "./MetricTile";
 import styles from "./experience.module.css";
@@ -25,7 +25,7 @@ type Props = {
 };
 
 const ExperienceCard = forwardRef<HTMLDivElement, Props>(function ExperienceCard(
-  { refCallback, experience, index, isFocused, isExpanded, metrics, onExpand, onCollapse },
+  { refCallback, experience, isFocused, isExpanded, metrics = [], onExpand, onCollapse },
   _ref
 ) {
   const localRef = useRef<HTMLDivElement | null>(null);
@@ -33,31 +33,32 @@ const ExperienceCard = forwardRef<HTMLDivElement, Props>(function ExperienceCard
     refCallback(localRef.current);
   }, [refCallback]);
 
-  // Safe content access
   const company = experience?.company ?? "";
   const role = experience?.role ?? experience?.title ?? "";
   const dates = [experience?.start, experience?.end].filter(Boolean).join(" — ");
   const location = experience?.location ?? "";
   const highlights: string[] = Array.isArray(experience?.highlights) ? experience.highlights : [];
-  const links: { label?: string; href: string }[] = Array.isArray(experience?.links) ? experience.links : [];
-  const creations: { label?: string; href: string }[] = Array.isArray(experience?.creations) ? experience.creations : [];
 
-  // Visual state classes
+  // Creations can be:
+  // - array of strings
+  // - array of { label?: string; href?: string; desc?: string }
+  const creations: any[] = Array.isArray(experience?.creations) ? experience.creations : [];
+
   const stateClass = isExpanded
     ? styles.cardExpanded
     : isFocused
     ? styles.cardFocused
     : styles.cardCollapsed;
 
-  // Hover preview enabled only when focused and not expanded
-  const enablePreview = isFocused && !isExpanded;
-
   return (
     <motion.div
       ref={localRef}
       className={`${styles.card} ${stateClass}`}
       layout
-      transition={{ type: "spring", stiffness: 300, damping: 30, mass: 0.4 }}
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: false, amount: 0.35 }}
+      transition={{ type: "spring", stiffness: 300, damping: 32, mass: 0.4 }}
     >
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
@@ -70,7 +71,6 @@ const ExperienceCard = forwardRef<HTMLDivElement, Props>(function ExperienceCard
           </div>
         </div>
 
-        {/* Expand / Collapse */}
         <div className="shrink-0">
           {!isExpanded ? (
             <button
@@ -97,13 +97,13 @@ const ExperienceCard = forwardRef<HTMLDivElement, Props>(function ExperienceCard
       </div>
 
       {/* Metric Tiles (preview or full) */}
-      {!!metrics?.length && (
+      {!!metrics.length && (
         <div className={`${styles.metricsGrid} mt-4`}>
           {metrics.map((m, i) => (
             <MetricTile
               key={`${m.label}-${i}`}
               metric={m}
-              preview={enablePreview}
+              preview={isFocused && !isExpanded}
               autoplay={isExpanded}
             />
           ))}
@@ -131,30 +131,44 @@ const ExperienceCard = forwardRef<HTMLDivElement, Props>(function ExperienceCard
               </ul>
             )}
 
-            {(!!links.length || !!creations.length) && (
-              <div className="mt-4 flex flex-wrap gap-3">
-                {links.map((l, idx) => (
-                  <a
-                    key={`link-${idx}`}
-                    href={l.href}
-                    target="_blank"
-                    rel="noreferrer"
-                    className={styles.pillLink}
-                  >
-                    {l.label ?? "Link"}
-                  </a>
-                ))}
-                {creations.map((c, idx) => (
-                  <a
-                    key={`creation-${idx}`}
-                    href={c.href}
-                    target="_blank"
-                    rel="noreferrer"
-                    className={styles.pillLink}
-                  >
-                    {c.label ?? "Creation"}
-                  </a>
-                ))}
+            {!!creations.length && (
+              <div className="mt-5">
+                <div className="mb-2 text-xs font-semibold tracking-widest opacity-70">
+                  CREATIONS
+                </div>
+                <ul className="space-y-2">
+                  {creations.map((c: any, i: number) => {
+                    // string form
+                    if (typeof c === "string") {
+                      return (
+                        <li key={i} className="text-sm opacity-90">
+                          {c}
+                        </li>
+                      );
+                    }
+                    // object form
+                    const label = c.label ?? c.title ?? "Creation";
+                    const desc = c.desc ?? c.description ?? "";
+                    const href = c.href ?? c.link ?? "";
+                    return (
+                      <li key={i} className="text-sm opacity-90">
+                        {href ? (
+                          <a
+                            href={href}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={styles.pillLink}
+                          >
+                            {label}
+                          </a>
+                        ) : (
+                          <span className="font-medium">{label}</span>
+                        )}
+                        {desc && <div className="mt-1 opacity-80">{desc}</div>}
+                      </li>
+                    );
+                  })}
+                </ul>
               </div>
             )}
           </motion.div>
