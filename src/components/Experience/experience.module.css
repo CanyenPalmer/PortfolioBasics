@@ -4,12 +4,26 @@
   width: 100%;
 }
 
-/* Pinned stage (sticky) under the sticky title — no class toggle, so no shift */
-.stagePin {
-  position: sticky;
-  top: var(--title-offset, 96px);                 /* sits just under the title */
+/* Stage holder reserves space so switching to fixed doesn't shift layout */
+.stageHolder {
+  position: relative;
   height: calc(100vh - var(--title-offset, 96px));
   z-index: 20;
+}
+
+/* Stage in normal flow (before/after lock) */
+.stageFlow {
+  position: relative;
+  height: 100%;
+}
+
+/* Stage when locked: fixed just under the sticky title */
+.stageFixed {
+  position: fixed;
+  top: var(--title-offset, 96px);
+  left: 0;
+  right: 0;
+  height: calc(100vh - var(--title-offset, 96px));
 }
 
 /* Centered stack that holds the motion-transformed cards */
