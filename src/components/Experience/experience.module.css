@@ -4,14 +4,14 @@
   width: 100%;
 }
 
-/* Sticky SUBHEADER that stays visible during the lock (fade handled inline on unlock) */
+/* Sticky SUBHEADER that stays visible during the lock (sits at exact top of user's view) */
 .subheaderSticky {
   position: sticky;
-  top: 0;
-  z-index: 50;                 /* above the stage */
-  background: transparent;     /* match page bg */
+  top: var(--top-offset, 0px);  /* <-- accounts for any fixed site header */
+  z-index: 50;                  /* above the stage */
+  background: transparent;      /* match page bg */
   padding-bottom: 0.5rem;
-  /* transition intentionally controlled inline to avoid fade-in */
+  /* transition controlled inline to avoid fade-in */
 }
 
 /* Subheader content row and underline */
@@ -37,27 +37,27 @@
 /* Stage holder keeps identical geometry pre-lock and locked → no vertical jump */
 .stageHolder {
   position: relative;
-  height: calc(100vh - var(--sub-h, 56px));
+  height: calc(100vh - var(--sub-h, 56px) - var(--top-offset, 0px)); /* <-- subtract top offset */
   box-sizing: border-box;
 }
 
 /* Pre-lock stage (normal flow) */
 .stageFlow {
   position: relative;
-  height: calc(100vh - var(--sub-h, 56px));
+  height: calc(100vh - var(--sub-h, 56px) - var(--top-offset, 0px));
   box-sizing: border-box;
-  z-index: 30;                 /* below subheader */
+  z-index: 30;                  /* below subheader */
 }
 
 /* Locked stage: fixed under the subheader (true scroll lock) */
 .stageFixed {
   position: fixed;
-  top: var(--sub-h, 56px);
+  top: calc(var(--top-offset, 0px) + var(--sub-h, 56px)); /* <-- below the sticky subheader */
   left: 0;
   right: 0;
-  height: calc(100vh - var(--sub-h, 56px));
+  height: calc(100vh - var(--sub-h, 56px) - var(--top-offset, 0px));
   box-sizing: border-box;
-  z-index: 40;                 /* below subheader (z-50) */
+  z-index: 40;                  /* below subheader (z-50) */
 }
 
 /* Visibility toggles — keep layout stable */
