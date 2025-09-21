@@ -15,9 +15,8 @@ import styles from "@/components/Experience/experience.module.css";
 
 /**
  * Experience — pinned section with horizontal right→left card flow.
- * Scroll-lock fix:
- * - Cards start moving ONLY when the section (title + stage) is fully in view (lock engaged).
- * - After the last card exits left, the scroll unlocks.
+ * Fix: Use a sticky pinned stage (no fixed/relative toggle) so there's no position shift.
+ * The lock window still controls progress & unlock after final card exits.
  */
 
 export type Metric = {
@@ -66,13 +65,13 @@ export default function Experience() {
   const experiences = profile.experience ?? [];
   const cardCount = experiences.length || 1;
 
-  // Sticky title
+  // Sticky title (kept visible while the stage is pinned)
   const titleRef = useRef<HTMLDivElement | null>(null);
 
-  // Lock window + stage refs
+  // Lock window (drives progress) + pinned stage
   const lockRef = useRef<HTMLDivElement | null>(null);
 
-  // Track title height to offset the fixed stage neatly under it
+  // Measure the title block so the stage sits exactly beneath it (no visual jump)
   const [titleH, setTitleH] = useState(96);
   useEffect(() => {
     const measure = () => {
@@ -84,32 +83,13 @@ export default function Experience() {
     return () => window.removeEventListener("resize", measure);
   }, []);
 
-  // Progress of the lock window (0→1 while engaged)
+  // Progress of the lock window only (0→1 while engaged)
   const { scrollYProgress: lockProgress } = useScroll({
     target: lockRef,
     offset: ["start start", "end end"],
   });
   const [lp, setLp] = useState(0);
   useMotionValueEvent(lockProgress, "change", (v) => setLp(clamp01(v)));
-
-  // Determine when the section is fully in view: lock only then
-  const [isLocked, setIsLocked] = useState(false);
-  useEffect(() => {
-    const onScroll = () => {
-      const el = lockRef.current;
-      if (!el) return;
-      const r = el.getBoundingClientRect();
-      const fullyInView = r.top <= 0 && r.bottom >= window.innerHeight;
-      setIsLocked(fullyInView);
-    };
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-    };
-  }, []);
 
   // Viewport width for pixel-based X transforms
   const [vw, setVw] = useState(0);
@@ -124,9 +104,9 @@ export default function Experience() {
    * Deck progress:
    * p = lp * (cardCount + 1)
    * t_i = p - (i + 1)
-   *  - At lp=0: card 0 starts off-right
-   *  - At lp=1/(cardCount+1): card 0 centered (expands)
-   *  - At lp=1: last card is fully off-left (unlock)
+   *  - lp=0: card 0 off-right
+   *  - lp=1/(cardCount+1): card 0 centered/expanded
+   *  - lp=1: last card fully off-left (unlock)
    */
   const p = lp * (cardCount + 1);
 
@@ -154,15 +134,15 @@ export default function Experience() {
         </SectionPanel>
       </div>
 
-      {/* Lock window: drives the pinned experience stage */}
+      {/* Lock window: while this is on-screen, the sticky stage below remains pinned */}
       <div
         ref={lockRef}
         className={styles.lockWindow}
         style={{ height: `calc(${cardCount + 1} * 100vh)` }}
       >
-        {/* Stage: fixed only while locked; otherwise normal flow */}
+        {/* Pinned (sticky) stage sits under the title the whole time — no class toggle, no shift */}
         <div
-          className={isLocked ? styles.stageFixed : styles.stageFlow}
+          className={styles.stagePin}
           style={{ ["--title-offset" as any]: `${titleH}px` }}
         >
           <div className={styles.stack}>
@@ -187,7 +167,7 @@ export default function Experience() {
               const zIndex = 100 - Math.round(edge * 50); // center on top
 
               const isExpanded = Math.abs(t) < 0.12; // center band
-              const isFocused = Math.abs(t) < 0.35;  // hover-scrub enabled
+              const isFocused  = Math.abs(t) < 0.35; // hover-scrub
 
               return (
                 <ExperienceCard
