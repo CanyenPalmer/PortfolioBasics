@@ -1,47 +1,58 @@
-.stage {
-  position: relative;
-  padding-bottom: 40vh;
+/* Pinned stage under the sticky title */
+.stagePin {
+  position: sticky;
+  top: 96px;               /* leave room for the section title */
+  height: calc(100vh - 96px);
+  z-index: 20;
 }
 
-/* Core card shell */
-.card {
+/* Stack that holds all cards centered; cards are motion-transformed */
+.stack {
   position: relative;
-  margin: 10vh auto;
-  padding: 1rem;
+  width: min(92vw, 1120px);
+  height: 100%;
+  margin: 0 auto;
+  display: grid;
+  place-items: center; /* center the cards' origin */
+}
+
+/* Core card shell — larger at center, but capped by transforms from parent */
+.card {
+  position: absolute;            /* layered pile, motion handles x/scale */
+  inset: auto;
+  margin: 0;
+  width: min(90vw, 960px);
+  max-width: 960px;
+  padding: 1.1rem;
   border-radius: 1rem;
   border: 1px solid rgba(255,255,255,0.1);
   background: rgba(13,19,29,0.65);
   backdrop-filter: blur(6px);
   box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-  max-width: 56rem;
   will-change: transform, opacity;
 }
 
+/* Visual emphasis states (borders/shadows only; motion sets x/scale/opacity) */
 .cardCollapsed {
-  transform: translateY(12px) scale(0.985);
-  opacity: 0.78;
+  /* no extra styles needed beyond transforms */
 }
 .cardFocused {
-  transform: translateY(0) scale(1);
-  opacity: 1;
   border-color: rgba(125, 211, 252, 0.45);
   box-shadow: 0 0 0 1px rgba(125,211,252,0.25), 0 12px 40px rgba(0,0,0,0.35);
 }
 .cardExpanded {
-  transform: translateY(0) scale(1.02);
-  opacity: 1;
   border-color: rgba(125, 211, 252, 0.6);
   box-shadow: 0 0 0 1px rgba(125,211,252,0.35), 0 18px 60px rgba(0,0,0,0.45);
 }
 
-/* Metrics grid — fixed heights to prevent layout shift when animating */
+/* Metrics grid — fixed to avoid layout shift during animation */
 .metricsGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.75rem;
 }
 
-/* Bullet points: console-like feel */
+/* Bullet points: console-like caret */
 .bulletLine {
   position: relative;
   padding-left: 1.25rem;
@@ -73,23 +84,13 @@
   color: white;
 }
 
-/* Ghost button */
-.ghostBtn {
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 9999px;
-  background: rgba(255,255,255,0.04);
-  color: white;
-  transition: border-color .2s ease, background .2s ease;
-}
-.ghostBtn:hover {
-  border-color: rgba(125, 211, 252, 0.6);
-  background: rgba(125, 211, 252, 0.08);
-}
-
 /* Responsive */
 @media (max-width: 1024px) {
   .metricsGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .card {
+    width: min(94vw, 960px);
   }
 }
 @media (max-width: 640px) {
@@ -97,7 +98,7 @@
     grid-template-columns: 1fr;
   }
   .card {
-    margin: 8vh auto;
-    padding: 0.875rem;
+    width: min(96vw, 960px);
+    padding: 0.95rem;
   }
 }
