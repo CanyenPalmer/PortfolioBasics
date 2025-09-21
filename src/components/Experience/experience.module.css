@@ -1,46 +1,65 @@
-/* Lock window holds both the sticky header and the stage area */
+/* Lock window hosts the sticky subheader and the stage */
 .lockWindow {
   position: relative;
   width: 100%;
 }
 
-/* Sticky header remains visible during the entire lock window */
-.pinHeader {
+/* Sticky SUBHEADER that stays visible during the lock */
+.subheaderSticky {
   position: sticky;
   top: 0;
   z-index: 50;                 /* above the stage */
   background: transparent;     /* match page bg */
-  padding-top: 2rem;
-  padding-bottom: 1rem;
+  padding-bottom: 0.5rem;
 }
 
-/* Stage holder reserves a constant block beneath the header — no jump */
+/* Subheader content row and underline */
+.subheaderRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.underlineTrack {
+  flex: 1;
+  height: 2px;
+  background: transparent;
+  position: relative;
+  overflow: hidden;
+}
+.underlineFill {
+  height: 2px;
+  background: var(--accent, #7dd3fc);
+  width: 0%;
+  transition: width .2s ease;
+}
+
+/* Stage holder keeps identical geometry pre-lock and locked → no vertical jump */
 .stageHolder {
   position: relative;
-  height: calc(100vh - var(--header-h, 96px));
+  height: calc(100vh - var(--sub-h, 56px));
   box-sizing: border-box;
 }
 
-/* Pre-lock stage: in normal flow, same geometry as the fixed stage */
+/* Pre-lock stage (normal flow) */
 .stageFlow {
   position: relative;
-  height: calc(100vh - var(--header-h, 96px));
+  height: calc(100vh - var(--sub-h, 56px));
   box-sizing: border-box;
-  z-index: 30;                 /* below header, above page */
+  z-index: 30;                 /* below subheader */
 }
 
-/* Locked stage: fixed under the sticky header (true scroll lock) */
+/* Locked stage: fixed under the subheader (true scroll lock) */
 .stageFixed {
   position: fixed;
-  top: var(--header-h, 96px);
+  top: var(--sub-h, 56px);
   left: 0;
   right: 0;
-  height: calc(100vh - var(--header-h, 96px));
+  height: calc(100vh - var(--sub-h, 56px));
   box-sizing: border-box;
-  z-index: 40;                 /* below header (z-50) */
+  z-index: 40;                 /* below subheader (z-50) */
 }
 
-/* Visibility toggles — no position change => no vertical shift */
+/* Visibility toggles — keep layout stable */
 .isHidden { visibility: hidden; }
 .isVisible { visibility: visible; }
 
@@ -68,6 +87,7 @@
   backdrop-filter: blur(6px);
   box-shadow: 0 10px 30px rgba(0,0,0,0.25);
   will-change: transform, opacity;
+  cursor: pointer; /* for click-to-center */
 }
 
 /* Visual emphasis states (borders/shadows only; motion sets x/scale/opacity) */
@@ -109,7 +129,7 @@
   padding: 0.375rem 0.625rem;
   border-radius: 9999px;
   border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255,255,255,0.04);
   text-decoration: none;
   font-size: 0.8125rem;
   transition: border-color .2s ease, background .2s ease, color .2s ease;
