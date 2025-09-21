@@ -53,31 +53,32 @@ const ASPECT: Record<string, string> = {
   "Python 101": "2 / 3",
 };
 
-// NEW: per-project tonal panels (solid, desaturated tints)
+// Tonal solids per project — higher opacity to fully mask background
 const TONE_BY_TITLE: Record<string, string> = {
-  "CGM Patient Analytics": "bg-emerald-500/14 ring-emerald-400/20",
-  "Logistic Regression & Tree-Based ML": "bg-sky-500/14 ring-sky-400/20",
-  "Real Estate Conditions Comparison (R)": "bg-amber-500/14 ring-amber-400/20",
-  "Python 101": "bg-indigo-500/14 ring-indigo-400/20",
-  "MyCaddy — Physics Shot Calculator": "bg-lime-500/14 ring-lime-400/20",
-  "PortfolioBasics (This Site)": "bg-fuchsia-500/14 ring-fuchsia-400/20",
+  "CGM Patient Analytics": "bg-emerald-500/40 ring-emerald-400/30",
+  "Logistic Regression & Tree-Based ML": "bg-sky-500/40 ring-sky-400/30",
+  "Real Estate Conditions Comparison (R)": "bg-amber-500/40 ring-amber-400/30",
+  "Python 101": "bg-indigo-500/40 ring-indigo-400/30",
+  "MyCaddy — Physics Shot Calculator": "bg-lime-500/40 ring-lime-400/30",
+  "PortfolioBasics (This Site)": "bg-fuchsia-500/40 ring-fuchsia-400/30",
 };
 function toneFor(title: string) {
-  return TONE_BY_TITLE[title] ?? "bg-white/10 ring-white/15";
+  return TONE_BY_TITLE[title] ?? "bg-white/40 ring-white/20";
 }
 
 const LAYOUT = {
   lg: {
     containerHeight: 1750,
     items: {
-      "CGM Patient Analytics": { left: "5%", top: 0, width: "24%" },
-      "MyCaddy — Physics Shot Calculator": { left: "32%", top: 80, width: "23%" },
-      "PortfolioBasics (This Site)": { left: "59%", top: 180, width: "29%" },
-      "Real Estate Conditions Comparison (R)": { left: "5%", top: 530, width: "24%" },
-      "Logistic Regression & Tree-Based ML": { left: "32%", top: 820, width: "54%" },
-      "Python 101": { left: "5%", top: 1080, width: "24%" },
+      // Slight width reductions + small vertical offsets to avoid overlap
+      "CGM Patient Analytics": { left: "5%", top: 0, width: "23%" },
+      "MyCaddy — Physics Shot Calculator": { left: "32%", top: 100, width: "22%" },
+      "PortfolioBasics (This Site)": { left: "59%", top: 210, width: "27%" },
+      "Real Estate Conditions Comparison (R)": { left: "5%", top: 570, width: "23%" },
+      "Logistic Regression & Tree-Based ML": { left: "32%", top: 870, width: "52%" },
+      "Python 101": { left: "5%", top: 1130, width: "23%" },
     } as Record<string, { left: string; top: number; width: string }>,
-    note: { left: "54%", top: 1320, width: "34%" },
+    note: { left: "54%", top: 1370, width: "34%" },
   },
 };
 
@@ -113,8 +114,8 @@ function ProjectTile({ p, left, top, width }: { p: Project; left: string; top: n
 
   return (
     <article className="absolute z-10" style={{ left, top, width }} aria-label={p.title}>
-      {/* Tinted panel wrapper */}
-      <div className={`rounded-2xl ring-1 ${tone} shadow-md shadow-black/25 backdrop-saturate-150`}>
+      {/* Tinted panel wrapper: uniform padding on ALL sides */}
+      <div className={`rounded-2xl ring-1 ${tone} shadow-lg shadow-black/30`}>
         <TransitionLink
           href={`/projects/${slug}?via=projects`}
           className="block group"
@@ -122,57 +123,57 @@ function ProjectTile({ p, left, top, width }: { p: Project; left: string; top: n
             if (typeof window !== "undefined") window.sessionStorage.setItem("cameFromProjects", "1");
           }}
         >
-          <div style={{ aspectRatio: aspect }} className="w-full overflow-hidden rounded-xl m-3 md:m-4">
-            <img
-              src={img.src}
-              alt={img.alt}
-              className="w-full h-full object-contain select-none transition-transform duration-300 ease-out group-hover:scale-[1.03] will-change-transform"
-              loading="lazy"
-              decoding="async"
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).src = "/images/portfolio-basics-avatar.png";
-              }}
-            />
+          <div className="p-3 md:p-4">
+            <div style={{ aspectRatio: aspect }} className="w-full overflow-hidden rounded-xl">
+              <img
+                src={img.src}
+                alt={img.alt}
+                className="w-full h-full object-contain select-none transition-transform duration-300 ease-out group-hover:scale-[1.03] will-change-transform"
+                loading="lazy"
+                decoding="async"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = "/images/portfolio-basics-avatar.png";
+                }}
+              />
+            </div>
+
+            <div className="mt-3 flex items-baseline justify-between gap-3">
+              <h3 className="text-base md:text-lg font-medium tracking-tight text-white/90">
+                <TransitionLink
+                  href={`/projects/${slug}?via=projects`}
+                  className="hover:underline"
+                  onClick={() => {
+                    if (typeof window !== "undefined") window.sessionStorage.setItem("cameFromProjects", "1");
+                  }}
+                >
+                  {p.title}
+                </TransitionLink>
+              </h3>
+              <span className="text-[11px] md:text-xs uppercase tracking-wide text-white/80">
+                {keywordFor(p.title, p.tech)}
+              </span>
+            </div>
           </div>
         </TransitionLink>
-
-        <div className="px-3 pb-3 md:px-4 md:pb-4">
-          <div className="mt-1 flex items-baseline justify-between gap-3">
-            <h3 className="text-base md:text-lg font-medium tracking-tight text-white/90">
-              <TransitionLink
-                href={`/projects/${slug}?via=projects`}
-                className="hover:underline"
-                onClick={() => {
-                  if (typeof window !== "undefined") window.sessionStorage.setItem("cameFromProjects", "1");
-                }}
-              >
-                {p.title}
-              </TransitionLink>
-            </h3>
-            <span className="text-[11px] md:text-xs uppercase tracking-wide text-white/70">
-              {keywordFor(p.title, p.tech)}
-            </span>
-          </div>
-        </div>
       </div>
     </article>
   );
 }
 
 function BlurbAndNote({ left, top, width }: { left: string; top: number; width: string }) {
-  // Neutral but readable panel for the moving “detail passage”
+  // Opaque neutral panel for the moving “detail passage”
   return (
     <div className="absolute hidden md:block z-0" style={{ left, top, width }}>
-      <div className="rounded-2xl ring-1 ring-white/15 bg-white/10 shadow-md shadow-black/25 px-4 py-3 md:px-5 md:py-4 pointer-events-none">
-        <p className="text-[15px] leading-tight text-white/85 mb-4">
+      <div className="rounded-2xl ring-1 ring-white/10 bg-[#0d131d]/85 shadow-lg shadow-black/30 px-5 py-4 pointer-events-none">
+        <p className="text-[15px] leading-tight text-white/90 mb-4">
           I carry projects from messy data to maintainable tools—analyses, models, and apps that are rigorous, documented, and usable.
         </p>
         <div className="grid grid-cols-[8.5rem,1fr] gap-x-6">
-          <div className="text-[12px] leading-tight text-white/70 font-medium">
+          <div className="text-[12px] leading-tight text-white/80 font-medium">
             <div>Showcase</div>
             <div>Highlights</div>
           </div>
-          <div className="flex flex-col gap-2 text-[14px] leading-snug text-white/90">
+          <div className="flex flex-col gap-2 text-[14px] leading-snug text-white/95">
             <div><span className="font-semibold">96.2% accuracy (AUC 93.8%)</span> on employee-retention models</div>
             <div><span className="font-semibold">$317k patient responsibility</span> surfaced; CSV → Python → Excel export</div>
             <div><span className="font-semibold">2.3k-home pricing model (R)</span> — 60+ features, RMSE-driven selection</div>
@@ -643,7 +644,7 @@ export default function ProjectsHUD() {
     </div>
   );
 
-  // Mobile (unchanged)
+  // Mobile — match panel style
   const mobile = (
     <div className="md:hidden space-y-10 px-6 py-10 bg-[#0d131d]">
       {TILE_ORDER.map((title) => {
@@ -653,24 +654,26 @@ export default function ProjectsHUD() {
         const slug = slugify(p.title);
         const aspect = ASPECT[p.title] ?? "3 / 4";
         return (
-          <article key={title} className={`rounded-2xl ring-1 ${toneFor(title)} shadow-md shadow-black/25`}>
+          <article key={title} className={`rounded-2xl ring-1 ${toneFor(title)} shadow-lg shadow-black/30`}>
             <TransitionLink href={`/projects/${slug}?via=projects`} className="block group">
-              <div style={{ aspectRatio: aspect }} className="w-full overflow-hidden rounded-xl m-3 md:m-4">
-                <img
-                  src={img.src}
-                  alt={img.alt}
-                  className="w-full h-full object-contain transition-transform duration-300 ease-out group-hover:scale-[1.03] will-change-transform"
-                />
+              <div className="p-4">
+                <div style={{ aspectRatio: aspect }} className="w-full overflow-hidden rounded-xl">
+                  <img
+                    src={img.src}
+                    alt={img.alt}
+                    className="w-full h-full object-contain transition-transform duration-300 ease-out group-hover:scale-[1.03] will-change-transform"
+                  />
+                </div>
+                <div className="mt-3 flex items-baseline justify-between gap-3">
+                  <h3 className="text-lg font-medium tracking-tight text-white/90">
+                    <TransitionLink href={`/projects/${slug}?via=projects`} className="hover:underline">
+                      {p.title}
+                    </TransitionLink>
+                  </h3>
+                  <span className="text-xs uppercase tracking-wide text-white/80">{KEYWORD_BY_TITLE[p.title] ?? "project"}</span>
+                </div>
               </div>
             </TransitionLink>
-            <div className="px-3 pb-3 md:px-4 md:pb-4 mt-1 flex items-baseline justify-between gap-3">
-              <h3 className="text-lg font-medium tracking-tight text-white/90">
-                <TransitionLink href={`/projects/${slug}?via=projects`} className="hover:underline">
-                  {p.title}
-                </TransitionLink>
-              </h3>
-              <span className="text-xs uppercase tracking-wide text-white/70">{KEYWORD_BY_TITLE[p.title] ?? "project"}</span>
-            </div>
           </article>
         );
       })}
@@ -707,7 +710,7 @@ export default function ProjectsHUD() {
         {CollageOverlay}
         {ChromeOverlay}
 
-        {/* PERSISTENT LEFT RAIL — reveals bottom→top synced with PACE node 2; moves with section after unlock */}
+        {/* PERSISTENT LEFT RAIL (unchanged) */}
         <motion.div
           className="fixed inset-0 z-[62] pointer-events-none"
           aria-hidden
