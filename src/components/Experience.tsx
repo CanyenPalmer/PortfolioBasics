@@ -129,10 +129,10 @@ export default function Experience() {
   const [lp, setLp] = useState(0);
   useMotionValueEvent(lockProgress, "change", (v) => setLp(clamp01(v)));
 
-  // Direction-aware lock with hysteresis to remove boundary jitter
+  // Direction-aware lock with hysteresis (prevents boundary jitter)
   const lastYRef = useRef(0);
-  const ENTER_EPS = 2; // px tolerance to enter lock
-  const EXIT_EPS_TOP = 0; // exit quickly on upward scroll
+  const ENTER_EPS = 2;
+  const EXIT_EPS_TOP = 0;
   const EXIT_EPS_BOTTOM = 2;
 
   const [isLocked, setIsLocked] = useState(false);
@@ -169,7 +169,7 @@ export default function Experience() {
     };
   }, [isLocked]);
 
-  // Fade-out on unlock (freeze underline; cancel immediately if re-lock happens)
+  // Fade-out on unlock (freeze underline; cancel if re-lock happens)
   const wasLockedRef = useRef(false);
   const [justUnlocked, setJustUnlocked] = useState(false);
   const FADE_MS = 260;
@@ -177,7 +177,6 @@ export default function Experience() {
 
   useEffect(() => {
     if (isLocked) {
-      // If we re-lock during a fade, cancel the fade and show immediately.
       if (fadeTimerRef.current) {
         window.clearTimeout(fadeTimerRef.current);
         fadeTimerRef.current = null;
@@ -210,7 +209,7 @@ export default function Experience() {
   }, [underlineLive, justUnlocked]);
   const underlineForRender = justUnlocked ? lastUnderlineRef.current : underlineLive;
 
-  // Click-to-center (unchanged)
+  // Click-to-center
   const centerCard = React.useCallback(
     (idx: number) => {
       const el = lockRef.current;
@@ -225,6 +224,9 @@ export default function Experience() {
     [cardCount]
   );
 
+  // While locked (or in unlock fade), keep the bar fixed at viewport topOffset
+  const fixedBar = isLocked || justUnlocked;
+
   return (
     <section data-section="experience" className="relative w-full">
       {TitleBlock}
@@ -236,22 +238,24 @@ export default function Experience() {
           height: `calc(${cardCount + 1} * 100vh)`,
           ["--sub-h" as any]: `${subH}px`,
           ["--top-offset" as any]: `${topOffset}px`,
-          ["--sub-shift" as any]: `0px`, // pinned bar: no dynamic vertical shift
+          ["--sub-shift" as any]: `0px`, // pinned bar: no vertical shift
         }}
       >
-        {/* Impact bar — always visible during lock; quick fade on unlock; cancels fade if re-locking */}
+        {/* Impact bar — FIXED while locked/fading so it can't slip out of view */}
         <div
           ref={subheaderRef}
           className={styles.subheaderSticky}
           style={{
-            position: "sticky",
+            position: fixedBar ? ("fixed" as const) : ("sticky" as const),
             top: `${topOffset}px`,
             left: 0,
             right: 0,
             width: "100%",
-            // Visible while locked; only hide during the brief unlock fade:
+            zIndex: 60,
             opacity: isLocked ? 1 : (justUnlocked ? 0 : 1),
             transition: `opacity ${FADE_MS}ms ease`,
+            backfaceVisibility: "hidden",
+            transform: "translateZ(0)",
           }}
         >
           <div className={styles.subheaderRow}>
@@ -343,4 +347,3 @@ export default function Experience() {
     </section>
   );
 }
-
