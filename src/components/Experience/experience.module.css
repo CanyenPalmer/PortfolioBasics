@@ -33,7 +33,7 @@
   transition: width .2s ease;
 }
 
-/* Stage geometry uses live shift only (not the fade-out hold) */
+/* Stage geometry uses sub-h and top-offset; sub-shift is 0 (pinned bar) */
 .stageHolder {
   position: relative;
   height: calc(100vh - var(--sub-h, 56px) - var(--top-offset, 0px) - var(--sub-shift, 0px));
