@@ -1,27 +1,29 @@
 "use client";
 
 import * as React from "react";
-import { forwardRef, useEffect, useRef } from "react";
+import { forwardRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import MetricTile, { Metric } from "./MetricTile";
 import styles from "./experience.module.css";
 
 /**
- * ExperienceCard — presentation and interaction for a single experience.
- * - Three visual states: collapsed, focused, expanded
- * - Metrics: preview hover when focused; autoplay when expanded
- * - No layout shifts: fixed internal grid heights
+ * ExperienceCard
+ * - Receives motion styles (x/scale/opacity/zIndex) from parent to create right→left flow
+ * - Auto-expands when `isExpanded` is true (centered)
+ * - Hover-scrub metrics when focused but not expanded; autoplay when expanded
+ * - Shows highlights and creations (with details) when expanded
  */
 
 type Props = {
-  refCallback: (el: HTMLDivElement | null) => void;
   experience: any;
   index: number;
   isFocused: boolean;
   isExpanded: boolean;
   metrics?: Metric[];
-  onExpand: () => void;
-  onCollapse: () => void;
+  x: number;
+  scale: number;
+  opacity: number;
+  zIndex: number;
 };
 
 function deriveCreationLabel(c: any): string {
@@ -49,7 +51,7 @@ function deriveCreationLabel(c: any): string {
   return "Creation";
 }
 
-/** Get an array of detail lines for a creation, handling multiple shapes. */
+/** Normalize possible "details" shapes into string lines */
 function getCreationDetails(c: any): string[] {
   const raw =
     c?.details ??
@@ -65,49 +67,32 @@ function getCreationDetails(c: any): string[] {
   if (Array.isArray(raw)) {
     return raw.filter(Boolean).map((s) => String(s));
   }
-
   if (typeof raw === "string") {
-    // Support newline or sentence-separated strings
-    const split = raw.split(/\r?\n|(?<=[.?!])\s+(?=[A-Z(])/).map((s) => s.trim());
+    const split = raw
+      .split(/\r?\n|(?<=[.?!])\s+(?=[A-Z(])/)
+      .map((s) => s.trim());
     const lines = split.filter(Boolean);
     return lines.length ? lines : [raw];
   }
-
   return [];
 }
 
 const ExperienceCard = forwardRef<HTMLDivElement, Props>(function ExperienceCard(
-  { refCallback, experience, isFocused, isExpanded, metrics = [], onExpand, onCollapse },
+  { experience, isFocused, isExpanded, metrics = [], x, scale, opacity, zIndex },
   _ref
 ) {
-  const localRef = useRef<HTMLDivElement | null>(null);
-  useEffect(() => {
-    refCallback(localRef.current);
-  }, [refCallback]);
-
+  // Safe content access
   const company = experience?.company ?? "";
   const role = experience?.role ?? experience?.title ?? "";
   const dates = [experience?.start, experience?.end].filter(Boolean).join(" — ");
   const location = experience?.location ?? "";
   const highlights: string[] = Array.isArray(experience?.highlights) ? experience.highlights : [];
-
-  // Creations can be strings or objects with optional href/desc/details
   const creations: any[] = Array.isArray(experience?.creations) ? experience.creations : [];
-
-  const stateClass = isExpanded
-    ? styles.cardExpanded
-    : isFocused
-    ? styles.cardFocused
-    : styles.cardCollapsed;
 
   return (
     <motion.div
-      ref={localRef}
-      className={`${styles.card} ${stateClass}`}
-      layout
-      initial={{ opacity: 0, y: 24 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: false, amount: 0.35 }}
+      className={`${styles.card} ${isExpanded ? styles.cardExpanded : isFocused ? styles.cardFocused : styles.cardCollapsed}`}
+      style={{ x, scale, opacity, zIndex }}
       transition={{ type: "spring", stiffness: 300, damping: 32, mass: 0.4 }}
     >
       {/* Header */}
@@ -120,33 +105,10 @@ const ExperienceCard = forwardRef<HTMLDivElement, Props>(function ExperienceCard
             {dates && <span>· {dates}</span>}
           </div>
         </div>
-
-        <div className="shrink-0">
-          {!isExpanded ? (
-            <button
-              type="button"
-              onClick={onExpand}
-              className={`${styles.ghostBtn} px-3 py-1 text-sm`}
-              aria-expanded="false"
-              aria-label="Expand experience details"
-            >
-              View
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={onCollapse}
-              className={`${styles.ghostBtn} px-3 py-1 text-sm`}
-              aria-expanded="true"
-              aria-label="Collapse experience details"
-            >
-              Close
-            </button>
-          )}
-        </div>
+        {/* No manual View/Close buttons — auto expands when centered */}
       </div>
 
-      {/* Metric Tiles (preview or full) */}
+      {/* Metric Tiles */}
       {!!metrics.length && (
         <div className={`${styles.metricsGrid} mt-4`}>
           {metrics.map((m, i) => (
@@ -160,7 +122,7 @@ const ExperienceCard = forwardRef<HTMLDivElement, Props>(function ExperienceCard
         </div>
       )}
 
-      {/* Details (highlights + creations) — only fully visible when expanded */}
+      {/* Details (highlights + creations) — visible when expanded (center) */}
       <AnimatePresence initial={false}>
         {isExpanded && (
           <motion.div
@@ -188,7 +150,6 @@ const ExperienceCard = forwardRef<HTMLDivElement, Props>(function ExperienceCard
                 </div>
                 <ul className="space-y-3">
                   {creations.map((c: any, i: number) => {
-                    // If it's just a string, show as a single-line item
                     if (typeof c === "string") {
                       return (
                         <li key={i} className="text-sm opacity-90">
@@ -196,10 +157,9 @@ const ExperienceCard = forwardRef<HTMLDivElement, Props>(function ExperienceCard
                         </li>
                       );
                     }
-
                     const label = deriveCreationLabel(c);
                     const href = c?.href ?? c?.link ?? "";
-                    const details = getCreationDetails(c); // ✅ show details/bullets if provided
+                    const details = getCreationDetails(c);
 
                     return (
                       <li key={i} className="text-sm opacity-90">
@@ -215,7 +175,6 @@ const ExperienceCard = forwardRef<HTMLDivElement, Props>(function ExperienceCard
                         ) : (
                           <span className="font-medium">{label}</span>
                         )}
-
                         {!!details.length && (
                           <ul className="mt-2 space-y-1">
                             {details.map((line, di) => (
