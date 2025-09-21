@@ -9,13 +9,14 @@ import ExperienceCard from "@/components/Experience/ExperienceCard";
 import styles from "@/components/Experience/experience.module.css";
 
 /**
- * Experience — right→center→left card flow with teaser + lock.
+ * Experience — right→center→left card flow with teaser + true lock.
  *
  * What this implements:
- * - Teaser: when the section is approaching, the first card “peeks” in and starts animating.
- * - Lock: when the section fully spans the viewport, the header + cards pin (fixed) and
- *   the deck continues to scroll horizontally with the user’s vertical scroll.
- * - No vertical shift at lock time: flow & fixed stages share the same geometry.
+ * - Teaser: as the section approaches, the first card “peeks” in (≈half visible) and animates.
+ * - Lock: once the lock window spans the viewport, the subheader + cards pin and continue
+ *         to be driven by vertical scroll (true scroll lock).
+ * - No vertical jump: pre-lock and locked stages share identical geometry; we toggle visibility only.
+ * - Click-to-center: clicking a card scrolls to center it in full view.
  */
 
 export type Metric = {
@@ -64,18 +65,27 @@ export default function Experience() {
   const experiences = profile.experience ?? [];
   const cardCount = experiences.length || 1;
 
-  // Lock window contains both the sticky header and the stage area
+  // Top title (not part of the lock; you asked to lock only the subheader)
+  // Keep the same look/formatting, just not sticky in the lock.
+  // If you prefer the title sticky again, we can toggle it back easily.
+  const TitleBlock = (
+    <div className="pt-8 pb-2">
+      <SectionPanel title="Experience" />
+    </div>
+  );
+
+  // Lock window contains the sticky subheader + stage area
   const lockRef = useRef<HTMLDivElement | null>(null);
 
-  // Sticky header inside the lock window (title + subheading)
-  const headerRef = useRef<HTMLDivElement | null>(null);
+  // Sticky SUBHEADER (inside the lock window)
+  const subheaderRef = useRef<HTMLDivElement | null>(null);
 
-  // Measure header height so stage sits exactly beneath it (no jump)
-  const [headerH, setHeaderH] = useState(96);
+  // Measure subheader height so the stage sits directly beneath it (no jump)
+  const [subH, setSubH] = useState(56); // default approx height
   useEffect(() => {
     const measure = () => {
-      const h = Math.round(headerRef.current?.getBoundingClientRect().height || 96);
-      setHeaderH(h);
+      const h = Math.round(subheaderRef.current?.getBoundingClientRect().height || 56);
+      setSubH(h);
     };
     measure();
     window.addEventListener("resize", measure);
@@ -92,10 +102,9 @@ export default function Experience() {
   }, []);
 
   /**
-   * PRE-LOCK TEASER PROGRESS:
-   * q in [0..1] from when the section is approaching (top hits ~80% of viewport)
-   * to when its top reaches the top of the viewport (lock ready).
-   * This drives the first card to “peek” in and move toward center.
+   * PRE-LOCK TEASER:
+   * q ∈ [0..1] from when the section top is at 80% viewport to when it hits top (lock ready).
+   * tPre for the first card goes from -0.5 (≈half visible) → 0 (center) across q=0→1.
    */
   const { scrollYProgress: preProg } = useScroll({
     target: lockRef,
@@ -106,8 +115,8 @@ export default function Experience() {
 
   /**
    * LOCK PROGRESS:
-   * lp in [0..1] while the lock window spans the viewport (true pinning).
-   * We map deck progress so first card is centered at lp=0.
+   * lp ∈ [0..1] while the lock window spans the viewport (true pin).
+   * Map so card 0 is centered when lp=0, and the last card exits by lp=1.
    */
   const { scrollYProgress: lockProgress } = useScroll({
     target: lockRef,
@@ -116,7 +125,7 @@ export default function Experience() {
   const [lp, setLp] = useState(0);
   useMotionValueEvent(lockProgress, "change", (v) => setLp(clamp01(v)));
 
-  // Determine when lock is engaged: lock window fully covers viewport
+  // Are we locked? (window fully covering viewport)
   const [isLocked, setIsLocked] = useState(false);
   useEffect(() => {
     const onScroll = () => {
@@ -136,67 +145,87 @@ export default function Experience() {
 
   /**
    * Deck progress during LOCK:
-   * We offset by +1 so the first card is centered at lp=0.
-   * p ∈ [1, 1 + cardCount]
+   * pDuring = 1 + lp * cardCount
+   * -> t = pDuring - (idx + 1); t=0 means centered.
    */
   const pDuring = 1 + lp * cardCount;
 
-  // Underline progress under the section title (increments per centered card)
-  const titleUnderlinePct = useMemo(() => {
-    const viewed = Math.min(cardCount, Math.max(0, pDuring)); // 0..cardCount (shifted)
+  // Subheader underline progress (increments as cards center)
+  const underlinePct = useMemo(() => {
+    const viewed = Math.min(cardCount, Math.max(0, pDuring)); // 0..cardCount
     return clamp01(viewed / cardCount);
   }, [pDuring, cardCount]);
 
+  // Click-to-center helper: compute target scroll for a given index
+  const centerCard = React.useCallback(
+    (idx: number) => {
+      const el = lockRef.current;
+      if (!el || cardCount <= 0) return;
+      const rect = el.getBoundingClientRect();
+      const topY = window.scrollY + rect.top;
+
+      // lp target to center idx: lp = idx / cardCount
+      const targetLp = idx / cardCount;
+
+      // Scrollable height inside the lock window:
+      const scrollable = el.offsetHeight - window.innerHeight;
+      const targetY = topY + targetLp * Math.max(1, scrollable);
+
+      window.scrollTo({ top: targetY, behavior: "smooth" });
+    },
+    [cardCount]
+  );
+
   return (
     <section data-section="experience" className="relative w-full">
-      {/* Lock window wraps the sticky header and the stage and provides the scroll budget */}
+      {/* Title outside the lock; you asked to keep only the subheader in the lock */}
+      {TitleBlock}
+
+      {/* Lock window wraps the sticky subheader + stage; it provides the scroll budget */}
       <div
         ref={lockRef}
         className={styles.lockWindow}
         style={{
           height: `calc(${cardCount + 1} * 100vh)`,
-          ["--header-h" as any]: `${headerH}px`,
+          ["--sub-h" as any]: `${subH}px`,
         }}
       >
-        {/* Sticky header INSIDE the lock window (always visible during lock) */}
-        <div ref={headerRef} className={styles.pinHeader}>
-          <SectionPanel title="Experience">
-            <p className="mt-1 text-sm opacity-80">
+        {/* Sticky SUBHEADER INSIDE the lock (always visible while locked) */}
+        <div ref={subheaderRef} className={styles.subheaderSticky}>
+          <div className={styles.subheaderRow}>
+            <span className="text-sm opacity-80">
               <span className="text-[var(--accent,_#7dd3fc)] font-medium">Impact</span> over titles
-            </p>
-            <div className="mt-3 h-1 w-full bg-transparent">
+            </span>
+            <div className={styles.underlineTrack} aria-hidden>
               <div
-                className="h-[2px] bg-[var(--accent,_#7dd3fc)] transition-[width]"
-                style={{ width: `${Math.max(0, Math.min(1, titleUnderlinePct)) * 100}%` }}
-                aria-hidden
+                className={styles.underlineFill}
+                style={{ width: `${Math.max(0, Math.min(1, underlinePct)) * 100}%` }}
               />
             </div>
-          </SectionPanel>
+          </div>
         </div>
 
-        {/* Stage holder reserves a consistent block under the header */}
+        {/* Stage holder keeps identical geometry pre-lock and locked → no vertical jump */}
         <div className={styles.stageHolder}>
           {/* -------- PRE-LOCK TEASER (visible only before lock) -------- */}
           <div className={`${styles.stageFlow} ${isLocked ? styles.isHidden : styles.isVisible}`}>
             <div className={styles.stack}>
               {experiences.map((exp: any, idx: number) => {
                 const k = keyFor(exp);
+                const metrics = metricsMap[k] ?? metricsByIndex[idx] ?? [];
 
-                // Only the first card “peeks” during pre-lock; others stay off
-                const tPre = idx === 0 ? q - 1 : 2; // -1(off-right) → 0(center) as q goes 0→1
+                // Only the first card peeks pre-lock; others stay off to the right
+                const tPre = idx === 0 ? (-0.5 + 0.5 * q) : 2; // -0.5 → 0 as q:0→1
                 const tClamped = Math.max(-2, Math.min(2, tPre));
 
                 const xPx = -tClamped * 0.60 * vw;
                 const edge = Math.min(1, Math.abs(tClamped));
                 const scale = 0.94 + (1 - edge) * 0.10;
-                const opacity = 0.35 + (1 - edge) * 0.65; // fade in as it enters
+                const opacity = 0.35 + (1 - edge) * 0.65; // fade in as enters
                 const zIndex = 100 - Math.round(edge * 50);
 
-                // Focus/expand only when centered (q≈1), but teaser remains compact
-                const isExpanded = false;
-                const isFocused = Math.abs(tPre) < 0.35;
-
-                const metrics = metricsMap[k] ?? metricsByIndex[idx] ?? [];
+                const isExpanded = false;                 // teaser stays compact
+                const isFocused = Math.abs(tPre) < 0.35;  // hover-scrub feel
 
                 return (
                   <ExperienceCard
@@ -210,13 +239,14 @@ export default function Experience() {
                     scale={scale}
                     opacity={opacity}
                     zIndex={zIndex}
+                    onCenter={() => centerCard(idx)}
                   />
                 );
               })}
             </div>
           </div>
 
-          {/* -------- LOCKED STAGE (fixed under header; visible only during lock) -------- */}
+          {/* -------- LOCKED STAGE (fixed under subheader; visible only while locked) -------- */}
           <div className={`${styles.stageFixed} ${isLocked ? styles.isVisible : styles.isHidden}`}>
             <div className={styles.stack}>
               {experiences.map((exp: any, idx: number) => {
@@ -224,7 +254,7 @@ export default function Experience() {
                 const metrics = metricsMap[k] ?? metricsByIndex[idx] ?? [];
 
                 // Deck mapping during lock:
-                // t = pDuring - (idx + 1); 0=center, -1=off-right, +1=off-left
+                // t = pDuring - (idx + 1); t=0 means perfectly centered.
                 const t = pDuring - (idx + 1);
                 const tClamped = Math.max(-2, Math.min(2, t));
 
@@ -234,8 +264,8 @@ export default function Experience() {
                 const opacity = 0.55 + (1 - edge) * 0.45;
                 const zIndex = 100 - Math.round(edge * 50);
 
-                const isExpanded = Math.abs(t) < 0.12; // auto-expand in center band
-                const isFocused = Math.abs(t) < 0.35;  // hover-scrub when focused
+                const isExpanded = Math.abs(t) < 0.12; // auto-expand at center
+                const isFocused  = Math.abs(t) < 0.35; // hover-scrub band
 
                 return (
                   <ExperienceCard
@@ -249,6 +279,7 @@ export default function Experience() {
                     scale={scale}
                     opacity={opacity}
                     zIndex={zIndex}
+                    onCenter={() => centerCard(idx)}
                   />
                 );
               })}
