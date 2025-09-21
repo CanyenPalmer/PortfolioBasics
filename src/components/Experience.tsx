@@ -50,9 +50,10 @@ function clamp01(v: number) {
   return Math.max(0, Math.min(1, v));
 }
 
-// Gentle vertical progress curve for the bar so it doesn't travel too far/fast
+// very gentle ease so the bar doesn't travel far/fast
 function gentleProgress(lp: number) {
-  return Math.pow(clamp01(lp), 3); // ease-in cubic
+  const s = clamp01(lp);
+  return s * s; // ease-in quad
 }
 
 export default function Experience() {
@@ -123,7 +124,7 @@ export default function Experience() {
     };
   }, []);
 
-  // Pre-lock progress for teaser + underline (0→1 as section approaches)
+  // PRE-LOCK teaser/underline progress
   const { scrollYProgress: preProg } = useScroll({
     target: lockRef,
     offset: ["start 80%", "start start"],
@@ -131,7 +132,7 @@ export default function Experience() {
   const [q, setQ] = useState(0);
   useMotionValueEvent(preProg, "change", (v) => setQ(clamp01(v)));
 
-  // Lock progress (0→1 while section spans viewport)
+  // LOCK progress
   const { scrollYProgress: lockProgress } = useScroll({
     target: lockRef,
     offset: ["start start", "end end"],
@@ -139,7 +140,7 @@ export default function Experience() {
   const [lp, setLp] = useState(0);
   useMotionValueEvent(lockProgress, "change", (v) => setLp(clamp01(v)));
 
-  // Lock state
+  // Locked?
   const [isLocked, setIsLocked] = useState(false);
   useEffect(() => {
     const onScroll = () => {
@@ -157,15 +158,17 @@ export default function Experience() {
     };
   }, []);
 
-  // Fade-out on unlock (hold the bar fixed while fading so it doesn't pop)
+  // Unlock fade-out without flicker
   const wasLockedRef = useRef(false);
   const [justUnlocked, setJustUnlocked] = useState(false);
   const [holdFixed, setHoldFixed] = useState(false);
+
   useEffect(() => {
     let t1: any, t2: any;
     if (wasLockedRef.current && !isLocked) {
+      // start fade while keeping bar fixed at its last position & width
       setHoldFixed(true);
-      setJustUnlocked(true); // triggers opacity animation
+      setJustUnlocked(true);
       t1 = setTimeout(() => setJustUnlocked(false), 420);
       t2 = setTimeout(() => setHoldFixed(false), 420);
     }
@@ -176,33 +179,38 @@ export default function Experience() {
     };
   }, [isLocked]);
 
-  // Deck mapping
+  // Card mapping during lock
   const pDuring = 1 + lp * cardCount;
 
-  // Underline fill:
-  // - Before lock: 0 → 50% as we approach lock.
-  // - During lock: 50% at first center → 100% at last center.
-  const underlinePct = useMemo(() => {
+  // ---- Impact underline fill (freeze during fade-out to avoid reset flicker)
+  const underlineLive = useMemo(() => {
     if (!isLocked) {
-      return 0.5 * clamp01(q);
+      return 0.5 * clamp01(q); // 0%→50% before lock
     }
     if (cardCount <= 1) return 1;
-    const pb = clamp01((pDuring - 1) / (cardCount - 1));
+    const pb = clamp01((pDuring - 1) / (cardCount - 1)); // 0 at first center → 1 at last
     return 0.5 + 0.5 * pb;
   }, [isLocked, q, pDuring, cardCount]);
 
-  // Limit + slow the bar’s vertical travel
-  const shiftMax = Math.min(36, Math.round((vh || 480) * 0.08)); // ↓ smaller cap than before
+  const lastUnderlineRef = useRef(0);
+  useEffect(() => {
+    // update stored value whenever not in the fade-out hold
+    if (!holdFixed) lastUnderlineRef.current = underlineLive;
+  }, [underlineLive, holdFixed]);
+  const underlineForRender = holdFixed ? lastUnderlineRef.current : underlineLive;
+
+  // Limit + slow bar vertical travel (very small cap)
+  const shiftMax = Math.min(16, Math.round((vh || 480) * 0.04)); // ~16px max
   const liveShift = isLocked ? gentleProgress(lp) * shiftMax : 0;
 
-  // Preserve the last locked shift for the fade-out window
+  // Preserve last locked shift during fade-out to prevent jump/flicker
   const lastShiftRef = useRef(0);
   useEffect(() => {
-    if (isLocked) lastShiftRef.current = liveShift;
-  }, [isLocked, liveShift]);
+    if (!holdFixed && isLocked) lastShiftRef.current = liveShift;
+  }, [isLocked, holdFixed, liveShift]);
   const shiftForTop = isLocked ? liveShift : holdFixed ? lastShiftRef.current : 0;
 
-  // Click-to-center helper
+  // Click-to-center
   const centerCard = React.useCallback(
     (idx: number) => {
       const el = lockRef.current;
@@ -230,12 +238,10 @@ export default function Experience() {
           height: `calc(${cardCount + 1} * 100vh)`,
           ["--sub-h" as any]: `${subH}px`,
           ["--top-offset" as any]: `${topOffset}px`,
-          // stage geometry uses the *live* shift (not the held one)
-          ["--sub-shift" as any]: `${Math.max(0, Math.round(liveShift))}px`,
+          ["--sub-shift" as any]: `${Math.max(0, Math.round(liveShift))}px`, // layout uses live shift
         }}
       >
-        {/* Impact bar: visible pre-lock, fades out smoothly after unlock,
-            and travels a short distance while locked */}
+        {/* Impact bar (now capped travel + frozen during fade-out) */}
         <div
           ref={subheaderRef}
           className={styles.subheaderSticky}
@@ -247,7 +253,7 @@ export default function Experience() {
             left: fixedNow ? 0 : undefined,
             right: fixedNow ? 0 : undefined,
             width: fixedNow ? "100%" : undefined,
-            opacity: justUnlocked ? 0 : 1, // only fade when unlocking
+            opacity: justUnlocked ? 0 : 1,
             transition: fixedNow
               ? "top .22s ease, opacity .38s ease"
               : justUnlocked
@@ -262,7 +268,7 @@ export default function Experience() {
             <div className={styles.underlineTrack} aria-hidden>
               <div
                 className={styles.underlineFill}
-                style={{ width: `${Math.max(0, Math.min(1, underlinePct)) * 100}%` }}
+                style={{ width: `${Math.max(0, Math.min(1, underlineForRender)) * 100}%` }}
               />
             </div>
           </div>
@@ -311,7 +317,7 @@ export default function Experience() {
               {experiences.map((exp: any, idx: number) => {
                 const k = keyFor(exp);
                 const metrics = (metricsMap as any)[k] ?? (metricsByIndex as any)[idx] ?? [];
-                const t = 1 + lp * cardCount - (idx + 1); // pDuring - (idx+1)
+                const t = 1 + lp * cardCount - (idx + 1);
                 const tClamped = Math.max(-2, Math.min(2, t));
                 const xPx = -tClamped * 0.60 * vw;
                 const edge = Math.min(1, Math.abs(tClamped));
