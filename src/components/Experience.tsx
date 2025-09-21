@@ -12,8 +12,8 @@ import styles from "@/components/Experience/experience.module.css";
  * Experience — right→center→left card flow with teaser + true lock.
  * - Teaser: first card “peeks” in and animates as the section approaches.
  * - Lock: subheader + cards pin when section spans the viewport.
- * - Impact bar: visible pre-lock, stays in view during lock, shifts down quickly,
- *               and ONLY fades out when the lock releases.
+ * - Impact bar: visible pre-lock (no fill), hits 50% when first card is centered,
+ *               then grows toward 100% by the last card; fades out on unlock.
  * - Click-to-center: clicking a card scrolls to center it.
  * - No vertical jump on lock (flow + fixed share geometry; we toggle visibility).
  */
@@ -60,10 +60,10 @@ function clamp01(v: number) {
   return Math.max(0, Math.min(1, v));
 }
 
-// Fast, front-loaded progress curve (finishes most movement early in the lock)
-function fastProgress(lp: number) {
-  const s = Math.min(1, lp * 3.2);            // complete by ~31% of lock
-  return 1 - Math.pow(1 - s, 3);              // ease-out cubic
+// Gentle progress curve so the bar doesn't move down too quickly (ease-in)
+function gentleProgress(lp: number) {
+  const s = Math.min(1, lp * 0.9);
+  return s * s; // ease-in quad
 }
 
 export default function Experience() {
@@ -191,15 +191,20 @@ export default function Experience() {
   // Deck progress during LOCK: first card centered when lp=0
   const pDuring = 1 + lp * cardCount;
 
-  // Subheader underline progress (increments as cards center)
+  // ---- Impact underline fill:
+  // - Before lock: 0%.
+  // - At first-card center (start of lock): 50%.
+  // - Grows from 50% → 100% as subsequent cards center.
   const underlinePct = useMemo(() => {
-    const viewed = Math.min(cardCount, Math.max(0, pDuring));
-    return clamp01(viewed / cardCount);
-  }, [pDuring, cardCount]);
+    if (!isLocked) return 0;
+    if (cardCount <= 1) return 1;
+    const pb = clamp01((pDuring - 1) / (cardCount - 1)); // 0 at first center → 1 at last center
+    return 0.5 + 0.5 * pb;
+  }, [isLocked, pDuring, cardCount]);
 
-  // Subheader vertical shift — front-loaded so it doesn't creep slowly
+  // Subheader vertical shift — gentler so it doesn't move too quickly
   const shiftMax = Math.min(64, Math.round((vh || 480) * 0.12)); // cap ~64px
-  const subShift = isLocked ? fastProgress(lp) * shiftMax : 0;
+  const subShift = isLocked ? gentleProgress(lp) * shiftMax : 0;
 
   // Click-to-center helper: compute target scroll for a given index
   const centerCard = React.useCallback(
@@ -238,22 +243,23 @@ export default function Experience() {
         }}
       >
         {/* Impact bar:
-            - Visible pre-lock (no fade-in), remains in view during lock,
-            - Moves quickly to its resting offset, and ONLY fades OUT on unlock */}
+            - Visible pre-lock (opacity 1), underline starts at 0%.
+            - During lock, underline = 50% at first center, →100% by last center.
+            - Bar fades OUT on unlock only. */}
         <div
           ref={subheaderRef}
           className={styles.subheaderSticky}
           style={{
-            position: isLocked ? "fixed" as const : "sticky",
+            position: isLocked ? ("fixed" as const) : "sticky",
             top: isLocked
               ? `calc(${topOffset}px + ${Math.max(0, Math.round(subShift))}px)`
               : undefined,
             left: isLocked ? 0 : undefined,
             right: isLocked ? 0 : undefined,
             width: isLocked ? "100%" : undefined,
-            opacity: justUnlocked ? 0 : 1, // always visible except right after unlock (fade-out)
+            opacity: justUnlocked ? 0 : 1, // always visible; only fades after unlock
             transition: isLocked
-              ? "top .18s ease, opacity 0s linear"
+              ? "top .22s ease, opacity 0s linear"
               : justUnlocked
               ? "opacity .35s ease"
               : "opacity 0s linear",
