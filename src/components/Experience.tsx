@@ -6,7 +6,6 @@ import {
   useRef,
   useState,
   useEffect,
-  useCallback,
 } from "react";
 import { useScroll, useMotionValueEvent } from "framer-motion";
 import SectionPanel from "@/components/ui/SectionPanel";
@@ -16,13 +15,9 @@ import styles from "@/components/Experience/experience.module.css";
 
 /**
  * Experience — pinned section with horizontal right→left card flow.
- * Fixes:
- * 1) Cards start moving ONLY when section is fully in view (lock occurs).
- * 2) After the last card is off-screen, scroll unlocks.
- * 
- * Implementation: use a dedicated "lock window" whose progress drives the deck.
- * - While the lock window is on-screen, the stage stays pinned and cards move.
- * - When it finishes, the stage unpins and scrolling continues normally.
+ * Scroll-lock fix:
+ * - Cards start moving ONLY when the section (title + stage) is fully in view (lock engaged).
+ * - After the last card exits left, the scroll unlocks.
  */
 
 export type Metric = {
@@ -37,7 +32,6 @@ export type Metric = {
 type MetricsMap = Record<string, Metric[]>;
 type MetricsByIndex = Record<number, Metric[]>;
 
-/** Optional per-role metrics (you can key on company::role if desired) */
 const metricsMap: MetricsMap = {
   "Iconic Care Inc.::Lead Analyst": [
     { label: "Funds Discovered", value: 20000, format: "currency", type: "counter" },
@@ -46,19 +40,16 @@ const metricsMap: MetricsMap = {
   ],
 };
 
-/** Fallback per-card metrics so tiles show immediately */
 const metricsByIndex: MetricsByIndex = {
-  // Card 0 — Lead Analyst
   0: [
     { label: "Funds Discovered", value: 20000, format: "currency", type: "counter" },
     { label: "Hours Saved / Week", value: 12, format: "number", type: "bar" },
     { label: "Rep Efficiency", value: 100, format: "percent", type: "ring" },
   ],
-  // Card 1 — Billing & Revenue Specialist
   1: [
-    { label: "Optimized Efficiency Increase", value: 150, format: "percent", type: "bar" },      // 150% bar (clipped)
-    { label: "Dashboards Created", value: 15, format: "number", type: "counter", suffix: "+" }, // 15+
-    { label: "Success Rate Increase", value: 45, format: "percent", type: "ring" },             // 45% ring
+    { label: "Optimized Efficiency Increase", value: 150, format: "percent", type: "bar" },
+    { label: "Dashboards Created", value: 15, format: "number", type: "counter", suffix: "+" },
+    { label: "Success Rate Increase", value: 45, format: "percent", type: "ring" },
   ],
 };
 
@@ -75,14 +66,25 @@ export default function Experience() {
   const experiences = profile.experience ?? [];
   const cardCount = experiences.length || 1;
 
-  /** Sticky title remains as-is */
+  // Sticky title
   const titleRef = useRef<HTMLDivElement | null>(null);
 
-  /** Lock window & pinned stage */
+  // Lock window + stage refs
   const lockRef = useRef<HTMLDivElement | null>(null);
-  const stageRef = useRef<HTMLDivElement | null>(null);
 
-  /** Progress of the lock window ONLY (0→1 while fully engaged) */
+  // Track title height to offset the fixed stage neatly under it
+  const [titleH, setTitleH] = useState(96);
+  useEffect(() => {
+    const measure = () => {
+      const h = Math.round(titleRef.current?.getBoundingClientRect().height || 96);
+      setTitleH(h);
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
+
+  // Progress of the lock window (0→1 while engaged)
   const { scrollYProgress: lockProgress } = useScroll({
     target: lockRef,
     offset: ["start start", "end end"],
@@ -90,7 +92,26 @@ export default function Experience() {
   const [lp, setLp] = useState(0);
   useMotionValueEvent(lockProgress, "change", (v) => setLp(clamp01(v)));
 
-  /** Track viewport width (for x translate in px) */
+  // Determine when the section is fully in view: lock only then
+  const [isLocked, setIsLocked] = useState(false);
+  useEffect(() => {
+    const onScroll = () => {
+      const el = lockRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const fullyInView = r.top <= 0 && r.bottom >= window.innerHeight;
+      setIsLocked(fullyInView);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, []);
+
+  // Viewport width for pixel-based X transforms
   const [vw, setVw] = useState(0);
   useEffect(() => {
     const update = () => setVw(window.innerWidth || 0);
@@ -100,16 +121,16 @@ export default function Experience() {
   }, []);
 
   /**
-   * Progress mapping:
+   * Deck progress:
    * p = lp * (cardCount + 1)
    * t_i = p - (i + 1)
-   *  - At lp = 0:  t_0 = -1  (card 0 starts off-right)
-   *  - At lp = 1/(cardCount+1): t_0 = 0 (centered, expands)
-   *  - At lp = 1:  t_last = 2 (card N-1 far-left, fully off)
+   *  - At lp=0: card 0 starts off-right
+   *  - At lp=1/(cardCount+1): card 0 centered (expands)
+   *  - At lp=1: last card is fully off-left (unlock)
    */
   const p = lp * (cardCount + 1);
 
-  /** Underline progress advances as cards center */
+  // Underline progress (increments per centered card)
   const titleUnderlinePct = useMemo(() => {
     const viewed = Math.min(cardCount, Math.max(0, p)); // 0..cardCount
     return clamp01(viewed / cardCount);
@@ -133,15 +154,17 @@ export default function Experience() {
         </SectionPanel>
       </div>
 
-      {/* Lock window: when this is on-screen, stage pins and cards move.
-          Height determines the locked duration; after it finishes, unlocks. */}
+      {/* Lock window: drives the pinned experience stage */}
       <div
         ref={lockRef}
         className={styles.lockWindow}
         style={{ height: `calc(${cardCount + 1} * 100vh)` }}
       >
-        {/* Pinned stage sits under the title while the lock window is active */}
-        <div ref={stageRef} className={styles.stagePin}>
+        {/* Stage: fixed only while locked; otherwise normal flow */}
+        <div
+          className={isLocked ? styles.stageFixed : styles.stageFlow}
+          style={{ ["--title-offset" as any]: `${titleH}px` }}
+        >
           <div className={styles.stack}>
             {experiences.map((exp: any, idx: number) => {
               const k = keyFor(exp);
@@ -150,25 +173,21 @@ export default function Experience() {
                 metricsByIndex[idx] ??
                 [];
 
-              // Per-card local offset; clamp to keep transforms sane
+              // Per-card offset across the deck
               const t = p - (idx + 1);
               const tClamped = Math.max(-2, Math.min(2, t));
 
               // Translate X in px: right→center→left
               const xPx = -tClamped * 0.60 * vw;
 
-              // Scale: smaller at edges, bigger at center
-              const scale = 0.94 + (1 - Math.min(1, Math.abs(tClamped))) * 0.10; // ~0.94 → ~1.04
+              // Scale & opacity based on distance from center
+              const edge = Math.min(1, Math.abs(tClamped));
+              const scale = 0.94 + (1 - edge) * 0.10;     // ~0.94 → ~1.04
+              const opacity = 0.55 + (1 - edge) * 0.45;   // ~0.55 → 1
+              const zIndex = 100 - Math.round(edge * 50); // center on top
 
-              // Opacity: dim at edges
-              const opacity = 0.55 + (1 - Math.min(1, Math.abs(tClamped))) * 0.45; // ~0.55 → 1
-
-              // z-index: centered card on top
-              const zIndex = 100 - Math.round(Math.min(1, Math.abs(tClamped)) * 50);
-
-              // State flags for card behavior
-              const isExpanded = Math.abs(t) < 0.12; // auto-expand in center band
-              const isFocused = Math.abs(t) < 0.35;  // hover-scrub when focused
+              const isExpanded = Math.abs(t) < 0.12; // center band
+              const isFocused = Math.abs(t) < 0.35;  // hover-scrub enabled
 
               return (
                 <ExperienceCard
