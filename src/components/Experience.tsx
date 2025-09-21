@@ -21,6 +21,7 @@ export type Metric = {
   format?: "currency" | "number" | "percent";
   type?: "counter" | "bar" | "ring";
   icon?: string;
+  suffix?: string; // e.g., "+"
 };
 
 type MetricsMap = Record<string, Metric[]>;
@@ -39,10 +40,17 @@ const metricsMap: MetricsMap = {
 };
 
 const metricsByIndex: MetricsByIndex = {
+  // Card 0 — Lead Analyst (kept)
   0: [
     { label: "Funds Discovered", value: 20000, format: "currency", type: "counter" },
     { label: "Hours Saved / Week", value: 12, format: "number", type: "bar" },
     { label: "Rep Efficiency", value: 100, format: "percent", type: "ring" },
+  ],
+  // Card 1 — Billing & Revenue Specialist (NEW)
+  1: [
+    { label: "Optimized Efficiency Increase", value: 150, format: "percent", type: "bar" }, // fills to 150%
+    { label: "Dashboards Created", value: 15, format: "number", type: "counter", suffix: "+" }, // shows 15+
+    { label: "Success Rate Increase", value: 45, format: "percent", type: "ring" }, // 45% ring
   ],
 };
 
@@ -129,7 +137,7 @@ export default function Experience() {
             const k = keyFor(exp);
             const metrics =
               metricsMap[k] ??
-              metricsByIndex[idx] ?? // fallback by index (ensures you see tiles immediately)
+              metricsByIndex[idx] ?? // fallback by index
               [];
 
             const isFocused = idx === focusIndex;
@@ -155,4 +163,3 @@ export default function Experience() {
     </section>
   );
 }
-
