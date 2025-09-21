@@ -1,30 +1,39 @@
-/* Lock window: while this element is in view, the stage below pins and drives the deck */
+/* Lock window: while this element is engaged, it drives the deck progress */
 .lockWindow {
   position: relative;
   width: 100%;
 }
 
-/* Pinned stage under the sticky title */
-.stagePin {
-  position: sticky;
-  top: 96px;               /* leaves room for the sticky section title */
-  height: calc(100vh - 96px);
+/* Stage: normal flow before/after lock */
+.stageFlow {
+  position: relative;
+  height: calc(100vh - var(--title-offset, 96px));
   z-index: 20;
 }
 
-/* Stack that holds all cards centered; cards are motion-transformed */
+/* Stage: fixed while locked (true scroll lock) */
+.stageFixed {
+  position: fixed;
+  top: var(--title-offset, 96px);   /* sits just under the sticky title */
+  left: 0;
+  right: 0;
+  height: calc(100vh - var(--title-offset, 96px));
+  z-index: 20;
+}
+
+/* Centered stack that holds the motion-transformed cards */
 .stack {
   position: relative;
   width: min(92vw, 1120px);
   height: 100%;
   margin: 0 auto;
   display: grid;
-  place-items: center; /* center the cards' origin */
+  place-items: center;
 }
 
 /* Core card shell — larger at center, capped by transforms from parent */
 .card {
-  position: absolute;            /* layered pile, motion handles x/scale */
+  position: absolute;  /* layered pile; motion sets x/scale/opacity */
   inset: auto;
   margin: 0;
   width: min(90vw, 960px);
@@ -39,7 +48,7 @@
 }
 
 /* Visual emphasis states (borders/shadows only; motion sets x/scale/opacity) */
-.cardCollapsed { }
+.cardCollapsed {}
 .cardFocused {
   border-color: rgba(125, 211, 252, 0.45);
   box-shadow: 0 0 0 1px rgba(125,211,252,0.25), 0 12px 40px rgba(0,0,0,0.35);
