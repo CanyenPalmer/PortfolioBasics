@@ -1,7 +1,13 @@
+/* Lock window: while this element is in view, the stage below pins and drives the deck */
+.lockWindow {
+  position: relative;
+  width: 100%;
+}
+
 /* Pinned stage under the sticky title */
 .stagePin {
   position: sticky;
-  top: 96px;               /* leave room for the section title */
+  top: 96px;               /* leaves room for the sticky section title */
   height: calc(100vh - 96px);
   z-index: 20;
 }
@@ -16,7 +22,7 @@
   place-items: center; /* center the cards' origin */
 }
 
-/* Core card shell — larger at center, but capped by transforms from parent */
+/* Core card shell — larger at center, capped by transforms from parent */
 .card {
   position: absolute;            /* layered pile, motion handles x/scale */
   inset: auto;
@@ -33,9 +39,7 @@
 }
 
 /* Visual emphasis states (borders/shadows only; motion sets x/scale/opacity) */
-.cardCollapsed {
-  /* no extra styles needed beyond transforms */
-}
+.cardCollapsed { }
 .cardFocused {
   border-color: rgba(125, 211, 252, 0.45);
   box-shadow: 0 0 0 1px rgba(125,211,252,0.25), 0 12px 40px rgba(0,0,0,0.35);
