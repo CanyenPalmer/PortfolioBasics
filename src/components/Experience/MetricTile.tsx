@@ -35,7 +35,10 @@ export default function MetricTile({ metric, preview, autoplay }: Props) {
   // Ring math (0..100 mapped to stroke length)
   const radius = 24;
   const circumference = 2 * Math.PI * radius;
+
+  // Derived transforms
   const ringProgress = useTransform(raw, [0, 100], [0, circumference]);
+  const ringDashOffset = useTransform(ringProgress, (v) => circumference - v); // ✅ replaces .to(...)
   const barWidthPct = useTransform(raw, [0, 100], ["0%", "100%"]);
 
   // Number display
@@ -69,7 +72,10 @@ export default function MetricTile({ metric, preview, autoplay }: Props) {
       const rect = el.getBoundingClientRect();
       const x = Math.max(rect.left, Math.min(e.clientX, rect.right));
       const ratio = (x - rect.left) / Math.max(1, rect.width); // 0..1
-      const previewMax = metric.format === "percent" ? Math.min(60, cap) : Math.min(Math.max(40, cap * 0.6), cap);
+      const previewMax =
+        metric.format === "percent"
+          ? Math.min(60, cap)
+          : Math.min(Math.max(40, cap * 0.6), cap);
       const next = Math.round(previewMax * ratio);
       // throttle via rAF
       cancelAnimationFrame(raf);
@@ -122,7 +128,7 @@ export default function MetricTile({ metric, preview, autoplay }: Props) {
               stroke="var(--accent, currentColor)"
               strokeWidth="6"
               strokeDasharray={circumference}
-              style={{ strokeDashoffset: ringProgress.to(v => circumference - v) }}
+              style={{ strokeDashoffset: ringDashOffset }} {/* ✅ fixed */}
               transform="rotate(-90 32 32)"
             />
           </svg>
