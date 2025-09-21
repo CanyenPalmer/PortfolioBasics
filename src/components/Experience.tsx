@@ -10,9 +10,9 @@ import styles from "@/components/Experience/experience.module.css";
 
 /**
  * Experience — pinned section with horizontal right→left card flow.
- * Fixes:
- *  - Title is part of the pinned section and remains visible during lock.
- *  - No vertical position shift when the stage becomes fixed.
+ * Fixes in this revision:
+ *  - No vertical shift on lock: header + stage are both sticky (no position toggling).
+ *  - Title + subtitle remain visible during the entire lock (header is part of the lock window).
  */
 
 export type Metric = {
@@ -64,10 +64,10 @@ export default function Experience() {
   // Lock window that drives progress
   const lockRef = useRef<HTMLDivElement | null>(null);
 
-  // Sticky header inside the lock window (so it stays visible with the cards)
+  // Sticky header inside the lock window
   const headerRef = useRef<HTMLDivElement | null>(null);
 
-  // Measure header height; stage uses this to avoid any vertical jump
+  // Measure header height; stage uses this to sit directly beneath (no jump)
   const [headerH, setHeaderH] = useState(96);
   useEffect(() => {
     const measure = () => {
@@ -87,24 +87,6 @@ export default function Experience() {
   const [lp, setLp] = useState(0);
   useMotionValueEvent(lockProgress, "change", (v) => setLp(clamp01(v)));
 
-  // Determine whether the lock window fully spans the viewport
-  const [isLocked, setIsLocked] = useState(false);
-  useEffect(() => {
-    const onScroll = () => {
-      const el = lockRef.current;
-      if (!el) return;
-      const r = el.getBoundingClientRect();
-      setIsLocked(r.top <= 0 && r.bottom >= window.innerHeight);
-    };
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-    };
-  }, []);
-
   // Viewport width for pixel-based X transforms
   const [vw, setVw] = useState(0);
   useEffect(() => {
@@ -120,7 +102,7 @@ export default function Experience() {
    * t_i = p - (i + 1)
    *  - lp=0:  card 0 off-right
    *  - lp=1/(cardCount+1): card 0 centered/expanded
-   *  - lp=1:  last card fully off-left (unlock)
+   *  - lp=1:  last card fully off-left
    */
   const p = lp * (cardCount + 1);
 
@@ -132,7 +114,7 @@ export default function Experience() {
 
   return (
     <section data-section="experience" className="relative w-full">
-      {/* Lock window holds both the sticky header and the pinned stage */}
+      {/* Lock window holds both the sticky header and the sticky stage */}
       <div
         ref={lockRef}
         className={styles.lockWindow}
@@ -154,53 +136,50 @@ export default function Experience() {
           </SectionPanel>
         </div>
 
-        {/* Holder reserves the exact stage height below the sticky header */}
+        {/* Sticky stage that stays directly under the header — no position toggle */}
         <div
-          className={styles.stageHolder}
+          className={styles.stageSticky}
           style={{ ["--header-h" as any]: `${headerH}px` }}
         >
-          {/* Stage is fixed ONLY while locked, using the same top/height as flow → no jump */}
-          <div className={isLocked ? styles.stageFixed : styles.stageFlow}>
-            <div className={styles.stack}>
-              {experiences.map((exp: any, idx: number) => {
-                const k = keyFor(exp);
-                const metrics =
-                  metricsMap[k] ??
-                  metricsByIndex[idx] ??
-                  [];
+          <div className={styles.stack}>
+            {experiences.map((exp: any, idx: number) => {
+              const k = keyFor(exp);
+              const metrics =
+                metricsMap[k] ??
+                metricsByIndex[idx] ??
+                [];
 
-                // Per-card offset across the deck
-                const t = p - (idx + 1);
-                const tClamped = Math.max(-2, Math.min(2, t));
+              // Per-card offset across the deck
+              const t = p - (idx + 1);
+              const tClamped = Math.max(-2, Math.min(2, t));
 
-                // Translate X in px: right→center→left
-                const xPx = -tClamped * 0.60 * vw;
+              // Translate X in px: right→center→left
+              const xPx = -tClamped * 0.60 * vw;
 
-                // Scale & opacity based on distance from center
-                const edge = Math.min(1, Math.abs(tClamped));
-                const scale = 0.94 + (1 - edge) * 0.10;     // ~0.94 → ~1.04
-                const opacity = 0.55 + (1 - edge) * 0.45;   // ~0.55 → 1
-                const zIndex = 100 - Math.round(edge * 50); // center on top
+              // Scale & opacity based on distance from center
+              const edge = Math.min(1, Math.abs(tClamped));
+              const scale = 0.94 + (1 - edge) * 0.10;     // ~0.94 → ~1.04
+              const opacity = 0.55 + (1 - edge) * 0.45;   // ~0.55 → 1
+              const zIndex = 100 - Math.round(edge * 50); // center on top
 
-                const isExpanded = Math.abs(t) < 0.12; // center band
-                const isFocused  = Math.abs(t) < 0.35; // hover-scrub
+              const isExpanded = Math.abs(t) < 0.12; // center band
+              const isFocused  = Math.abs(t) < 0.35; // hover-scrub
 
-                return (
-                  <ExperienceCard
-                    key={`${k}-${idx}`}
-                    experience={exp}
-                    index={idx}
-                    isFocused={isFocused}
-                    isExpanded={isExpanded}
-                    metrics={metrics}
-                    x={xPx}
-                    scale={scale}
-                    opacity={opacity}
-                    zIndex={zIndex}
-                  />
-                );
-              })}
-            </div>
+              return (
+                <ExperienceCard
+                  key={`${k}-${idx}`}
+                  experience={exp}
+                  index={idx}
+                  isFocused={isFocused}
+                  isExpanded={isExpanded}
+                  metrics={metrics}
+                  x={xPx}
+                  scale={scale}
+                  opacity={opacity}
+                  zIndex={zIndex}
+                />
+              );
+            })}
           </div>
         </div>
       </div>
