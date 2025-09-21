@@ -4,19 +4,16 @@
   width: 100%;
 }
 
-/* Impact subheader:
-   - Defaults to sticky (pre-lock), becomes fixed inline while locked.
-   - When fixed, top is computed inline (topOffset + subShift). */
+/* Impact subheader */
 .subheaderSticky {
   position: sticky;
   top: var(--top-offset, 0px);
-  z-index: 50;                  /* above the stage */
-  background: transparent;      /* match page bg */
+  z-index: 50;
+  background: transparent;
   padding-bottom: 0.5rem;
-  /* opacity/top transitions controlled inline */
 }
 
-/* Subheader content row and underline */
+/* Subheader row + underline */
 .subheaderRow {
   display: flex;
   align-items: center;
@@ -36,23 +33,20 @@
   transition: width .2s ease;
 }
 
-/* Stage holder keeps identical geometry pre-lock and locked → no vertical jump.
-   It also accounts for the dynamic subheader shift so cards never get overlapped. */
+/* Stage geometry uses live shift only (not the fade-out hold) */
 .stageHolder {
   position: relative;
   height: calc(100vh - var(--sub-h, 56px) - var(--top-offset, 0px) - var(--sub-shift, 0px));
   box-sizing: border-box;
 }
 
-/* Pre-lock stage (normal flow) */
 .stageFlow {
   position: relative;
   height: calc(100vh - var(--sub-h, 56px) - var(--top-offset, 0px) - var(--sub-shift, 0px));
   box-sizing: border-box;
-  z-index: 30;                  /* below subheader */
+  z-index: 30;
 }
 
-/* Locked stage: fixed under the (possibly shifted) subheader (true scroll lock) */
 .stageFixed {
   position: fixed;
   top: calc(var(--top-offset, 0px) + var(--sub-h, 56px) + var(--sub-shift, 0px));
@@ -60,14 +54,12 @@
   right: 0;
   height: calc(100vh - var(--sub-h, 56px) - var(--top-offset, 0px) - var(--sub-shift, 0px));
   box-sizing: border-box;
-  z-index: 40;                  /* below subheader (z-50) */
+  z-index: 40;
 }
 
-/* Visibility toggles — keep layout stable */
 .isHidden { visibility: hidden; }
 .isVisible { visibility: visible; }
 
-/* Centered stack that holds the motion-transformed cards */
 .stack {
   position: relative;
   width: min(92vw, 1120px);
@@ -77,9 +69,8 @@
   place-items: center;
 }
 
-/* Core card shell — larger at center, capped by transforms from parent */
 .card {
-  position: absolute;  /* layered pile; motion sets x/scale/opacity */
+  position: absolute;
   inset: auto;
   margin: 0;
   width: min(90vw, 960px);
@@ -91,10 +82,9 @@
   backdrop-filter: blur(6px);
   box-shadow: 0 10px 30px rgba(0,0,0,0.25);
   will-change: transform, opacity;
-  cursor: pointer; /* for click-to-center */
+  cursor: pointer;
 }
 
-/* Visual emphasis states (borders/shadows only; motion sets x/scale/opacity) */
 .cardCollapsed {}
 .cardFocused {
   border-color: rgba(125, 211, 252, 0.45);
@@ -105,14 +95,12 @@
   box-shadow: 0 0 0 1px rgba(125,211,252,0.35), 0 18px 60px rgba(0,0,0,0.45);
 }
 
-/* Metrics grid — fixed to avoid layout shift during animation */
 .metricsGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.75rem;
 }
 
-/* Bullet points: console-like caret */
 .bulletLine {
   position: relative;
   padding-left: 1.25rem;
@@ -125,7 +113,6 @@
   color: rgba(125, 211, 252, 0.9);
 }
 
-/* Links as pills */
 .pillLink {
   display: inline-flex;
   align-items: center;
@@ -144,21 +131,11 @@
   color: white;
 }
 
-/* Responsive */
 @media (max-width: 1024px) {
-  .metricsGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .card {
-    width: min(94vw, 960px);
-  }
+  .metricsGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .card { width: min(94vw, 960px); }
 }
 @media (max-width: 640px) {
-  .metricsGrid {
-    grid-template-columns: 1fr;
-  }
-  .card {
-    width: min(96vw, 960px);
-    padding: 0.95rem;
-  }
+  .metricsGrid { grid-template-columns: 1fr; }
+  .card { width: min(96vw, 960px); padding: 0.95rem; }
 }
