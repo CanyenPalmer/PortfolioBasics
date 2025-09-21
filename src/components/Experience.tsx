@@ -14,7 +14,7 @@ import styles from "@/components/Experience/experience.module.css";
  * - Lock: subheader + cards pin when section spans the viewport.
  * - Click-to-center: clicking a card scrolls to center it.
  * - No vertical jump on lock (flow + fixed share geometry; we toggle visibility).
- * - NEW: Subheader (“Impact over titles”) stays visible during lock and fades out on unlock.
+ * - Subheader (“Impact over titles”) sticks during lock and ONLY fades out on unlock.
  */
 
 export type Metric = {
@@ -133,14 +133,14 @@ export default function Experience() {
     };
   }, []);
 
-  // Detect just-after-unlock to trigger a smooth fade-out
+  // Detect just-after-unlock to trigger a smooth fade-out (not fade-in)
   const wasLockedRef = useRef(false);
   const [justUnlocked, setJustUnlocked] = useState(false);
   useEffect(() => {
     let t: any;
     if (wasLockedRef.current && !isLocked) {
-      setJustUnlocked(true);                    // begin fade-out
-      t = setTimeout(() => setJustUnlocked(false), 450); // cleanup after fade duration
+      setJustUnlocked(true);                     // begin fade-out
+      t = setTimeout(() => setJustUnlocked(false), 450); // match CSS duration
     }
     wasLockedRef.current = isLocked;
     return () => clearTimeout(t);
@@ -189,13 +189,16 @@ export default function Experience() {
           ["--sub-h" as any]: `${subH}px`,
         }}
       >
-        {/* Sticky SUBHEADER INSIDE the lock (visible through lock; fades on unlock) */}
+        {/* Sticky SUBHEADER INSIDE the lock:
+            - Instantly visible while locked (no fade-in)
+            - Smoothly fades OUT when the lock releases */}
         <div
           ref={subheaderRef}
           className={styles.subheaderSticky}
           style={{
-            // Visible while locked; fades out right after unlock (transition via CSS)
-            opacity: isLocked ? 1 : justUnlocked ? 0 : 0,
+            opacity: isLocked ? 1 : 0,
+            // Prevent fade-in when lock engages; only animate on unlock
+            transition: isLocked ? "opacity 0s linear" : (justUnlocked ? "opacity .35s ease" : "opacity 0s linear"),
           }}
         >
           <div className={styles.subheaderRow}>
@@ -296,3 +299,4 @@ export default function Experience() {
     </section>
   );
 }
+
