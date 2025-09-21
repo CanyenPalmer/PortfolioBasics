@@ -347,8 +347,8 @@ export default function ProjectsHUD() {
   const TRAVEL_CORE = Math.max(0, LAYOUT.lg.containerHeight - windowH);
 
   // Cards begin on next scroll after lock; hidden at lock.
-  const LEAD_IN = 0; // was 4 — next scroll immediately starts movement
-  const START_FROM_BOTTOM = Math.round(windowH * 0.98); // was 1.02 — just below the bottom edge
+  const LEAD_IN = 0; // immediate start
+  const START_FROM_BOTTOM = Math.round(windowH * 0.98); // just below the viewport
 
   // Extended run-out so cards fully clear the top
   const OUT_EXTRA = Math.max(700, Math.round(windowH * 1.45));
@@ -360,13 +360,13 @@ export default function ProjectsHUD() {
 
   const DRIVER_HEIGHT = LEAD_IN + START_FROM_BOTTOM + TRAVEL_CORE + EXIT_TAIL + 1;
 
-  // Scroll progress for card motion — flat until startFrac, then move.
+  // Scroll progress for card motion — ensure tiny non-zero break at start so motion begins instantly
   const { scrollYProgress } = useScroll({ target: driverRef, offset: ["start start", "end start"] });
-  const startFrac = LEAD_IN / DRIVER_HEIGHT || 0.0000001;
+  const startFrac = Math.max(0.0005, LEAD_IN / DRIVER_HEIGHT);
   const rawY = useTransform(scrollYProgress, [0, startFrac, 1], [
     START_FROM_BOTTOM,
-    START_FROM_BOTTOM, // basically zero lead-in
-    END_Y,             // then animate with the user's scroll
+    START_FROM_BOTTOM,
+    END_Y,
   ]);
   const collageY = useTransform(rawY, (v) => Math.max(END_Y, Math.min(START_FROM_BOTTOM, v)));
 
@@ -396,11 +396,11 @@ export default function ProjectsHUD() {
       const y = window.scrollY || window.pageYOffset || 0;
       const prevY = prevYRef.current;
       const viewportH = typeof window !== "undefined" ? window.innerHeight : 800;
-      const preTop = Math.round(docTop(preStageRef.current!)); // section start (top of Projects)
-      const lockStart = preTop;                                // lock begins when section top reaches viewport top
-      const lockEnd = Math.round(docTop(lockEndRef.current!)); // unlock point
+      const preTop = Math.round(docTop(preStageRef.current!));
+      const lockStart = preTop;
+      const lockEnd = Math.round(docTop(lockEndRef.current!));
 
-      // ===== Strong, jitter-free snap to lockStart =====
+      // Snap to lock without jitter
       const LOCK_SNAP_WINDOW = 64;
       if (!snappingRef.current) {
         const crossedDownIntoLock = prevY < lockStart && y >= lockStart + 1 && y <= lockStart + LOCK_SNAP_WINDOW;
@@ -428,7 +428,6 @@ export default function ProjectsHUD() {
       const beforeLock = y < lockStart;
       const afterLock = y >= lockEnd;
 
-      // Mutually exclusive visibility
       if (beforeLock) {
         if (!preVisible) setPreVisible(true);
         if (lockActive) setLockActive(false);
@@ -437,34 +436,31 @@ export default function ProjectsHUD() {
         if (preVisible) setPreVisible(false);
         if (!lockActive) setLockActive(true);
         if (postVisible) setPostVisible(false);
-      } else /* afterLock */ {
+      } else {
         if (preVisible) setPreVisible(false);
         if (lockActive) setLockActive(false);
         if (!postVisible) setPostVisible(true);
       }
 
-      // ----- Sidebar visibility for the ENTIRE Projects section -----
+      // Sidebar visibility across entire section
       const postTop = Math.round(docTop(postStageRef.current!));
-      const postEnd = postTop + viewportH + 320; // shortened spacer matches below
+      const postEnd = postTop + viewportH + 320;
       const viewportBottom = y + viewportH;
-
       const railOn = viewportBottom >= preTop && y < postEnd;
       if (railOn !== railVisible) setRailVisible(railOn);
 
-      // ----- Sidebar entrance REVEAL synced to the PACE tree's SECOND NODE (28%) -----
+      // Sidebar reveal synced to PACE node 2
       const secondNodeTop = preTop + paceTop + Math.round(treeH * 0.28);
       const revealStart = secondNodeTop - viewportH + 8;
       const revealEnd = lockStart;
       const denom = Math.max(1, revealEnd - revealStart);
       const rp = Math.max(0, Math.min(1, (y - revealStart) / denom));
-
       setRailRevealY(Math.round(railIntroOffset * (1 - rp)));
       setRailMaskPct(Math.round(rp * 100));
 
-      // Move the sidebar up at the same rate as the section after unlock
+      // Sidebar moves with section after unlock
       setPostDelta(afterLock ? Math.max(0, y - lockEnd) : 0);
 
-      // store for next frame
       prevYRef.current = y;
     };
 
@@ -477,7 +473,7 @@ export default function ProjectsHUD() {
     };
   }, [preVisible, lockActive, postVisible, railVisible, stageH, windowH, paceTop, treeH, railIntroOffset]);
 
-  /* ----------- PRE-LOCK in-flow stage ----------- */
+  /* ----------- PRE-LOCK ----------- */
   const StaticPre = (
     <div
       className="mx-auto max-w-7xl px-6"
@@ -500,7 +496,7 @@ export default function ProjectsHUD() {
     </div>
   );
 
-  /* ----------- LOCKED overlays (chrome + cards) ----------- */
+  /* ----------- LOCKED overlays ----------- */
   const ChromeOverlay = lockActive ? (
     <div className="fixed inset-0 z-[70] pointer-events-none">
       <div className="h-full mx-auto max-w-7xl px-6 md:grid md:grid-cols-[64px,1fr] md:gap-6 relative">
@@ -564,7 +560,7 @@ export default function ProjectsHUD() {
     </motion.div>
   ) : null;
 
-  /* ----------- POST-LOCK in-flow stage ----------- */
+  /* ----------- POST-LOCK ----------- */
   const StaticPost = (
     <div
       className="mx-auto max-w-7xl px-6"
@@ -583,7 +579,7 @@ export default function ProjectsHUD() {
                 <div className="text-xl md:text-2xl font-medium text-white/90">Palmer</div>
                 <div className="h-[2px] bg-white/25 mt-1" />
               </div>
-              <h2 className="mt-3 uppercase font-bold text-white/90 tracking-tight text-[12vw] md:text-[9vw] lg:text-[8vw]">
+              <h2 className="mt-3 uppercase font-bold text-white/90 tracking-tight text:[12vw] md:text-[9vw] lg:text-[8vw]">
                 Projects
               </h2>
             </div>
@@ -639,30 +635,30 @@ export default function ProjectsHUD() {
 
       {/* Desktop / Tablet */}
       <div className="hidden md:block">
-        {/* PRE-LOCK in-flow */}
+        {/* PRE-LOCK */}
         <div ref={preStageRef} className="relative">
           {StaticPre}
         </div>
 
-        {/* DRIVER (card animation distance) */}
+        {/* DRIVER */}
         <div ref={driverRef} style={{ height: DRIVER_HEIGHT }} />
 
         {/* Lock end marker */}
         <div ref={lockEndRef} style={{ height: 0 }} />
 
-        {/* POST-LOCK in-flow */}
+        {/* POST-LOCK */}
         <div ref={postStageRef} className="relative">
           {StaticPost}
         </div>
 
-        {/* Spacer so we don’t collide with Education — shortened */}
+        {/* Spacer */}
         <div style={{ height: 320 }} />
 
         {/* LOCKED overlays */}
         {CollageOverlay}
         {ChromeOverlay}
 
-        {/* PERSISTENT LEFT RAIL — reveals bottom→top synced with PACE node 2; moves with section after unlock */}
+        {/* PERSISTENT LEFT RAIL */}
         <motion.div
           className="fixed inset-0 z-[62] pointer-events-none"
           aria-hidden
@@ -693,4 +689,3 @@ export default function ProjectsHUD() {
     </section>
   );
 }
-
