@@ -1,4 +1,4 @@
-/* Lock window hosts both the sticky header and the sticky stage */
+/* Lock window holds both the sticky header and the stage area */
 .lockWindow {
   position: relative;
   width: 100%;
@@ -14,14 +14,35 @@
   padding-bottom: 1rem;
 }
 
-/* Single sticky stage — sits directly under the header at a constant offset.
-   No position toggling => no vertical shift when lock engages. */
-.stageSticky {
-  position: sticky;
-  top: var(--header-h, 96px);
+/* Stage holder reserves a constant block beneath the header — no jump */
+.stageHolder {
+  position: relative;
   height: calc(100vh - var(--header-h, 96px));
-  z-index: 30;                 /* below header (z-50) */
+  box-sizing: border-box;
 }
+
+/* Pre-lock stage: in normal flow, same geometry as the fixed stage */
+.stageFlow {
+  position: relative;
+  height: calc(100vh - var(--header-h, 96px));
+  box-sizing: border-box;
+  z-index: 30;                 /* below header, above page */
+}
+
+/* Locked stage: fixed under the sticky header (true scroll lock) */
+.stageFixed {
+  position: fixed;
+  top: var(--header-h, 96px);
+  left: 0;
+  right: 0;
+  height: calc(100vh - var(--header-h, 96px));
+  box-sizing: border-box;
+  z-index: 40;                 /* below header (z-50) */
+}
+
+/* Visibility toggles — no position change => no vertical shift */
+.isHidden { visibility: hidden; }
+.isVisible { visibility: visible; }
 
 /* Centered stack that holds the motion-transformed cards */
 .stack {
@@ -88,7 +109,7 @@
   padding: 0.375rem 0.625rem;
   border-radius: 9999px;
   border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(255,255,255,0.04);
+  background: rgba(255, 255, 255, 0.04);
   text-decoration: none;
   font-size: 0.8125rem;
   transition: border-color .2s ease, background .2s ease, color .2s ease;
