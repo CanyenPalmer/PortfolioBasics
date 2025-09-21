@@ -55,15 +55,15 @@ const ASPECT: Record<string, string> = {
 
 // Tonal solids per project — higher opacity to fully mask background
 const TONE_BY_TITLE: Record<string, string> = {
-  "CGM Patient Analytics": "bg-emerald-500/40 ring-emerald-400/30",
-  "Logistic Regression & Tree-Based ML": "bg-sky-500/40 ring-sky-400/30",
-  "Real Estate Conditions Comparison (R)": "bg-amber-500/40 ring-amber-400/30",
-  "Python 101": "bg-indigo-500/40 ring-indigo-400/30",
-  "MyCaddy — Physics Shot Calculator": "bg-lime-500/40 ring-lime-400/30",
-  "PortfolioBasics (This Site)": "bg-fuchsia-500/40 ring-fuchsia-400/30",
+  "CGM Patient Analytics": "bg-emerald-500/70 ring-emerald-400/40",
+  "Logistic Regression & Tree-Based ML": "bg-sky-500/70 ring-sky-400/40",
+  "Real Estate Conditions Comparison (R)": "bg-amber-500/70 ring-amber-400/40",
+  "Python 101": "bg-indigo-500/70 ring-indigo-400/40",
+  "MyCaddy — Physics Shot Calculator": "bg-lime-500/70 ring-lime-400/40",
+  "PortfolioBasics (This Site)": "bg-fuchsia-500/70 ring-fuchsia-400/40",
 };
 function toneFor(title: string) {
-  return TONE_BY_TITLE[title] ?? "bg-white/40 ring-white/20";
+  return TONE_BY_TITLE[title] ?? "bg-white/70 ring-white/40";
 }
 
 const LAYOUT = {
@@ -149,7 +149,7 @@ function ProjectTile({ p, left, top, width }: { p: Project; left: string; top: n
                   {p.title}
                 </TransitionLink>
               </h3>
-              <span className="text-[11px] md:text-xs uppercase tracking-wide text-white/80">
+              <span className="text-[11px] md:text-xs uppercase tracking-wide text-white/90">
                 {keywordFor(p.title, p.tech)}
               </span>
             </div>
@@ -164,12 +164,12 @@ function BlurbAndNote({ left, top, width }: { left: string; top: number; width: 
   // Opaque neutral panel for the moving “detail passage”
   return (
     <div className="absolute hidden md:block z-0" style={{ left, top, width }}>
-      <div className="rounded-2xl ring-1 ring-white/10 bg-[#0d131d]/85 shadow-lg shadow-black/30 px-5 py-4 pointer-events-none">
+      <div className="rounded-2xl ring-1 ring-white/10 bg-[#0d131d] shadow-lg shadow-black/30 px-5 py-4 pointer-events-none">
         <p className="text-[15px] leading-tight text-white/90 mb-4">
           I carry projects from messy data to maintainable tools—analyses, models, and apps that are rigorous, documented, and usable.
         </p>
         <div className="grid grid-cols-[8.5rem,1fr] gap-x-6">
-          <div className="text-[12px] leading-tight text-white/80 font-medium">
+          <div className="text-[12px] leading-tight text-white/85 font-medium">
             <div>Showcase</div>
             <div>Highlights</div>
           </div>
@@ -379,7 +379,9 @@ export default function ProjectsHUD() {
 
   // Cards appear from bottom
   const START_FROM_BOTTOM = Math.round(windowH * 0.98);
-  const OUT_EXTRA = Math.max(700, Math.round(windowH * 1.45));
+
+  // >>> Increased extra-out travel so ALL cards clear the top fully
+  const OUT_EXTRA = Math.max(1100, Math.round(windowH * 2.2));
   const END_Y = -TRAVEL_CORE - OUT_EXTRA;
 
   // Driver height used by other timings; keep as-is
@@ -405,7 +407,7 @@ export default function ProjectsHUD() {
   const [railMaskPct, setRailMaskPct] = React.useState(0);
 
   // Helpers for snapping/jitter
-  const prevYRef = React.useRef(0);
+  the const prevYRef = React.useRef(0);
   const snappingRef = React.useRef(false);
   const didSnapRef = React.useRef(false);
 
@@ -670,7 +672,7 @@ export default function ProjectsHUD() {
                       {p.title}
                     </TransitionLink>
                   </h3>
-                  <span className="text-xs uppercase tracking-wide text-white/80">{KEYWORD_BY_TITLE[p.title] ?? "project"}</span>
+                  <span className="text-xs uppercase tracking-wide text-white/90">{KEYWORD_BY_TITLE[p.title] ?? "project"}</span>
                 </div>
               </div>
             </TransitionLink>
@@ -741,5 +743,6 @@ export default function ProjectsHUD() {
     </section>
   );
 }
+
 
 
