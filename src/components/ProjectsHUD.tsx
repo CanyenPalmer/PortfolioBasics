@@ -346,9 +346,10 @@ export default function ProjectsHUD() {
   // Travel math
   const TRAVEL_CORE = Math.max(0, LAYOUT.lg.containerHeight - windowH);
 
-  // Start immediately; cards begin **lower** so they appear after a few scrolls
+  // Start immediately; cards begin lower so they were delayed before.
+  // Change: raise visibility by bringing the stack a bit closer (appear sooner + move immediately with scroll).
   const LEAD_IN = 0;
-  const START_FROM_BOTTOM = Math.round(windowH * 1.02); // ↑ raised so cards appear a bit later after lock
+  const START_FROM_BOTTOM = Math.round(windowH * 0.94); // was 1.02 — now reveals earlier and moves with scroll right after lock
 
   // Extended run-out so cards fully clear the top (unchanged)
   const OUT_EXTRA = Math.max(700, Math.round(windowH * 1.45));
