@@ -25,16 +25,14 @@ type Props = {
 };
 
 function deriveCreationLabel(c: any): string {
-  const direct =
-    c?.label ?? c?.title ?? c?.name ?? c?.id ?? "";
+  const direct = c?.label ?? c?.title ?? c?.name ?? c?.id ?? "";
   if (direct) return String(direct);
 
   const href = c?.href ?? c?.link ?? "";
   if (href && typeof href === "string") {
     try {
       const u = new URL(href);
-      const last =
-        u.pathname.split("/").filter(Boolean).pop() || u.hostname;
+      const last = u.pathname.split("/").filter(Boolean).pop() || u.hostname;
       return decodeURIComponent(last).replace(/[-_]/g, " ");
     } catch {
       const last = href.split("/").pop() || href;
@@ -49,6 +47,33 @@ function deriveCreationLabel(c: any): string {
   }
 
   return "Creation";
+}
+
+/** Get an array of detail lines for a creation, handling multiple shapes. */
+function getCreationDetails(c: any): string[] {
+  const raw =
+    c?.details ??
+    c?.bullets ??
+    c?.points ??
+    c?.items ??
+    c?.highlights ??
+    c?.summary ??
+    c?.desc ??
+    c?.description ??
+    null;
+
+  if (Array.isArray(raw)) {
+    return raw.filter(Boolean).map((s) => String(s));
+  }
+
+  if (typeof raw === "string") {
+    // Support newline or sentence-separated strings
+    const split = raw.split(/\r?\n|(?<=[.?!])\s+(?=[A-Z(])/).map((s) => s.trim());
+    const lines = split.filter(Boolean);
+    return lines.length ? lines : [raw];
+  }
+
+  return [];
 }
 
 const ExperienceCard = forwardRef<HTMLDivElement, Props>(function ExperienceCard(
@@ -66,7 +91,7 @@ const ExperienceCard = forwardRef<HTMLDivElement, Props>(function ExperienceCard
   const location = experience?.location ?? "";
   const highlights: string[] = Array.isArray(experience?.highlights) ? experience.highlights : [];
 
-  // Creations can be strings or objects with optional href/desc
+  // Creations can be strings or objects with optional href/desc/details
   const creations: any[] = Array.isArray(experience?.creations) ? experience.creations : [];
 
   const stateClass = isExpanded
@@ -161,18 +186,20 @@ const ExperienceCard = forwardRef<HTMLDivElement, Props>(function ExperienceCard
                 <div className="mb-2 text-xs font-semibold tracking-widest opacity-70">
                   CREATIONS
                 </div>
-                <ul className="space-y-2">
+                <ul className="space-y-3">
                   {creations.map((c: any, i: number) => {
+                    // If it's just a string, show as a single-line item
                     if (typeof c === "string") {
                       return (
                         <li key={i} className="text-sm opacity-90">
-                          {c}
+                          <span className="font-medium">{c}</span>
                         </li>
                       );
                     }
+
                     const label = deriveCreationLabel(c);
-                    const desc = c?.desc ?? c?.description ?? "";
                     const href = c?.href ?? c?.link ?? "";
+                    const details = getCreationDetails(c); // ✅ show details/bullets if provided
 
                     return (
                       <li key={i} className="text-sm opacity-90">
@@ -188,7 +215,16 @@ const ExperienceCard = forwardRef<HTMLDivElement, Props>(function ExperienceCard
                         ) : (
                           <span className="font-medium">{label}</span>
                         )}
-                        {desc && <div className="mt-1 opacity-80">{desc}</div>}
+
+                        {!!details.length && (
+                          <ul className="mt-2 space-y-1">
+                            {details.map((line, di) => (
+                              <li key={di} className={styles.bulletLine}>
+                                {line}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                       </li>
                     );
                   })}
@@ -203,4 +239,3 @@ const ExperienceCard = forwardRef<HTMLDivElement, Props>(function ExperienceCard
 });
 
 export default ExperienceCard;
-
