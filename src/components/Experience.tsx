@@ -65,6 +65,7 @@ export default function Experience() {
   const lockRef = useRef<HTMLDivElement | null>(null);
   const subheaderRef = useRef<HTMLDivElement | null>(null);
 
+  // Measure subheader height for spacer & stage geometry
   const [subH, setSubH] = useState(56);
   useEffect(() => {
     const measure = () => {
@@ -76,6 +77,7 @@ export default function Experience() {
     return () => window.removeEventListener("resize", measure);
   }, []);
 
+  // Viewport width for card transforms
   const [vw, setVw] = useState(0);
   useEffect(() => {
     const update = () => setVw(window.innerWidth || 0);
@@ -129,35 +131,31 @@ export default function Experience() {
   const [lp, setLp] = useState(0);
   useMotionValueEvent(lockProgress, "change", (v) => setLp(clamp01(v)));
 
-  // Direction-aware lock with hysteresis to remove boundary jitter (no position flip)
+  // Direction-aware lock with hysteresis (remove boundary jitter)
   const lastYRef = useRef(0);
-  const ENTER_EPS = 2;       // px tolerance to ENTER lock
-  const EXIT_EPS_TOP = 0;    // unlock when r.top > 0 (scrolling up)
-  const EXIT_EPS_BOTTOM = 2; // unlock when r.bottom < vh - 2 (scrolling down)
+  const ENTER_EPS = 2;
+  const EXIT_EPS_TOP = 0;
+  const EXIT_EPS_BOTTOM = 2;
 
   const [isLocked, setIsLocked] = useState(false);
   const [justUnlocked, setJustUnlocked] = useState(false);
-  const FADE_MS = 220; // quicker fade per your feedback
+  const FADE_MS = 220;
   const fadeTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     const onScroll = () => {
       const el = lockRef.current;
       if (!el) return;
-
       const r = el.getBoundingClientRect();
       const vh = window.innerHeight;
       const y = window.scrollY || 0;
       const dirDown = y > lastYRef.current;
       lastYRef.current = y;
 
-      const wasLocked = isLocked;
-      let nowLocked = isLocked;
-
       if (!isLocked) {
         // ENTER when the window fully spans the viewport (with tiny tolerance)
-        nowLocked = r.top <= ENTER_EPS && r.bottom >= vh - ENTER_EPS;
-        if (nowLocked) {
+        const enter = r.top <= ENTER_EPS && r.bottom >= vh - ENTER_EPS;
+        if (enter) {
           // cancel any fade instantly on re-lock
           if (fadeTimerRef.current) {
             window.clearTimeout(fadeTimerRef.current);
@@ -165,18 +163,13 @@ export default function Experience() {
           }
           setJustUnlocked(false);
           setIsLocked(true);
-          return;
         }
       } else {
         // EXIT sooner when going up; hold a hair longer at the bottom when going down
-        if (dirDown) {
-          nowLocked = !(r.bottom < vh - EXIT_EPS_BOTTOM);
-        } else {
-          nowLocked = !(r.top > EXIT_EPS_TOP);
-        }
-
-        if (!nowLocked) {
-          // start fade immediately in the SAME frame we unlock (no delay)
+        const stillCovers =
+          r.top <= EXIT_EPS_TOP && r.bottom >= vh - EXIT_EPS_BOTTOM;
+        if (!stillCovers) {
+          // unlock now and start fade immediately (same frame)
           setIsLocked(false);
           setJustUnlocked(true);
           if (fadeTimerRef.current) window.clearTimeout(fadeTimerRef.current);
@@ -184,11 +177,8 @@ export default function Experience() {
             setJustUnlocked(false);
             fadeTimerRef.current = null;
           }, FADE_MS);
-          return;
         }
       }
-
-      // If neither entered nor exited this frame, do nothing.
     };
 
     onScroll();
@@ -208,7 +198,7 @@ export default function Experience() {
   const underlineLive = useMemo(() => {
     if (!isLocked) return 0.5 * clamp01(q); // 0 → 50% pre-lock
     if (cardCount <= 1) return 1;
-    const pb = clamp01((pDuring - 1) / (cardCount - 1)); // 0 at first center → 1 at last
+    const pb = clamp01((pDuring - 1) / (cardCount - 1));
     return 0.5 + 0.5 * pb;
   }, [isLocked, q, pDuring, cardCount]);
 
@@ -218,7 +208,7 @@ export default function Experience() {
   }, [underlineLive, justUnlocked]);
   const underlineForRender = justUnlocked ? lastUnderlineRef.current : underlineLive;
 
-  // Click-to-center (unchanged)
+  // Click-to-center
   const centerCard = React.useCallback(
     (idx: number) => {
       const el = lockRef.current;
@@ -233,6 +223,9 @@ export default function Experience() {
     [cardCount]
   );
 
+  // While locked (or fading), keep the bar fixed and leave a spacer to prevent layout shift
+  const fixedBar = isLocked || justUnlocked;
+
   return (
     <section data-section="experience" className="relative w-full">
       {TitleBlock}
@@ -244,37 +237,48 @@ export default function Experience() {
           height: `calc(${cardCount + 1} * 100vh)`,
           ["--sub-h" as any]: `${subH}px`,
           ["--top-offset" as any]: `${topOffset}px`,
-          ["--sub-shift" as any]: `0px`, // bar is pinned; no vertical shift
+          ["--sub-shift" as any]: `0px`,
         }}
       >
-        {/* Impact bar — always sticky to avoid shake; fade starts immediately on unlock */}
-        <div
-          ref={subheaderRef}
-          className={styles.subheaderSticky}
-          style={{
-            position: "sticky",
-            top: `${topOffset}px`,
-            left: 0,
-            right: 0,
-            width: "100%",
-            zIndex: 60,
-            opacity: isLocked ? 1 : (justUnlocked ? 0 : 1),
-            transition: `opacity ${FADE_MS}ms ease`,
-            backfaceVisibility: "hidden",
-            transform: "translateZ(0)",
-          }}
-        >
-          <div className={styles.subheaderRow}>
-            <span className="text-sm opacity-80">
-              <span className="text-[var(--accent,_#7dd3fc)] font-medium">Impact</span> over titles
-            </span>
-            <div className={styles.underlineTrack} aria-hidden>
-              <div
-                className={styles.underlineFill}
-                style={{ width: `${Math.max(0, Math.min(1, underlineForRender)) * 100}%` }}
-              />
+        {/* Impact bar (fixed during lock/fade) */}
+        <div className={styles.subheaderWrapper}>
+          {/* Actual bar */}
+          <div
+            ref={subheaderRef}
+            className={styles.subheaderSticky}
+            style={{
+              position: fixedBar ? ("fixed" as const) : ("sticky" as const),
+              top: `${topOffset}px`,
+              left: 0,
+              right: 0,
+              width: "100%",
+              zIndex: 60,
+              // Visible while locked; only hide during brief unlock fade
+              opacity: isLocked ? 1 : (justUnlocked ? 0 : 1),
+              transition: `opacity ${FADE_MS}ms ease`,
+              backfaceVisibility: "hidden",
+              transform: "translateZ(0)",
+            }}
+          >
+            <div className={styles.subheaderRow}>
+              <span className="text-sm opacity-80">
+                <span className="text-[var(--accent,_#7dd3fc)] font-medium">Impact</span> over titles
+              </span>
+              <div className={styles.underlineTrack} aria-hidden>
+                <div
+                  className={styles.underlineFill}
+                  style={{ width: `${Math.max(0, Math.min(1, underlineForRender)) * 100}%` }}
+                />
+              </div>
             </div>
           </div>
+
+          {/* Spacer keeps layout from shifting when bar goes fixed */}
+          <div
+            className={styles.subheaderSpacer}
+            style={{ height: `${subH}px`, visibility: "hidden" }}
+            aria-hidden
+          />
         </div>
 
         {/* Stage */}
