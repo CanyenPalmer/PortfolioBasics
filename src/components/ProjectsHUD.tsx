@@ -407,7 +407,7 @@ export default function ProjectsHUD() {
   const [railMaskPct, setRailMaskPct] = React.useState(0);
 
   // Helpers for snapping/jitter
-  the const prevYRef = React.useRef(0);
+  const prevYRef = React.useRef(0);
   const snappingRef = React.useRef(false);
   const didSnapRef = React.useRef(false);
 
@@ -743,6 +743,3 @@ export default function ProjectsHUD() {
     </section>
   );
 }
-
-
-
