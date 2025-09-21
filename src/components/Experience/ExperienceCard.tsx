@@ -8,10 +8,11 @@ import styles from "./experience.module.css";
 
 /**
  * ExperienceCard
- * - Receives motion styles (x/scale/opacity/zIndex) from parent to create right→left flow
+ * - Receives motion styles (x/scale/opacity/zIndex) from parent for right→left flow
  * - Auto-expands when `isExpanded` is true (centered)
  * - Hover-scrub metrics when focused but not expanded; autoplay when expanded
  * - Shows highlights and creations (with details) when expanded
+ * - Click-to-center: clicking the card asks parent to center it (ignores links/buttons)
  */
 
 type Props = {
@@ -24,6 +25,7 @@ type Props = {
   scale: number;
   opacity: number;
   zIndex: number;
+  onCenter?: () => void;
 };
 
 function deriveCreationLabel(c: any): string {
@@ -51,7 +53,6 @@ function deriveCreationLabel(c: any): string {
   return "Creation";
 }
 
-/** Normalize possible "details" shapes into string lines */
 function getCreationDetails(c: any): string[] {
   const raw =
     c?.details ??
@@ -64,24 +65,21 @@ function getCreationDetails(c: any): string[] {
     c?.description ??
     null;
 
-  if (Array.isArray(raw)) {
-    return raw.filter(Boolean).map((s) => String(s));
-  }
+  if (Array.isArray(raw)) return raw.filter(Boolean).map(String);
   if (typeof raw === "string") {
     const split = raw
       .split(/\r?\n|(?<=[.?!])\s+(?=[A-Z(])/)
-      .map((s) => s.trim());
-    const lines = split.filter(Boolean);
-    return lines.length ? lines : [raw];
+      .map((s) => s.trim())
+      .filter(Boolean);
+    return split.length ? split : [raw];
   }
   return [];
 }
 
 const ExperienceCard = forwardRef<HTMLDivElement, Props>(function ExperienceCard(
-  { experience, isFocused, isExpanded, metrics = [], x, scale, opacity, zIndex },
+  { experience, isFocused, isExpanded, metrics = [], x, scale, opacity, zIndex, onCenter },
   _ref
 ) {
-  // Safe content access
   const company = experience?.company ?? "";
   const role = experience?.role ?? experience?.title ?? "";
   const dates = [experience?.start, experience?.end].filter(Boolean).join(" — ");
@@ -89,11 +87,21 @@ const ExperienceCard = forwardRef<HTMLDivElement, Props>(function ExperienceCard
   const highlights: string[] = Array.isArray(experience?.highlights) ? experience.highlights : [];
   const creations: any[] = Array.isArray(experience?.creations) ? experience.creations : [];
 
+  const handleClick: React.MouseEventHandler<HTMLDivElement> = (e) => {
+    // Let links/buttons behave normally; only center on plain-card clicks
+    const target = e.target as HTMLElement;
+    if (target.closest("a, button")) return;
+    onCenter?.();
+  };
+
   return (
     <motion.div
+      onClick={handleClick}
       className={`${styles.card} ${isExpanded ? styles.cardExpanded : isFocused ? styles.cardFocused : styles.cardCollapsed}`}
-      style={{ x, scale, opacity, zIndex }}
+      style={{ x, scale, opacity, zIndex, cursor: "pointer" }}
       transition={{ type: "spring", stiffness: 300, damping: 32, mass: 0.4 }}
+      role="group"
+      aria-label={`${role} at ${company}`}
     >
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
@@ -105,7 +113,6 @@ const ExperienceCard = forwardRef<HTMLDivElement, Props>(function ExperienceCard
             {dates && <span>· {dates}</span>}
           </div>
         </div>
-        {/* No manual View/Close buttons — auto expands when centered */}
       </div>
 
       {/* Metric Tiles */}
