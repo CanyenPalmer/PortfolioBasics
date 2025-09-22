@@ -150,6 +150,14 @@ export default function Experience() {
   // Scroll-driven fade after the last card (downward exit)
   const [downFade, setDownFade] = useState(1);
 
+  // >>> Faster downward fade configuration (complete before next section owns the viewport)
+  const DOWN_FADE_COMPLETE_AT = 0.30; // when section's bottom reaches 30% of the viewport, opacity hits 0
+  const fastDownFade = (bottomPx: number, vh: number) => {
+    const t = bottomPx / vh; // 1 → 0 as section leaves
+    // Map so: t=1 -> 1, t=DOWN_FADE_COMPLETE_AT -> 0
+    return clamp01((t - DOWN_FADE_COMPLETE_AT) / (1 - DOWN_FADE_COMPLETE_AT));
+  };
+
   useEffect(() => {
     const onScroll = () => {
       const el = lockRef.current;
@@ -189,7 +197,7 @@ export default function Experience() {
             // Downward unlock: fade with scroll; no timed fade
             if (fadeTimerRef.current) window.clearTimeout(fadeTimerRef.current);
             setJustUnlocked(false);
-            setDownFade(clamp01(r.bottom / vh)); // start from current position
+            setDownFade(fastDownFade(r.bottom, vh)); // <<< faster mapping
           } else {
             // Upward unlock: immediate quick fade (as before)
             setJustUnlocked(true);
@@ -203,9 +211,9 @@ export default function Experience() {
         }
       }
 
-      // While unlocked and leaving downward, continuously update fade factor
+      // While unlocked and leaving downward, continuously update fade factor (faster curve)
       if (!isLocked && hasLocked && unlockDirDown) {
-        setDownFade(clamp01(r.bottom / vh)); // 1 at bottom=vh → 0 at bottom=0
+        setDownFade(fastDownFade(r.bottom, vh)); // <<< faster mapping
       }
     };
 
@@ -258,8 +266,8 @@ export default function Experience() {
   // Opacity rules:
   // - Pre-lock: visible (1) while the section is in view
   // - Locked: 1
-  // - Post-lock downward: scroll-driven fade r.bottom/vh → 0 by next section
-  // - Post-lock upward: immediate fade (0)
+  // - Post-lock downward: **faster** scroll-driven fade (fastDownFade)
+  // - Post-lock upward: immediate fade (0 via timed transition)
   let barOpacity = 0;
   if (inView) {
     if (isLocked) barOpacity = 1;
@@ -399,3 +407,4 @@ export default function Experience() {
     </section>
   );
 }
+
