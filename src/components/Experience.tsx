@@ -65,7 +65,6 @@ export default function Experience() {
   const lockRef = useRef<HTMLDivElement | null>(null);
   const subheaderRef = useRef<HTMLDivElement | null>(null);
 
-  // Measure subheader height for spacer & stage geometry
   const [subH, setSubH] = useState(56);
   useEffect(() => {
     const measure = () => {
@@ -77,7 +76,6 @@ export default function Experience() {
     return () => window.removeEventListener("resize", measure);
   }, []);
 
-  // Viewport width for card transforms
   const [vw, setVw] = useState(0);
   useEffect(() => {
     const update = () => setVw(window.innerWidth || 0);
@@ -131,7 +129,7 @@ export default function Experience() {
   const [lp, setLp] = useState(0);
   useMotionValueEvent(lockProgress, "change", (v) => setLp(clamp01(v)));
 
-  // Direction-aware lock with hysteresis (remove boundary jitter)
+  // Direction-aware lock with tiny hysteresis to avoid boundary jitter
   const lastYRef = useRef(0);
   const ENTER_EPS = 2;
   const EXIT_EPS_TOP = 0;
@@ -141,22 +139,24 @@ export default function Experience() {
   const [justUnlocked, setJustUnlocked] = useState(false);
   const FADE_MS = 220;
   const fadeTimerRef = useRef<number | null>(null);
+  const [inView, setInView] = useState(false); // NEW: is the section on screen at all?
 
   useEffect(() => {
     const onScroll = () => {
       const el = lockRef.current;
       if (!el) return;
+
       const r = el.getBoundingClientRect();
       const vh = window.innerHeight;
+      setInView(r.bottom > 0 && r.top < vh); // keep the line visible while the section is on screen
+
       const y = window.scrollY || 0;
       const dirDown = y > lastYRef.current;
       lastYRef.current = y;
 
       if (!isLocked) {
-        // ENTER when the window fully spans the viewport (with tiny tolerance)
         const enter = r.top <= ENTER_EPS && r.bottom >= vh - ENTER_EPS;
         if (enter) {
-          // cancel any fade instantly on re-lock
           if (fadeTimerRef.current) {
             window.clearTimeout(fadeTimerRef.current);
             fadeTimerRef.current = null;
@@ -165,11 +165,9 @@ export default function Experience() {
           setIsLocked(true);
         }
       } else {
-        // EXIT sooner when going up; hold a hair longer at the bottom when going down
         const stillCovers =
           r.top <= EXIT_EPS_TOP && r.bottom >= vh - EXIT_EPS_BOTTOM;
         if (!stillCovers) {
-          // unlock now and start fade immediately (same frame)
           setIsLocked(false);
           setJustUnlocked(true);
           if (fadeTimerRef.current) window.clearTimeout(fadeTimerRef.current);
@@ -223,8 +221,8 @@ export default function Experience() {
     [cardCount]
   );
 
-  // While locked (or fading), keep the bar fixed and leave a spacer to prevent layout shift
-  const fixedBar = isLocked || justUnlocked;
+  // Keep the bar visible whenever the section is on screen (pre-lock + lock).
+  const barOpacity = (isLocked || inView) ? 1 : 0;
 
   return (
     <section data-section="experience" className="relative w-full">
@@ -240,45 +238,34 @@ export default function Experience() {
           ["--sub-shift" as any]: `0px`,
         }}
       >
-        {/* Impact bar (fixed during lock/fade) */}
-        <div className={styles.subheaderWrapper}>
-          {/* Actual bar */}
-          <div
-            ref={subheaderRef}
-            className={styles.subheaderSticky}
-            style={{
-              position: fixedBar ? ("fixed" as const) : ("sticky" as const),
-              top: `${topOffset}px`,
-              left: 0,
-              right: 0,
-              width: "100%",
-              zIndex: 60,
-              // Visible while locked; only hide during brief unlock fade
-              opacity: isLocked ? 1 : (justUnlocked ? 0 : 1),
-              transition: `opacity ${FADE_MS}ms ease`,
-              backfaceVisibility: "hidden",
-              transform: "translateZ(0)",
-            }}
-          >
-            <div className={styles.subheaderRow}>
-              <span className="text-sm opacity-80">
-                <span className="text-[var(--accent,_#7dd3fc)] font-medium">Impact</span> over titles
-              </span>
-              <div className={styles.underlineTrack} aria-hidden>
-                <div
-                  className={styles.underlineFill}
-                  style={{ width: `${Math.max(0, Math.min(1, underlineForRender)) * 100}%` }}
-                />
-              </div>
+        {/* Progress header line — stays visible while section is in view and during lock */}
+        <div
+          ref={subheaderRef}
+          className={styles.subheaderSticky}
+          style={{
+            position: "sticky",
+            top: `${topOffset}px`,
+            left: 0,
+            right: 0,
+            width: "100%",
+            zIndex: 80,                 // ensure above cards
+            opacity: barOpacity,        // visible in view + lock
+            transition: `opacity ${FADE_MS}ms ease`,
+            backfaceVisibility: "hidden",
+            transform: "translateZ(0)",
+          }}
+        >
+          <div className={styles.subheaderRow}>
+            <span className="text-sm opacity-80">
+              <span className="text-[var(--accent,_#7dd3fc)] font-medium">Progress</span> Through Experience
+            </span>
+            <div className={styles.underlineTrack} aria-hidden>
+              <div
+                className={styles.underlineFill}
+                style={{ width: `${Math.max(0, Math.min(1, underlineForRender)) * 100}%` }}
+              />
             </div>
           </div>
-
-          {/* Spacer keeps layout from shifting when bar goes fixed */}
-          <div
-            className={styles.subheaderSpacer}
-            style={{ height: `${subH}px`, visibility: "hidden" }}
-            aria-hidden
-          />
         </div>
 
         {/* Stage */}
@@ -357,4 +344,5 @@ export default function Experience() {
     </section>
   );
 }
+
 
