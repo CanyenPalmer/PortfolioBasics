@@ -121,13 +121,13 @@ export default function ContactSection() {
         {/* Text rows + per-line solid bars (also full-bleed) */}
         <div className="pointer-events-none absolute left-1/2 bottom-0 z-10 h-[400px] w-screen -translate-x-1/2">
           {/* Top line (33% reveal, 50% opacity) */}
-          <div className="absolute bottom-[120px] w-full flex justify-center">
+          <div className="absolute bottom-[118px] w-full flex justify-center">
             <span className="echo-word echo-clip-top-33 echo-bar--light" style={{ opacity: 0.5 }}>
               CANYEN PALMER
             </span>
           </div>
           {/* Middle line (50% reveal, 75% opacity) */}
-          <div className="absolute bottom-[52px] w-full flex justify-center">
+          <div className="absolute bottom-[46px] w-full flex justify-center">
             <span className="echo-word echo-clip-top-50 echo-bar--mid" style={{ opacity: 0.75 }}>
               CANYEN PALMER
             </span>
@@ -147,12 +147,18 @@ export default function ContactSection() {
           white-space: nowrap;
           text-transform: uppercase;
           font-weight: 900;
-          letter-spacing: -0.065em;
-          line-height: 0.92;                 /* tighter vertical rhythm */
+          letter-spacing: -0.085em;           /* tighter tracking */
+          line-height: 0.88;                  /* slightly shorter vertical rhythm */
           color: #ffffff;
           font-size: clamp(64px, 10.8vw, 240px); /* full-bleed width */
           position: relative;
           display: inline-block;
+          -webkit-font-smoothing: antialiased;    /* crisper curves on dark bg */
+          -moz-osx-font-smoothing: grayscale;
+          text-rendering: geometricPrecision;
+          font-feature-settings: "kern" 1, "liga" 1;
+          font-variation-settings: "wght" 900;    /* safe if font supports variable weight */
+          transform: translateZ(0);               /* avoid subpixel wobble */
         }
 
         /* Solid visible bar directly behind each word, full viewport width */
@@ -160,17 +166,16 @@ export default function ContactSection() {
           content: "";
           position: absolute;
           top: 50%;
-          transform: translateY(-50%);
+          transform: translate(-50%, -50%);
           left: 50%;
-          width: 100vw;
-          height: 1.25em;                    /* clearly visible */
-          translate: -50% 0;                 /* center the bar */
+          width: 100vw;                       /* hit both walls */
+          height: 1.22em;                     /* visible bar without swallowing glyph bottoms */
           z-index: -1;
-          border-radius: 0;
+          background: #0b0f14;                /* base shade; overridden per row below */
         }
-        .echo-bar--light::before { background: #0c1117; }  /* solid, lighter */
-        .echo-bar--mid::before   { background: #0a0e14; }  /* darker */
-        .echo-bar--dark::before  { background: #080b10; }  /* darkest */
+        .echo-bar--light::before { background: #0c1117; }
+        .echo-bar--mid::before   { background: #0a0e14; }
+        .echo-bar--dark::before  { background: #080b10; }
 
         /* Keep TOP portion, trim BOTTOM (so lower line “cuts” above) */
         .echo-clip-top-33 {
@@ -187,11 +192,12 @@ export default function ContactSection() {
         }
 
         @media (max-width: 768px) {
-          .echo-word { font-size: clamp(44px, 12.5vw, 180px); }
+          .echo-word { font-size: clamp(44px, 12.5vw, 180px); letter-spacing: -0.08em; line-height: 0.9; }
           .echo-word::before { height: 1.15em; }
         }
       `}</style>
     </section>
   );
 }
+
 
