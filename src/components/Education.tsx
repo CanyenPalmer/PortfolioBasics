@@ -67,19 +67,14 @@ function getEducationFromProfile(): Edu[] {
   return raw.map(normalizeEdu).slice(0, 4);
 }
 
-/**
- * Window-level step controller (local to Education via in-view checks).
- * We attach listeners to window (reliable) and only intercept when:
- *  - section is meaningfully in view,
- *  - not reduced motion,
- *  - not yet unlocked.
- */
+/** Window-level step lock (Education-only via in-view checks) */
 function useWindowStepLock(opts: {
-  steps: number; // inclusive, 0..steps
+  steps: number; // inclusive: 0..steps
   threshold?: number;
   getStep: () => number;
   onStep: (next: number, dir: 1 | -1) => void;
   isLockActive: () => boolean;
+  onUnlock?: () => void;
 }) {
   const { steps, threshold = 70, getStep, onStep, isLockActive } = opts;
   const accRef = useRef(0);
@@ -89,7 +84,8 @@ function useWindowStepLock(opts: {
   useEffect(() => {
     const onWheel = (e: WheelEvent) => {
       if (!isLockActive()) return;
-      e.preventDefault(); // lock the page scroll
+      // Prevent page scroll while locked
+      e.preventDefault();
       const step = getStep();
       accRef.current += e.deltaY;
       if (Math.abs(accRef.current) >= threshold) {
@@ -127,7 +123,6 @@ function useWindowStepLock(opts: {
       accRef.current = 0;
     };
 
-    // Non-passive so we can preventDefault()
     window.addEventListener("wheel", onWheel, { passive: false });
     window.addEventListener("touchstart", onTouchStart, { passive: true });
     window.addEventListener("touchmove", onTouchMove, { passive: false });
@@ -142,7 +137,7 @@ function useWindowStepLock(opts: {
   }, [steps, threshold, getStep, onStep, isLockActive]);
 }
 
-// One education tile
+/** One education tile */
 function Tile({ idx, edu, visible }: { idx: number; edu: Edu; visible: boolean }) {
   return (
     <motion.figure
@@ -171,13 +166,11 @@ function Tile({ idx, edu, visible }: { idx: number; edu: Edu; visible: boolean }
 
 export default function Education() {
   const items = useMemo(() => getEducationFromProfile(), []);
-
-  // step: 0..4 (0 none visible; 1..4 = how many tiles visible)
+  // 0..4 (0 = none visible; 1..4 = how many tiles visible)
   const [step, setStep] = useState(0);
   const [unlocked, setUnlocked] = useState(false);
 
-  const sectionRef = useRef<HTMLDivElement>(null);   // tall wrapper used to detect in-view
-  const stickyRef = useRef<HTMLDivElement>(null);    // pinned viewport content
+  const sectionRef = useRef<HTMLDivElement>(null); // tall wrapper
 
   // Reduced motion → show full collage; skip lock entirely
   const [reduced, setReduced] = useState(false);
@@ -189,17 +182,22 @@ export default function Education() {
     return () => m.removeEventListener?.("change", cb);
   }, []);
 
-  // Helper: is the Education section meaningfully in view?
-  const isSectionInView = () => {
+  /** Is the Education section "centered enough" to engage lock?
+   * Tight window so user can naturally escape near top/bottom edges. */
+  const isSectionCentered = () => {
     const el = sectionRef.current;
     if (!el) return false;
     const rect = el.getBoundingClientRect();
     const vh = window.innerHeight || 1;
-    return rect.top < vh * 0.8 && rect.bottom > vh * 0.2; // generous window like your other sections
+    // Engage only when the section spans the central band of the viewport.
+    return rect.top < vh * 0.25 && rect.bottom > vh * 0.75;
   };
 
-  // Decide if the lock should be active right now
-  const isLockActive = () => !reduced && !unlocked && isSectionInView();
+  /** Lock is active only when:
+   * - not reduced motion
+   * - not unlocked
+   * - section is centered (prevents "can't exit" trap) */
+  const isLockActive = () => !reduced && !unlocked && isSectionCentered();
 
   // Window-level lock like Experience/Projects (reliable capture)
   useWindowStepLock({
@@ -209,7 +207,7 @@ export default function Education() {
     isLockActive,
     onStep: (next, dir) => {
       if (step === 4 && dir === 1) {
-        // extra down after all tiles visible → unlock
+        // Extra down after all tiles visible → unlock immediately so this same gesture continues page scroll.
         setUnlocked(true);
         return;
       }
@@ -217,15 +215,15 @@ export default function Education() {
     },
   });
 
-  // Relock when the user re-enters from above
+  // Relock only when user scrolls back up and the section re-enters from above
   useEffect(() => {
     const onScroll = () => {
       const el = sectionRef.current;
       if (!el) return;
       const rect = el.getBoundingClientRect();
       const vh = window.innerHeight || 1;
-      // If the section's top is well below viewport top (we scrolled up past it), reset
-      if (rect.top >= vh * 0.95) {
+      // When the section's top is far below the viewport top (we scrolled up past it), reset.
+      if (rect.top >= vh * 0.98) {
         setUnlocked(false);
         setStep(0);
       }
@@ -239,10 +237,10 @@ export default function Education() {
 
   return (
     <section id="education" aria-label="Education" className="relative">
-      {/* Tall runway so sticky frame has room to lock */}
-      <div ref={sectionRef} className="relative min-h-[500vh]">
+      {/* Tall runway so sticky frame has room to lock — reduced a bit to help exiting */}
+      <div ref={sectionRef} className="relative min-h-[420vh]">
         {/* Sticky/pinned viewport content */}
-        <div ref={stickyRef} className="sticky top-0 h-screen overflow-hidden">
+        <div className="sticky top-0 h-screen overflow-hidden">
           {/* Pinned header (title + subhead + nodes) */}
           <div className="absolute left-0 right-0 top-0 z-50 flex flex-col items-center pt-10 sm:pt-12">
             <h2
@@ -268,9 +266,10 @@ export default function Education() {
             )}
           </div>
 
-          {/* Collage grid (centered) */}
-          <div className="absolute inset-0 z-40 flex items-center justify-center">
-            <div className="mt-24 sm:mt-28 md:mt-32 grid grid-cols-2 gap-3 sm:gap-5 w-[min(1024px,92vw)]">
+          {/* Collage grid — pushed down so it's not tight against header */}
+          <div className="absolute inset-0 z-40 flex items-start justify-center">
+            {/* Responsive vertical spacing: keeps cards comfortably below the header block */}
+            <div className="mt-[22vh] sm:mt-[24vh] md:mt-[26vh] lg:mt-[28vh] grid grid-cols-2 gap-3 sm:gap-5 w-[min(1024px,92vw)]">
               {items.map((edu, i) => (
                 <Tile key={edu.key} idx={i} edu={edu} visible={i < visibleCount} />
               ))}
@@ -299,6 +298,3 @@ export default function Education() {
     </section>
   );
 }
-
-
-
