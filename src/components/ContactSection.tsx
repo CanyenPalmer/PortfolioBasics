@@ -48,27 +48,40 @@ export default function ContactSection() {
 
           {/* Middle: Navigation */}
           <nav className="space-y-2">
-            <p className="text-sm uppercase tracking-wide text-white/50">Navigation</p>
-            <ul className="mt-2 space-y-1 font-extrabold leading-none">
-              {[
-                { href: "#home", label: "Home" },
-                { href: "#projects", label: "Work" },
-                { href: "#about", label: "About" },
-                { href: "#experience", label: "Experience" },
-                { href: "#education", label: "Education" },
-                { href: "#contact", label: "Contact" },
-              ].map((item) => (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className="text-4xl md:text-5xl text-white/90 hover:text-white transition-colors"
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
+  <p className="text-sm uppercase tracking-wide text-white/50">Navigation</p>
+  <ul className="mt-2 space-y-2">
+    <li>
+      <Link href="#hero" className="inline-flex items-center gap-2 text-lg text-white/90 hover:text-white transition-colors">
+        Home
+      </Link>
+    </li>
+    <li>
+      <Link href="#about" className="inline-flex items-center gap-2 text-lg text-white/90 hover:text-white transition-colors">
+        About
+      </Link>
+    </li>
+    <li>
+      <Link href="#experience" className="inline-flex items-center gap-2 text-lg text-white/90 hover:text-white transition-colors">
+        Experience
+      </Link>
+    </li>
+    <li>
+      <Link href="#projects" className="inline-flex items-center gap-2 text-lg text-white/90 hover:text-white transition-colors">
+        Projects
+      </Link>
+    </li>
+    <li>
+      <Link href="#education" className="inline-flex items-center gap-2 text-lg text-white/90 hover:text-white transition-colors">
+        Education
+      </Link>
+    </li>
+    <li>
+      <Link href="#testimonials" className="inline-flex items-center gap-2 text-lg text-white/90 hover:text-white transition-colors">
+        Testimonials
+      </Link>
+    </li>
+  </ul>
+</nav>
 
           {/* Right */}
           <div className="space-y-2 md:justify-self-end">
