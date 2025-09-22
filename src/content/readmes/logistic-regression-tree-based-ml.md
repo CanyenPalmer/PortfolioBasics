@@ -1,43 +1,59 @@
 # Logistic-Regression-and-Tree-based-Machine-Learning
 
+![GitHub last commit](https://img.shields.io/github/last-commit/CanyenPalmer/Logistic-Regression-and-Tree-based-Machine-Learning)
+![GitHub repo size](https://img.shields.io/github/repo-size/CanyenPalmer/Logistic-Regression-and-Tree-based-Machine-Learning)
+![Top language](https://img.shields.io/github/languages/top/CanyenPalmer/Logistic-Regression-and-Tree-based-Machine-Learning)
+![Language count](https://img.shields.io/github/languages/count/CanyenPalmer/Logistic-Regression-and-Tree-based-Machine-Learning)
+
 ## HR Department at Salifort Motors
-Goal: Construct a prediction model that accurately predicts whether an employee will leave the company or not
 
-Initial observations is that focusing our attention to the categories work_accident, left, and/or promotion_last_5years would have the most affect on the employees desire to leave the company.
+**Goal:** Construct a prediction model that accurately predicts whether an employee will leave the company or not.  
 
-We will focus on the data in Kaggle for our observations. The data set contains 15,000 rows and 10 columns
+Initial observations suggest that focusing attention on the categories **work_accident**, **left**, and/or **promotion_last_5years** would most affect an employee’s decision to leave the company.
 
-I would consider having the employees who have already refuse to continue work with the company provide any detail as to why they feel that way. All additional remarks both factual or opinionated may contribute to discovering a correlating issue.
+We will focus on the Kaggle dataset for our observations. The dataset contains **15,000 rows** and **10 columns**.  
 
+I would also consider asking employees who have already left to provide detail as to why they felt that way. Both factual and opinion-based feedback may contribute to discovering correlating issues.
 
-### Summary of model results
-Logistic Regression
+---
 
-The logistic regression model achieved precision of 80%, recall of 83%, f1-score of 80% (all weighted averages), and accuracy of 83%, on the test set.
+### Summary of Model Results
 
-Tree-based Machine Learning
+**Logistic Regression**  
+- Precision: 80%  
+- Recall: 83%  
+- F1-score: 80% (weighted average)  
+- Accuracy: 83%  
 
-After conducting feature engineering, the decision tree model achieved AUC of 93.8%, precision of 87.0%, recall of 90.4%, f1-score of 88.7%, and accuracy of 96.2%, on the test set. The random forest modestly outperformed the decision tree model.
+**Tree-based Machine Learning**  
+- After feature engineering, the **decision tree model** achieved:  
+  - AUC: 93.8%  
+  - Precision: 87.0%  
+  - Recall: 90.4%  
+  - F1-score: 88.7%  
+  - Accuracy: 96.2%  
+- The **random forest** modestly outperformed the decision tree model.  
 
-### Conclusion, Recommendations, Next Steps¶
-The models and the feature importances extracted from the models confirm that employees at the company are overworked.
+---
 
-To retain employees, the following recommendations could be presented to the stakeholders:
+### Conclusion, Recommendations, Next Steps
 
-1) Cap the number of projects that employees can work on.
+The models and extracted feature importances confirm that employees at the company are **overworked**.  
+To retain employees, the following recommendations could be presented to stakeholders:  
 
-2) Consider increasing the promoting system for employees who have worked for 4 years or longer, and conduct further investigation about why four-year tenured employees are so dissatisfied.
+1. Cap the number of projects that employees can work on.  
+2. Increase promotion opportunities for employees with ≥4 years tenure. Investigate dissatisfaction among four-year employees.  
+3. Either reward employees for working longer hours (financially, flexible shifts, etc.) or reduce the requirement.  
+4. Reiterate the company’s overtime pay policies and make workload expectations explicit.  
+5. Hold company-wide and team-level discussions to understand and improve work culture.  
+6. Reconsider evaluation systems that reserve high scores for extreme hours. Implement proportional recognition and consider promotions for loyal contributors.  
 
-3) Either reward employees for working longer hours (financially, grant more personalized request like a shift change, etc), or don't require them to do so.
+---
 
-4) Repeat the company's overtime pay policies to all employees both satisfied and unsatisfied. If the expectations around workload and time off aren't explicit, make them clear.
+### Next Steps
 
-5) Hold company-wide and within-team discussions to understand and address the company work culture, across the board and in specific contexts.
+- Investigate potential **data leakage**: examine how predictions change when `last_evaluation` is removed.  
+- If evaluations aren’t frequent, it may be valuable to predict retention without this feature.  
+- Consider pivoting to predict **performance score** or **satisfaction score**, since these may determine retention.  
+- For further exploration, try a **K-means clustering model** on this dataset to uncover additional insights.  
 
-6) High evaluation scores should not be reserved for employees who work 200+ hours per month. Consider a proportionate scale for rewarding employees who contribute more/put in more effort. Promotion of these employees might even be worth consideration if their duration and loyalty to the company reflect it.
-
-Next Steps
-
-It may be justified to still have some concern about data leakage. It is worth considering how predictions change when last_evaluation is removed from the data. If evaluations aren't performed very frequently, it would be useful to be able to predict employee retention without this feature. It is possible that the evaluation score determines whether an employee leaves or stays, in which case it could be useful to pivot and try to predict performance score. The same could be said for satisfaction score. To Determine this, more investigation would need to be made.
-
-For another project, you could try building a K-means model on this data and analyzing the clusters to discover additional insights.
