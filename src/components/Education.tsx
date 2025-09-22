@@ -4,17 +4,15 @@
 import * as React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Playfair_Display, Outfit, Plus_Jakarta_Sans } from "next/font/google";
+import { Outfit, Plus_Jakarta_Sans } from "next/font/google";
 import { profile } from "@/content/profile";
 import { slugify } from "@/lib/slug";
 
-// Fonts (match your prior header look for this section)
-// - Title uses Outfit (was the previous header feel you had here)
-// - Subheader uses Plus Jakarta Sans
-const playfair = Playfair_Display({ subsets: ["latin"], weight: ["400", "700", "900"] });
+// Fonts (match your prior header feel)
 const outfit = Outfit({ subsets: ["latin"], weight: ["400", "500", "600"] });
 const plus = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["400", "500", "600"] });
 
+// ---- Types
 type RawEdu = {
   institution?: string;
   school?: string;
@@ -24,7 +22,6 @@ type RawEdu = {
   period?: string;
   href?: string;
 };
-
 type Edu = {
   title: string;
   sub: string;
@@ -34,6 +31,7 @@ type Edu = {
   key: string;
 };
 
+// ---- Helpers
 function resolveHeroFromTitle(title: string): string {
   const t = title.toLowerCase();
   if (t.includes("ball state")) return "/images/ball-state.png";
@@ -42,17 +40,21 @@ function resolveHeroFromTitle(title: string): string {
   if (t.includes("pittsburgh") || t.includes("pitt")) return "/images/pitt.png";
   return "/images/portfolio-basics-avatar.png";
 }
-
 function normalizeEdu(e: RawEdu): Edu {
   const title = (e.institution ?? e.school ?? "").toString();
   const sub = (e.degree ?? e.program ?? "").toString();
   const years = (e.years ?? e.period)?.toString();
-  const img = resolveHeroFromTitle(title);
-  return { title, sub, years, href: e.href, img, key: slugify(title || sub || "edu") };
+  return {
+    title,
+    sub,
+    years,
+    href: e.href,
+    img: resolveHeroFromTitle(title),
+    key: slugify(title || sub || "edu"),
+  };
 }
-
 function getEducationFromProfile(): Edu[] {
-  // No edits to profile.tsx; best-effort read with a known fallback
+  // Use profile.education if present; otherwise fallback to your four
   // @ts-ignore
   const raw: RawEdu[] =
     (profile?.education as any) || [
@@ -64,20 +66,16 @@ function getEducationFromProfile(): Edu[] {
   return raw.map(normalizeEdu).slice(0, 4);
 }
 
-/**
- * Local step-scroll controller:
- * - Locks scroll while the section is in view and we're not fully unlocked.
- * - Each threshold of wheel/touch delta advances or rewinds one step.
- */
+// ---- Local step-scroll controller (Education only)
 function useStepScroll(opts: {
-  steps: number; // 0..steps
-  threshold?: number;
-  enabled: boolean;
+  steps: number;                 // 0..steps
+  threshold?: number;            // scroll delta to advance a step
+  enabled: boolean;              // lock active?
   getStep: () => number;
   onChange: (next: number, dir: 1 | -1) => void;
   containerRef: React.RefObject<HTMLDivElement>;
 }) {
-  const { steps, threshold = 80, enabled, onChange, getStep, containerRef } = opts;
+  const { steps, threshold = 72, enabled, onChange, getStep, containerRef } = opts;
   const accRef = useRef(0);
   const touching = useRef(false);
   const lastY = useRef(0);
@@ -89,18 +87,17 @@ function useStepScroll(opts: {
     const isInView = () => {
       const rect = el.getBoundingClientRect();
       const vh = window.innerHeight || 1;
-      // More permissive hitbox so lock always engages when the section is visible
-      return rect.top < vh && rect.bottom > 0;
+      // Engage lock whenever section is meaningfully on screen
+      return rect.top < vh * 0.9 && rect.bottom > vh * 0.1;
     };
 
     const onWheel = (e: WheelEvent) => {
-      if (!enabled) return;
-      if (!isInView()) return;
+      if (!enabled || !isInView()) return;
       const step = getStep();
       const atMax = step >= steps;
       const atMin = step <= 0;
 
-      // While not at bounds, prevent default to create the local lock
+      // While between bounds, stop page from moving (local lock)
       if (!atMax || !atMin) e.preventDefault();
 
       accRef.current += e.deltaY;
@@ -117,11 +114,9 @@ function useStepScroll(opts: {
       lastY.current = e.touches[0]?.clientY ?? 0;
     };
     const onTouchMove = (e: TouchEvent) => {
-      if (!enabled) return;
-      if (!touching.current) return;
-      if (!isInView()) return;
+      if (!enabled || !touching.current || !isInView()) return;
       const y = e.touches[0]?.clientY ?? 0;
-      const dy = lastY.current - y; // + down
+      const dy = lastY.current - y; // + = scrolling down
       lastY.current = y;
 
       const step = getStep();
@@ -155,21 +150,14 @@ function useStepScroll(opts: {
   }, [enabled, threshold, steps, onChange, getStep, containerRef]);
 }
 
-function Tower({
-  idx,
-  edu,
-  active,
-}: {
-  idx: number;
-  edu: Edu;
-  active: boolean;
-}) {
+// ---- Presentational tile
+function Tile({ idx, edu, active }: { idx: number; edu: Edu; active: boolean }) {
   return (
     <motion.figure
-      initial={{ opacity: 0, y: 36, x: idx % 2 ? 10 : -10, scale: 0.985 }}
+      initial={{ opacity: 0, y: 40, x: idx % 2 ? 10 : -10, scale: 0.985 }}
       animate={{
         opacity: active ? 1 : 0,
-        y: active ? 0 : 36,
+        y: active ? 0 : 40,
         x: active ? 0 : idx % 2 ? 10 : -10,
         scale: active ? 1 : 0.985,
       }}
@@ -178,20 +166,11 @@ function Tower({
     >
       <div className="aspect-[3/4] w-full">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={edu.img}
-          alt={edu.title}
-          className="h-full w-full object-cover"
-        />
+        <img src={edu.img} alt={edu.title} className="h-full w-full object-cover" />
       </div>
       <figcaption className="p-3 sm:p-4">
-        {/* Keep caption font stack consistent with prior section look */}
-        <div className={`text-base sm:text-lg font-semibold ${outfit.className}`}>
-          {edu.title}
-        </div>
-        <div className={`text-xs sm:text-sm opacity-80 ${plus.className}`}>
-          {edu.sub}
-        </div>
+        <div className={`text-base sm:text-lg font-semibold ${outfit.className}`}>{edu.title}</div>
+        <div className={`text-xs sm:text-sm opacity-80 ${plus.className}`}>{edu.sub}</div>
         {edu.years && <div className="text-xs mt-1 opacity-60">{edu.years}</div>}
       </figcaption>
     </motion.figure>
@@ -200,17 +179,18 @@ function Tower({
 
 export default function Education() {
   const items = useMemo(() => getEducationFromProfile(), []);
-  // step: 0..4 (0 = nothing visible, 4 = all 4 visible)
+  // 0..4 (0 none visible; 4 all visible)
   const [step, setStep] = useState(0);
   const [unlocked, setUnlocked] = useState(false);
 
-  const containerRef = useRef<HTMLDivElement>(null); // section wrapper
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Relock when re-entering from above
   useEffect(() => {
     const onScroll = () => {
-      if (!containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
+      const el = containerRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
       const vh = window.innerHeight || 1;
       if (rect.top >= vh * 0.95) {
         setUnlocked(false);
@@ -221,7 +201,7 @@ export default function Education() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Prefers reduced motion: show full collage and never lock
+  // Prefers reduced motion: render full instantly and never lock
   const [reduced, setReduced] = useState(false);
   useEffect(() => {
     const m = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -234,13 +214,13 @@ export default function Education() {
   // Step controller (locks until unlocked)
   useStepScroll({
     steps: 4,
-    threshold: 72, // a little snappier
+    threshold: 72,
     enabled: !unlocked && !reduced,
     getStep: () => step,
     containerRef,
     onChange: (next, dir) => {
       if (step === 4 && dir === 1) {
-        // one extra down-scroll after 4 visible unlocks the section
+        // One extra down-step after all visible unlocks the section
         setUnlocked(true);
         return;
       }
@@ -252,21 +232,25 @@ export default function Education() {
 
   return (
     <section id="education" aria-label="Education" className="relative">
-      <div ref={containerRef} className="relative">
-        {/* Sticky lock frame */}
+      {/* Tall wrapper gives us vertical room to lock without affecting other sections */}
+      <div ref={containerRef} className="relative min-h-[450vh]">
+        {/* Sticky lock frame (pinned viewport) */}
         <div className="sticky top-0 h-screen overflow-hidden">
-          {/* Title + Subheader + 4 nodes — this stays pinned during the lock */}
+          {/* Header (LOCKED): title + subhead + 4 nodes */}
           <div className="pointer-events-none absolute left-0 right-0 top-0 flex flex-col items-center pt-16 sm:pt-20">
-            <h2 className={`text-4xl sm:text-5xl tracking-tight ${outfit.className}`}>
+            <h2
+              className={`tracking-tight ${outfit.className} 
+                          text-5xl md:text-6xl lg:text-7xl`}
+            >
               Education
             </h2>
-            <p className={`mt-2 text-sm sm:text-base opacity-80 ${plus.className}`}>
+            <p className={`mt-3 text-sm sm:text-base md:text-lg opacity-80 ${plus.className}`}>
               Four stages of the journey — built one scroll at a time.
             </p>
 
-            {/* 4 nodes (progress) — fill as columns appear, shown only while locked */}
+            {/* Progress nodes: filled as panels appear (shown only while locked) */}
             {!reduced && !unlocked && (
-              <div className="mt-3 flex gap-2">
+              <div className="mt-4 flex gap-2">
                 {[0, 1, 2, 3].map((i) => (
                   <span
                     key={i}
@@ -279,16 +263,16 @@ export default function Education() {
             )}
           </div>
 
-          {/* Collage grid — centered, animates 1 tile per scroll step */}
-          <div className="absolute inset-0 mt-28 sm:mt-32 flex items-center justify-center">
+          {/* Collage grid (LOCKED) */}
+          <div className="absolute inset-0 mt-36 sm:mt-40 md:mt-44 flex items-center justify-center">
             <div className="grid grid-cols-2 gap-3 sm:gap-5 w-[min(1024px,92vw)]">
               {items.map((edu, i) => (
-                <Tower key={edu.key} idx={i} edu={edu} active={i < visibleCount} />
+                <Tile key={edu.key} idx={i} edu={edu} active={i < visibleCount} />
               ))}
             </div>
           </div>
 
-          {/* Gentle settle glow when all four are visible (still locked) */}
+          {/* Subtle glow when all 4 are in (still locked) */}
           <AnimatePresence>
             {visibleCount >= 4 && !unlocked && (
               <motion.div
