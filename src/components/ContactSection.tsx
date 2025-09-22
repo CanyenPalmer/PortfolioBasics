@@ -109,30 +109,30 @@ export default function ContactSection() {
         <span>DATA • DESIGN • SYSTEMS</span>
       </div>
 
-      {/* ===== ECHO STACK — three lines, full-bleed, layered backgrounds, bottom-trim masks ===== */}
-      <div className="relative h-[340px] overflow-hidden">
-        {/* Background planes (full-width, overlapping) */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[320px]">
+      {/* ===== ECHO STACK — three lines, all visible, each cut by the line below ===== */}
+      <div className="relative h-[420px] overflow-hidden">
+        {/* Full-width overlapping background planes (paper stack feel) */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[400px]">
           <div className="absolute inset-x-0 bottom-0 h-full bg-[#0b1016] z-[1]" />
           <div className="absolute inset-x-0 bottom-0 h-[75%] bg-[#0a0d13] z-[2]" />
           <div className="absolute inset-x-0 bottom-0 h-[50%] bg-[#070b10] z-[3]" />
         </div>
 
-        {/* Text rows pinned to bottom; masks now trim the BOTTOMS of the first two lines */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-[320px]">
-          {/* Top: show top 25% only; 50% opacity */}
-          <div className="absolute bottom-[200px] w-full flex justify-center">
+        {/* Text rows pinned to bottom; masks reveal TOP portions so lower line “cuts” above */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-[400px]">
+          {/* Top line: show top 25%, 50% opacity – positioned so it stays in frame */}
+          <div className="absolute bottom-[168px] w-full flex justify-center">
             <span className="echo-word echo-clip-top-25" style={{ opacity: 0.5 }}>
               CANYEN PALMER
             </span>
           </div>
-          {/* Middle: show top 50%; 75% opacity */}
-          <div className="absolute bottom-[100px] w-full flex justify-center">
+          {/* Middle line: show top 50%, 75% opacity */}
+          <div className="absolute bottom-[84px] w-full flex justify-center">
             <span className="echo-word echo-clip-top-50" style={{ opacity: 0.75 }}>
               CANYEN PALMER
             </span>
           </div>
-          {/* Bottom: full word; 100% opacity; touches bottom wall */}
+          {/* Bottom line: full word, 100% opacity, touches bottom wall */}
           <div className="absolute bottom-0 w-full flex justify-center">
             <span className="echo-word echo-clip-top-100" style={{ opacity: 1 }}>
               CANYEN PALMER
@@ -153,7 +153,7 @@ export default function ContactSection() {
           font-size: clamp(64px, 10.8vw, 240px); /* full-bleed width */
         }
 
-        /* Masks that KEEP THE TOP portion and trim the BOTTOM (fixes the prior behavior) */
+        /* Keep TOP portion, trim BOTTOM (so lower line appears to cut the one above) */
         .echo-clip-top-25 {
           -webkit-mask-image: linear-gradient(to bottom, black 25%, transparent 25%);
           mask-image: linear-gradient(to bottom, black 25%, transparent 25%);
@@ -176,6 +176,3 @@ export default function ContactSection() {
     </section>
   );
 }
-
-
-
