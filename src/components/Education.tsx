@@ -45,7 +45,7 @@ function resolveHeroFromTitle(title: string): string {
 function normalizeEdu(e: RawEdu): Edu {
   const title = (e.institution ?? e.school ?? "").toString();
   const sub = (e.degree ?? e.program ?? "").toString();
-  const years = (e.years ?? e.dates ?? e.period)?.toString();
+  const years = (e.years ?? e.period)?.toString();
   return {
     title,
     sub,
@@ -55,7 +55,6 @@ function normalizeEdu(e: RawEdu): Edu {
     key: slugify(title || sub || "edu"),
   };
 }
-
 function getEducationFromProfile(): Edu[] {
   // @ts-ignore
   const raw: RawEdu[] =
@@ -130,15 +129,16 @@ function useStepLock(opts: {
       if (!shouldLock() || !touching.current) return;
 
       const y = e.touches[0]?.clientY ?? 0;
-      const dy = lastY.current - y;
-      const dir: 1 | -1 = dy > 0 ? 1 : -1;
+      const dy = lastY.current - y; // + = scroll down
+      lastY.current = y;
 
       const step = getStep();
+      const dir: 1 | -1 = dy > 0 ? 1 : -1;
+
       if ((step === 0 && dir === -1) || (step === steps && dir === 1)) return;
 
       e.preventDefault();
       acc.current += dy;
-      lastY.current = y;
 
       if (Math.abs(acc.current) >= threshold) {
         tryStep(dir);
@@ -210,21 +210,22 @@ export default function Education() {
     return () => m.removeEventListener?.("change", cb);
   }, []);
 
-  // Observe the SECTION (not sticky). Sticky full-viewport can give misleading IO signals.
+  /* --------- FIX 1: Observe the SECTION instead of the sticky frame --------- */
   React.useEffect(() => {
     const sec = sectionRef.current;
     if (!sec) return;
 
     const obs = new IntersectionObserver(
-      ([entry]) => setIoActive(entry.isIntersecting && entry.intersectionRatio >= 0.35),
-      { root: null, threshold: [0, 0.35, 0.5, 0.75, 1] }
+      ([entry]) => setIoActive(entry.isIntersecting && entry.intersectionRatio >= 0.2),
+      { root: null, threshold: [0, 0.2, 0.5, 1] }
     );
 
-    obs.observe(sectionRef.current!);
+    obs.observe(sec);
     return () => obs.disconnect();
   }, []);
 
   // Fallback: treat sticky as focused when pinned & section spans viewport
+  /* --------- FIX 2: Relax the "pinned" equality check ----------------------- */
   const pinnedFallback = React.useCallback(() => {
     const sec = sectionRef.current;
     const sticky = stickyRef.current;
@@ -233,18 +234,18 @@ export default function Education() {
     const vH = window.innerHeight || 1;
     const stickyTop = sticky.getBoundingClientRect().top;
     const sectionSpans = s.top <= 0 && s.bottom >= vH;
-    const stickyPinned = Math.abs(stickyTop) <= 1.5;
+    const stickyPinned = Math.abs(stickyTop) <= 1.5; // relaxed
     return sectionSpans && stickyPinned;
   }, []);
 
   // Row-centered band: engage lock only when the row center is around viewport center
+  /* --------- FIX 3: Wider center band (0.25–0.75) for reliability ----------- */
   const rowCentered = React.useCallback(() => {
     const row = rowRef.current;
     if (!row) return false;
     const r = row.getBoundingClientRect();
     const vh = window.innerHeight || 1;
     const center = r.top + r.height / 2;
-    // Wider band so it triggers reliably, but still centered
     return center > vh * 0.25 && center < vh * 0.75;
   }, []);
 
@@ -260,12 +261,25 @@ export default function Education() {
     getStep: () => step,
     setStep: (n) => setStep(n),
     shouldLock: () => isLocked,
-    threshold: 120,
+    threshold: 105,
     cooldownMs: 180,
   });
 
-  // Compute visible count from step (0..4)
-  const visibleCount = React.useMemo(() => Math.min(maxStep, Math.max(0, step)), [step]);
+  // Re-entry: only reset when coming from above; do NOT prefill when passing below
+  React.useEffect(() => {
+    const onScroll = () => {
+      const sec = sectionRef.current;
+      if (!sec) return;
+      const r = sec.getBoundingClientRect();
+      const vh = window.innerHeight || 1;
+      if (r.top >= vh * 0.98) setStep(0); // entering from above → play forward
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Keep cards hidden until lock actually engages (prevents early reveal)
+  const visibleCount = reduced ? total : (isLocked ? Math.min(step, total) : 0);
 
   return (
     <section id="education" aria-label="Education" className="relative">
@@ -331,6 +345,7 @@ export default function Education() {
     </section>
   );
 }
+
 
 
 
