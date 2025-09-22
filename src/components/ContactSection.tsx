@@ -49,34 +49,34 @@ export default function ContactSection() {
           {/* Middle: Navigation */}
           <nav className="space-y-2">
   <p className="text-sm uppercase tracking-wide text-white/50">Navigation</p>
-  <ul className="mt-2 space-y-2">
+  <ul className="mt-2 space-y-3 md:space-y-4">
     <li>
-      <Link href="#hero" className="inline-flex items-center gap-2 text-2xl md:text-[22px] text-white/90 hover:text-white transition-colors">
+      <Link href="#hero" className="inline-flex items-center gap-2 text-3xl md:text-[26px] lg:text-[30px] font-medium tracking-tight text-white/90 hover:text-white transition-colors">
         Home
       </Link>
     </li>
     <li>
-      <Link href="#about" className="inline-flex items-center gap-2 text-2xl md:text-[22px] text-white/90 hover:text-white transition-colors">
+      <Link href="#about" className="inline-flex items-center gap-2 text-3xl md:text-[26px] lg:text-[30px] font-medium tracking-tight text-white/90 hover:text-white transition-colors">
         About
       </Link>
     </li>
     <li>
-      <Link href="#experience" className="inline-flex items-center gap-2 text-2xl md:text-[22px] text-white/90 hover:text-white transition-colors">
+      <Link href="#experience" className="inline-flex items-center gap-2 text-3xl md:text-[26px] lg:text-[30px] font-medium tracking-tight text-white/90 hover:text-white transition-colors">
         Experience
       </Link>
     </li>
     <li>
-      <Link href="#projects" className="inline-flex items-center gap-2 text-2xl md:text-[22px] text-white/90 hover:text-white transition-colors">
+      <Link href="#projects" className="inline-flex items-center gap-2 text-3xl md:text-[26px] lg:text-[30px] font-medium tracking-tight text-white/90 hover:text-white transition-colors">
         Projects
       </Link>
     </li>
     <li>
-      <Link href="#education" className="inline-flex items-center gap-2 text-2xl md:text-[22px] text-white/90 hover:text-white transition-colors">
+      <Link href="#education" className="inline-flex items-center gap-2 text-3xl md:text-[26px] lg:text-[30px] font-medium tracking-tight text-white/90 hover:text-white transition-colors">
         Education
       </Link>
     </li>
     <li>
-      <Link href="#testimonials" className="inline-flex items-center gap-2 text-2xl md:text-[22px] text-white/90 hover:text-white transition-colors">
+      <Link href="#testimonials" className="inline-flex items-center gap-2 text-3xl md:text-[26px] lg:text-[30px] font-medium tracking-tight text-white/90 hover:text-white transition-colors">
         Testimonials
       </Link>
     </li>
@@ -86,13 +86,13 @@ export default function ContactSection() {
           {/* Right */}
           <div className="space-y-2 md:justify-self-end">
             <p className="text-sm uppercase tracking-wide text-white/50">Connect</p>
-            <ul className="mt-2 space-y-2">
+            <ul className="mt-2 space-y-3 md:space-y-4">
               <li>
                 <a
                   href="https://www.linkedin.com/in/canyen-palmer"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-2xl md:text-[22px] text-white/90 hover:text-white transition-colors"
+                  className="inline-flex items-center gap-2 text-3xl md:text-[26px] lg:text-[30px] font-medium tracking-tight text-white/90 hover:text-white transition-colors"
                 >
                   LinkedIn <span className="text-white/50">↗</span>
                 </a>
@@ -102,7 +102,7 @@ export default function ContactSection() {
                   href="https://github.com/CanyenPalmer"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-2xl md:text-[22px] text-white/90 hover:text-white transition-colors"
+                  className="inline-flex items-center gap-2 text-3xl md:text-[26px] lg:text-[30px] font-medium tracking-tight text-white/90 hover:text-white transition-colors"
                 >
                   GitHub <span className="text-white/50">↗</span>
                 </a>
@@ -122,7 +122,7 @@ export default function ContactSection() {
       </div>
 
       {/* ECHO STRIPE — three aligned single titles; bottom dominates and cuts through */}
-      <div className="relative mt-16 overflow-hidden">
+      <div className="echo-stack absolute inset-x-0 bottom-0 overflow-hidden pointer-events-none">
         <div className="echo-mask pointer-events-none">
           <div className="echo-row echo-top">
             <span className="echo-word">CANYEN&nbsp;PALMER</span>
@@ -138,6 +138,45 @@ export default function ContactSection() {
 
       {/* Footer meta */}
       <style jsx>{`
+        /* Echo stack pinned to the bottom so last line touches the section edge */
+        .echo-stack {
+          position: absolute;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          height: 230px;
+        }
+
+        /* Add layered card-like backgrounds behind each line to create hierarchy */
+        .echo-row {
+          position: absolute;
+          left: 0;
+          right: 0;
+          display: flex;
+          justify-content: center;
+          align-items: flex-end;
+        }
+        .echo-row::before {
+          content: "";
+          position: absolute;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          height: 1.2em;             /* background band height roughly line height */
+          z-index: -1;
+        }
+        /* background tones: base (same as section), darker, darkest */
+        .echo-top::before    { background: #0b1016; }
+        .echo-mid::before    { background: #0a0d13; }
+        .echo-bottom::before { background: #070b10; }
+
+        /* Existing echo-mask stays but we remove the extra top margin and pin inside the stack */
+        .echo-mask {
+          position: relative;
+          height: 230px;
+          mask-image: linear-gradient(to top, transparent 0%, black 22%, black 78%, transparent 100%);
+        }
+
         /* Gentle vertical fade so the stack blends; no fog overlay. */
         .echo-mask {
           position: relative;
@@ -162,9 +201,9 @@ export default function ContactSection() {
         }
 
         /* Exact opacities + stacking order (bottom on top) */
-        .echo-top    { bottom: 128px; opacity: 0.5; z-index: 1; }
-        .echo-mid    { bottom:  64px; opacity: 0.7; z-index: 2; }
-        .echo-bottom { bottom:   0px; opacity: 1.0; z-index: 3; }
+        .echo-top    { bottom: 128px; opacity: 1; z-index: 1; }
+        .echo-mid    { bottom:  64px; opacity: 1; z-index: 2; }
+        .echo-bottom { bottom:   0px; opacity: 1; z-index: 3; }
 
         /* One title per row, spanning edge-to-edge using viewport units.
            Tweak 10.2vw up/down by 0.2 if you want tighter/looser edges. */
@@ -179,8 +218,8 @@ export default function ContactSection() {
 
         @media (max-width: 768px) {
           .echo-mask { height: 200px; }
-          .echo-top  { bottom: 112px; }
-          .echo-mid  { bottom:  56px; }
+          .echo-top    { bottom: 128px; opacity: 1; z-index: 1; }
+          .echo-mid    { bottom:  64px; opacity: 1; z-index: 2; }
           .echo-word { font-size: clamp(48px, 12vw, 180px); }
         }
       `}</style>
