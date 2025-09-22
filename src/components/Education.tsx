@@ -15,10 +15,14 @@ type RawEdu = {
   school?: string;
   program?: string;
   degree?: string;
-  years?: string;
   period?: string;
+  years?: string;
+  dates?: string;
   href?: string;
+  img?: string;
+  key?: string;
 };
+
 type Edu = {
   title: string;
   sub: string;
@@ -37,10 +41,11 @@ function resolveHeroFromTitle(title: string): string {
   if (t.includes("pittsburgh") || t.includes("pitt")) return "/images/pitt.png";
   return "/images/portfolio-basics-avatar.png";
 }
+
 function normalizeEdu(e: RawEdu): Edu {
   const title = (e.institution ?? e.school ?? "").toString();
   const sub = (e.degree ?? e.program ?? "").toString();
-  const years = (e.years ?? e.period)?.toString();
+  const years = (e.years ?? e.dates ?? e.period)?.toString();
   return {
     title,
     sub,
@@ -50,6 +55,7 @@ function normalizeEdu(e: RawEdu): Edu {
     key: slugify(title || sub || "edu"),
   };
 }
+
 function getEducationFromProfile(): Edu[] {
   // @ts-ignore
   const raw: RawEdu[] =
@@ -124,16 +130,15 @@ function useStepLock(opts: {
       if (!shouldLock() || !touching.current) return;
 
       const y = e.touches[0]?.clientY ?? 0;
-      const dy = lastY.current - y; // + = scroll down
-      lastY.current = y;
-
-      const step = getStep();
+      const dy = lastY.current - y;
       const dir: 1 | -1 = dy > 0 ? 1 : -1;
 
+      const step = getStep();
       if ((step === 0 && dir === -1) || (step === steps && dir === 1)) return;
 
       e.preventDefault();
       acc.current += dy;
+      lastY.current = y;
 
       if (Math.abs(acc.current) >= threshold) {
         tryStep(dir);
@@ -205,17 +210,17 @@ export default function Education() {
     return () => m.removeEventListener?.("change", cb);
   }, []);
 
-  // IO: sticky frame visible (relaxed so it actually fires)
+  // Observe the SECTION (not sticky). Sticky full-viewport can give misleading IO signals.
   React.useEffect(() => {
-    const sticky = stickyRef.current;
-    if (!sticky) return;
+    const sec = sectionRef.current;
+    if (!sec) return;
 
     const obs = new IntersectionObserver(
-      ([entry]) => setIoActive(entry.isIntersecting && entry.intersectionRatio >= 0.2),
-      { root: null, threshold: [0, 0.2, 0.5, 1] }
+      ([entry]) => setIoActive(entry.isIntersecting && entry.intersectionRatio >= 0.35),
+      { root: null, threshold: [0, 0.35, 0.5, 0.75, 1] }
     );
 
-    obs.observe(sticky);
+    obs.observe(sectionRef.current!);
     return () => obs.disconnect();
   }, []);
 
@@ -228,7 +233,7 @@ export default function Education() {
     const vH = window.innerHeight || 1;
     const stickyTop = sticky.getBoundingClientRect().top;
     const sectionSpans = s.top <= 0 && s.bottom >= vH;
-    const stickyPinned = Math.round(stickyTop) === 0;
+    const stickyPinned = Math.abs(stickyTop) <= 1.5;
     return sectionSpans && stickyPinned;
   }, []);
 
@@ -240,7 +245,7 @@ export default function Education() {
     const vh = window.innerHeight || 1;
     const center = r.top + r.height / 2;
     // Wider band so it triggers reliably, but still centered
-    return center > vh * 0.35 && center < vh * 0.65;
+    return center > vh * 0.25 && center < vh * 0.75;
   }, []);
 
   // Final lock predicate
@@ -255,25 +260,12 @@ export default function Education() {
     getStep: () => step,
     setStep: (n) => setStep(n),
     shouldLock: () => isLocked,
-    threshold: 105,
+    threshold: 120,
     cooldownMs: 180,
   });
 
-  // Re-entry: only reset when coming from above; do NOT prefill when passing below
-  React.useEffect(() => {
-    const onScroll = () => {
-      const sec = sectionRef.current;
-      if (!sec) return;
-      const r = sec.getBoundingClientRect();
-      const vh = window.innerHeight || 1;
-      if (r.top >= vh * 0.98) setStep(0); // entering from above → play forward
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  // Keep cards hidden until lock actually engages (prevents early reveal)
-  const visibleCount = reduced ? total : (isLocked ? Math.min(step, total) : 0);
+  // Compute visible count from step (0..4)
+  const visibleCount = React.useMemo(() => Math.min(maxStep, Math.max(0, step)), [step]);
 
   return (
     <section id="education" aria-label="Education" className="relative">
@@ -294,8 +286,8 @@ export default function Education() {
                 {Array.from({ length: total }).map((_, i) => (
                   <span
                     key={i}
-                    className={`h-1.5 w-6 rounded-full ${
-                      i < Math.min(visibleCount, total) ? "bg-cyan-400" : "bg-white/20"
+                    className={`h-1.5 w-4 rounded-full transition-all ${
+                      i < visibleCount ? "bg-cyan-300/80 w-6" : "bg-white/20"
                     }`}
                   />
                 ))}
@@ -339,5 +331,6 @@ export default function Education() {
     </section>
   );
 }
+
 
 
