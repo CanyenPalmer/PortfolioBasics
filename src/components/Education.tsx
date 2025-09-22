@@ -28,7 +28,7 @@ type Edu = {
   key: string;
 };
 
-// --- Data helpers ------------------------------------------------------------
+/* ------------------------ Data helpers ------------------------ */
 function resolveHeroFromTitle(title: string): string {
   const t = title.toLowerCase();
   if (t.includes("ball state")) return "/images/ball-state.png";
@@ -62,38 +62,38 @@ function getEducationFromProfile(): Edu[] {
   return raw.map(normalizeEdu).slice(0, 4);
 }
 
-// --- Lock controller (window-level, but scoped by “pinned” check) ------------
-function useScrollStepLock(opts: {
-  steps: number; // inclusive 0..steps
+/* ------------------ Window step-lock controller ------------------
+   Pattern:
+   - Activate ONLY when the sticky frame is truly "in focus" (via IntersectionObserver).
+   - While active, intercept wheel/touch to advance exactly 1 step per tick.
+   - Break lock at both ends so the same gesture passes through.
+------------------------------------------------------------------- */
+function useStepLock(opts: {
+  steps: number;                        // inclusive: 0..steps
   getStep: () => number;
   setStep: (n: number) => void;
-  pinnedCheck: () => boolean; // sticky frame is actually pinned?
-  enabled: boolean; // disabled for reduced motion, etc.
-  threshold?: number;
+  shouldLock: () => boolean;            // updated by IO
+  threshold?: number;                   // scroll delta per step
 }) {
-  const { steps, getStep, setStep, pinnedCheck, enabled, threshold = 65 } = opts;
+  const { steps, getStep, setStep, shouldLock, threshold = 65 } = opts;
   const acc = React.useRef(0);
   const touching = React.useRef(false);
   const lastY = React.useRef(0);
 
   React.useEffect(() => {
-    if (!enabled) return;
-
-    const handleWheel = (e: WheelEvent) => {
-      // Only lock when the sticky frame is actually pinned in the viewport
-      if (!pinnedCheck()) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!shouldLock()) return;
 
       const step = getStep();
       const dir: 1 | -1 = e.deltaY > 0 ? 1 : -1;
 
-      // Escape-at-ends: if user is at the beginning (0) and scrolling up,
-      // or at the end (steps) and scrolling down, DO NOT preventDefault.
+      // Break at ends to allow escape
       if ((step === 0 && dir === -1) || (step === steps && dir === 1)) return;
 
-      // Otherwise we are within the animation range — lock locally
+      // Lock while we’re within the animation window
       e.preventDefault();
-
       acc.current += e.deltaY;
+
       if (Math.abs(acc.current) >= threshold) {
         const next = Math.max(0, Math.min(steps, step + dir));
         if (next !== step) setStep(next);
@@ -102,12 +102,12 @@ function useScrollStepLock(opts: {
     };
 
     const onTouchStart = (e: TouchEvent) => {
-      if (!pinnedCheck()) return;
+      if (!shouldLock()) return;
       touching.current = true;
       lastY.current = e.touches[0]?.clientY ?? 0;
     };
     const onTouchMove = (e: TouchEvent) => {
-      if (!pinnedCheck() || !touching.current) return;
+      if (!shouldLock() || !touching.current) return;
 
       const y = e.touches[0]?.clientY ?? 0;
       const dy = lastY.current - y; // + = scroll down
@@ -120,6 +120,7 @@ function useScrollStepLock(opts: {
 
       e.preventDefault();
       acc.current += dy;
+
       if (Math.abs(acc.current) >= threshold) {
         const next = Math.max(0, Math.min(steps, step + dir));
         if (next !== step) setStep(next);
@@ -131,20 +132,21 @@ function useScrollStepLock(opts: {
       acc.current = 0;
     };
 
-    window.addEventListener("wheel", handleWheel, { passive: false });
+    window.addEventListener("wheel", onWheel, { passive: false });
     window.addEventListener("touchstart", onTouchStart, { passive: true });
     window.addEventListener("touchmove", onTouchMove, { passive: false });
     window.addEventListener("touchend", onTouchEnd, { passive: true });
+
     return () => {
-      window.removeEventListener("wheel", handleWheel as any);
+      window.removeEventListener("wheel", onWheel as any);
       window.removeEventListener("touchstart", onTouchStart as any);
       window.removeEventListener("touchmove", onTouchMove as any);
       window.removeEventListener("touchend", onTouchEnd as any);
     };
-  }, [enabled, steps, getStep, setStep, pinnedCheck, threshold]);
+  }, [steps, threshold, getStep, setStep, shouldLock]);
 }
 
-// --- Tile --------------------------------------------------------------------
+/* --------------------------- Tile --------------------------- */
 function Tile({ idx, edu, visible }: { idx: number; edu: Edu; visible: boolean }) {
   return (
     <motion.figure
@@ -159,7 +161,7 @@ function Tile({ idx, edu, visible }: { idx: number; edu: Edu; visible: boolean }
       className="relative overflow-hidden rounded-2xl shadow-lg ring-1 ring-white/10 bg-[#0d131d]"
     >
       <div className="aspect-[3/4] w-full">
-        {/* remove baseline gap that created a gray strip */}
+        {/* block removes baseline gap (no gray strip) */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={edu.img} alt={edu.title} className="block h-full w-full object-cover" />
       </div>
@@ -172,19 +174,19 @@ function Tile({ idx, edu, visible }: { idx: number; edu: Edu; visible: boolean }
   );
 }
 
-// --- Main --------------------------------------------------------------------
+/* --------------------------- Main --------------------------- */
 export default function Education() {
   const items = React.useMemo(() => getEducationFromProfile(), []);
-  const total = items.length; // expected 4
-  const maxStep = total;      // 0..4 (how many tiles visible)
+  const total = items.length;           // should be 4
+  const maxStep = total;                // 0..4
 
-  // step: 0..maxStep (0 none visible; 1..maxStep tiles visible)
-  const [step, setStep] = React.useState(0);
+  const [step, setStep] = React.useState(0); // 0 none; 1..4 visible
+  const [ioLock, setIoLock] = React.useState(false); // “sticky in focus” flag
 
-  const sectionRef = React.useRef<HTMLDivElement>(null); // tall wrapper
-  const stickyRef = React.useRef<HTMLDivElement>(null);   // sticky viewport region
+  const sectionRef = React.useRef<HTMLDivElement>(null);
+  const stickyRef = React.useRef<HTMLDivElement>(null);
 
-  // Reduced motion → show all, skip lock
+  // Reduced motion: show all, skip lock
   const [reduced, setReduced] = React.useState(false);
   React.useEffect(() => {
     const m = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -194,44 +196,45 @@ export default function Education() {
     return () => m.removeEventListener?.("change", cb);
   }, []);
 
-  // “Pinned” means the sticky frame is actively stuck to top and filling viewport.
-  // Lock should ONLY run while pinned (this prevents wrong-section locking and guarantees escape near edges).
-  const pinnedCheck = React.useCallback(() => {
-    const section = sectionRef.current;
+  // IntersectionObserver to decide when the sticky frame is the active viewport.
+  React.useEffect(() => {
     const sticky = stickyRef.current;
-    if (!section || !sticky) return false;
-    const sRect = section.getBoundingClientRect();
-    const vH = window.innerHeight || 1;
-    const stickyTop = sticky.getBoundingClientRect().top;
+    if (!sticky) return;
 
-    const sectionCoversViewport = sRect.top <= 0 && sRect.bottom >= vH; // we're between the section’s start/end
-    const stickyAtTop = Math.round(stickyTop) === 0; // sticky is pinned to top
-    return sectionCoversViewport && stickyAtTop && !reduced;
-  }, [reduced]);
+    // When at least 60% of the sticky frame is visible, we engage the lock.
+    const obs = new IntersectionObserver(
+      ([entry]) => setIoLock(entry.isIntersecting && entry.intersectionRatio >= 0.6),
+      { root: null, threshold: [0, 0.6, 1] }
+    );
 
-  // Install the lock
-  useScrollStepLock({
+    obs.observe(sticky);
+    return () => obs.disconnect();
+  }, []);
+
+  // Should the lock be active right now?
+  const shouldLock = React.useCallback(() => !reduced && ioLock, [reduced, ioLock]);
+
+  // Install step-lock (window listeners); escapable at both ends
+  useStepLock({
     steps: maxStep,
     getStep: () => step,
-    setStep,
-    pinnedCheck,
-    enabled: true,
-    threshold: 60,
+    setStep: (n) => setStep(n),
+    shouldLock,
+    threshold: 62,
   });
 
-  // On re-enter from above → reset to 0 (play forward). From below → show complete.
+  // Re-entry handling so the sequence can play cleanly in both directions.
   React.useEffect(() => {
     const onScroll = () => {
-      const section = sectionRef.current;
-      if (!section) return;
-      const r = section.getBoundingClientRect();
-      const vH = window.innerHeight || 1;
+      const sec = sectionRef.current;
+      if (!sec) return;
+      const r = sec.getBoundingClientRect();
+      const vh = window.innerHeight || 1;
 
-      if (r.top >= vH * 0.98) {
-        setStep(0);
-      } else if (r.bottom <= vH * 0.02) {
-        setStep(maxStep);
-      }
+      // Coming from above (section just entering view) → reset to 0
+      if (r.top >= vh * 0.98) setStep(0);
+      // Coming from below (section just left screen) → keep complete
+      if (r.bottom <= vh * 0.02) setStep(maxStep);
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -241,11 +244,11 @@ export default function Education() {
 
   return (
     <section id="education" aria-label="Education" className="relative">
-      {/* runway for the pinned sequence */}
+      {/* runway for the pinned play; generous but escapable */}
       <div ref={sectionRef} className="relative min-h-[420vh]">
-        {/* sticky frame keeps header + grid in view while animating */}
+        {/* sticky frame: header stays pinned; grid visible below */}
         <div ref={stickyRef} className="sticky top-0 h-screen overflow-hidden">
-          {/* header stays pinned; sized to read as a true section title */}
+          {/* Pinned header */}
           <div className="absolute left-0 right-0 top-0 z-50 flex flex-col items-center pt-8 sm:pt-10">
             <h2 className={`tracking-tight ${outfit.className} text-5xl md:text-6xl lg:text-7xl`}>
               Education
@@ -253,7 +256,6 @@ export default function Education() {
             <p className={`mt-2 sm:mt-3 text-sm sm:text-base md:text-lg opacity-80 ${plus.className}`}>
               Four stages of the journey — built one scroll at a time.
             </p>
-            {/* progress dots only during animation window */}
             {!reduced && (
               <div className="mt-3 flex gap-2">
                 {Array.from({ length: total }).map((_, i) => (
@@ -268,7 +270,7 @@ export default function Education() {
             )}
           </div>
 
-          {/* grid sits comfortably below header so both are visible during lock */}
+          {/* Grid spaced below header so both are always in view while locked */}
           <div className="absolute inset-0 z-40 flex items-start justify-center">
             <div className="mt-[20vh] sm:mt-[22vh] md:mt-[24vh] grid grid-cols-2 gap-3 sm:gap-5 w-[min(1024px,92vw)]">
               {items.map((edu, i) => (
@@ -277,7 +279,7 @@ export default function Education() {
             </div>
           </div>
 
-          {/* gentle settle when complete (purely visual) */}
+          {/* Subtle settle when all visible */}
           <AnimatePresence>
             {visibleCount >= total && (
               <motion.div
