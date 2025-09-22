@@ -36,7 +36,7 @@ export default function ContactSection() {
           </p>
         </div>
 
-        {/* Middle: Navigation (fills its column) */}
+        {/* Middle: Navigation */}
         <div>
           <p className="text-xs uppercase tracking-widest text-white/50">Navigation</p>
           <ul className="mt-4 space-y-4">
@@ -102,35 +102,41 @@ export default function ContactSection() {
         </div>
       </div>
 
-      {/* ===== META ROW (already centered) ===== */}
+      {/* ===== META ROW (centered) ===== */}
       <div className="relative z-10 mx-auto mt-16 mb-2 flex w-full max-w-7xl items-center justify-between px-6 text-[10px] uppercase tracking-widest text-white/45">
         <span>©2025 CANYEN PALMER</span>
         <span>THANK YOU FOR VISITING</span>
         <span>DATA • DESIGN • SYSTEMS</span>
       </div>
 
-      {/* ===== ECHO STACK — three lines, full-bleed, layered backgrounds, masked cutoffs ===== */}
+      {/* ===== ECHO STACK — three lines, full-bleed, layered backgrounds, bottom-trim masks ===== */}
       <div className="relative h-[340px] overflow-hidden">
-        {/* Background planes (full-width, overlapping like paper stacks) */}
+        {/* Background planes (full-width, overlapping) */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[320px]">
           <div className="absolute inset-x-0 bottom-0 h-full bg-[#0b1016] z-[1]" />
           <div className="absolute inset-x-0 bottom-0 h-[75%] bg-[#0a0d13] z-[2]" />
           <div className="absolute inset-x-0 bottom-0 h-[50%] bg-[#070b10] z-[3]" />
         </div>
 
-        {/* Text rows pinned to bottom; each masked to show 1/4, 1/2, full */}
+        {/* Text rows pinned to bottom; masks now trim the BOTTOMS of the first two lines */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-[320px]">
-          {/* Top (show bottom quarter) */}
+          {/* Top: show top 25% only; 50% opacity */}
           <div className="absolute bottom-[200px] w-full flex justify-center">
-            <span className="echo-word echo-clip-25">CANYEN PALMER</span>
+            <span className="echo-word echo-clip-top-25" style={{ opacity: 0.5 }}>
+              CANYEN PALMER
+            </span>
           </div>
-          {/* Middle (show bottom half) */}
+          {/* Middle: show top 50%; 75% opacity */}
           <div className="absolute bottom-[100px] w-full flex justify-center">
-            <span className="echo-word echo-clip-50">CANYEN PALMER</span>
+            <span className="echo-word echo-clip-top-50" style={{ opacity: 0.75 }}>
+              CANYEN PALMER
+            </span>
           </div>
-          {/* Bottom (show full; touches bottom edge) */}
+          {/* Bottom: full word; 100% opacity; touches bottom wall */}
           <div className="absolute bottom-0 w-full flex justify-center">
-            <span className="echo-word echo-clip-100">CANYEN PALMER</span>
+            <span className="echo-word echo-clip-top-100" style={{ opacity: 1 }}>
+              CANYEN PALMER
+            </span>
           </div>
         </div>
       </div>
@@ -147,18 +153,18 @@ export default function ContactSection() {
           font-size: clamp(64px, 10.8vw, 240px); /* full-bleed width */
         }
 
-        /* Masks: reveal only the lower fraction of each line (like the reference cutoffs) */
-        .echo-clip-25 {
-          -webkit-mask-image: linear-gradient(to top, black 25%, transparent 25%);
-          mask-image: linear-gradient(to top, black 25%, transparent 25%);
+        /* Masks that KEEP THE TOP portion and trim the BOTTOM (fixes the prior behavior) */
+        .echo-clip-top-25 {
+          -webkit-mask-image: linear-gradient(to bottom, black 25%, transparent 25%);
+          mask-image: linear-gradient(to bottom, black 25%, transparent 25%);
         }
-        .echo-clip-50 {
-          -webkit-mask-image: linear-gradient(to top, black 50%, transparent 50%);
-          mask-image: linear-gradient(to top, black 50%, transparent 50%);
+        .echo-clip-top-50 {
+          -webkit-mask-image: linear-gradient(to bottom, black 50%, transparent 50%);
+          mask-image: linear-gradient(to bottom, black 50%, transparent 50%);
         }
-        .echo-clip-100 {
-          -webkit-mask-image: linear-gradient(to top, black 100%, transparent 100%);
-          mask-image: linear-gradient(to top, black 100%, transparent 100%);
+        .echo-clip-top-100 {
+          -webkit-mask-image: linear-gradient(to bottom, black 100%, transparent 100%);
+          mask-image: linear-gradient(to bottom, black 100%, transparent 100%);
         }
 
         @media (max-width: 768px) {
@@ -170,5 +176,6 @@ export default function ContactSection() {
     </section>
   );
 }
+
 
 
