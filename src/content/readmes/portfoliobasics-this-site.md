@@ -3,6 +3,8 @@
 [![Deploy with Vercel](https://vercelbadge.vercel.app/api/canyenpalmer/PortfolioBasics)](https://portfolio-basics.vercel.app)
 ![GitHub last commit](https://img.shields.io/github/last-commit/CanyenPalmer/PortfolioBasics)
 ![GitHub repo size](https://img.shields.io/github/repo-size/CanyenPalmer/PortfolioBasics)
+![GitHub language breakdown](https://img.shields.io/github/languages/top/CanyenPalmer/PortfolioBasics?color=blueviolet)
+![GitHub language breakdown bars](https://img.shields.io/github/languages/code-size/CanyenPalmer/PortfolioBasics?label=language%20breakdown)
 
 ---
 **Project Spotlight: Award-Level Personal Data Science & Analytics Portfolio**
@@ -61,4 +63,5 @@ Through this project, I reinforce my ability to:
 ### Live Demo
 
 👉 [**View Portfolio Website**](https://portfolio-basics.vercel.app)
+
 
