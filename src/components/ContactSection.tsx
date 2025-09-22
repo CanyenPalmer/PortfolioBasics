@@ -109,32 +109,32 @@ export default function ContactSection() {
         <span>DATA • DESIGN • SYSTEMS</span>
       </div>
 
-      {/* ===== ECHO STACK — three lines, all visible, each cut by the line below ===== */}
+      {/* ===== ECHO STACK — three lines, tight stacking, visible line bars, full bleed ===== */}
       <div className="relative h-[420px] overflow-hidden">
-        {/* Full-width overlapping background planes (paper stack feel) */}
+        {/* Subtle full-width planes for depth */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[400px]">
           <div className="absolute inset-x-0 bottom-0 h-full bg-[#0b1016] z-[1]" />
           <div className="absolute inset-x-0 bottom-0 h-[75%] bg-[#0a0d13] z-[2]" />
           <div className="absolute inset-x-0 bottom-0 h-[50%] bg-[#070b10] z-[3]" />
         </div>
 
-        {/* Text rows pinned to bottom; masks reveal TOP portions so lower line “cuts” above */}
+        {/* Text rows pinned to bottom; masks reveal TOP portions, so lower line “cuts” above */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-[400px]">
-          {/* Top line: show top 33%, 50% opacity – closer to the next line for a continuous cut */}
-          <div className="absolute bottom-[150px] w-full flex justify-center">
-            <span className="echo-word echo-clip-top-33" style={{ opacity: 0.5 }}>
+          {/* Top line (33% reveal, 50% opacity) */}
+          <div className="echo-row absolute bottom-[132px] w-full flex justify-center">
+            <span className="echo-word echo-clip-top-33 echo-bar--light" style={{ opacity: 0.5 }}>
               CANYEN PALMER
             </span>
           </div>
-          {/* Middle line: show top 50%, 75% opacity – sits tighter above the bottom line */}
-          <div className="absolute bottom-[75px] w-full flex justify-center">
-            <span className="echo-word echo-clip-top-50" style={{ opacity: 0.75 }}>
+          {/* Middle line (50% reveal, 75% opacity) */}
+          <div className="echo-row absolute bottom-[56px] w-full flex justify-center">
+            <span className="echo-word echo-clip-top-50 echo-bar--mid" style={{ opacity: 0.75 }}>
               CANYEN PALMER
             </span>
           </div>
-          {/* Bottom line: full word, 100% opacity, touches bottom wall */}
-          <div className="absolute bottom-0 w-full flex justify-center">
-            <span className="echo-word echo-clip-top-100" style={{ opacity: 1 }}>
+          {/* Bottom line (full, 100% opacity, touches bottom) */}
+          <div className="echo-row absolute bottom-0 w-full flex justify-center">
+            <span className="echo-word echo-clip-top-100 echo-bar--dark" style={{ opacity: 1 }}>
               CANYEN PALMER
             </span>
           </div>
@@ -147,11 +147,30 @@ export default function ContactSection() {
           white-space: nowrap;
           text-transform: uppercase;
           font-weight: 900;
-          letter-spacing: -0.06em;
-          line-height: 1;
+          letter-spacing: -0.065em;
+          line-height: 0.95;                 /* tighter vertical rhythm */
           color: #ffffff;
           font-size: clamp(64px, 10.8vw, 240px); /* full-bleed width */
+          position: relative;
+          display: inline-block;
+          padding-inline: 0.06em;            /* tiny side padding so bar extends past glyphs */
         }
+
+        /* Visible background bar directly behind each word line */
+        .echo-word::before {
+          content: "";
+          position: absolute;
+          left: -2vw;                        /* extend beyond glyphs for a clean bar edge-to-edge */
+          right: -2vw;
+          top: 50%;
+          transform: translateY(-50%);
+          height: 1.35em;                    /* thicker, clearly visible */
+          z-index: -1;
+          border-radius: 0;                  /* crisp rectangular bars like the reference */
+        }
+        .echo-bar--light::before { background: rgba(0, 0, 0, 0.55); }
+        .echo-bar--mid::before   { background: rgba(0, 0, 0, 0.70); }
+        .echo-bar--dark::before  { background: rgba(0, 0, 0, 0.85); }
 
         /* Keep TOP portion, trim BOTTOM (so lower line appears to cut the one above) */
         .echo-clip-top-33 {
@@ -168,11 +187,11 @@ export default function ContactSection() {
         }
 
         @media (max-width: 768px) {
-          .echo-word {
-            font-size: clamp(44px, 12.5vw, 180px);
-          }
+          .echo-word { font-size: clamp(44px, 12.5vw, 180px); }
+          .echo-word::before { height: 1.25em; }
         }
       `}</style>
     </section>
   );
 }
+
