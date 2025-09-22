@@ -63,21 +63,38 @@ function getEducationFromProfile(): Edu[] {
 }
 
 /* ------------------ Step-lock controller (window listeners) ------------------
-   - Lock activates when the sticky frame is "focused" (IO) OR obviously pinned.
+   - Lock activates only when the row is centered (IO + center-band check).
    - While active, intercept wheel/touch to step 0→4 (or reverse).
    - Escape at both ends so scrolling continues naturally.
+   - Slowed progression: higher delta threshold + short cooldown per step.
 ------------------------------------------------------------------------------- */
 function useStepLock(opts: {
   steps: number;                        // inclusive: 0..steps
   getStep: () => number;
   setStep: (n: number) => void;
-  shouldLock: () => boolean;            // IO + pinned fallback
+  shouldLock: () => boolean;            // IO + center check
   threshold?: number;                   // scroll delta per step
+  cooldownMs?: number;                  // min time between steps
 }) {
-  const { steps, getStep, setStep, shouldLock, threshold = 58 } = opts;
+  const { steps, getStep, setStep, shouldLock, threshold = 100, cooldownMs = 180 } = opts;
   const acc = React.useRef(0);
   const touching = React.useRef(false);
   const lastY = React.useRef(0);
+  const lastStepAt = React.useRef(0);
+
+  const tryStep = React.useCallback(
+    (dir: 1 | -1) => {
+      const now = performance.now();
+      if (now - lastStepAt.current < cooldownMs) return; // slow it a touch
+      const step = getStep();
+      const next = Math.max(0, Math.min(steps, step + dir));
+      if (next !== step) {
+        setStep(next);
+        lastStepAt.current = now;
+      }
+    },
+    [cooldownMs, getStep, setStep, steps]
+  );
 
   React.useEffect(() => {
     const onWheel = (e: WheelEvent) => {
@@ -86,15 +103,14 @@ function useStepLock(opts: {
       const step = getStep();
       const dir: 1 | -1 = e.deltaY > 0 ? 1 : -1;
 
-      // Escape at ends → do not preventDefault so the gesture passes through
+      // Escape at ends → let the gesture pass through
       if ((step === 0 && dir === -1) || (step === steps && dir === 1)) return;
 
       e.preventDefault(); // lock while animating
       acc.current += e.deltaY;
 
       if (Math.abs(acc.current) >= threshold) {
-        const next = Math.max(0, Math.min(steps, step + dir));
-        if (next !== step) setStep(next);
+        tryStep(dir);
         acc.current = 0;
       }
     };
@@ -120,8 +136,7 @@ function useStepLock(opts: {
       acc.current += dy;
 
       if (Math.abs(acc.current) >= threshold) {
-        const next = Math.max(0, Math.min(steps, step + dir));
-        if (next !== step) setStep(next);
+        tryStep(dir);
         acc.current = 0;
       }
     };
@@ -141,24 +156,24 @@ function useStepLock(opts: {
       window.removeEventListener("touchmove", onTouchMove as any);
       window.removeEventListener("touchend", onTouchEnd as any);
     };
-  }, [steps, threshold, getStep, setStep, shouldLock]);
+  }, [getStep, shouldLock, steps, threshold, tryStep]);
 }
 
 /* --------------------------- Tile (column) ---------------------------
-   - Slides in from RIGHT.
-   - Image fills card (object-cover), no big inner framing.
-   - Caption preserves your “education tag” look.
+   - Slides in from RIGHT (slightly slower to match the new pacing).
+   - Image fills card (object-cover), caption/tag preserved under image.
+   - Taller proportion so the row feels substantial on the page.
 --------------------------------------------------------------------- */
 function Tile({ idx, edu, visible }: { idx: number; edu: Edu; visible: boolean }) {
   return (
     <motion.figure
-      initial={{ opacity: 0, x: 72 }}
-      animate={{ opacity: visible ? 1 : 0, x: visible ? 0 : 72 }}
-      transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
+      initial={{ opacity: 0, x: 80 }}
+      animate={{ opacity: visible ? 1 : 0, x: visible ? 0 : 80 }}
+      transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1] }}
       className="relative overflow-hidden rounded-2xl shadow-lg ring-1 ring-white/10 bg-[#0d131d]"
     >
-      {/* Fixed responsive aspect to keep row tidy; object-cover to fill */}
-      <div className="w-full aspect-[4/5]">
+      {/* Taller, balanced card height; object-cover to fill without letterboxing */}
+      <div className="w-full h-[50vh] md:h-[54vh] lg:h-[56vh]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={edu.img}
@@ -182,10 +197,10 @@ export default function Education() {
   const maxStep = total;                // 0..4 (how many visible)
 
   const [step, setStep] = React.useState(0);           // 0 none; 1..4 visible
-  const [ioActive, setIoActive] = React.useState(false); // sticky focus flag
-
+  const [ioActive, setIoActive] = React.useState(false); // sticky viewport visible
   const sectionRef = React.useRef<HTMLDivElement>(null);
   const stickyRef  = React.useRef<HTMLDivElement>(null);
+  const rowRef     = React.useRef<HTMLDivElement>(null);
 
   // Reduced motion → show all, skip lock
   const [reduced, setReduced] = React.useState(false);
@@ -197,46 +212,42 @@ export default function Education() {
     return () => m.removeEventListener?.("change", cb);
   }, []);
 
-  // IO: engage when sticky viewport is meaningfully visible
+  // IO: sticky frame must be on screen
   React.useEffect(() => {
     const sticky = stickyRef.current;
     if (!sticky) return;
-
     const obs = new IntersectionObserver(
       ([entry]) => setIoActive(entry.isIntersecting && entry.intersectionRatio >= 0.35),
       { root: null, threshold: [0, 0.35, 1] }
     );
-
     obs.observe(sticky);
     return () => obs.disconnect();
   }, []);
 
-  // Fallback: treat sticky as “focused” when it’s pinned at the top and the section spans the viewport
-  const pinnedFallback = React.useCallback(() => {
-    const sec = sectionRef.current;
-    const sticky = stickyRef.current;
-    if (!sec || !sticky) return false;
-    const s = sec.getBoundingClientRect();
-    const vH = window.innerHeight || 1;
-    const stickyTop = sticky.getBoundingClientRect().top;
-    const sectionSpans = s.top <= 0 && s.bottom >= vH;
-    const stickyPinned = Math.round(stickyTop) === 0;
-    return sectionSpans && stickyPinned;
+  // Center-band check: engage only when the ROW is centered (prevents early lock)
+  const rowCentered = React.useCallback(() => {
+    const row = rowRef.current;
+    if (!row) return false;
+    const r = row.getBoundingClientRect();
+    const vh = window.innerHeight || 1;
+    const center = r.top + r.height / 2;
+    // row center must be within 40%..60% band of the viewport
+    return center > vh * 0.4 && center < vh * 0.6;
   }, []);
 
-  // Should lock be active right now?
   const shouldLock = React.useCallback(
-    () => !reduced && (ioActive || pinnedFallback()),
-    [reduced, ioActive, pinnedFallback]
+    () => !reduced && ioActive && rowCentered(),
+    [reduced, ioActive, rowCentered]
   );
 
-  // Install step lock (escapable at both ends; one step per tick)
+  // Step lock (slower pace)
   useStepLock({
     steps: maxStep,
     getStep: () => step,
     setStep: (n) => setStep(n),
     shouldLock,
-    threshold: 56,
+    threshold: 110,      // more delta required per step → slower advance
+    cooldownMs: 200,     // brief cooldown → smoother, slower stepping
   });
 
   // Re-entry behavior so the sequence can play forward/back nicely
@@ -257,7 +268,7 @@ export default function Education() {
 
   return (
     <section id="education" aria-label="Education" className="relative">
-      {/* Shorter runway so page length feels normal */}
+      {/* Normal-length runway; sticky viewport handles the lock window */}
       <div ref={sectionRef} className="relative min-h-[170vh]">
         {/* Sticky frame keeps header + row visible during lock */}
         <div ref={stickyRef} className="sticky top-0 h-screen overflow-hidden">
@@ -283,9 +294,12 @@ export default function Education() {
             )}
           </div>
 
-          {/* Single-row collage: 1 × 4 columns (always below header, both stay in view) */}
+          {/* Single-row collage (1×4) — lowered so it doesn't touch the nodes */}
           <div className="absolute inset-0 z-40 flex items-start justify-center">
-            <div className="mt-[16vh] sm:mt-[18vh] md:mt-[18vh] w-[min(1200px,95vw)]">
+            <div
+              ref={rowRef}
+              className="mt-[22vh] sm:mt-[24vh] md:mt-[26vh] w-[min(1400px,95vw)]"
+            >
               <div className="grid grid-cols-4 gap-4 sm:gap-5">
                 {items.map((edu, i) => (
                   <Tile key={edu.key} idx={i} edu={edu} visible={i < visibleCount} />
