@@ -65,6 +65,7 @@ export default function Experience() {
   const lockRef = useRef<HTMLDivElement | null>(null);
   const subheaderRef = useRef<HTMLDivElement | null>(null);
 
+  // Measure subheader height for spacer & stage geometry
   const [subH, setSubH] = useState(56);
   useEffect(() => {
     const measure = () => {
@@ -76,6 +77,7 @@ export default function Experience() {
     return () => window.removeEventListener("resize", measure);
   }, []);
 
+  // Viewport width for card transforms
   const [vw, setVw] = useState(0);
   useEffect(() => {
     const update = () => setVw(window.innerWidth || 0);
@@ -84,7 +86,7 @@ export default function Experience() {
     return () => window.removeEventListener("resize", update);
   }, []);
 
-  // Fixed header offset — compute on mount + resize only (avoid drift)
+  // Fixed header offset — compute on mount + resize (and clamp)
   const [topOffset, setTopOffset] = useState(0);
   useEffect(() => {
     const computeTopOffset = () => {
@@ -104,7 +106,7 @@ export default function Experience() {
           }
         }
       });
-      setTopOffset(max);
+      setTopOffset(Math.max(0, Math.min(max, 200)));
     };
     computeTopOffset();
     window.addEventListener("resize", computeTopOffset);
@@ -129,7 +131,7 @@ export default function Experience() {
   const [lp, setLp] = useState(0);
   useMotionValueEvent(lockProgress, "change", (v) => setLp(clamp01(v)));
 
-  // Direction-aware lock with tiny hysteresis to avoid boundary jitter
+  // Direction-aware lock with hysteresis (remove boundary jitter)
   const lastYRef = useRef(0);
   const ENTER_EPS = 2;
   const EXIT_EPS_TOP = 0;
@@ -139,16 +141,19 @@ export default function Experience() {
   const [justUnlocked, setJustUnlocked] = useState(false);
   const FADE_MS = 220;
   const fadeTimerRef = useRef<number | null>(null);
-  const [inView, setInView] = useState(false); // NEW: is the section on screen at all?
+
+  // Keep a simple in-view flag to keep bar visible before lock as you scroll into section
+  const [inView, setInView] = useState(false);
 
   useEffect(() => {
     const onScroll = () => {
       const el = lockRef.current;
       if (!el) return;
-
       const r = el.getBoundingClientRect();
       const vh = window.innerHeight;
-      setInView(r.bottom > 0 && r.top < vh); // keep the line visible while the section is on screen
+
+      // in-view logic
+      setInView(r.bottom > 0 && r.top < vh);
 
       const y = window.scrollY || 0;
       const dirDown = y > lastYRef.current;
@@ -221,7 +226,8 @@ export default function Experience() {
     [cardCount]
   );
 
-  // Keep the bar visible whenever the section is on screen (pre-lock + lock).
+  // During lock/fade the bar is fixed at the header offset; spacer preserves layout
+  const fixedBar = isLocked || justUnlocked;
   const barOpacity = (isLocked || inView) ? 1 : 0;
 
   return (
@@ -238,34 +244,42 @@ export default function Experience() {
           ["--sub-shift" as any]: `0px`,
         }}
       >
-        {/* Progress header line — stays visible while section is in view and during lock */}
-        <div
-          ref={subheaderRef}
-          className={styles.subheaderSticky}
-          style={{
-            position: "sticky",
-            top: `${topOffset}px`,
-            left: 0,
-            right: 0,
-            width: "100%",
-            zIndex: 80,                 // ensure above cards
-            opacity: barOpacity,        // visible in view + lock
-            transition: `opacity ${FADE_MS}ms ease`,
-            backfaceVisibility: "hidden",
-            transform: "translateZ(0)",
-          }}
-        >
-          <div className={styles.subheaderRow}>
-            <span className="text-sm opacity-80">
-              <span className="text-[var(--accent,_#7dd3fc)] font-medium">Progress</span> Through Experience
-            </span>
-            <div className={styles.underlineTrack} aria-hidden>
-              <div
-                className={styles.underlineFill}
-                style={{ width: `${Math.max(0, Math.min(1, underlineForRender)) * 100}%` }}
-              />
+        {/* Progress header line (fixed while locked; uses spacer to avoid shift) */}
+        <div className={styles.subheaderWrapper}>
+          <div
+            ref={subheaderRef}
+            className={styles.subheaderSticky}
+            style={{
+              position: fixedBar ? ("fixed" as const) : ("sticky" as const),
+              top: `${topOffset}px`,
+              left: 0,
+              right: 0,
+              width: "100%",
+              zIndex: 200, // above stage/cards
+              opacity: barOpacity,
+              transition: `opacity ${FADE_MS}ms ease`,
+              backfaceVisibility: "hidden",
+              transform: "translateZ(0)",
+            }}
+          >
+            <div className={styles.subheaderRow}>
+              <span className="text-sm opacity-80">
+                <span className="text-[var(--accent,_#7dd3fc)] font-medium">Progress</span> Through Experience
+              </span>
+              <div className={styles.underlineTrack} aria-hidden>
+                <div
+                  className={styles.underlineFill}
+                  style={{ width: `${Math.max(0, Math.min(1, underlineForRender)) * 100}%` }}
+                />
+              </div>
             </div>
           </div>
+          {/* Spacer keeps layout when bar goes fixed */}
+          <div
+            className={styles.subheaderSpacer}
+            style={{ height: `${subH}px`, visibility: "hidden" }}
+            aria-hidden
+          />
         </div>
 
         {/* Stage */}
@@ -344,5 +358,4 @@ export default function Experience() {
     </section>
   );
 }
-
 
