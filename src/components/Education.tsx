@@ -21,7 +21,6 @@ type RawEdu = {
   period?: string;
   href?: string;
 };
-
 type Edu = {
   title: string;
   sub: string;
@@ -39,7 +38,6 @@ function resolveHeroFromTitle(title: string): string {
   if (t.includes("pittsburgh") || t.includes("pitt")) return "/images/pitt.png";
   return "/images/portfolio-basics-avatar.png";
 }
-
 function normalizeEdu(e: RawEdu): Edu {
   const title = (e.institution ?? e.school ?? "").toString();
   const sub = (e.degree ?? e.program ?? "").toString();
@@ -53,7 +51,6 @@ function normalizeEdu(e: RawEdu): Edu {
     key: slugify(title || sub || "edu"),
   };
 }
-
 function getEducationFromProfile(): Edu[] {
   // Use profile.education if present; otherwise fallback to your four
   // @ts-ignore
@@ -67,13 +64,13 @@ function getEducationFromProfile(): Edu[] {
   return raw.map(normalizeEdu).slice(0, 4);
 }
 
-/** Window-level step lock (Education-only via in-view checks) */
+/** Window-level step lock (Education-only via centered in-view checks). */
 function useWindowStepLock(opts: {
-  steps: number; // inclusive: 0..steps
-  threshold?: number;
+  steps: number;                         // inclusive: 0..steps
+  threshold?: number;                    // scroll delta to advance one step
   getStep: () => number;
   onStep: (next: number, dir: 1 | -1) => void;
-  isLockActive: () => boolean;
+  isLockActive: () => boolean;           // whether to intercept at this moment
 }) {
   const { steps, threshold = 60, getStep, onStep, isLockActive } = opts;
   const accRef = useRef(0);
@@ -83,7 +80,7 @@ function useWindowStepLock(opts: {
   useEffect(() => {
     const onWheel = (e: WheelEvent) => {
       if (!isLockActive()) return;
-      e.preventDefault(); // lock page scrolling while active
+      e.preventDefault(); // lock page scroll while animation is active
       const step = getStep();
       accRef.current += e.deltaY;
       if (Math.abs(accRef.current) >= threshold) {
@@ -99,10 +96,9 @@ function useWindowStepLock(opts: {
       touching.current = true;
       lastY.current = e.touches[0]?.clientY ?? 0;
     };
-
     const onTouchMove = (e: TouchEvent) => {
       if (!isLockActive() || !touching.current) return;
-      e.preventDefault();
+      e.preventDefault(); // lock page scroll while animating
       const y = e.touches[0]?.clientY ?? 0;
       const dy = lastY.current - y; // + = scroll down
       lastY.current = y;
@@ -115,12 +111,12 @@ function useWindowStepLock(opts: {
         accRef.current = 0;
       }
     };
-
     const onTouchEnd = () => {
       touching.current = false;
       accRef.current = 0;
     };
 
+    // Non-passive so we can preventDefault()
     window.addEventListener("wheel", onWheel, { passive: false });
     window.addEventListener("touchstart", onTouchStart, { passive: true });
     window.addEventListener("touchmove", onTouchMove, { passive: false });
@@ -150,8 +146,13 @@ function Tile({ idx, edu, visible }: { idx: number; edu: Edu; visible: boolean }
       className="relative overflow-hidden rounded-2xl shadow-lg ring-1 ring-white/10 bg-[#0d131d]"
     >
       <div className="aspect-[3/4] w-full">
+        {/* Remove baseline gap that caused the gray strip under images */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={edu.img} alt={edu.title} className="h-full w-full object-cover" />
+        <img
+          src={edu.img}
+          alt={edu.title}
+          className="block h-full w-full object-cover"
+        />
       </div>
       <figcaption className="p-3 sm:p-4">
         <div className={`text-base sm:text-lg font-semibold ${outfit.className}`}>{edu.title}</div>
@@ -164,14 +165,14 @@ function Tile({ idx, edu, visible }: { idx: number; edu: Edu; visible: boolean }
 
 export default function Education() {
   const items = useMemo(() => getEducationFromProfile(), []);
-  const total = items.length; // should be 4
+  const total = items.length; // expected 4
   const maxStep = total;      // 0..4
 
-  // step: 0..total (0 none visible; 1..total visibleCount)
+  // step: 0..total (0 = none visible; 1..total visible)
   const [step, setStep] = useState(0);
   const [unlocked, setUnlocked] = useState(false);
 
-  const sectionRef = useRef<HTMLDivElement>(null); // tall wrapper
+  const sectionRef = useRef<HTMLDivElement>(null);
 
   // Reduced motion → show full collage; skip lock entirely
   const [reduced, setReduced] = useState(false);
@@ -184,22 +185,21 @@ export default function Education() {
   }, []);
 
   /**
-   * Engage the lock *only* when the section is in the central band.
-   * This makes it escapable at the top/bottom edges, and it mirrors the pattern you liked.
+   * Engage the lock only while the section occupies the middle 60% of viewport.
+   * This guarantees the user can escape at the top/bottom edges.
    */
   const isSectionCentered = () => {
     const el = sectionRef.current;
     if (!el) return false;
     const rect = el.getBoundingClientRect();
     const vh = window.innerHeight || 1;
-    return rect.top < vh * 0.3 && rect.bottom > vh * 0.7;
+    return rect.top < vh * 0.4 && rect.bottom > vh * 0.6;
   };
 
-  /**
-   * Lock is active when:
-   * - not reduced motion
-   * - not globally unlocked
-   * - section centered (prevents trapping)
+  /** Lock active iff:
+   *  - not reduced motion
+   *  - not globally unlocked
+   *  - section centered (prevents trapping near edges)
    */
   const isLockActive = () => !reduced && !unlocked && isSectionCentered();
 
@@ -210,14 +210,14 @@ export default function Education() {
     getStep: () => step,
     isLockActive,
     onStep: (next, dir) => {
-      // Escape rules at both ends:
-      // - if at max and scrolling down → unlock to continue page
+      // ESCAPE RULES — must break lock at both ends on user intent
       if (step === maxStep && dir === 1) {
+        // at end, scrolling down → unlock immediately (same gesture continues)
         setUnlocked(true);
         return;
       }
-      // - if at 0 and scrolling up → unlock to continue page upward
       if (step === 0 && dir === -1) {
+        // at beginning, scrolling up → unlock immediately
         setUnlocked(true);
         return;
       }
@@ -225,9 +225,9 @@ export default function Education() {
     },
   });
 
-  // Relock when the user re-enters from either side:
-  // - From above: reset to 0 so animation can play forward
-  // - From below: keep full (step=maxStep) so it looks complete on scroll-up pass
+  // Re-entry behavior:
+  // - From above (scrolling down): reset to 0 so the animation can play.
+  // - From below (scrolling up): show completed state.
   useEffect(() => {
     const onScroll = () => {
       const el = sectionRef.current;
@@ -235,13 +235,10 @@ export default function Education() {
       const rect = el.getBoundingClientRect();
       const vh = window.innerHeight || 1;
 
-      // If section is far above viewport (we scrolled up past it), prep forward run
       if (rect.top >= vh * 0.98) {
         setUnlocked(false);
         setStep(0);
-      }
-      // If section is far below viewport (we scrolled past it downward), show completed state
-      if (rect.bottom <= vh * 0.02) {
+      } else if (rect.bottom <= vh * 0.02) {
         setUnlocked(false);
         setStep(maxStep);
       }
@@ -254,23 +251,22 @@ export default function Education() {
 
   return (
     <section id="education" aria-label="Education" className="relative">
-      {/* Tall runway so sticky frame has room to lock */}
-      <div ref={sectionRef} className="relative min-h-[440vh]">
-        {/* Sticky/pinned viewport content */}
+      {/* Runway for locking. Keep generous but not excessive so exits feel natural. */}
+      <div ref={sectionRef} className="relative min-h-[420vh]">
+        {/* Sticky frame keeps header & grid in view during the lock */}
         <div className="sticky top-0 h-screen overflow-hidden">
           {/* Pinned header (title + subhead + nodes) */}
-          <div className="absolute left-0 right-0 top-0 z-50 flex flex-col items-center pt-10 sm:pt-12">
-            <h2
-              className={`tracking-tight ${outfit.className}
-                          text-5xl md:text-6xl lg:text-7xl`}
-            >
+          <div className="absolute left-0 right-0 top-0 z-50 flex flex-col items-center pt-8 sm:pt-10">
+            <h2 className={`tracking-tight ${outfit.className} text-5xl md:text-6xl lg:text-7xl`}>
               Education
             </h2>
-            <p className={`mt-3 text-sm sm:text-base md:text-lg opacity-80 ${plus.className}`}>
+            <p className={`mt-2 sm:mt-3 text-sm sm:text-base md:text-lg opacity-80 ${plus.className}`}>
               Four stages of the journey — built one scroll at a time.
             </p>
+
+            {/* Progress nodes (only while locked & animating) */}
             {!reduced && !unlocked && (
-              <div className="mt-4 flex gap-2">
+              <div className="mt-3 flex gap-2">
                 {Array.from({ length: total }).map((_, i) => (
                   <span
                     key={i}
@@ -283,9 +279,10 @@ export default function Education() {
             )}
           </div>
 
-          {/* Collage grid — spaced away from header so they don't touch */}
+          {/* Collage grid — spaced from header so both are visible during lock */}
           <div className="absolute inset-0 z-40 flex items-start justify-center">
-            <div className="mt-[24vh] sm:mt-[26vh] md:mt-[28vh] grid grid-cols-2 gap-3 sm:gap-5 w-[min(1024px,92vw)]">
+            {/* 18–24vh keeps header clearly visible while showing the grid */}
+            <div className="mt-[18vh] sm:mt-[20vh] md:mt-[22vh] grid grid-cols-2 gap-3 sm:gap-5 w-[min(1024px,92vw)]">
               {items.map((edu, i) => (
                 <Tile key={edu.key} idx={i} edu={edu} visible={i < visibleCount} />
               ))}
@@ -314,3 +311,4 @@ export default function Education() {
     </section>
   );
 }
+
