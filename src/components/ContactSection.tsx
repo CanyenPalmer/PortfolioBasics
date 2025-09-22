@@ -67,27 +67,27 @@ export default function ContactSection() {
         <span>DATA • DESIGN • SYSTEMS</span>
       </div>
 
-      {/* ===== FOOTER ECHO — 1/3 • 1/2 • FULL (NO BACKGROUNDS; TIGHT LETTERING + OPACITY) ===== */}
-      <div className="relative h-[520px] md:h-[560px] overflow-hidden">
-        {/* bottom-pinned stack with slight separation */}
-        <div className="pointer-events-none absolute left-1/2 bottom-0 z-10 w-screen -translate-x-1/2 flex flex-col items-center justify-end gap-[0.30em] md:gap-[0.32em] pb-0">
-          {/* Top row — show top 33% */}
-          <div className="echo-row z-[30]">
-            <span className="echo-word echo-cut-33" style={{ opacity: 0.5 }}>
+      {/* ===== FOOTER — full-bleed, stacked, slight overlap (ONLY area changed) ===== */}
+      <div className="relative h-[560px] md:h-[600px] overflow-hidden">
+        {/* bottom-pinned column; we overlap rows via negative margins */}
+        <div className="pointer-events-none absolute left-1/2 bottom-0 z-10 w-screen -translate-x-1/2 flex flex-col items-center justify-end pb-0">
+          {/* Top row — 1/3 visible */}
+          <div className="echo-row echo-row--top">
+            <span className="echo-word echo-wide echo-cut-33" style={{ opacity: 0.5 }}>
               CANYEN PALMER
             </span>
           </div>
 
-          {/* Middle row — show top 50% */}
-          <div className="echo-row z-[20]">
-            <span className="echo-word echo-cut-50" style={{ opacity: 0.75 }}>
+          {/* Middle row — 1/2 visible */}
+          <div className="echo-row echo-row--mid">
+            <span className="echo-word echo-wide echo-cut-50" style={{ opacity: 0.75 }}>
               CANYEN PALMER
             </span>
           </div>
 
           {/* Bottom row — full */}
-          <div className="echo-row z-[10]">
-            <span className="echo-word echo-cut-100" style={{ opacity: 1 }}>
+          <div className="echo-row echo-row--bottom">
+            <span className="echo-word echo-wide echo-cut-100" style={{ opacity: 1 }}>
               CANYEN PALMER
             </span>
           </div>
@@ -95,23 +95,30 @@ export default function ContactSection() {
       </div>
 
       <style jsx>{`
-        /* Big word — tightened letter spacing for denser look */
+        /* Big word — dense, wide, full-bleed */
         .echo-word {
           white-space: nowrap;
           text-transform: uppercase;
           font-weight: 900;
-          letter-spacing: -0.11em;                  /* tighter than before */
+          letter-spacing: -0.12em;                 /* tighter = bigger look per line */
           line-height: 0.86;
           color: #ffffff;
-          font-size: clamp(64px, 10.8vw, 240px);
-          position: relative;
+          font-size: clamp(72px, 12.6vw, 280px);   /* bigger so it reaches wall-to-wall */
           display: inline-block;
           -webkit-font-smoothing: antialiased;
           -moz-osx-font-smoothing: grayscale;
           text-rendering: geometricPrecision;
         }
+        /* Make each word span the viewport and nudge width slightly */
+        .echo-wide {
+          width: 100vw;
+          display: block;
+          text-align: center;
+          transform: scaleX(1.04);                 /* subtle stretch to kiss both walls */
+          transform-origin: center;
+        }
 
-        /* Row container (no background bars now) */
+        /* Row wrappers (handle overlap via negative margins) */
         .echo-row {
           position: relative;
           width: 100vw;
@@ -119,8 +126,12 @@ export default function ContactSection() {
           justify-content: center;
           align-items: center;
         }
+        /* Overlap tuning: middle sits a bit over top; bottom sits a bit over middle */
+        .echo-row--top    { margin-bottom: -0.22em; }
+        .echo-row--mid    { margin-bottom: -0.16em; }
+        .echo-row--bottom { margin-bottom: 0; }
 
-        /* Masks: keep the TOP portion visible (pre-cut) */
+        /* Pre-cuts: keep the TOP portion visible */
         .echo-cut-33 {
           -webkit-mask-image: linear-gradient(to bottom, black 33%, transparent 33%);
           mask-image: linear-gradient(to bottom, black 33%, transparent 33%);
@@ -136,15 +147,15 @@ export default function ContactSection() {
 
         @media (max-width: 768px) {
           .echo-word {
-            font-size: clamp(44px, 12.5vw, 180px);
-            letter-spacing: -0.10em;               /* slightly looser on small screens */
+            font-size: clamp(48px, 13.5vw, 200px);
+            letter-spacing: -0.10em;
             line-height: 0.88;
           }
+          .echo-wide { transform: scaleX(1.02); }
+          .echo-row--top { margin-bottom: -0.18em; }
+          .echo-row--mid { margin-bottom: -0.12em; }
         }
       `}</style>
     </section>
   );
 }
-
-
-
