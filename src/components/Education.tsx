@@ -38,7 +38,6 @@ function resolveHeroFromTitle(title: string): string {
   if (t.includes("pittsburgh") || t.includes("pitt")) return "/images/pitt.png";
   return "/images/portfolio-basics-avatar.png";
 }
-
 function normalizeEdu(e: RawEdu): Edu {
   const title = (e.institution ?? e.school ?? "").toString();
   const sub = (e.degree ?? e.program ?? "").toString();
@@ -52,7 +51,6 @@ function normalizeEdu(e: RawEdu): Edu {
     key: slugify(title || sub || "edu"),
   };
 }
-
 function getEducationFromProfile(): Edu[] {
   // Use profile.education if present; otherwise fallback to your four
   // @ts-ignore
@@ -67,32 +65,30 @@ function getEducationFromProfile(): Edu[] {
 }
 
 /**
- * Local step-scroll controller for Education (0..4 visible tiles).
- * While enabled, it intercepts wheel/touch to provide a smooth local scroll-lock.
+ * Local step-scroll controller, bound to the STICKY FRAME (not the whole section).
+ * - steps = inclusive max step (0..steps)
+ * - While enabled (locked), intercept wheel/touch and advance a single step per threshold.
  */
 function useStepScroll(opts: {
-  steps: number; // inclusive max step (0..steps)
+  steps: number;
   threshold?: number;
   enabled: boolean;
   getStep: () => number;
   onChange: (next: number, dir: 1 | -1) => void;
-  containerRef: React.RefObject<HTMLDivElement>;
+  stickyRef: React.RefObject<HTMLDivElement>;
 }) {
-  const { steps, threshold = 70, enabled, getStep, onChange, containerRef } = opts;
+  const { steps, threshold = 70, enabled, getStep, onChange, stickyRef } = opts;
   const accRef = useRef(0);
   const touching = useRef(false);
   const lastY = useRef(0);
 
   useEffect(() => {
-    const el = containerRef.current;
+    const el = stickyRef.current;
     if (!el || !enabled) return;
 
-    // We want the lock to be rock-solid whenever the sticky frame is onscreen,
-    // so we don't gate on strict "in-view" checks; we simply intercept
-    // events while enabled and inside this section.
     const onWheel = (e: WheelEvent) => {
       if (!enabled) return;
-      e.preventDefault(); // local lock
+      e.preventDefault(); // local lock (only on sticky frame)
       const step = getStep();
       accRef.current += e.deltaY;
       if (Math.abs(accRef.current) >= threshold) {
@@ -111,7 +107,7 @@ function useStepScroll(opts: {
       if (!enabled || !touching.current) return;
       e.preventDefault(); // local lock
       const y = e.touches[0]?.clientY ?? 0;
-      const dy = lastY.current - y; // + = scroll down
+      const dy = lastY.current - y; // + = down
       lastY.current = y;
       const step = getStep();
       accRef.current += dy;
@@ -127,7 +123,6 @@ function useStepScroll(opts: {
       accRef.current = 0;
     };
 
-    // Attach to the sticky frame area so we only influence this section.
     el.addEventListener("wheel", onWheel, { passive: false });
     el.addEventListener("touchstart", onTouchStart, { passive: true });
     el.addEventListener("touchmove", onTouchMove, { passive: false });
@@ -139,19 +134,19 @@ function useStepScroll(opts: {
       el.removeEventListener("touchmove", onTouchMove as any);
       el.removeEventListener("touchend", onTouchEnd as any);
     };
-  }, [enabled, steps, threshold, getStep, onChange, containerRef]);
+  }, [enabled, steps, threshold, getStep, onChange, stickyRef]);
 }
 
 // Single tile (one education panel)
-function Tile({ idx, edu, active }: { idx: number; edu: Edu; active: boolean }) {
+function Tile({ idx, edu, visible }: { idx: number; edu: Edu; visible: boolean }) {
   return (
     <motion.figure
-      initial={{ opacity: 0, y: 40, x: idx % 2 ? 10 : -10, scale: 0.985 }}
+      initial={{ opacity: 0, y: 40, x: idx % 2 ? 12 : -12, scale: 0.985 }}
       animate={{
-        opacity: active ? 1 : 0,
-        y: active ? 0 : 40,
-        x: active ? 0 : idx % 2 ? 10 : -10,
-        scale: active ? 1 : 0.985,
+        opacity: visible ? 1 : 0,
+        y: visible ? 0 : 40,
+        x: visible ? 0 : idx % 2 ? 12 : -12,
+        scale: visible ? 1 : 0.985,
       }}
       transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
       className="relative overflow-hidden rounded-2xl shadow-lg ring-1 ring-white/10 bg-[#0d131d]"
@@ -171,11 +166,15 @@ function Tile({ idx, edu, active }: { idx: number; edu: Edu; active: boolean }) 
 
 export default function Education() {
   const items = useMemo(() => getEducationFromProfile(), []);
-  // Start at 1 so the user immediately sees the first tile (avoids "invisible" feel)
-  const [step, setStep] = useState(1); // 0..4
+  /**
+   * step: 0..4  (0 = none visible; 1..4 = how many tiles are visible)
+   * We start at 0 so the first down-scroll reveals tile #1 — prevents any tile feeling "stuck".
+   */
+  const [step, setStep] = useState(0);
   const [unlocked, setUnlocked] = useState(false);
 
-  const containerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null); // tall wrapper
+  const stickyRef = useRef<HTMLDivElement>(null); // pinned viewport (events bound here)
 
   // Relock when re-entering from above
   useEffect(() => {
@@ -184,9 +183,10 @@ export default function Education() {
       if (!el) return;
       const rect = el.getBoundingClientRect();
       const vh = window.innerHeight || 1;
-      if (rect.top >= vh * 0.95) {
+      // If the whole section is above the viewport, reset for a fresh entry
+      if (rect.top >= vh * 0.98) {
         setUnlocked(false);
-        setStep(1);
+        setStep(0);
       }
     };
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -203,16 +203,19 @@ export default function Education() {
     return () => m.removeEventListener?.("change", fn);
   }, []);
 
-  // Local step-lock behavior (education only)
+  // Determine if we should lock: section is on screen, not reduced, not unlocked.
+  const lockEnabled = !reduced && !unlocked;
+
+  // Local step-lock behavior (education only; bound to sticky frame)
   useStepScroll({
     steps: 4,
     threshold: 70,
-    enabled: !unlocked && !reduced,
+    enabled: lockEnabled,
     getStep: () => step,
-    containerRef,
+    stickyRef,
     onChange: (next, dir) => {
+      // Unlock rule: when step is 4 (all tiles visible), one more down-scroll unlocks
       if (step === 4 && dir === 1) {
-        // one extra down after all 4 → unlock and let the page continue
         setUnlocked(true);
         return;
       }
@@ -220,15 +223,16 @@ export default function Education() {
     },
   });
 
+  // How many tiles to show
   const visibleCount = reduced || unlocked ? 4 : step;
 
   return (
     <section id="education" aria-label="Education" className="relative">
       {/* Tall wrapper gives vertical runway for the sticky frame */}
       <div ref={containerRef} className="relative min-h-[450vh]">
-        {/* Sticky frame: pins content while we step through tiles */}
-        <div className="sticky top-0 h-screen overflow-hidden">
-          {/* Pinned header */}
+        {/* Sticky lock frame — this is what stays pinned during the sequence */}
+        <div ref={stickyRef} className="sticky top-0 h-screen overflow-hidden">
+          {/* Pinned header (title + subhead + nodes) */}
           <div className="absolute left-0 right-0 top-0 z-20 flex flex-col items-center pt-10 sm:pt-12">
             <h2
               className={`tracking-tight ${outfit.className}
@@ -253,11 +257,11 @@ export default function Education() {
             )}
           </div>
 
-          {/* Collage grid (centered) */}
+          {/* Collage grid (centered; tiles animate 1-by-1) */}
           <div className="absolute inset-0 z-10 flex items-center justify-center">
             <div className="mt-24 sm:mt-28 md:mt-32 grid grid-cols-2 gap-3 sm:gap-5 w-[min(1024px,92vw)]">
               {items.map((edu, i) => (
-                <Tile key={edu.key} idx={i} edu={edu} active={i < visibleCount} />
+                <Tile key={edu.key} idx={i} edu={edu} visible={i < visibleCount} />
               ))}
             </div>
           </div>
@@ -284,4 +288,5 @@ export default function Education() {
     </section>
   );
 }
+
 
