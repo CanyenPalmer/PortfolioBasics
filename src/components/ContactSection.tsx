@@ -109,7 +109,7 @@ export default function ContactSection() {
         <span>DATA • DESIGN • SYSTEMS</span>
       </div>
 
-      {/* ===== FOOTER ECHO — pre-cut (1/3, 1/2, full) + character-based stacking ===== */}
+      {/* ===== FOOTER ECHO — pre-cut (1/3, 1/2, full) + slight gaps between rows ===== */}
       <div className="relative h-[420px] overflow-hidden">
         {/* Full-bleed depth planes (solid, darker each row) */}
         <div className="pointer-events-none absolute left-1/2 bottom-0 z-0 h-[400px] w-screen -translate-x-1/2">
@@ -118,23 +118,21 @@ export default function ContactSection() {
           <div className="absolute inset-x-0 bottom-0 h-[50%] bg-[#070b10] z-[3]" />
         </div>
 
-        {/* Pre-cut rows; stacked by glyph height so spacing aligns at the cuts */}
+        {/* Pre-cut rows; spacing by glyph height with a subtle gap */}
         <div className="pointer-events-none absolute left-1/2 bottom-0 z-10 h-[400px] w-screen -translate-x-1/2">
-          {/* 1) Top line: 1/3 visible (pre-cut), sits highest */}
+          {/* Top: 1/3 visible */}
           <div className="echo-layer echo-top" aria-hidden="true">
             <span className="echo-word echo-cut-33 echo-bar--light" style={{ opacity: 0.5 }}>
               CANYEN PALMER
             </span>
           </div>
-
-          {/* 2) Middle line: 1/2 visible (pre-cut), stacked under the 1/2 cut */}
+          {/* Middle: 1/2 visible */}
           <div className="echo-layer echo-mid" aria-hidden="true">
             <span className="echo-word echo-cut-50 echo-bar--mid" style={{ opacity: 0.75 }}>
               CANYEN PALMER
             </span>
           </div>
-
-          {/* 3) Bottom line: full word, stacked under the 1/3 cut (touches bottom wall) */}
+          {/* Bottom: full */}
           <div className="echo-layer echo-bottom">
             <span className="echo-word echo-cut-100 echo-bar--dark" style={{ opacity: 1 }}>
               CANYEN PALMER
@@ -150,9 +148,9 @@ export default function ContactSection() {
           text-transform: uppercase;
           font-weight: 900;
           letter-spacing: -0.09em;
-          line-height: 0.86;                       /* tight vertical rhythm */
+          line-height: 0.86;
           color: #ffffff;
-          font-size: clamp(64px, 10.8vw, 240px);   /* full-bleed width */
+          font-size: clamp(64px, 10.8vw, 240px);
           position: relative;
           display: inline-block;
           -webkit-font-smoothing: antialiased;
@@ -172,11 +170,11 @@ export default function ContactSection() {
           z-index: -1;
           background: #0b0f14;
         }
-        .echo-bar--light::before { background: #0c1117; }  /* lightest */
-        .echo-bar--mid::before   { background: #0a0e14; }  /* darker  */
-        .echo-bar--dark::before  { background: #080b10; }  /* darkest */
+        .echo-bar--light::before { background: #0c1117; }
+        .echo-bar--mid::before   { background: #0a0e14; }
+        .echo-bar--dark::before  { background: #080b10; }
 
-        /* Layers: positioned by character height so spacing keys to glyphs */
+        /* Layer positioning — add a slight gap between rows */
         .echo-layer {
           position: absolute;
           left: 50%;
@@ -186,12 +184,11 @@ export default function ContactSection() {
           justify-content: center;
           z-index: 1;
         }
-        /* Stacking order & offsets (top highest, then middle, then bottom touching the wall) */
-        .echo-top    { bottom: 2.2em; z-index: 3; }  /* sits above the others */
-        .echo-mid    { bottom: 1.1em; z-index: 2; }  /* sits between           */
-        .echo-bottom { bottom: 0;     z-index: 1; }  /* base line at wall      */
+        .echo-top    { bottom: 2.35em; z-index: 3; } /* +0.15em gap vs previous */
+        .echo-mid    { bottom: 1.18em; z-index: 2; } /* +0.08em gap */
+        .echo-bottom { bottom: 0;     z-index: 1; }
 
-        /* PRE-CUT visibility — keep TOP portion, trim BOTTOM */
+        /* Pre-cuts: keep TOP portion, trim BOTTOM */
         .echo-cut-33 {
           -webkit-mask-image: linear-gradient(to bottom, black 33%, transparent 33%);
           mask-image: linear-gradient(to bottom, black 33%, transparent 33%);
@@ -207,10 +204,11 @@ export default function ContactSection() {
 
         @media (max-width: 768px) {
           .echo-word { font-size: clamp(44px, 12.5vw, 180px); letter-spacing: -0.085em; line-height: 0.88; }
-          .echo-top { bottom: 2.0em; }
-          .echo-mid { bottom: 1.0em; }
+          .echo-top { bottom: 2.2em; }
+          .echo-mid { bottom: 1.1em; }
         }
       `}</style>
     </section>
   );
 }
+
