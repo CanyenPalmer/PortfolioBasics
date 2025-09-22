@@ -1,5 +1,11 @@
 # My Caddy: Physics-Based Golf Shot Calculator
 
+[![Live on Render](https://img.shields.io/badge/Render-Live%20Demo-46E3B7?logo=render&logoColor=white)](https://mycaddy.onrender.com)
+![GitHub last commit](https://img.shields.io/github/last-commit/CanyenPalmer/MyCaddy)
+![GitHub repo size](https://img.shields.io/github/repo-size/CanyenPalmer/MyCaddy)
+![Top language](https://img.shields.io/github/languages/top/CanyenPalmer/MyCaddy)
+![Language count](https://img.shields.io/github/languages/count/CanyenPalmer/MyCaddy)
+
 **Author:** Palmer Projects  
 **License:** © Palmer Projects. All rights reserved.
 
@@ -39,12 +45,12 @@ My Caddy addresses the variability in golf shot distances caused by environmenta
 
 ## Technology Stack
 
-- **Python 3**
-- **tkinter** (for GUI)
-- **Custom Mathematical Functions**:
-  - Drag-based adjustments
-  - Altitude/temperature corrections
-  - Wind impact modeling
+- **Python 3**  
+- **tkinter** (for GUI)  
+- **Custom Mathematical Functions**:  
+  - Drag-based adjustments  
+  - Altitude/temperature corrections  
+  - Wind impact modeling  
 
 ---
 
@@ -52,9 +58,9 @@ My Caddy addresses the variability in golf shot distances caused by environmenta
 
 This app supports a wide range of golfers:
 
-- **Beginners**: Learn how environmental conditions influence club distances.
-- **Amateurs**: Enhance course management and reduce guesswork.
-- **Professionals**: Simulate tournament prep with precise conditional modeling.
+- **Beginners**: Learn how environmental conditions influence club distances.  
+- **Amateurs**: Enhance course management and reduce guesswork.  
+- **Professionals**: Simulate tournament prep with precise conditional modeling.  
 
 ---
 
@@ -62,10 +68,9 @@ This app supports a wide range of golfers:
 
 ### Running the demo
 
-- Open the live link below and enter the required data
-- Run the data and view the results
+- Open the live link below and enter the required data  
+- Run the data and view the results  
 
 ### Visit the live demo
 
-```bash
-https://mycaddy.onrender.com
+👉 [**MyCaddy Live Demo**](https://mycaddy.onrender.com)
