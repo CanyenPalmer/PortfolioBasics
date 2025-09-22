@@ -1,56 +1,37 @@
+// src/components/Education.tsx
 "use client";
 
 import * as React from "react";
-import TransitionLink from "@/components/TransitionLink";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Playfair_Display, Outfit, Plus_Jakarta_Sans } from "next/font/google";
 import { profile } from "@/content/profile";
 import { slugify } from "@/lib/slug";
-import { Playfair_Display, Outfit, Plus_Jakarta_Sans } from "next/font/google";
 
-const playfair = Playfair_Display({
-  subsets: ["latin"],
-  weight: ["400", "700", "900"],
-});
-const outfit = Outfit({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-});
-const plusJakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  weight: ["200", "300", "400", "500"], // for light style
-});
+const playfair = Playfair_Display({ subsets: ["latin"], weight: ["400", "700", "900"] });
+const outfit = Outfit({ subsets: ["latin"], weight: ["400", "500", "600"] });
+const plus = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["400", "500", "600"] });
 
-type RawEdu = {
+// --- Types ---
+interface RawEdu {
   institution?: string;
   school?: string;
-  degree?: string;
   program?: string;
+  degree?: string;
   years?: string;
   period?: string;
-  location?: string;
-  summary?: string;
-  description?: string;
-  coursework?: string[];
-  highlights?: string[];
-  links?: { label: string; href: string }[];
-  hero?: { src: string; alt: string };
-  logo?: { src: string; alt: string };
-};
-
-type Edu = {
-  title: string;     // Institution / School
-  sub: string;       // Degree / Program
+  href?: string;
+}
+interface Edu {
+  title: string;
+  sub: string;
   years?: string;
-  location?: string;
-  summary?: string;
-  description?: string;
-  coursework?: string[];
-  highlights?: string[];
-  links?: { label: string; href: string }[];
-  heroSrc: string;   // resolved from provided hero or filename mapping
-  heroAlt: string;
-  slug: string;      // slugify(title + sub)
-};
+  href?: string;
+  img: string;
+  key: string;
+}
 
+// --- Helpers ---
 function resolveHeroFromTitle(title: string): string {
   const t = title.toLowerCase();
   if (t.includes("ball state")) return "/images/ball-state.png";
@@ -64,180 +45,257 @@ function normalizeEdu(e: RawEdu): Edu {
   const title = (e.institution ?? e.school ?? "").toString();
   const sub = (e.degree ?? e.program ?? "").toString();
   const years = (e.years ?? e.period)?.toString();
-  const heroSrc = e.hero?.src ?? resolveHeroFromTitle(title);
-  const heroAlt =
-    e.hero?.alt ?? (title && sub ? `${title} — ${sub}` : title || "Education");
-
-  return {
-    title,
-    sub,
-    years,
-    location: e.location,
-    summary: e.summary ?? e.description,
-    description: e.description ?? e.summary,
-    coursework: Array.isArray(e.coursework) ? e.coursework : undefined,
-    highlights: Array.isArray(e.highlights) ? e.highlights : undefined,
-    links: Array.isArray(e.links) ? e.links : undefined,
-    heroSrc,
-    heroAlt,
-    slug: slugify(`${title} ${sub}`),
-  };
+  const img = resolveHeroFromTitle(title);
+  return { title, sub, years, href: e.href, img, key: slugify(title || sub || "edu") };
 }
 
-/** Section header: Oversized serif wordmark + underline + subheader */
-function EducationHeader() {
-  return (
-    <div className="mb-12 md:mb-16">
-      <div className={`${playfair.className} leading-none tracking-tight`}>
-        <h2 className="text-[12vw] sm:text-7xl md:text-8xl lg:text-9xl font-bold">
-          EDUCATION
-        </h2>
-      </div>
-      <div className="mt-2 h-[2px] w-full bg-white/20" />
-      <div className={`${outfit.className} mt-3 text-sm md:text-base text-white/85`}>
-        Diplomas • Degrees • Certifications
-      </div>
-    </div>
-  );
+function getEducationFromProfile(): Edu[] {
+  // No edits to profile.tsx; best-effort extraction with a fallback list.
+  // @ts-ignore – profile may or may not have an `education` array
+  const rawList: RawEdu[] =
+    (profile?.education as any) || [
+      { institution: "Ball State University", degree: "B.S. (Honors) – Applied Mathematics", years: "2018 – 2022", href: "https://bsu.edu" },
+      { institution: "Google (Coursera)", degree: "Google Data Analytics Professional Certificate", years: "2023", href: "https://grow.google/certificates/data-analytics/" },
+      { institution: "Greenfield-Central High School", degree: "Academic Honors Diploma", years: "2014 – 2018" },
+      { institution: "University of Pittsburgh", degree: "Master of Data Science (In Progress)", years: "2024 – Present", href: "https://www.pitt.edu/" },
+    ];
+  return rawList.map(normalizeEdu).slice(0, 4);
 }
 
-/** Single tall tower with hover-pan image that follows the cursor. */
-function Tower({
-  idx,
-  edu,
-}: {
-  idx: number;
-  edu: Edu;
+// --- Step Scroll Controller (local lock) ---
+function useStepScroll(opts: {
+  steps: number; // number of visual positions (0..steps)
+  threshold?: number; // wheel/touch delta per step
+  enabled: boolean;
+  onChange: (next: number, dir: 1 | -1) => void;
+  getStep: () => number;
+  containerRef: React.RefObject<HTMLDivElement>;
 }) {
-  const imgRef = React.useRef<HTMLImageElement | null>(null);
-  const frameRef = React.useRef<number | null>(null);
+  const { steps, threshold = 80, enabled, onChange, getStep, containerRef } = opts;
+  const accRef = useRef(0);
+  const touching = useRef(false);
+  const lastY = useRef(0);
 
-  const onMouseMove = (e: React.MouseEvent) => {
-    const el = e.currentTarget as HTMLDivElement;
-    const rect = el.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width;  // 0..1
-    const y = (e.clientY - rect.top) / rect.height;  // 0..1
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || !enabled) return;
 
-    // Translate image subtly toward the cursor (max ~8px)
-    const max = 8;
-    const tx = (x - 0.5) * max * 2;
-    const ty = (y - 0.5) * max * 2;
+    const onWheel = (e: WheelEvent) => {
+      // Only intercept when the section is centered enough in the viewport
+      const rect = el.getBoundingClientRect();
+      const vh = window.innerHeight || 1;
+      const inView = rect.top < vh * 0.3 && rect.bottom > vh * 0.7;
+      const step = getStep();
+      if (!inView) return;
 
-    if (frameRef.current) cancelAnimationFrame(frameRef.current);
-    frameRef.current = requestAnimationFrame(() => {
-      if (imgRef.current) {
-        imgRef.current.style.transform = `scale(1.05) translate(${tx.toFixed(
-          1
-        )}px, ${ty.toFixed(1)}px)`;
+      const maxStep = steps; // inclusive (0..steps)
+      const atBoundsDown = step >= maxStep;
+      const atBoundsUp = step <= 0;
+
+      // Lock while not at bounds
+      if (!atBoundsDown || !atBoundsUp) {
+        e.preventDefault();
       }
-    });
-  };
 
-  const onMouseLeave = () => {
-    if (frameRef.current) cancelAnimationFrame(frameRef.current);
-    if (imgRef.current) {
-      imgRef.current.style.transform = "scale(1.02) translate(0px, 0px)";
-    }
-  };
+      accRef.current += e.deltaY;
+      if (Math.abs(accRef.current) >= threshold) {
+        const dir: 1 | -1 = accRef.current > 0 ? 1 : -1;
+        const next = Math.max(0, Math.min(maxStep, step + dir));
+        if (next !== step) onChange(next, dir);
+        accRef.current = 0;
+      }
+    };
 
+    const onTouchStart = (e: TouchEvent) => {
+      touching.current = true;
+      lastY.current = e.touches[0]?.clientY ?? 0;
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      if (!touching.current) return;
+      const y = e.touches[0]?.clientY ?? 0;
+      const dy = lastY.current - y; // positive = swipe up (scroll down)
+      lastY.current = y;
+
+      const rect = el.getBoundingClientRect();
+      const vh = window.innerHeight || 1;
+      const inView = rect.top < vh * 0.3 && rect.bottom > vh * 0.7;
+      const step = getStep();
+      if (!inView) return;
+
+      const maxStep = steps;
+      const atBoundsDown = step >= maxStep;
+      const atBoundsUp = step <= 0;
+      if (!atBoundsDown || !atBoundsUp) {
+        e.preventDefault();
+      }
+
+      accRef.current += dy;
+      if (Math.abs(accRef.current) >= threshold) {
+        const dir: 1 | -1 = accRef.current > 0 ? 1 : -1;
+        const next = Math.max(0, Math.min(maxStep, step + dir));
+        if (next !== step) onChange(next, dir);
+        accRef.current = 0;
+      }
+    };
+    const onTouchEnd = () => {
+      touching.current = false;
+      accRef.current = 0;
+    };
+
+    el.addEventListener("wheel", onWheel, { passive: false });
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    el.addEventListener("touchend", onTouchEnd, { passive: true });
+
+    return () => {
+      el.removeEventListener("wheel", onWheel as any);
+      el.removeEventListener("touchstart", onTouchStart as any);
+      el.removeEventListener("touchmove", onTouchMove as any);
+      el.removeEventListener("touchend", onTouchEnd as any);
+    };
+  }, [enabled, threshold, steps, onChange, getStep, containerRef]);
+}
+
+// --- Presentational Tower ---
+function Tower({ idx, edu, active }: { idx: number; edu: Edu; active: boolean }) {
   return (
-    <TransitionLink
-      href={`/education/${edu.slug}?via=education`}
-      className="group block focus:outline-none focus:ring-2 focus:ring-white/40 focus:ring-offset-2 focus:ring-offset-transparent"
-      onClick={() => {
-        if (typeof window !== "undefined") {
-          window.sessionStorage.setItem("cameFromEducation", "1");
-        }
+    <motion.figure
+      initial={{ opacity: 0, y: 36, x: idx % 2 ? 10 : -10, scale: 0.985 }}
+      animate={{
+        opacity: active ? 1 : 0,
+        y: active ? 0 : 36,
+        x: active ? 0 : idx % 2 ? 10 : -10,
+        scale: active ? 1 : 0.985,
       }}
-      aria-label={`(${idx + 1}) ${edu.title}${edu.sub ? ` — ${edu.sub}` : ""}`}
+      transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
+      className="relative overflow-hidden rounded-2xl shadow-lg ring-1 ring-white/10 bg-[#0d131d]"
     >
-      <div
-        className="relative w-full overflow-hidden"
-        style={{ aspectRatio: "3 / 5" }} // tall tower
-        onMouseMove={onMouseMove}
-        onMouseLeave={onMouseLeave}
-      >
-        {/* Image (full bleed) */}
-        <img
-          ref={imgRef}
-          src={edu.heroSrc}
-          alt={edu.heroAlt}
-          loading="lazy"
-          decoding="async"
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 ease-out will-change-transform"
-          style={{ transform: "scale(1.02)" }}
-        />
-
-        {/* Top-left number (plain text) */}
-        <div className="absolute left-3 top-3 text-sm md:text-base font-medium text-white/80 drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)]">
-          ({idx + 1})
-        </div>
-
-        {/* Bottom gradient for text legibility */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 to-transparent" />
-
-        {/* Caption at bottom-left */}
-        <div className="absolute left-4 bottom-3 right-4">
-          <div className="text-sm md:text-base font-semibold leading-tight">
-            {edu.title}
-          </div>
-          {edu.sub ? (
-            <div className="text-xs md:text-sm text-white/80 leading-tight">
-              {edu.sub}
-            </div>
-          ) : null}
-          {edu.years ? (
-            <div className="text-[11px] md:text-xs text-white/60 leading-tight">
-              {edu.years}
-            </div>
-          ) : null}
-        </div>
+      <div className="aspect-[3/4] w-full">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={edu.img} alt={edu.title} className="h-full w-full object-cover" />
       </div>
-    </TransitionLink>
+      <figcaption className="p-3 sm:p-4">
+        <div className={`text-base sm:text-lg font-semibold ${playfair.className}`}>{edu.title}</div>
+        <div className={`text-xs sm:text-sm opacity-80 ${plus.className}`}>{edu.sub}</div>
+        {edu.years && <div className="text-xs mt-1 opacity-60">{edu.years}</div>}
+      </figcaption>
+      <motion.div
+        className="pointer-events-none absolute inset-0 ring-2 ring-cyan-400/0 rounded-2xl"
+        initial={false}
+        transition={{ duration: 0.1 }}
+      />
+    </motion.figure>
   );
 }
 
+// --- Main ---
 export default function Education() {
-  const raw = ((profile as any)?.education ?? []) as RawEdu[];
-  const items: Edu[] = React.useMemo(() => raw.map(normalizeEdu), [raw]);
+  const items = useMemo(() => getEducationFromProfile(), []);
+  const [step, setStep] = useState(0); // 0..4  (0 = none visible)
+  const [unlocked, setUnlocked] = useState(false);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const lockRef = useRef<HTMLDivElement>(null);
+
+  // Enable the step controller until we fully unlock
+  useStepScroll({
+    steps: 4,
+    threshold: 80,
+    enabled: !unlocked,
+    getStep: () => step,
+    containerRef,
+    onChange: (next, dir) => {
+      // Unlock rule: at step 4, one more down step triggers unlock
+      if (step === 4 && dir === 1) {
+        setUnlocked(true);
+        return;
+      }
+      setStep(next);
+    },
+  });
+
+  // When we enter the section from above, relock at step 0
+  useEffect(() => {
+    const onScroll = () => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const vh = window.innerHeight || 1;
+      // If we scrolled back up and the section re-enters viewport top, relock
+      if (rect.top >= vh * 0.9) {
+        setUnlocked(false);
+        setStep(0);
+      }
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // If prefers-reduced-motion: render full collage, no lock
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    const m = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReduced(m.matches);
+    const onChange = () => setReduced(m.matches);
+    m.addEventListener?.("change", onChange);
+    return () => m.removeEventListener?.("change", onChange);
+  }, []);
+
+  const visibleCount = reduced || unlocked ? 4 : step; // how many columns to show
 
   return (
-    <section
-      id="education"
-      className="relative py-20 bg-[#0d131d] text-white overflow-x-hidden"
-      aria-label="Education"
-    >
-      <div className="max-w-6xl mx-auto px-6">
-        {/* Header — unchanged */}
-        <EducationHeader />
-
-        {/* Wrapper lets us position the blurb without shrinking the collection */}
-        <div className="relative">
-          {/* Blurb: top-left at lg+, does NOT consume grid width */}
-          <div className="hidden lg:block absolute left-0 top-0 w-[20%] -ml-4">
-            <p
-              className={`${plusJakarta.className} text-lg sm:text-xl font-light text-gray-400 tracking-wide lowercase max-w-md`}
-            >
-              My educational journey reflects a mix of foundational trainings, professional certifications, and advanced graduate studies
-            </p>
-          </div>
-
-          {/* Collection: full original size; shifted right visually at lg+ */}
-          <div className="transform lg:translate-x-[22%] will-change-transform">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-0 overflow-hidden">
-              {items.map((edu, i) => (
-                <div
-                  key={`${edu.slug}-${i}`}
-                  className="bg-white/5 relative"
-                >
-                  <Tower idx={i} edu={edu} />
+    <section id="education" aria-label="Education" className="relative">
+      <div ref={containerRef} className="relative">
+        {/* Sticky lock frame */}
+        <div ref={lockRef} className="sticky top-0 min-h-screen">
+          <div className="relative h-screen overflow-hidden">
+            {/* Title + Subheader */}
+            <div className="pointer-events-none absolute left-0 right-0 top-0 flex flex-col items-center pt-16 sm:pt-20">
+              <h2 className={`text-4xl sm:text-5xl tracking-tight ${playfair.className}`}>Education</h2>
+              <p className={`mt-2 text-sm sm:text-base opacity-80 ${plus.className}`}>
+                Four stages of the journey — built one scroll at a time.
+              </p>
+              {/* Progress dots during lock */}
+              {!reduced && !unlocked && (
+                <div className="mt-3 flex gap-2">
+                  {[0, 1, 2, 3].map((i) => (
+                    <span
+                      key={i}
+                      className={`h-1.5 w-6 rounded-full ${
+                        i < Math.min(visibleCount, 4) ? "bg-cyan-400" : "bg-white/20"
+                      }`}
+                    />
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
-          </div>
 
-          {/* Optional right spacer look at lg+ (visual 1/5), not consuming width */}
-          <div className="hidden lg:block absolute right-0 top-0 w-[20%] h-px" />
+            {/* Collage grid */}
+            <div className="absolute inset-0 mt-24 sm:mt-28 flex items-center justify-center">
+              <div className="grid grid-cols-2 gap-3 sm:gap-5 w-[min(1024px,92vw)]">
+                {items.map((edu, i) => (
+                  <Tower key={edu.key} idx={i} edu={edu} active={i < visibleCount} />
+                ))}
+              </div>
+            </div>
+
+            {/* Gentle settle glow when all four are in */}
+            <AnimatePresence>
+              {visibleCount >= 4 && !unlocked && (
+                <motion.div
+                  key="settle-glow"
+                  className="absolute inset-0"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 0.15 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.25 }}
+                  style={{
+                    background:
+                      "radial-gradient(60% 40% at 50% 50%, rgba(0,255,255,0.15), rgba(0,0,0,0))",
+                  }}
+                />
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
     </section>
