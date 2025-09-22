@@ -109,7 +109,7 @@ export default function ContactSection() {
         <span>DATA • DESIGN • SYSTEMS</span>
       </div>
 
-      {/* ===== ECHO STACK — full-bleed bars, ultra-tight spacing, all 3 visible ===== */}
+      {/* ===== ECHO STACK — full-bleed, tight, all 3 visible ===== */}
       <div className="relative h-[360px] overflow-hidden">
         {/* Full-bleed background planes for depth (hit both walls) */}
         <div className="pointer-events-none absolute left-1/2 bottom-0 z-0 h-[340px] w-screen -translate-x-1/2">
@@ -120,14 +120,14 @@ export default function ContactSection() {
 
         {/* Text rows + per-line solid bars (also full-bleed) */}
         <div className="pointer-events-none absolute left-1/2 bottom-0 z-10 h-[340px] w-screen -translate-x-1/2">
-          {/* Top line (33% reveal, 50% opacity) — very tight to the next row */}
-          <div className="absolute bottom-[96px] w-full flex justify-center">
+          {/* Top line (33% reveal, 50% opacity) — spaced to end just above the middle cut */}
+          <div className="absolute bottom-[108px] w-full flex justify-center">
             <span className="echo-word echo-clip-top-33 echo-bar--light" style={{ opacity: 0.5 }}>
               CANYEN PALMER
             </span>
           </div>
-          {/* Middle line (50% reveal, 75% opacity) */}
-          <div className="absolute bottom-[32px] w-full flex justify-center">
+          {/* Middle line (50% reveal, 75% opacity) — spaced to end just above the bottom cut */}
+          <div className="absolute bottom-[40px] w-full flex justify-center">
             <span className="echo-word echo-clip-top-50 echo-bar--mid" style={{ opacity: 0.75 }}>
               CANYEN PALMER
             </span>
@@ -147,8 +147,8 @@ export default function ContactSection() {
           white-space: nowrap;
           text-transform: uppercase;
           font-weight: 900;
-          letter-spacing: -0.095em;            /* tighter tracking to “lock” glyphs */
-          line-height: 0.84;                   /* tighter vertical rhythm */
+          letter-spacing: -0.095em;           /* tight tracking */
+          line-height: 0.84;                   /* tight vertical rhythm */
           color: #ffffff;
           font-size: clamp(64px, 10.8vw, 240px); /* full-bleed width */
           position: relative;
@@ -169,7 +169,7 @@ export default function ContactSection() {
           transform: translate(-50%, -50%);
           left: 50%;
           width: 100vw;                        /* hit both walls */
-          height: 1.05em;                      /* slimmer bar so letters remain visible */
+          height: 1.05em;                      /* slimmer so letters remain visible */
           z-index: -1;
           background: #0b0f14;                 /* base shade; overridden per row below */
         }
@@ -177,7 +177,7 @@ export default function ContactSection() {
         .echo-bar--mid::before   { background: #0a0e14; }  /* darker  */
         .echo-bar--dark::before  { background: #080b10; }  /* darkest */
 
-        /* Reveal TOP portion, trim BOTTOM, so lower line “cuts” the one above */
+        /* Reveal TOP portion, trim BOTTOM (so lower line “cuts” above) */
         .echo-clip-top-33 {
           -webkit-mask-image: linear-gradient(to bottom, black 33%, transparent 33%);
           mask-image: linear-gradient(to bottom, black 33%, transparent 33%);
