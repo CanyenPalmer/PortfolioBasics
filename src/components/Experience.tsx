@@ -138,12 +138,17 @@ export default function Experience() {
   const EXIT_EPS_BOTTOM = 2;
 
   const [isLocked, setIsLocked] = useState(false);
+  const [hasLocked, setHasLocked] = useState(false);
+  const [unlockDirDown, setUnlockDirDown] = useState(true);
   const [justUnlocked, setJustUnlocked] = useState(false);
   const FADE_MS = 220;
   const fadeTimerRef = useRef<number | null>(null);
 
   // Keep a simple in-view flag to keep bar visible before lock as you scroll into section
   const [inView, setInView] = useState(false);
+
+  // Scroll-driven fade after the last card (downward exit)
+  const [downFade, setDownFade] = useState(1);
 
   useEffect(() => {
     const onScroll = () => {
@@ -160,6 +165,7 @@ export default function Experience() {
       lastYRef.current = y;
 
       if (!isLocked) {
+        // ENTER when the window fully spans the viewport (with tiny tolerance)
         const enter = r.top <= ENTER_EPS && r.bottom >= vh - ENTER_EPS;
         if (enter) {
           if (fadeTimerRef.current) {
@@ -168,19 +174,38 @@ export default function Experience() {
           }
           setJustUnlocked(false);
           setIsLocked(true);
+          setHasLocked(true);
+          setUnlockDirDown(true);
+          return;
         }
       } else {
-        const stillCovers =
-          r.top <= EXIT_EPS_TOP && r.bottom >= vh - EXIT_EPS_BOTTOM;
+        // EXIT sooner when going up; hold a hair longer at the bottom when going down
+        const stillCovers = r.top <= EXIT_EPS_TOP && r.bottom >= vh - EXIT_EPS_BOTTOM;
         if (!stillCovers) {
           setIsLocked(false);
-          setJustUnlocked(true);
-          if (fadeTimerRef.current) window.clearTimeout(fadeTimerRef.current);
-          fadeTimerRef.current = window.setTimeout(() => {
+          setUnlockDirDown(dirDown);
+
+          if (dirDown) {
+            // Downward unlock: fade with scroll; no timed fade
+            if (fadeTimerRef.current) window.clearTimeout(fadeTimerRef.current);
             setJustUnlocked(false);
-            fadeTimerRef.current = null;
-          }, FADE_MS);
+            setDownFade(clamp01(r.bottom / vh)); // start from current position
+          } else {
+            // Upward unlock: immediate quick fade (as before)
+            setJustUnlocked(true);
+            if (fadeTimerRef.current) window.clearTimeout(fadeTimerRef.current);
+            fadeTimerRef.current = window.setTimeout(() => {
+              setJustUnlocked(false);
+              fadeTimerRef.current = null;
+            }, FADE_MS);
+          }
+          return;
         }
+      }
+
+      // While unlocked and leaving downward, continuously update fade factor
+      if (!isLocked && hasLocked && unlockDirDown) {
+        setDownFade(clamp01(r.bottom / vh)); // 1 at bottom=vh → 0 at bottom=0
       }
     };
 
@@ -192,7 +217,7 @@ export default function Experience() {
       window.removeEventListener("resize", onScroll);
       if (fadeTimerRef.current) window.clearTimeout(fadeTimerRef.current);
     };
-  }, [isLocked]);
+  }, [isLocked, hasLocked, unlockDirDown]);
 
   // Card progression during lock
   const pDuring = 1 + lp * cardCount;
@@ -226,9 +251,24 @@ export default function Experience() {
     [cardCount]
   );
 
-  // During lock/fade the bar is fixed at the header offset; spacer preserves layout
-  const fixedBar = isLocked || justUnlocked;
-  const barOpacity = (isLocked || inView) ? 1 : 0;
+  // Keep the bar fixed at the header offset during lock and during downward fade-out,
+  // so it appears perfectly static in the viewport.
+  const fixedBar = isLocked || justUnlocked || (hasLocked && unlockDirDown && inView);
+
+  // Opacity rules:
+  // - Pre-lock: visible (1) while the section is in view
+  // - Locked: 1
+  // - Post-lock downward: scroll-driven fade r.bottom/vh → 0 by next section
+  // - Post-lock upward: immediate fade (0)
+  let barOpacity = 0;
+  if (inView) {
+    if (isLocked) barOpacity = 1;
+    else if (!hasLocked) barOpacity = 1;
+    else if (unlockDirDown) barOpacity = downFade;
+    else barOpacity = 0;
+  } else {
+    barOpacity = 0;
+  }
 
   return (
     <section data-section="experience" className="relative w-full">
@@ -244,7 +284,7 @@ export default function Experience() {
           ["--sub-shift" as any]: `0px`,
         }}
       >
-        {/* Progress header line (fixed while locked; uses spacer to avoid shift) */}
+        {/* Progress header line (fixed during lock + downward fade; spacer avoids layout shift) */}
         <div className={styles.subheaderWrapper}>
           <div
             ref={subheaderRef}
@@ -255,9 +295,10 @@ export default function Experience() {
               left: 0,
               right: 0,
               width: "100%",
-              zIndex: 200, // above stage/cards
+              zIndex: 200,
               opacity: barOpacity,
-              transition: `opacity ${FADE_MS}ms ease`,
+              // No transition for scroll-followed fade (downwards), timed for upward quick fade
+              transition: unlockDirDown ? "opacity 0ms linear" : `opacity ${FADE_MS}ms ease`,
               backfaceVisibility: "hidden",
               transform: "translateZ(0)",
             }}
@@ -358,4 +399,3 @@ export default function Experience() {
     </section>
   );
 }
-
