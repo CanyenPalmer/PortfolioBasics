@@ -67,10 +67,10 @@ export default function ContactSection() {
         <span>DATA • DESIGN • SYSTEMS</span>
       </div>
 
-      {/* ===== FOOTER — absolute layers with precise overlaps (ONLY area changed) ===== */}
-      <div className="relative h-[640px] md:h-[680px] overflow-hidden">
+      {/* ===== FOOTER — absolute layers with tripled spread (ONLY area changed) ===== */}
+      <div className="relative h-[760px] md:h-[820px] overflow-hidden">
         <div className="pointer-events-none absolute inset-0 z-10">
-          {/* Top (⅓ visible) — sits highest */}
+          {/* Top (⅓ visible) */}
           <div className="echo-layer echo-top">
             <span className="echo-word echo-wide echo-cut-33" style={{ opacity: 0.5 }}>
               CANYEN PALMER
@@ -82,7 +82,7 @@ export default function ContactSection() {
               CANYEN PALMER
             </span>
           </div>
-          {/* Bottom (full) — touches bottom */}
+          {/* Bottom (full) */}
           <div className="echo-layer echo-bot">
             <span className="echo-word echo-wide echo-cut-100" style={{ opacity: 1 }}>
               CANYEN PALMER
@@ -98,7 +98,7 @@ export default function ContactSection() {
           text-transform: uppercase;
           font-weight: 900;
           letter-spacing: -0.12em;
-          line-height: 1;                        /* 1em = one line height (for easy math) */
+          line-height: 1;                        /* 1em = one line height */
           color: #ffffff;
           font-size: clamp(72px, 12.6vw, 280px);
           display: inline-block;
@@ -114,7 +114,7 @@ export default function ContactSection() {
           transform-origin: center;
         }
 
-        /* Absolute layers with explicit offsets from the bottom */
+        /* Absolute layers with explicit bottom offsets */
         .echo-layer {
           position: absolute;
           left: 50%;
@@ -126,10 +126,10 @@ export default function ContactSection() {
         }
         /* Bottom row sits on the floor */
         .echo-bot { bottom: 0; }
-        /* Middle row: overlap bottom by 1/2 line -> raise 0.5em from bottom */
-        .echo-mid { bottom: 0.5em; }
-        /* Top row: overlap middle by 2/3 line -> raise an additional 1 - 2/3 = 1/3em above middle */
-        .echo-top { bottom: calc(0.5em + 0.3333em); }
+        /* Middle row: was 0.5em → 3× spread => 1.5em */
+        .echo-mid { bottom: 1.5em; }
+        /* Top row: was (0.5 + 0.3333)em → 3× => 2.5em */
+        .echo-top { bottom: 2.5em; }
 
         /* Masks (keep TOP portion visible) */
         .echo-cut-33 {
@@ -148,12 +148,11 @@ export default function ContactSection() {
         @media (max-width: 768px) {
           .echo-word { font-size: clamp(48px, 13.5vw, 200px); letter-spacing: -0.10em; }
           .echo-wide { transform: scaleX(1.02); }
-          /* keep the same overlap ratios on mobile */
-          .echo-mid { bottom: 0.5em; }
-          .echo-top { bottom: calc(0.5em + 0.3333em); }
+          /* keep tripled spread on mobile too */
+          .echo-mid { bottom: 1.5em; }
+          .echo-top { bottom: 2.5em; }
         }
       `}</style>
     </section>
   );
 }
-
