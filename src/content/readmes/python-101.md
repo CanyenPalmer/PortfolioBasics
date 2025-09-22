@@ -1,5 +1,10 @@
 # Python-101
 
+![GitHub last commit](https://img.shields.io/github/last-commit/CanyenPalmer/Python-101)
+![GitHub repo size](https://img.shields.io/github/repo-size/CanyenPalmer/Python-101)
+![Top language](https://img.shields.io/github/languages/top/CanyenPalmer/Python-101)
+![Language count](https://img.shields.io/github/languages/count/CanyenPalmer/Python-101)
+
 ---
 **Project Spotlight: Foundations of Python Programming**
 
@@ -47,3 +52,4 @@ Through `Python-101`, I showcase:
 * **Accessibility** — making programming approachable for those new to coding.  
 * **Consistency** — applying the same structured logic that powers more advanced analytics projects.  
 * **Growth Mindset** — reinforcing that even advanced practitioners benefit from revisiting and solidifying fundamentals.  
+
