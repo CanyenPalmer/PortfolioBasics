@@ -120,14 +120,14 @@ export default function ContactSection() {
 
         {/* Text rows pinned to bottom; masks reveal TOP portions so lower line “cuts” above */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-[400px]">
-          {/* Top line: show top 25%, 50% opacity – positioned so it stays in frame */}
-          <div className="absolute bottom-[168px] w-full flex justify-center">
-            <span className="echo-word echo-clip-top-25" style={{ opacity: 0.5 }}>
+          {/* Top line: show top 33%, 50% opacity – closer to the next line for a continuous cut */}
+          <div className="absolute bottom-[150px] w-full flex justify-center">
+            <span className="echo-word echo-clip-top-33" style={{ opacity: 0.5 }}>
               CANYEN PALMER
             </span>
           </div>
-          {/* Middle line: show top 50%, 75% opacity */}
-          <div className="absolute bottom-[84px] w-full flex justify-center">
+          {/* Middle line: show top 50%, 75% opacity – sits tighter above the bottom line */}
+          <div className="absolute bottom-[75px] w-full flex justify-center">
             <span className="echo-word echo-clip-top-50" style={{ opacity: 0.75 }}>
               CANYEN PALMER
             </span>
@@ -154,9 +154,9 @@ export default function ContactSection() {
         }
 
         /* Keep TOP portion, trim BOTTOM (so lower line appears to cut the one above) */
-        .echo-clip-top-25 {
-          -webkit-mask-image: linear-gradient(to bottom, black 25%, transparent 25%);
-          mask-image: linear-gradient(to bottom, black 25%, transparent 25%);
+        .echo-clip-top-33 {
+          -webkit-mask-image: linear-gradient(to bottom, black 33%, transparent 33%);
+          mask-image: linear-gradient(to bottom, black 33%, transparent 33%);
         }
         .echo-clip-top-50 {
           -webkit-mask-image: linear-gradient(to bottom, black 50%, transparent 50%);
