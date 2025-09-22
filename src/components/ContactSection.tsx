@@ -13,9 +13,9 @@ export default function ContactSection() {
 
   return (
     <section id="contact" className="relative bg-[#0b1016] text-white pt-24 pb-0">
-      {/* ===== 3-COLUMN CONTENT ===== */}
+      {/* ===== 3-COLUMN CONTENT (centered to match meta row) ===== */}
       <div className="mx-auto w-full max-w-7xl px-6 grid grid-cols-1 gap-16 lg:grid-cols-3 lg:gap-8">
-        {/* Left */}
+        {/* Left: Contact */}
         <div className="space-y-4">
           <p className="text-xl font-light leading-relaxed">
             I’d love to get in touch through my links! Currently open to{" "}
@@ -36,31 +36,73 @@ export default function ContactSection() {
           </p>
         </div>
 
-        {/* Middle */}
+        {/* Middle: Navigation */}
         <div>
           <p className="text-xs uppercase tracking-widest text-white/50">Navigation</p>
           <ul className="mt-4 space-y-4">
-            <li><Link href="#hero" className="block text-3xl font-semibold tracking-tight hover:text-cyan-400">Home</Link></li>
-            <li><Link href="#about" className="block text-3xl font-semibold tracking-tight hover:text-cyan-400">About</Link></li>
-            <li><Link href="#experience" className="block text-3xl font-semibold tracking-tight hover:text-cyan-400">Experience</Link></li>
-            <li><Link href="#projects" className="block text-3xl font-semibold tracking-tight hover:text-cyan-400">Projects</Link></li>
-            <li><Link href="#education" className="block text-3xl font-semibold tracking-tight hover:text-cyan-400">Education</Link></li>
-            <li><Link href="#testimonials" className="block text-3xl font-semibold tracking-tight hover:text-cyan-400">Testimonials</Link></li>
+            <li>
+              <Link href="#hero" className="block text-3xl font-semibold tracking-tight hover:text-cyan-400 transition-colors">
+                Home
+              </Link>
+            </li>
+            <li>
+              <Link href="#about" className="block text-3xl font-semibold tracking-tight hover:text-cyan-400 transition-colors">
+                About
+              </Link>
+            </li>
+            <li>
+              <Link href="#experience" className="block text-3xl font-semibold tracking-tight hover:text-cyan-400 transition-colors">
+                Experience
+              </Link>
+            </li>
+            <li>
+              <Link href="#projects" className="block text-3xl font-semibold tracking-tight hover:text-cyan-400 transition-colors">
+                Projects
+              </Link>
+            </li>
+            <li>
+              <Link href="#education" className="block text-3xl font-semibold tracking-tight hover:text-cyan-400 transition-colors">
+                Education
+              </Link>
+            </li>
+            <li>
+              <Link href="#testimonials" className="block text-3xl font-semibold tracking-tight hover:text-cyan-400 transition-colors">
+                Testimonials
+              </Link>
+            </li>
           </ul>
         </div>
 
-        {/* Right */}
+        {/* Right: Connect */}
         <div>
           <p className="text-xs uppercase tracking-widest text-white/50">Connect</p>
           <ul className="mt-4 space-y-3">
-            <li><a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="block text-xl font-medium hover:text-cyan-400">LinkedIn</a></li>
-            <li><a href="https://github.com" target="_blank" rel="noopener noreferrer" className="block text-xl font-medium hover:text-cyan-400">GitHub</a></li>
+            <li>
+              <a
+                href="https://linkedin.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-xl font-medium hover:text-cyan-400 transition-colors"
+              >
+                LinkedIn
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://github.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-xl font-medium hover:text-cyan-400 transition-colors"
+              >
+                GitHub
+              </a>
+            </li>
           </ul>
           <p className="mt-6 text-xs text-white/45">{time}</p>
         </div>
       </div>
 
-      {/* ===== META ROW ===== */}
+      {/* ===== META ROW (centered) ===== */}
       <div className="relative z-10 mx-auto mt-16 mb-2 flex w-full max-w-7xl items-center justify-between px-6 text-[10px] uppercase tracking-widest text-white/45">
         <span>©2025 CANYEN PALMER</span>
         <span>THANK YOU FOR VISITING</span>
@@ -69,7 +111,7 @@ export default function ContactSection() {
 
       {/* ===== FOOTER ECHO — pre-cut, non-overlapping, full-bleed ===== */}
       <div className="relative h-[420px] overflow-hidden">
-        {/* depth planes */}
+        {/* Depth planes (full-bleed) */}
         <div className="pointer-events-none absolute left-1/2 bottom-0 z-0 h-[400px] w-screen -translate-x-1/2">
           <div className="absolute inset-x-0 bottom-0 h-full bg-[#0b1016] z-[1]" />
           <div className="absolute inset-x-0 bottom-0 h-[75%] bg-[#0a0d13] z-[2]" />
@@ -77,20 +119,20 @@ export default function ContactSection() {
         </div>
 
         {/* NON-OVERLAPPING STACK */}
-        <div className="pointer-events-none absolute left-1/2 bottom-0 z-10 w-screen -translate-x-1/2 flex flex-col items-center justify-end gap-[0.26em] pb-0">
+        <div className="pointer-events-none absolute left-1/2 bottom-0 z-10 w-screen -translate-x-1/2 flex flex-col items-center justify-end gap-[0.32em] pb-0">
           {/* 1/3 visible */}
           <div className="echo-wrap">
             <span className="echo-word echo-cut-33 echo-bar--light" style={{ opacity: 0.5 }}>
               CANYEN PALMER
             </span>
           </div>
-          {/* 1/2 visible (top HALF clearly visible) */}
+          {/* 1/2 visible (top half clearly visible) */}
           <div className="echo-wrap">
             <span className="echo-word echo-cut-60 echo-bar--mid" style={{ opacity: 0.75 }}>
               CANYEN PALMER
             </span>
           </div>
-          {/* full */}
+          {/* full visible (touches bottom) */}
           <div className="echo-wrap">
             <span className="echo-word echo-cut-100 echo-bar--dark" style={{ opacity: 1 }}>
               CANYEN PALMER
@@ -100,13 +142,14 @@ export default function ContactSection() {
       </div>
 
       <style jsx>{`
+        /* Big word styling */
         .echo-word {
           white-space: nowrap;
           text-transform: uppercase;
           font-weight: 900;
           letter-spacing: -0.09em;
           line-height: 0.86;
-          color: #fff;
+          color: #ffffff;
           font-size: clamp(64px, 10.8vw, 240px);
           position: relative;
           display: inline-block;
@@ -114,6 +157,7 @@ export default function ContactSection() {
           -moz-osx-font-smoothing: grayscale;
           text-rendering: geometricPrecision;
         }
+        /* Row container */
         .echo-wrap {
           position: relative;
           display: flex;
@@ -121,6 +165,7 @@ export default function ContactSection() {
           align-items: center;
           width: 100vw;
         }
+        /* Solid full-bleed bar behind each row — reduced height to avoid covering next row */
         .echo-word::before {
           content: "";
           position: absolute;
@@ -128,19 +173,18 @@ export default function ContactSection() {
           left: 50%;
           transform: translate(-50%, -50%);
           width: 100vw;
-          height: 1.08em;
+          height: 0.95em;  /* ↓ from 1.08em */
           z-index: -1;
         }
         .echo-bar--light::before { background: #0c1117; }
         .echo-bar--mid::before   { background: #0a0e14; }
         .echo-bar--dark::before  { background: #080b10; }
 
-        /* PRE-CUTS */
+        /* PRE-CUT masks */
         .echo-cut-33 {
           -webkit-mask-image: linear-gradient(to bottom, black 33%, transparent 33%);
           mask-image: linear-gradient(to bottom, black 33%, transparent 33%);
         }
-        /* SHOW a clearly readable HALF by revealing 60% (slightly more than 50% for clarity) */
         .echo-cut-60 {
           -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 60%);
           mask-image: linear-gradient(to bottom, black 60%, transparent 60%);
@@ -152,10 +196,11 @@ export default function ContactSection() {
 
         @media (max-width: 768px) {
           .echo-word { font-size: clamp(44px, 12.5vw, 180px); letter-spacing: -0.085em; line-height: 0.88; }
-          .pointer-events-none.flex { gap: 0.22em; }
-          .echo-word::before { height: 1.04em; }
+          .pointer-events-none.flex { gap: 0.28em; }
+          .echo-word::before { height: 0.92em; }
         }
       `}</style>
     </section>
   );
 }
+
