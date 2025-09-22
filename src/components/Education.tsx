@@ -8,12 +8,14 @@ import { Playfair_Display, Outfit, Plus_Jakarta_Sans } from "next/font/google";
 import { profile } from "@/content/profile";
 import { slugify } from "@/lib/slug";
 
+// Fonts (match your prior header look for this section)
+// - Title uses Outfit (was the previous header feel you had here)
+// - Subheader uses Plus Jakarta Sans
 const playfair = Playfair_Display({ subsets: ["latin"], weight: ["400", "700", "900"] });
 const outfit = Outfit({ subsets: ["latin"], weight: ["400", "500", "600"] });
 const plus = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["400", "500", "600"] });
 
-// --- Types ---
-interface RawEdu {
+type RawEdu = {
   institution?: string;
   school?: string;
   program?: string;
@@ -21,17 +23,17 @@ interface RawEdu {
   years?: string;
   period?: string;
   href?: string;
-}
-interface Edu {
+};
+
+type Edu = {
   title: string;
   sub: string;
   years?: string;
   href?: string;
   img: string;
   key: string;
-}
+};
 
-// --- Helpers ---
 function resolveHeroFromTitle(title: string): string {
   const t = title.toLowerCase();
   if (t.includes("ball state")) return "/images/ball-state.png";
@@ -50,25 +52,29 @@ function normalizeEdu(e: RawEdu): Edu {
 }
 
 function getEducationFromProfile(): Edu[] {
-  // No edits to profile.tsx; best-effort extraction with a fallback list.
-  // @ts-ignore – profile may or may not have an `education` array
-  const rawList: RawEdu[] =
+  // No edits to profile.tsx; best-effort read with a known fallback
+  // @ts-ignore
+  const raw: RawEdu[] =
     (profile?.education as any) || [
-      { institution: "Ball State University", degree: "B.S. (Honors) – Applied Mathematics", years: "2018 – 2022", href: "https://bsu.edu" },
-      { institution: "Google (Coursera)", degree: "Google Data Analytics Professional Certificate", years: "2023", href: "https://grow.google/certificates/data-analytics/" },
+      { institution: "Ball State University", degree: "B.S. (Honors) – Applied Mathematics", years: "2018 – 2022" },
+      { institution: "Google (Coursera)", degree: "Google Data Analytics Professional Certificate", years: "2023" },
       { institution: "Greenfield-Central High School", degree: "Academic Honors Diploma", years: "2014 – 2018" },
-      { institution: "University of Pittsburgh", degree: "Master of Data Science (In Progress)", years: "2024 – Present", href: "https://www.pitt.edu/" },
+      { institution: "University of Pittsburgh", degree: "Master of Data Science (In Progress)", years: "2024 – Present" },
     ];
-  return rawList.map(normalizeEdu).slice(0, 4);
+  return raw.map(normalizeEdu).slice(0, 4);
 }
 
-// --- Step Scroll Controller (local lock) ---
+/**
+ * Local step-scroll controller:
+ * - Locks scroll while the section is in view and we're not fully unlocked.
+ * - Each threshold of wheel/touch delta advances or rewinds one step.
+ */
 function useStepScroll(opts: {
-  steps: number; // number of visual positions (0..steps)
-  threshold?: number; // wheel/touch delta per step
+  steps: number; // 0..steps
+  threshold?: number;
   enabled: boolean;
-  onChange: (next: number, dir: 1 | -1) => void;
   getStep: () => number;
+  onChange: (next: number, dir: 1 | -1) => void;
   containerRef: React.RefObject<HTMLDivElement>;
 }) {
   const { steps, threshold = 80, enabled, onChange, getStep, containerRef } = opts;
@@ -80,27 +86,27 @@ function useStepScroll(opts: {
     const el = containerRef.current;
     if (!el || !enabled) return;
 
-    const onWheel = (e: WheelEvent) => {
-      // Only intercept when the section is centered enough in the viewport
+    const isInView = () => {
       const rect = el.getBoundingClientRect();
       const vh = window.innerHeight || 1;
-      const inView = rect.top < vh * 0.3 && rect.bottom > vh * 0.7;
+      // More permissive hitbox so lock always engages when the section is visible
+      return rect.top < vh && rect.bottom > 0;
+    };
+
+    const onWheel = (e: WheelEvent) => {
+      if (!enabled) return;
+      if (!isInView()) return;
       const step = getStep();
-      if (!inView) return;
+      const atMax = step >= steps;
+      const atMin = step <= 0;
 
-      const maxStep = steps; // inclusive (0..steps)
-      const atBoundsDown = step >= maxStep;
-      const atBoundsUp = step <= 0;
-
-      // Lock while not at bounds
-      if (!atBoundsDown || !atBoundsUp) {
-        e.preventDefault();
-      }
+      // While not at bounds, prevent default to create the local lock
+      if (!atMax || !atMin) e.preventDefault();
 
       accRef.current += e.deltaY;
       if (Math.abs(accRef.current) >= threshold) {
         const dir: 1 | -1 = accRef.current > 0 ? 1 : -1;
-        const next = Math.max(0, Math.min(maxStep, step + dir));
+        const next = Math.max(0, Math.min(steps, step + dir));
         if (next !== step) onChange(next, dir);
         accRef.current = 0;
       }
@@ -111,28 +117,22 @@ function useStepScroll(opts: {
       lastY.current = e.touches[0]?.clientY ?? 0;
     };
     const onTouchMove = (e: TouchEvent) => {
+      if (!enabled) return;
       if (!touching.current) return;
+      if (!isInView()) return;
       const y = e.touches[0]?.clientY ?? 0;
-      const dy = lastY.current - y; // positive = swipe up (scroll down)
+      const dy = lastY.current - y; // + down
       lastY.current = y;
 
-      const rect = el.getBoundingClientRect();
-      const vh = window.innerHeight || 1;
-      const inView = rect.top < vh * 0.3 && rect.bottom > vh * 0.7;
       const step = getStep();
-      if (!inView) return;
-
-      const maxStep = steps;
-      const atBoundsDown = step >= maxStep;
-      const atBoundsUp = step <= 0;
-      if (!atBoundsDown || !atBoundsUp) {
-        e.preventDefault();
-      }
+      const atMax = step >= steps;
+      const atMin = step <= 0;
+      if (!atMax || !atMin) e.preventDefault();
 
       accRef.current += dy;
       if (Math.abs(accRef.current) >= threshold) {
         const dir: 1 | -1 = accRef.current > 0 ? 1 : -1;
-        const next = Math.max(0, Math.min(maxStep, step + dir));
+        const next = Math.max(0, Math.min(steps, step + dir));
         if (next !== step) onChange(next, dir);
         accRef.current = 0;
       }
@@ -146,7 +146,6 @@ function useStepScroll(opts: {
     el.addEventListener("touchstart", onTouchStart, { passive: true });
     el.addEventListener("touchmove", onTouchMove, { passive: false });
     el.addEventListener("touchend", onTouchEnd, { passive: true });
-
     return () => {
       el.removeEventListener("wheel", onWheel as any);
       el.removeEventListener("touchstart", onTouchStart as any);
@@ -156,8 +155,15 @@ function useStepScroll(opts: {
   }, [enabled, threshold, steps, onChange, getStep, containerRef]);
 }
 
-// --- Presentational Tower ---
-function Tower({ idx, edu, active }: { idx: number; edu: Edu; active: boolean }) {
+function Tower({
+  idx,
+  edu,
+  active,
+}: {
+  idx: number;
+  edu: Edu;
+  active: boolean;
+}) {
   return (
     <motion.figure
       initial={{ opacity: 0, y: 36, x: idx % 2 ? 10 : -10, scale: 0.985 }}
@@ -172,56 +178,41 @@ function Tower({ idx, edu, active }: { idx: number; edu: Edu; active: boolean })
     >
       <div className="aspect-[3/4] w-full">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={edu.img} alt={edu.title} className="h-full w-full object-cover" />
+        <img
+          src={edu.img}
+          alt={edu.title}
+          className="h-full w-full object-cover"
+        />
       </div>
       <figcaption className="p-3 sm:p-4">
-        <div className={`text-base sm:text-lg font-semibold ${playfair.className}`}>{edu.title}</div>
-        <div className={`text-xs sm:text-sm opacity-80 ${plus.className}`}>{edu.sub}</div>
+        {/* Keep caption font stack consistent with prior section look */}
+        <div className={`text-base sm:text-lg font-semibold ${outfit.className}`}>
+          {edu.title}
+        </div>
+        <div className={`text-xs sm:text-sm opacity-80 ${plus.className}`}>
+          {edu.sub}
+        </div>
         {edu.years && <div className="text-xs mt-1 opacity-60">{edu.years}</div>}
       </figcaption>
-      <motion.div
-        className="pointer-events-none absolute inset-0 ring-2 ring-cyan-400/0 rounded-2xl"
-        initial={false}
-        transition={{ duration: 0.1 }}
-      />
     </motion.figure>
   );
 }
 
-// --- Main ---
 export default function Education() {
   const items = useMemo(() => getEducationFromProfile(), []);
-  const [step, setStep] = useState(0); // 0..4  (0 = none visible)
+  // step: 0..4 (0 = nothing visible, 4 = all 4 visible)
+  const [step, setStep] = useState(0);
   const [unlocked, setUnlocked] = useState(false);
 
-  const containerRef = useRef<HTMLDivElement>(null);
-  const lockRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null); // section wrapper
 
-  // Enable the step controller until we fully unlock
-  useStepScroll({
-    steps: 4,
-    threshold: 80,
-    enabled: !unlocked,
-    getStep: () => step,
-    containerRef,
-    onChange: (next, dir) => {
-      // Unlock rule: at step 4, one more down step triggers unlock
-      if (step === 4 && dir === 1) {
-        setUnlocked(true);
-        return;
-      }
-      setStep(next);
-    },
-  });
-
-  // When we enter the section from above, relock at step 0
+  // Relock when re-entering from above
   useEffect(() => {
     const onScroll = () => {
       if (!containerRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
       const vh = window.innerHeight || 1;
-      // If we scrolled back up and the section re-enters viewport top, relock
-      if (rect.top >= vh * 0.9) {
+      if (rect.top >= vh * 0.95) {
         setUnlocked(false);
         setStep(0);
       }
@@ -230,72 +221,90 @@ export default function Education() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // If prefers-reduced-motion: render full collage, no lock
+  // Prefers reduced motion: show full collage and never lock
   const [reduced, setReduced] = useState(false);
   useEffect(() => {
     const m = window.matchMedia("(prefers-reduced-motion: reduce)");
     setReduced(m.matches);
-    const onChange = () => setReduced(m.matches);
-    m.addEventListener?.("change", onChange);
-    return () => m.removeEventListener?.("change", onChange);
+    const fn = () => setReduced(m.matches);
+    m.addEventListener?.("change", fn);
+    return () => m.removeEventListener?.("change", fn);
   }, []);
 
-  const visibleCount = reduced || unlocked ? 4 : step; // how many columns to show
+  // Step controller (locks until unlocked)
+  useStepScroll({
+    steps: 4,
+    threshold: 72, // a little snappier
+    enabled: !unlocked && !reduced,
+    getStep: () => step,
+    containerRef,
+    onChange: (next, dir) => {
+      if (step === 4 && dir === 1) {
+        // one extra down-scroll after 4 visible unlocks the section
+        setUnlocked(true);
+        return;
+      }
+      setStep(next);
+    },
+  });
+
+  const visibleCount = reduced || unlocked ? 4 : step;
 
   return (
     <section id="education" aria-label="Education" className="relative">
       <div ref={containerRef} className="relative">
         {/* Sticky lock frame */}
-        <div ref={lockRef} className="sticky top-0 min-h-screen">
-          <div className="relative h-screen overflow-hidden">
-            {/* Title + Subheader */}
-            <div className="pointer-events-none absolute left-0 right-0 top-0 flex flex-col items-center pt-16 sm:pt-20">
-              <h2 className={`text-4xl sm:text-5xl tracking-tight ${playfair.className}`}>Education</h2>
-              <p className={`mt-2 text-sm sm:text-base opacity-80 ${plus.className}`}>
-                Four stages of the journey — built one scroll at a time.
-              </p>
-              {/* Progress dots during lock */}
-              {!reduced && !unlocked && (
-                <div className="mt-3 flex gap-2">
-                  {[0, 1, 2, 3].map((i) => (
-                    <span
-                      key={i}
-                      className={`h-1.5 w-6 rounded-full ${
-                        i < Math.min(visibleCount, 4) ? "bg-cyan-400" : "bg-white/20"
-                      }`}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
+        <div className="sticky top-0 h-screen overflow-hidden">
+          {/* Title + Subheader + 4 nodes — this stays pinned during the lock */}
+          <div className="pointer-events-none absolute left-0 right-0 top-0 flex flex-col items-center pt-16 sm:pt-20">
+            <h2 className={`text-4xl sm:text-5xl tracking-tight ${outfit.className}`}>
+              Education
+            </h2>
+            <p className={`mt-2 text-sm sm:text-base opacity-80 ${plus.className}`}>
+              Four stages of the journey — built one scroll at a time.
+            </p>
 
-            {/* Collage grid */}
-            <div className="absolute inset-0 mt-24 sm:mt-28 flex items-center justify-center">
-              <div className="grid grid-cols-2 gap-3 sm:gap-5 w-[min(1024px,92vw)]">
-                {items.map((edu, i) => (
-                  <Tower key={edu.key} idx={i} edu={edu} active={i < visibleCount} />
+            {/* 4 nodes (progress) — fill as columns appear, shown only while locked */}
+            {!reduced && !unlocked && (
+              <div className="mt-3 flex gap-2">
+                {[0, 1, 2, 3].map((i) => (
+                  <span
+                    key={i}
+                    className={`h-1.5 w-6 rounded-full ${
+                      i < Math.min(visibleCount, 4) ? "bg-cyan-400" : "bg-white/20"
+                    }`}
+                  />
                 ))}
               </div>
-            </div>
-
-            {/* Gentle settle glow when all four are in */}
-            <AnimatePresence>
-              {visibleCount >= 4 && !unlocked && (
-                <motion.div
-                  key="settle-glow"
-                  className="absolute inset-0"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 0.15 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.25 }}
-                  style={{
-                    background:
-                      "radial-gradient(60% 40% at 50% 50%, rgba(0,255,255,0.15), rgba(0,0,0,0))",
-                  }}
-                />
-              )}
-            </AnimatePresence>
+            )}
           </div>
+
+          {/* Collage grid — centered, animates 1 tile per scroll step */}
+          <div className="absolute inset-0 mt-28 sm:mt-32 flex items-center justify-center">
+            <div className="grid grid-cols-2 gap-3 sm:gap-5 w-[min(1024px,92vw)]">
+              {items.map((edu, i) => (
+                <Tower key={edu.key} idx={i} edu={edu} active={i < visibleCount} />
+              ))}
+            </div>
+          </div>
+
+          {/* Gentle settle glow when all four are visible (still locked) */}
+          <AnimatePresence>
+            {visibleCount >= 4 && !unlocked && (
+              <motion.div
+                key="settle-glow"
+                className="absolute inset-0"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.15 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25 }}
+                style={{
+                  background:
+                    "radial-gradient(60% 40% at 50% 50%, rgba(0,255,255,0.15), rgba(0,0,0,0))",
+                }}
+              />
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </section>
