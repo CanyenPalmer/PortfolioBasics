@@ -74,9 +74,8 @@ function useWindowStepLock(opts: {
   getStep: () => number;
   onStep: (next: number, dir: 1 | -1) => void;
   isLockActive: () => boolean;
-  onUnlock?: () => void;
 }) {
-  const { steps, threshold = 70, getStep, onStep, isLockActive } = opts;
+  const { steps, threshold = 60, getStep, onStep, isLockActive } = opts;
   const accRef = useRef(0);
   const touching = useRef(false);
   const lastY = useRef(0);
@@ -84,8 +83,7 @@ function useWindowStepLock(opts: {
   useEffect(() => {
     const onWheel = (e: WheelEvent) => {
       if (!isLockActive()) return;
-      // Prevent page scroll while locked
-      e.preventDefault();
+      e.preventDefault(); // lock page scrolling while active
       const step = getStep();
       accRef.current += e.deltaY;
       if (Math.abs(accRef.current) >= threshold) {
@@ -166,7 +164,10 @@ function Tile({ idx, edu, visible }: { idx: number; edu: Edu; visible: boolean }
 
 export default function Education() {
   const items = useMemo(() => getEducationFromProfile(), []);
-  // 0..4 (0 = none visible; 1..4 = how many tiles visible)
+  const total = items.length; // should be 4
+  const maxStep = total;      // 0..4
+
+  // step: 0..total (0 none visible; 1..total visibleCount)
   const [step, setStep] = useState(0);
   const [unlocked, setUnlocked] = useState(false);
 
@@ -182,32 +183,41 @@ export default function Education() {
     return () => m.removeEventListener?.("change", cb);
   }, []);
 
-  /** Is the Education section "centered enough" to engage lock?
-   * Tight window so user can naturally escape near top/bottom edges. */
+  /**
+   * Engage the lock *only* when the section is in the central band.
+   * This makes it escapable at the top/bottom edges, and it mirrors the pattern you liked.
+   */
   const isSectionCentered = () => {
     const el = sectionRef.current;
     if (!el) return false;
     const rect = el.getBoundingClientRect();
     const vh = window.innerHeight || 1;
-    // Engage only when the section spans the central band of the viewport.
-    return rect.top < vh * 0.25 && rect.bottom > vh * 0.75;
+    return rect.top < vh * 0.3 && rect.bottom > vh * 0.7;
   };
 
-  /** Lock is active only when:
+  /**
+   * Lock is active when:
    * - not reduced motion
-   * - not unlocked
-   * - section is centered (prevents "can't exit" trap) */
+   * - not globally unlocked
+   * - section centered (prevents trapping)
+   */
   const isLockActive = () => !reduced && !unlocked && isSectionCentered();
 
   // Window-level lock like Experience/Projects (reliable capture)
   useWindowStepLock({
-    steps: 4,
-    threshold: 72,
+    steps: maxStep,
+    threshold: 60,
     getStep: () => step,
     isLockActive,
     onStep: (next, dir) => {
-      if (step === 4 && dir === 1) {
-        // Extra down after all tiles visible → unlock immediately so this same gesture continues page scroll.
+      // Escape rules at both ends:
+      // - if at max and scrolling down → unlock to continue page
+      if (step === maxStep && dir === 1) {
+        setUnlocked(true);
+        return;
+      }
+      // - if at 0 and scrolling up → unlock to continue page upward
+      if (step === 0 && dir === -1) {
         setUnlocked(true);
         return;
       }
@@ -215,30 +225,37 @@ export default function Education() {
     },
   });
 
-  // Relock only when user scrolls back up and the section re-enters from above
+  // Relock when the user re-enters from either side:
+  // - From above: reset to 0 so animation can play forward
+  // - From below: keep full (step=maxStep) so it looks complete on scroll-up pass
   useEffect(() => {
     const onScroll = () => {
       const el = sectionRef.current;
       if (!el) return;
       const rect = el.getBoundingClientRect();
       const vh = window.innerHeight || 1;
-      // When the section's top is far below the viewport top (we scrolled up past it), reset.
+
+      // If section is far above viewport (we scrolled up past it), prep forward run
       if (rect.top >= vh * 0.98) {
         setUnlocked(false);
         setStep(0);
       }
+      // If section is far below viewport (we scrolled past it downward), show completed state
+      if (rect.bottom <= vh * 0.02) {
+        setUnlocked(false);
+        setStep(maxStep);
+      }
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  }, [maxStep]);
 
-  // How many tiles visible this frame
-  const visibleCount = reduced || unlocked ? 4 : step;
+  const visibleCount = reduced || unlocked ? total : Math.min(step, total);
 
   return (
     <section id="education" aria-label="Education" className="relative">
-      {/* Tall runway so sticky frame has room to lock — reduced a bit to help exiting */}
-      <div ref={sectionRef} className="relative min-h-[420vh]">
+      {/* Tall runway so sticky frame has room to lock */}
+      <div ref={sectionRef} className="relative min-h-[440vh]">
         {/* Sticky/pinned viewport content */}
         <div className="sticky top-0 h-screen overflow-hidden">
           {/* Pinned header (title + subhead + nodes) */}
@@ -254,11 +271,11 @@ export default function Education() {
             </p>
             {!reduced && !unlocked && (
               <div className="mt-4 flex gap-2">
-                {[0, 1, 2, 3].map((i) => (
+                {Array.from({ length: total }).map((_, i) => (
                   <span
                     key={i}
                     className={`h-1.5 w-6 rounded-full ${
-                      i < Math.min(visibleCount, 4) ? "bg-cyan-400" : "bg-white/20"
+                      i < Math.min(visibleCount, total) ? "bg-cyan-400" : "bg-white/20"
                     }`}
                   />
                 ))}
@@ -266,19 +283,18 @@ export default function Education() {
             )}
           </div>
 
-          {/* Collage grid — pushed down so it's not tight against header */}
+          {/* Collage grid — spaced away from header so they don't touch */}
           <div className="absolute inset-0 z-40 flex items-start justify-center">
-            {/* Responsive vertical spacing: keeps cards comfortably below the header block */}
-            <div className="mt-[22vh] sm:mt-[24vh] md:mt-[26vh] lg:mt-[28vh] grid grid-cols-2 gap-3 sm:gap-5 w-[min(1024px,92vw)]">
+            <div className="mt-[24vh] sm:mt-[26vh] md:mt-[28vh] grid grid-cols-2 gap-3 sm:gap-5 w-[min(1024px,92vw)]">
               {items.map((edu, i) => (
                 <Tile key={edu.key} idx={i} edu={edu} visible={i < visibleCount} />
               ))}
             </div>
           </div>
 
-          {/* Soft settle glow when all 4 are visible (still locked until extra down) */}
+          {/* Soft settle glow when all are visible (still locked until extra down) */}
           <AnimatePresence>
-            {visibleCount >= 4 && !unlocked && (
+            {visibleCount >= total && !unlocked && (
               <motion.div
                 key="settle-glow"
                 className="absolute inset-0 z-30"
