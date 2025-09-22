@@ -63,15 +63,15 @@ function getEducationFromProfile(): Edu[] {
 }
 
 /* ------------------ Window step-lock controller ------------------
-   - IO decides when sticky frame is "in focus".
-   - While focused, intercept wheel/touch and advance one step per tick.
-   - Escapable at both ends.
+   - IO decides when sticky frame is “focused”.
+   - While focused, intercept wheel/touch to advance one step per tick.
+   - Escapable at both ends (no trapping).
 ------------------------------------------------------------------- */
 function useStepLock(opts: {
   steps: number;                        // inclusive: 0..steps
   getStep: () => number;
   setStep: (n: number) => void;
-  shouldLock: () => boolean;            // updated by IntersectionObserver
+  shouldLock: () => boolean;            // updated via IntersectionObserver
   threshold?: number;
 }) {
   const { steps, getStep, setStep, shouldLock, threshold = 60 } = opts;
@@ -145,23 +145,22 @@ function useStepLock(opts: {
   }, [steps, threshold, getStep, setStep, shouldLock]);
 }
 
-/* --------------------------- Tile ---------------------------
-   - Slides in from the RIGHT one-by-one.
-   - Uses object-contain with a fixed height so full image is visible (no crop).
----------------------------------------------------------------- */
+/* --------------------------- Tile (column) ---------------------------
+   - Slides in from RIGHT (x: 64→0), fades in.
+   - Fixed, responsive HEIGHT; object-contain so full image is visible (no crop).
+--------------------------------------------------------------------- */
 function Tile({ idx, edu, visible }: { idx: number; edu: Edu; visible: boolean }) {
   return (
     <motion.figure
-      initial={{ opacity: 0, x: 80, y: 0 }}
+      initial={{ opacity: 0, x: 64 }}
       animate={{
         opacity: visible ? 1 : 0,
-        x: visible ? 0 : 80,
-        y: 0,
+        x: visible ? 0 : 64,
       }}
-      transition={{ duration: 0.44, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
       className="relative overflow-hidden rounded-2xl shadow-lg ring-1 ring-white/10 bg-[#0d131d]"
     >
-      <div className="w-full h-80 sm:h-96 md:h-[26rem] lg:h-[28rem] flex items-center justify-center bg-black/30">
+      <div className="w-full h-[36vh] sm:h-[38vh] md:h-[40vh] flex items-center justify-center bg-black/30">
         {/* block removes baseline gap; object-contain prevents any cropping */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -171,9 +170,9 @@ function Tile({ idx, edu, visible }: { idx: number; edu: Edu; visible: boolean }
         />
       </div>
       <figcaption className="p-3 sm:p-4">
-        <div className={`text-base sm:text-lg font-semibold ${outfit.className}`}>{edu.title}</div>
+        <div className={`text-sm sm:text-base font-semibold ${outfit.className}`}>{edu.title}</div>
         <div className={`text-xs sm:text-sm opacity-80 ${plus.className}`}>{edu.sub}</div>
-        {edu.years && <div className="text-xs mt-1 opacity-60">{edu.years}</div>}
+        {edu.years && <div className="text-[11px] mt-1 opacity-60">{edu.years}</div>}
       </figcaption>
     </motion.figure>
   );
@@ -182,10 +181,10 @@ function Tile({ idx, edu, visible }: { idx: number; edu: Edu; visible: boolean }
 /* --------------------------- Main --------------------------- */
 export default function Education() {
   const items = React.useMemo(() => getEducationFromProfile(), []);
-  const total = items.length;           // 4
-  const maxStep = total;                // 0..4 (how many visible)
+  const total = items.length;            // expected 4
+  const maxStep = total;                 // 0..4 (how many visible)
 
-  const [step, setStep] = React.useState(0);        // 0 none; 1..4 visible
+  const [step, setStep] = React.useState(0);           // 0 none; 1..4 visible
   const [ioActive, setIoActive] = React.useState(false); // sticky focus flag
 
   const sectionRef = React.useRef<HTMLDivElement>(null);
@@ -208,17 +207,17 @@ export default function Education() {
 
     const obs = new IntersectionObserver(
       ([entry]) => {
-        // Engage when ≥60% of the sticky viewport is visible
-        setIoActive(entry.isIntersecting && entry.intersectionRatio >= 0.6);
+        // Engage lock when ≥ 70% of sticky viewport is visible (tight focus)
+        setIoActive(entry.isIntersecting && entry.intersectionRatio >= 0.7);
       },
-      { root: null, threshold: [0, 0.6, 1] }
+      { root: null, threshold: [0, 0.7, 1] }
     );
 
     obs.observe(sticky);
     return () => obs.disconnect();
   }, []);
 
-  // Should the lock be active right now?
+  // Should lock be active right now?
   const shouldLock = React.useCallback(() => !reduced && ioActive, [reduced, ioActive]);
 
   // Install step lock (escapable at both ends; one step per tick)
@@ -227,7 +226,7 @@ export default function Education() {
     getStep: () => step,
     setStep: (n) => setStep(n),
     shouldLock,
-    threshold: 62,
+    threshold: 58,
   });
 
   // Re-entry behavior so the sequence can play both ways naturally
@@ -248,11 +247,11 @@ export default function Education() {
 
   return (
     <section id="education" aria-label="Education" className="relative">
-      {/* runway for the pinned sequence */}
-      <div ref={sectionRef} className="relative min-h-[420vh]">
-        {/* sticky frame keeps header + grid in view during the lock */}
+      {/* Trimmed runway so the section isn't excessively long */}
+      <div ref={sectionRef} className="relative min-h-[220vh]">
+        {/* Sticky frame: keeps header + 1×4 row visible during lock */}
         <div ref={stickyRef} className="sticky top-0 h-screen overflow-hidden">
-          {/* Header stays pinned; grid stays comfortably below it */}
+          {/* Header (pinned) */}
           <div className="absolute left-0 right-0 top-0 z-50 flex flex-col items-center pt-8 sm:pt-10">
             <h2 className={`tracking-tight ${outfit.className} text-5xl md:text-6xl lg:text-7xl`}>
               Education
@@ -274,16 +273,18 @@ export default function Education() {
             )}
           </div>
 
-          {/* Collage grid — spaced from header so both remain visible while locked */}
+          {/* Single-row collage: 1 × 4 columns (stays below header, always visible while locked) */}
           <div className="absolute inset-0 z-40 flex items-start justify-center">
-            <div className="mt-[18vh] sm:mt-[20vh] md:mt-[22vh] grid grid-cols-2 gap-3 sm:gap-5 w-[min(1024px,92vw)]">
-              {items.map((edu, i) => (
-                <Tile key={edu.key} idx={i} edu={edu} visible={i < visibleCount} />
-              ))}
+            <div className="mt-[22vh] sm:mt-[22vh] md:mt-[22vh] w-[min(1200px,94vw)]">
+              <div className="grid grid-cols-4 gap-4 sm:gap-5">
+                {items.map((edu, i) => (
+                  <Tile key={edu.key} idx={i} edu={edu} visible={i < visibleCount} />
+                ))}
+              </div>
             </div>
           </div>
 
-          {/* Soft settle when all are visible (purely visual) */}
+          {/* Soft settle when all are visible (visual only) */}
           <AnimatePresence>
             {visibleCount >= total && (
               <motion.div
@@ -305,3 +306,4 @@ export default function Education() {
     </section>
   );
 }
+
