@@ -109,31 +109,31 @@ export default function ContactSection() {
         <span>DATA • DESIGN • SYSTEMS</span>
       </div>
 
-      {/* ===== FOOTER ECHO — pre-cut (1/3, 1/2, full) + slight gaps between rows ===== */}
+      {/* ===== FOOTER ECHO — PRE-CUT (1/3, 1/2, FULL) WITH NON-OVERLAPPING STACK ===== */}
       <div className="relative h-[420px] overflow-hidden">
-        {/* Full-bleed depth planes (solid, darker each row) */}
+        {/* Full-bleed depth planes */}
         <div className="pointer-events-none absolute left-1/2 bottom-0 z-0 h-[400px] w-screen -translate-x-1/2">
           <div className="absolute inset-x-0 bottom-0 h-full bg-[#0b1016] z-[1]" />
           <div className="absolute inset-x-0 bottom-0 h-[75%] bg-[#0a0d13] z-[2]" />
           <div className="absolute inset-x-0 bottom-0 h-[50%] bg-[#070b10] z-[3]" />
         </div>
 
-        {/* Pre-cut rows; spacing by glyph height with a subtle gap */}
-        <div className="pointer-events-none absolute left-1/2 bottom-0 z-10 h-[400px] w-screen -translate-x-1/2">
-          {/* Top: 1/3 visible */}
-          <div className="echo-layer echo-top" aria-hidden="true">
+        {/* NON-OVERLAPPING STACK: flex column pinned to bottom */}
+        <div className="pointer-events-none absolute left-1/2 bottom-0 z-10 w-screen -translate-x-1/2 flex flex-col items-center justify-end gap-[0.18em] pb-0">
+          {/* Top row — 1/3 visible */}
+          <div className="echo-wrap">
             <span className="echo-word echo-cut-33 echo-bar--light" style={{ opacity: 0.5 }}>
               CANYEN PALMER
             </span>
           </div>
-          {/* Middle: 1/2 visible */}
-          <div className="echo-layer echo-mid" aria-hidden="true">
+          {/* Middle row — 1/2 visible */}
+          <div className="echo-wrap">
             <span className="echo-word echo-cut-50 echo-bar--mid" style={{ opacity: 0.75 }}>
               CANYEN PALMER
             </span>
           </div>
-          {/* Bottom: full */}
-          <div className="echo-layer echo-bottom">
+          {/* Bottom row — full, touches bottom */}
+          <div className="echo-wrap">
             <span className="echo-word echo-cut-100 echo-bar--dark" style={{ opacity: 1 }}>
               CANYEN PALMER
             </span>
@@ -142,13 +142,13 @@ export default function ContactSection() {
       </div>
 
       <style jsx>{`
-        /* Word styling (dense + crisp) */
+        /* Typography for the big word */
         .echo-word {
           white-space: nowrap;
           text-transform: uppercase;
           font-weight: 900;
           letter-spacing: -0.09em;
-          line-height: 0.86;
+          line-height: 0.86;                      /* dense but no overlap */
           color: #ffffff;
           font-size: clamp(64px, 10.8vw, 240px);
           position: relative;
@@ -158,7 +158,16 @@ export default function ContactSection() {
           text-rendering: geometricPrecision;
         }
 
-        /* Full-bleed solid bar behind each word */
+        /* Each row wrapper — NO OVERLAP (stacked via flex) */
+        .echo-wrap {
+          position: relative;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          width: 100vw;                           /* full-bleed */
+        }
+
+        /* Full-bleed solid bar behind each row */
         .echo-word::before {
           content: "";
           position: absolute;
@@ -166,29 +175,14 @@ export default function ContactSection() {
           left: 50%;
           transform: translate(-50%, -50%);
           width: 100vw;
-          height: 1.08em;
+          height: 1.08em;                         /* visible, not swallowing glyphs */
           z-index: -1;
-          background: #0b0f14;
         }
         .echo-bar--light::before { background: #0c1117; }
         .echo-bar--mid::before   { background: #0a0e14; }
         .echo-bar--dark::before  { background: #080b10; }
 
-        /* Layer positioning — add a slight gap between rows */
-        .echo-layer {
-          position: absolute;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 100vw;
-          display: flex;
-          justify-content: center;
-          z-index: 1;
-        }
-        .echo-top    { bottom: 2.35em; z-index: 3; } /* +0.15em gap vs previous */
-        .echo-mid    { bottom: 1.18em; z-index: 2; } /* +0.08em gap */
-        .echo-bottom { bottom: 0;     z-index: 1; }
-
-        /* Pre-cuts: keep TOP portion, trim BOTTOM */
+        /* PRE-CUTS: keep TOP portion, trim BOTTOM (no layering required) */
         .echo-cut-33 {
           -webkit-mask-image: linear-gradient(to bottom, black 33%, transparent 33%);
           mask-image: linear-gradient(to bottom, black 33%, transparent 33%);
@@ -204,11 +198,12 @@ export default function ContactSection() {
 
         @media (max-width: 768px) {
           .echo-word { font-size: clamp(44px, 12.5vw, 180px); letter-spacing: -0.085em; line-height: 0.88; }
-          .echo-top { bottom: 2.2em; }
-          .echo-mid { bottom: 1.1em; }
+          .pointer-events-none.flex { gap: 0.16em; }
+          .echo-word::before { height: 1.04em; }
         }
       `}</style>
     </section>
   );
 }
+
 
