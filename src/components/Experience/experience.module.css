@@ -1,12 +1,14 @@
+/* Lock window hosts the sticky/fixed subheader and the stage */
 .lockWindow { position: relative; width: 100%; }
 
+/* Impact/Progress subheader */
 .subheaderSticky {
   position: sticky;
   top: var(--top-offset, 0px);
   left: 0;
   right: 0;
   width: 100%;
-  z-index: 50;
+  z-index: 80; /* bumped to ensure it's above the cards/stage */
   background: transparent;
   padding-bottom: 0.5rem;
 
@@ -15,10 +17,12 @@
   will-change: opacity;
 }
 
+/* Subheader row + underline */
 .subheaderRow { display: flex; align-items: center; gap: 0.75rem; }
 .underlineTrack { flex: 1; height: 2px; background: transparent; position: relative; overflow: hidden; }
 .underlineFill { height: 2px; background: var(--accent, #7dd3fc); width: 0%; transition: width .2s ease; }
 
+/* Stage geometry */
 .stageHolder {
   position: relative;
   height: calc(100vh - var(--sub-h, 56px) - var(--top-offset, 0px) - var(--sub-shift, 0px));
@@ -76,4 +80,3 @@
   .metricsGrid { grid-template-columns: 1fr; }
   .card { width: min(96vw, 960px); padding: .95rem; }
 }
-
