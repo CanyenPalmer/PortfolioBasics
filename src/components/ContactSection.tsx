@@ -51,32 +51,32 @@ export default function ContactSection() {
   <p className="text-sm uppercase tracking-wide text-white/50">Navigation</p>
   <ul className="mt-2 space-y-2">
     <li>
-      <Link href="#hero" className="inline-flex items-center gap-2 text-lg text-white/90 hover:text-white transition-colors">
+      <Link href="#hero" className="inline-flex items-center gap-2 text-2xl md:text-[22px] text-white/90 hover:text-white transition-colors">
         Home
       </Link>
     </li>
     <li>
-      <Link href="#about" className="inline-flex items-center gap-2 text-lg text-white/90 hover:text-white transition-colors">
+      <Link href="#about" className="inline-flex items-center gap-2 text-2xl md:text-[22px] text-white/90 hover:text-white transition-colors">
         About
       </Link>
     </li>
     <li>
-      <Link href="#experience" className="inline-flex items-center gap-2 text-lg text-white/90 hover:text-white transition-colors">
+      <Link href="#experience" className="inline-flex items-center gap-2 text-2xl md:text-[22px] text-white/90 hover:text-white transition-colors">
         Experience
       </Link>
     </li>
     <li>
-      <Link href="#projects" className="inline-flex items-center gap-2 text-lg text-white/90 hover:text-white transition-colors">
+      <Link href="#projects" className="inline-flex items-center gap-2 text-2xl md:text-[22px] text-white/90 hover:text-white transition-colors">
         Projects
       </Link>
     </li>
     <li>
-      <Link href="#education" className="inline-flex items-center gap-2 text-lg text-white/90 hover:text-white transition-colors">
+      <Link href="#education" className="inline-flex items-center gap-2 text-2xl md:text-[22px] text-white/90 hover:text-white transition-colors">
         Education
       </Link>
     </li>
     <li>
-      <Link href="#testimonials" className="inline-flex items-center gap-2 text-lg text-white/90 hover:text-white transition-colors">
+      <Link href="#testimonials" className="inline-flex items-center gap-2 text-2xl md:text-[22px] text-white/90 hover:text-white transition-colors">
         Testimonials
       </Link>
     </li>
@@ -92,7 +92,7 @@ export default function ContactSection() {
                   href="https://www.linkedin.com/in/canyen-palmer"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-lg text-white/90 hover:text-white transition-colors"
+                  className="inline-flex items-center gap-2 text-2xl md:text-[22px] text-white/90 hover:text-white transition-colors"
                 >
                   LinkedIn <span className="text-white/50">↗</span>
                 </a>
@@ -102,7 +102,7 @@ export default function ContactSection() {
                   href="https://github.com/CanyenPalmer"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-lg text-white/90 hover:text-white transition-colors"
+                  className="inline-flex items-center gap-2 text-2xl md:text-[22px] text-white/90 hover:text-white transition-colors"
                 >
                   GitHub <span className="text-white/50">↗</span>
                 </a>
@@ -110,6 +110,14 @@ export default function ContactSection() {
               <li className="pt-4 text-xs font-mono uppercase tracking-wider text-white/40">{now}</li>
             </ul>
           </div>
+        </div>
+      </div>
+
+      <div className="mx-auto mt-8 w-full max-w-7xl px-6">
+        <div className="flex items-center justify-between text-[10px] uppercase tracking-widest text-white/45">
+          <span>©{new Date().getFullYear()} Canyen Palmer</span>
+          <span>Thank You For Visiting</span>
+          <span>Data • Design • Systems</span>
         </div>
       </div>
 
@@ -129,14 +137,6 @@ export default function ContactSection() {
       </div>
 
       {/* Footer meta */}
-      <div className="mx-auto mt-8 w-full max-w-7xl px-6">
-        <div className="flex items-center justify-between text-[10px] uppercase tracking-widest text-white/45">
-          <span>©{new Date().getFullYear()} Canyen Palmer</span>
-          <span>Thank You For Visiting</span>
-          <span>Data • Design • Systems</span>
-        </div>
-      </div>
-
       <style jsx>{`
         /* Gentle vertical fade so the stack blends; no fog overlay. */
         .echo-mask {
@@ -187,3 +187,4 @@ export default function ContactSection() {
     </section>
   );
 }
+
