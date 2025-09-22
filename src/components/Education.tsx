@@ -63,16 +63,16 @@ function getEducationFromProfile(): Edu[] {
 }
 
 /* ------------------ Step-lock controller (window listeners) ------------------
-   - Lock activates only when the row is centered (IO + center-band check).
+   - Lock activates only when the row is centered (IO + band + pinned fallback).
    - While active, intercept wheel/touch to step 0→4 (or reverse).
    - Escape at both ends so scrolling continues naturally.
-   - Slowed progression: higher delta threshold + short cooldown per step.
+   - Slightly slowed stepping (threshold + cooldown).
 ------------------------------------------------------------------------------- */
 function useStepLock(opts: {
   steps: number;                        // inclusive: 0..steps
   getStep: () => number;
   setStep: (n: number) => void;
-  shouldLock: () => boolean;            // IO + center check
+  shouldLock: () => boolean;            // live lock predicate
   threshold?: number;                   // scroll delta per step
   cooldownMs?: number;                  // min time between steps
 }) {
@@ -85,7 +85,7 @@ function useStepLock(opts: {
   const tryStep = React.useCallback(
     (dir: 1 | -1) => {
       const now = performance.now();
-      if (now - lastStepAt.current < cooldownMs) return; // slow it a touch
+      if (now - lastStepAt.current < cooldownMs) return;
       const step = getStep();
       const next = Math.max(0, Math.min(steps, step + dir));
       if (next !== step) {
@@ -159,11 +159,7 @@ function useStepLock(opts: {
   }, [getStep, shouldLock, steps, threshold, tryStep]);
 }
 
-/* --------------------------- Tile (column) ---------------------------
-   - Slides in from RIGHT (slightly slower to match the new pacing).
-   - Image fills card (object-cover), caption/tag preserved under image.
-   - Taller proportion so the row feels substantial on the page.
---------------------------------------------------------------------- */
+/* --------------------------- Tile (column) --------------------------- */
 function Tile({ idx, edu, visible }: { idx: number; edu: Edu; visible: boolean }) {
   return (
     <motion.figure
@@ -172,14 +168,10 @@ function Tile({ idx, edu, visible }: { idx: number; edu: Edu; visible: boolean }
       transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1] }}
       className="relative overflow-hidden rounded-2xl shadow-lg ring-1 ring-white/10 bg-[#0d131d]"
     >
-      {/* Taller, balanced card height; object-cover to fill without letterboxing */}
+      {/* Tall, proportional column; image fills (no letterboxing) */}
       <div className="w-full h-[50vh] md:h-[54vh] lg:h-[56vh]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={edu.img}
-          alt={edu.title}
-          className="block h-full w-full object-cover"
-        />
+        <img src={edu.img} alt={edu.title} className="block h-full w-full object-cover" />
       </div>
       <figcaption className="p-3 sm:p-4">
         <div className={`text-sm sm:text-base font-semibold ${outfit.className}`}>{edu.title}</div>
@@ -193,11 +185,12 @@ function Tile({ idx, edu, visible }: { idx: number; edu: Edu; visible: boolean }
 /* --------------------------- Main --------------------------- */
 export default function Education() {
   const items = React.useMemo(() => getEducationFromProfile(), []);
-  const total = items.length;           // expected 4
-  const maxStep = total;                // 0..4 (how many visible)
+  const total = items.length;          // 4
+  const maxStep = total;               // 0..4
 
-  const [step, setStep] = React.useState(0);           // 0 none; 1..4 visible
-  const [ioActive, setIoActive] = React.useState(false); // sticky viewport visible
+  const [step, setStep] = React.useState(0);      // 0 none; 1..4 visible
+  const [ioActive, setIoActive] = React.useState(false);
+
   const sectionRef = React.useRef<HTMLDivElement>(null);
   const stickyRef  = React.useRef<HTMLDivElement>(null);
   const rowRef     = React.useRef<HTMLDivElement>(null);
@@ -212,65 +205,81 @@ export default function Education() {
     return () => m.removeEventListener?.("change", cb);
   }, []);
 
-  // IO: sticky frame must be on screen
+  // IO: sticky frame visible (relaxed so it actually fires)
   React.useEffect(() => {
     const sticky = stickyRef.current;
     if (!sticky) return;
+
     const obs = new IntersectionObserver(
-      ([entry]) => setIoActive(entry.isIntersecting && entry.intersectionRatio >= 0.35),
-      { root: null, threshold: [0, 0.35, 1] }
+      ([entry]) => setIoActive(entry.isIntersecting && entry.intersectionRatio >= 0.2),
+      { root: null, threshold: [0, 0.2, 0.5, 1] }
     );
+
     obs.observe(sticky);
     return () => obs.disconnect();
   }, []);
 
-  // Center-band check: engage only when the ROW is centered (prevents early lock)
+  // Fallback: treat sticky as focused when pinned & section spans viewport
+  const pinnedFallback = React.useCallback(() => {
+    const sec = sectionRef.current;
+    const sticky = stickyRef.current;
+    if (!sec || !sticky) return false;
+    const s = sec.getBoundingClientRect();
+    const vH = window.innerHeight || 1;
+    const stickyTop = sticky.getBoundingClientRect().top;
+    const sectionSpans = s.top <= 0 && s.bottom >= vH;
+    const stickyPinned = Math.round(stickyTop) === 0;
+    return sectionSpans && stickyPinned;
+  }, []);
+
+  // Row-centered band: engage lock only when the row center is around viewport center
   const rowCentered = React.useCallback(() => {
     const row = rowRef.current;
     if (!row) return false;
     const r = row.getBoundingClientRect();
     const vh = window.innerHeight || 1;
     const center = r.top + r.height / 2;
-    // row center must be within 40%..60% band of the viewport
-    return center > vh * 0.4 && center < vh * 0.6;
+    // Wider band so it triggers reliably, but still centered
+    return center > vh * 0.35 && center < vh * 0.65;
   }, []);
 
-  const shouldLock = React.useCallback(
-    () => !reduced && ioActive && rowCentered(),
-    [reduced, ioActive, rowCentered]
+  // Final lock predicate
+  const isLocked = React.useMemo(
+    () => !reduced && (ioActive || pinnedFallback()) && rowCentered(),
+    [reduced, ioActive, pinnedFallback, rowCentered]
   );
 
-  // Step lock (slower pace)
+  // Install step lock (escapable at both ends; slowed a touch)
   useStepLock({
     steps: maxStep,
     getStep: () => step,
     setStep: (n) => setStep(n),
-    shouldLock,
-    threshold: 110,      // more delta required per step → slower advance
-    cooldownMs: 200,     // brief cooldown → smoother, slower stepping
+    shouldLock: () => isLocked,
+    threshold: 105,
+    cooldownMs: 180,
   });
 
-  // Re-entry behavior so the sequence can play forward/back nicely
+  // Re-entry: only reset when coming from above; do NOT prefill when passing below
   React.useEffect(() => {
     const onScroll = () => {
       const sec = sectionRef.current;
       if (!sec) return;
       const r = sec.getBoundingClientRect();
       const vh = window.innerHeight || 1;
-      if (r.top >= vh * 0.98) setStep(0);          // entering from above → play forward
-      if (r.bottom <= vh * 0.02) setStep(maxStep); // entering from below → show complete
+      if (r.top >= vh * 0.98) setStep(0); // entering from above → play forward
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, [maxStep]);
+  }, []);
 
-  const visibleCount = reduced ? total : Math.min(step, total);
+  // Keep cards hidden until lock actually engages (prevents early reveal)
+  const visibleCount = reduced ? total : (isLocked ? Math.min(step, total) : 0);
 
   return (
     <section id="education" aria-label="Education" className="relative">
       {/* Normal-length runway; sticky viewport handles the lock window */}
       <div ref={sectionRef} className="relative min-h-[170vh]">
-        {/* Sticky frame keeps header + row visible during lock */}
+        {/* Sticky frame keeps header + row visible during the lock */}
         <div ref={stickyRef} className="sticky top-0 h-screen overflow-hidden">
           {/* Header (pinned) */}
           <div className="absolute left-0 right-0 top-0 z-50 flex flex-col items-center pt-8 sm:pt-10">
@@ -298,7 +307,7 @@ export default function Education() {
           <div className="absolute inset-0 z-40 flex items-start justify-center">
             <div
               ref={rowRef}
-              className="mt-[22vh] sm:mt-[24vh] md:mt-[26vh] w-[min(1400px,95vw)]"
+              className="mt-[24vh] sm:mt-[26vh] md:mt-[28vh] w-[min(1400px,95vw)]"
             >
               <div className="grid grid-cols-4 gap-4 sm:gap-5">
                 {items.map((edu, i) => (
@@ -330,4 +339,5 @@ export default function Education() {
     </section>
   );
 }
+
 
