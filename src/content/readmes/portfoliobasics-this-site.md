@@ -1,38 +1,50 @@
 # PortfolioBasics
 
----
-**Project Spotlight: Personal Data Science & Analytics Portfolio**
+[![Deploy with Vercel](https://vercelbadge.vercel.app/api/canyenpalmer/PortfolioBasics)](https://portfolio-basics.vercel.app)
+![GitHub last commit](https://img.shields.io/github/last-commit/CanyenPalmer/PortfolioBasics)
+![GitHub repo size](https://img.shields.io/github/repo-size/CanyenPalmer/PortfolioBasics)
 
-This repository powers my interactive **portfolio website**, showcasing my journey as a **Master of Data Science student** and applied projects in **Python, R, SQL, Tableau, and Machine Learning**. Built with a modern web stack and infused with a unique **cyber-tech / anime-inspired aesthetic**, this portfolio is a live demonstration of how I combine **technical depth, design language, and storytelling**.
+---
+**Project Spotlight: Award-Level Personal Data Science & Analytics Portfolio**
+
+This repository powers my interactive **portfolio website**, showcasing my journey as a **Master of Data Science student** and applied projects in **Python, R, SQL, Tableau, and Machine Learning**.  
+
+The site is designed as a **scroll-locked narrative experience** with **anime-inspired visuals**, **panel-based experience cards**, and an **award-style aesthetic** — blending **technical depth, professional storytelling, and creative branding**.
 
 ---
 
 ### Key Techniques and Tools
 
-* **Next.js & React**  
-  Developed a modular, responsive frontend with reusable components.
+* **Next.js 14 & React**  
+  Modular, responsive frontend built with the latest rendering features.
 
 * **Tailwind CSS + Framer Motion**  
-  Implemented animated UI/UX elements such as holographic frames, code shards, dithering globes, and manga-style transitions.
+  Animated UI/UX including scroll locks, fade transitions, interactive HUDs, and glitch effects.
 
-* **Component-Driven Development**  
-  Sections include Hero, Experience, Projects, Education, Testimonials, Services, and Contact — each highly customizable and scalable.
+* **Section-Driven Architecture**  
+  - **Hero**: Custom animated avatar with glitch-lock typography.  
+  - **About Me**: Interactive avatar poses with expandable text.  
+  - **Experience**: **Panel cards** displaying metrics, impact, and achievements.  
+  - **Projects**: HUD/collage showcase with anime avatars and hover effects.  
+  - **Education**: Anime-style institution panels with custom backgrounds.  
+  - **Testimonials**: Avatar-based 2×2 grid with interactive flip animations.  
+  - **Contact**: Reactor-style generator with orbiting contact nodes.  
 
-* **Project Integration**  
-  Portfolio highlights link directly to GitHub repositories, surfacing metrics such as **AUC 93.8%**, **RMSE improvements**, and **$317k unpaid identified**.
+* **Custom Content System**  
+  All portfolio details managed in `/src/content` for scalability and maintainability.
 
 * **Deployment on Vercel**  
-  Continuous deployment pipeline ensures the portfolio is always live and production-ready.
+  Continuous deployment ensures the portfolio is always live and production-ready.
 
 ---
 
 ### Why It Matters
 
-This portfolio is more than a static showcase — it’s a **narrative framework** for communicating both technical skills and creative vision. It demonstrates my ability to:
+This portfolio is more than a showcase — it’s an **immersive narrative framework** demonstrating my ability to:
 
-* Present complex analytics in an accessible, engaging format.  
-* Blend professional branding with personal creative influences (anime/manga).  
-* Build production-grade full-stack applications with seamless deployment.
+* Present **complex analytics** in a clear, engaging way.  
+* Blend **professional branding** with **anime/cyberpunk creative influences**.  
+* Build **production-grade applications** with seamless deployment.  
 
 ---
 
@@ -40,6 +52,13 @@ This portfolio is more than a static showcase — it’s a **narrative framework
 
 Through this project, I reinforce my ability to:
 
-* Transform raw code and data into interactive user experiences.  
-* Develop maintainable, reusable systems for analytics storytelling.  
-* Express my technical abilities by merging **business impact** with **a strong creative identity**.
+* Transform **raw code and data** into **interactive experiences**.  
+* Design maintainable, reusable systems for **analytics storytelling**.  
+* Express technical ability while highlighting **business impact** and **design innovation**.  
+
+---
+
+### Live Demo
+
+👉 [**View Portfolio Website**](https://portfolio-basics.vercel.app)
+
