@@ -67,8 +67,8 @@ export default function ContactSection() {
         <span>DATA • DESIGN • SYSTEMS</span>
       </div>
 
-      {/* ===== FOOTER — absolute layers with tripled spread (ONLY area changed) ===== */}
-      <div className="relative h-[760px] md:h-[820px] overflow-hidden">
+      {/* ===== FOOTER (raised closer to meta bar) ===== */}
+      <div className="relative h-[600px] md:h-[660px] overflow-hidden">
         <div className="pointer-events-none absolute inset-0 z-10">
           {/* Top (⅓ visible) */}
           <div className="echo-layer echo-top">
@@ -92,13 +92,12 @@ export default function ContactSection() {
       </div>
 
       <style jsx>{`
-        /* Big word — full-bleed, dense */
         .echo-word {
           white-space: nowrap;
           text-transform: uppercase;
           font-weight: 900;
           letter-spacing: -0.12em;
-          line-height: 1;                        /* 1em = one line height */
+          line-height: 1;
           color: #ffffff;
           font-size: clamp(72px, 12.6vw, 280px);
           display: inline-block;
@@ -110,11 +109,9 @@ export default function ContactSection() {
           width: 100vw;
           display: block;
           text-align: center;
-          transform: scaleX(1.04);              /* kiss both walls */
+          transform: scaleX(1.04);
           transform-origin: center;
         }
-
-        /* Absolute layers with explicit bottom offsets */
         .echo-layer {
           position: absolute;
           left: 50%;
@@ -124,14 +121,10 @@ export default function ContactSection() {
           justify-content: center;
           align-items: center;
         }
-        /* Bottom row sits on the floor */
         .echo-bot { bottom: 0; }
-        /* Middle row: was 0.5em → 3× spread => 1.5em */
-        .echo-mid { bottom: 1.5em; }
-        /* Top row: was (0.5 + 0.3333)em → 3× => 2.5em */
-        .echo-top { bottom: 2.5em; }
+        .echo-mid { bottom: 3em; }   /* raised from 1.5em → 3em */
+        .echo-top { bottom: 5em; }   /* raised from 2.5em → 5em */
 
-        /* Masks (keep TOP portion visible) */
         .echo-cut-33 {
           -webkit-mask-image: linear-gradient(to bottom, black 33%, transparent 33%);
           mask-image: linear-gradient(to bottom, black 33%, transparent 33%);
@@ -148,9 +141,8 @@ export default function ContactSection() {
         @media (max-width: 768px) {
           .echo-word { font-size: clamp(48px, 13.5vw, 200px); letter-spacing: -0.10em; }
           .echo-wide { transform: scaleX(1.02); }
-          /* keep tripled spread on mobile too */
-          .echo-mid { bottom: 1.5em; }
-          .echo-top { bottom: 2.5em; }
+          .echo-mid { bottom: 2em; }
+          .echo-top { bottom: 3.5em; }
         }
       `}</style>
     </section>
