@@ -109,32 +109,34 @@ export default function ContactSection() {
         <span>DATA • DESIGN • SYSTEMS</span>
       </div>
 
-      {/* ===== ECHO STACK — full-bleed, tight, all 3 visible ===== */}
-      <div className="relative h-[360px] overflow-hidden">
-        {/* Full-bleed background planes for depth (hit both walls) */}
-        <div className="pointer-events-none absolute left-1/2 bottom-0 z-0 h-[340px] w-screen -translate-x-1/2">
+      {/* ===== FOOTER ECHO (pre-cut 1/3, 1/2, full; character-spaced stacking) ===== */}
+      <div className="relative h-[380px] overflow-hidden">
+        {/* Depth planes (full-bleed, solid, darker each row) */}
+        <div className="pointer-events-none absolute left-1/2 bottom-0 z-0 h-[360px] w-screen -translate-x-1/2">
           <div className="absolute inset-x-0 bottom-0 h-full bg-[#0b1016] z-[1]" />
           <div className="absolute inset-x-0 bottom-0 h-[75%] bg-[#0a0d13] z-[2]" />
           <div className="absolute inset-x-0 bottom-0 h-[50%] bg-[#070b10] z-[3]" />
         </div>
 
-        {/* Text rows + per-line solid bars (also full-bleed) */}
-        <div className="pointer-events-none absolute left-1/2 bottom-0 z-10 h-[340px] w-screen -translate-x-1/2">
-          {/* Top line (33% reveal, 50% opacity) — spaced to end just above the middle cut */}
-          <div className="absolute bottom-[108px] w-full flex justify-center">
-            <span className="echo-word echo-clip-top-33 echo-bar--light" style={{ opacity: 0.5 }}>
+        {/* Pre-cut rows; bottom offsets in em so spacing keys off the glyph height */}
+        <div className="pointer-events-none absolute left-1/2 bottom-0 z-10 h-[360px] w-screen -translate-x-1/2">
+          {/* 1) Top row: shows top 33% (pre-cut), placed ~2.05em above bottom so next row sits right beneath the cut */}
+          <div className="echo-row echo-top">
+            <span className="echo-word echo-cut-33 echo-bar--light" style={{ opacity: 0.5 }}>
               CANYEN PALMER
             </span>
           </div>
-          {/* Middle line (50% reveal, 75% opacity) — spaced to end just above the bottom cut */}
-          <div className="absolute bottom-[40px] w-full flex justify-center">
-            <span className="echo-word echo-clip-top-50 echo-bar--mid" style={{ opacity: 0.75 }}>
+
+          {/* 2) Middle row: shows top 50% (pre-cut), placed ~1.05em above bottom so bottom row aligns under its cut */}
+          <div className="echo-row echo-mid">
+            <span className="echo-word echo-cut-50 echo-bar--mid" style={{ opacity: 0.75 }}>
               CANYEN PALMER
             </span>
           </div>
-          {/* Bottom line (full, 100% opacity) */}
-          <div className="absolute bottom-0 w-full flex justify-center">
-            <span className="echo-word echo-clip-top-100 echo-bar--dark" style={{ opacity: 1 }}>
+
+          {/* 3) Bottom row: full word touching the bottom wall */}
+          <div className="echo-row echo-bottom">
+            <span className="echo-word echo-cut-100 echo-bar--dark" style={{ opacity: 1 }}>
               CANYEN PALMER
             </span>
           </div>
@@ -142,66 +144,75 @@ export default function ContactSection() {
       </div>
 
       <style jsx>{`
-        /* One phrase per row, spanning the viewport */
+        /* Shared word styling */
         .echo-word {
           white-space: nowrap;
           text-transform: uppercase;
           font-weight: 900;
-          letter-spacing: -0.095em;           /* tight tracking */
-          line-height: 0.84;                   /* tight vertical rhythm */
+          letter-spacing: -0.09em;          /* tight tracking so rows feel connected */
+          line-height: 0.86;                 /* tight vertical rhythm */
           color: #ffffff;
-          font-size: clamp(64px, 10.8vw, 240px); /* full-bleed width */
+          font-size: clamp(64px, 10.8vw, 240px);
           position: relative;
           display: inline-block;
           -webkit-font-smoothing: antialiased;
           -moz-osx-font-smoothing: grayscale;
           text-rendering: geometricPrecision;
-          font-feature-settings: "kern" 1, "liga" 1;
-          font-variation-settings: "wght" 900;
-          transform: translateZ(0);
         }
 
-        /* Solid visible bar directly behind each word, full viewport width */
+        /* Each row is positioned by character height (em), not pixels,
+           so spacing follows the font itself */
+        .echo-row {
+          position: absolute;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 100vw;                      /* full-bleed */
+          display: flex;
+          justify-content: center;
+        }
+        .echo-top    { bottom: 2.05em; }     /* sits just above the middle cut */
+        .echo-mid    { bottom: 1.05em; }     /* sits just above the bottom cut  */
+        .echo-bottom { bottom: 0; }          /* touches the bottom wall */
+
+        /* Visible solid bar directly behind each word (full-bleed),
+           sized to the line height so it separates but doesn't swallow glyphs */
         .echo-word::before {
           content: "";
           position: absolute;
           top: 50%;
           transform: translate(-50%, -50%);
           left: 50%;
-          width: 100vw;                        /* hit both walls */
-          height: 1.05em;                      /* slimmer so letters remain visible */
+          width: 100vw;
+          height: 1.08em;                   /* slim bar; keeps letters visible */
           z-index: -1;
-          background: #0b0f14;                 /* base shade; overridden per row below */
+          background: #0b0f14;
         }
-        .echo-bar--light::before { background: #0c1117; }  /* lightest */
-        .echo-bar--mid::before   { background: #0a0e14; }  /* darker  */
-        .echo-bar--dark::before  { background: #080b10; }  /* darkest */
+        .echo-bar--light::before { background: #0c1117; }
+        .echo-bar--mid::before   { background: #0a0e14; }
+        .echo-bar--dark::before  { background: #080b10; }
 
-        /* Reveal TOP portion, trim BOTTOM (so lower line “cuts” above) */
-        .echo-clip-top-33 {
+        /* PRE-CUT visibility:
+           Keep the TOP portion, trim the BOTTOM — so each lower row
+           visually "cuts" the one above even before stacking */
+        .echo-cut-33 {
           -webkit-mask-image: linear-gradient(to bottom, black 33%, transparent 33%);
           mask-image: linear-gradient(to bottom, black 33%, transparent 33%);
         }
-        .echo-clip-top-50 {
+        .echo-cut-50 {
           -webkit-mask-image: linear-gradient(to bottom, black 50%, transparent 50%);
           mask-image: linear-gradient(to bottom, black 50%, transparent 50%);
         }
-        .echo-clip-top-100 {
+        .echo-cut-100 {
           -webkit-mask-image: linear-gradient(to bottom, black 100%, transparent 100%);
           mask-image: linear-gradient(to bottom, black 100%, transparent 100%);
         }
 
         @media (max-width: 768px) {
-          .echo-word {
-            font-size: clamp(44px, 12.5vw, 180px);
-            letter-spacing: -0.09em;
-            line-height: 0.86;
-          }
-          .echo-word::before { height: 1.0em; }
+          .echo-word { font-size: clamp(44px, 12.5vw, 180px); letter-spacing: -0.085em; line-height: 0.88; }
+          .echo-top { bottom: 2.0em; }
+          .echo-mid { bottom: 1.0em; }
         }
       `}</style>
     </section>
   );
 }
-
-
