@@ -6,27 +6,29 @@ import Link from "next/link";
 
 /**
  * GetInTouchBand
- * - A compact CTA band mirroring the reference: centered "Get in Touch" with subtle scrolling lines.
- * - Pure Tailwind + inline keyframes; no global CSS changes and no props required.
- * - Standalone so it won’t touch Education’s scroll-lock container or timing.
+ * - CTA band with subtle animated "scrolling lines" background.
+ * - Centered call-to-action and social buttons.
+ * - Placed directly under Education (no scroll pinning).
  */
 export default function GetInTouchBand() {
   return (
     <section
       aria-label="Get in touch"
-      className="relative w-full overflow-hidden border-t border-white/10 bg-[#0d131d]"
+      className="relative w-full overflow-hidden border-t border-white/10"
+      // Mid-tone between #0b1016 and #0d131d for a smoother section transition
+      style={{ backgroundColor: "#0c111a" }}
     >
-      {/* Scrolling lines background (non-interactive) */}
+      {/* Scrolling lines background */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
-        {/* Horizontal thin lines moving left */}
+        {/* Layer 1: thin moving lines */}
         <div className="absolute inset-0 [background-image:repeating-linear-gradient(90deg,rgba(255,255,255,0.06)_0px,rgba(255,255,255,0.06)_1px,transparent_1px,transparent_14px)] [background-size:15px_100%] animate-[scroll-x_16s_linear_infinite]" />
-        {/* Vertical cross-lines drifting up */}
+        {/* Layer 2: super subtle cross-lines */}
         <div className="absolute inset-0 [background-image:repeating-linear-gradient(0deg,rgba(255,255,255,0.025)_0px,rgba(255,255,255,0.025)_1px,transparent_1px,transparent_18px)] [background-size:100%_19px] opacity-80 animate-[scroll-y_32s_linear_infinite]" />
-        {/* Soft top glow to “cap” the preceding section */}
+        {/* Soft top glow to cap the preceding section */}
         <div className="absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-white/10 to-transparent" />
       </div>
 
-      {/* Centered CTA content */}
+      {/* Content */}
       <div className="mx-auto max-w-6xl px-6 py-20 sm:py-24 md:py-28 text-center">
         <motion.p
           initial={{ opacity: 0, y: 4 }}
@@ -45,7 +47,7 @@ export default function GetInTouchBand() {
           transition={{ duration: 0.3, ease: "easeOut" }}
           className="mx-auto max-w-3xl text-balance text-2xl sm:text-3xl md:text-4xl font-semibold text-white"
         >
-          Have a project or role in mind?
+          Have A Project Or Role In Mind?
         </motion.h2>
 
         <motion.p
@@ -58,13 +60,15 @@ export default function GetInTouchBand() {
           I build measurable, production-ready analytics—ML, dashboards, and optimization.
         </motion.p>
 
+        {/* CTA row */}
         <motion.div
           initial={{ opacity: 0, scale: 0.98 }}
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true, margin: "0px 0px -10% 0px" }}
           transition={{ duration: 0.25, ease: "easeOut", delay: 0.1 }}
-          className="mt-6 flex items-center justify-center gap-3"
+          className="mt-6 flex flex-wrap items-center justify-center gap-3"
         >
+          {/* Primary CTA */}
           <Link
             href="#contact"
             className="group inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-5 py-3 text-sm font-medium text-white backdrop-blur-sm transition duration-150 hover:bg-white/15 hover:shadow-[0_0_30px_rgba(255,255,255,0.08)] active:scale-[0.99]"
@@ -82,17 +86,29 @@ export default function GetInTouchBand() {
             </svg>
           </Link>
 
+          {/* LinkedIn */}
           <Link
-            href="https://www.linkedin.com/in/canyen-palmer"
+            href="https://www.linkedin.com/in/canyen-palmer-b0b6762a0"
             target="_blank"
+            rel="noopener noreferrer"
             className="inline-flex items-center gap-2 rounded-2xl border border-white/10 px-5 py-3 text-sm font-medium text-white/80 transition duration-150 hover:border-white/25 hover:text-white"
           >
             LinkedIn
           </Link>
+
+          {/* GitHub */}
+          <Link
+            href="https://github.com/CanyenPalmer"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-2xl border border-white/10 px-5 py-3 text-sm font-medium text-white/80 transition duration-150 hover:border-white/25 hover:text-white"
+          >
+            GitHub
+          </Link>
         </motion.div>
       </div>
 
-      {/* Local keyframes scoped to this component */}
+      {/* Local keyframes */}
       <style jsx>{`
         @keyframes scroll-x {
           0% { background-position-x: 0; }
@@ -106,4 +122,3 @@ export default function GetInTouchBand() {
     </section>
   );
 }
-
