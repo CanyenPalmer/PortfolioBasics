@@ -1,319 +1,243 @@
 "use client";
 
 import * as React from "react";
-import { useMemo, useRef, useState, useEffect } from "react";
-import { useScroll, useMotionValueEvent } from "framer-motion";
-import SectionPanel from "@/components/ui/SectionPanel";
+import TransitionLink from "@/components/TransitionLink";
 import { profile } from "@/content/profile";
-import ExperienceCard from "@/components/Experience/ExperienceCard";
-import styles from "@/components/Experience/experience.module.css";
+import { slugify } from "@/lib/slug";
+import { Playfair_Display, Outfit, Plus_Jakarta_Sans } from "next/font/google";
 
-export type Metric = {
-  label: string;
-  value: number;
-  format?: "currency" | "number" | "percent";
-  type?: "counter" | "ring" | "bar";
-  icon?: string;
-  suffix?: string;
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  weight: ["400", "700", "900"],
+});
+const outfit = Outfit({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+});
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["200", "300", "400", "500"], // for light style
+});
+
+type RawEdu = {
+  institution?: string;
+  school?: string;
+  degree?: string;
+  program?: string;
+  years?: string;
+  period?: string;
+  location?: string;
+  summary?: string;
+  description?: string;
+  coursework?: string[];
+  highlights?: string[];
+  links?: { label: string; href: string }[];
+  hero?: { src: string; alt: string };
+  logo?: { src: string; alt: string };
 };
 
-type MetricsMap = Record<string, Metric[]>;
-type MetricsByIndex = Record<number, Metric[]>;
-
-const metricsMap: MetricsMap = {
-  "Iconic Care Inc.::Lead Analyst": [
-    { label: "Funds Discovered", value: 20000, format: "currency", type: "counter" },
-    { label: "Hours Saved / Week", value: 12, format: "number", type: "bar" },
-    { label: "Rep Efficiency", value: 100, format: "percent", type: "ring" },
-  ],
+type Edu = {
+  title: string;     // Institution / School
+  sub: string;       // Degree / Program
+  years?: string;
+  location?: string;
+  summary?: string;
+  description?: string;
+  coursework?: string[];
+  highlights?: string[];
+  links?: { label: string; href: string }[];
+  heroSrc: string;   // resolved from provided hero or filename mapping
+  heroAlt: string;
+  slug: string;      // slugify(title + sub)
 };
 
-const metricsByIndex: MetricsByIndex = {
-  0: [
-    { label: "Funds Discovered", value: 20000, format: "currency", type: "counter" },
-    { label: "Hours Saved / Week", value: 12, format: "number", type: "bar" },
-    { label: "Rep Efficiency", value: 100, format: "percent", type: "ring" },
-  ],
-  1: [
-    { label: "Optimized Efficiency Increase", value: 150, format: "percent", type: "bar" },
-    { label: "Dashboards Created", value: 15, format: "number", type: "counter", suffix: "+" },
-    { label: "Success Rate Increase", value: 45, format: "percent", type: "ring" },
-  ],
-};
-
-function keyFor(exp: any) {
-  const company = exp?.company ?? "";
-  const role = exp?.role ?? exp?.title ?? "";
-  return `${company}::${role}`;
+function resolveHeroFromTitle(title: string): string {
+  const t = title.toLowerCase();
+  if (t.includes("ball state")) return "/images/ball-state.png";
+  if (t.includes("google")) return "/images/google.png";
+  if (t.includes("greenfield")) return "/images/greenfield-central.png";
+  if (t.includes("pittsburgh") || t.includes("pitt")) return "/images/pitt.png";
+  return "/images/portfolio-basics-avatar.png";
 }
-function clamp01(v: number) {
-  return Math.max(0, Math.min(1, v));
+
+function normalizeEdu(e: RawEdu): Edu {
+  const title = (e.institution ?? e.school ?? "").toString();
+  const sub = (e.degree ?? e.program ?? "").toString();
+  const years = (e.years ?? e.period)?.toString();
+  const heroSrc = e.hero?.src ?? resolveHeroFromTitle(title);
+  const heroAlt =
+    e.hero?.alt ?? (title && sub ? `${title} — ${sub}` : title || "Education");
+
+  return {
+    title,
+    sub,
+    years,
+    location: e.location,
+    summary: e.summary ?? e.description,
+    description: e.description ?? e.summary,
+    coursework: Array.isArray(e.coursework) ? e.coursework : undefined,
+    highlights: Array.isArray(e.highlights) ? e.highlights : undefined,
+    links: Array.isArray(e.links) ? e.links : undefined,
+    heroSrc,
+    heroAlt,
+    slug: slugify(`${title} ${sub}`),
+  };
 }
 
-export default function Experience() {
-  const experiences = profile.experience ?? [];
-  const cardCount = experiences.length || 1;
-
-  const TitleBlock = (
-    <div className="pt-8 pb-2">
-      <SectionPanel title="Experience">
-        <span className="sr-only">Experience section</span>
-      </SectionPanel>
+/** Section header: Oversized serif wordmark + underline + subheader */
+function EducationHeader() {
+  return (
+    <div className="mb-12 md:mb-16">
+      <div className={`${playfair.className} leading-none tracking-tight`}>
+        <h2 className="text-[12vw] sm:text-7xl md:text-8xl lg:text-9xl font-bold">
+          EDUCATION
+        </h2>
+      </div>
+      <div className="mt-2 h-[2px] w-full bg-white/20" />
+      <div className={`${outfit.className} mt-3 text-sm md:text-base text-white/85`}>
+        Diplomas • Degrees • Certifications
+      </div>
     </div>
   );
+}
 
-  const lockRef = useRef<HTMLDivElement | null>(null);
-  const subheaderRef = useRef<HTMLDivElement | null>(null);
+/** Single tall tower with hover-pan image that follows the cursor. */
+function Tower({
+  idx,
+  edu,
+}: {
+  idx: number;
+  edu: Edu;
+}) {
+  const imgRef = React.useRef<HTMLImageElement | null>(null);
+  const frameRef = React.useRef<number | null>(null);
 
-  const [subH, setSubH] = useState(56);
-  useEffect(() => {
-    const measure = () => {
-      const h = Math.round(subheaderRef.current?.getBoundingClientRect().height || 56);
-      setSubH(h);
-    };
-    measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, []);
+  const onMouseMove = (e: React.MouseEvent) => {
+    const el = e.currentTarget as HTMLDivElement;
+    const rect = el.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;  // 0..1
+    const y = (e.clientY - rect.top) / rect.height;  // 0..1
 
-  const [vw, setVw] = useState(0);
-  useEffect(() => {
-    const update = () => setVw(window.innerWidth || 0);
-    update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, []);
+    // Translate image subtly toward the cursor (max ~8px)
+    const max = 8;
+    const tx = (x - 0.5) * max * 2;
+    const ty = (y - 0.5) * max * 2;
 
-  // Fixed header offset — compute on mount + resize only (avoid drift)
-  const [topOffset, setTopOffset] = useState(0);
-  useEffect(() => {
-    const computeTopOffset = () => {
-      let max = 0;
-      const nodes = Array.from(
-        document.querySelectorAll<HTMLElement>(
-          'header, nav, [data-fixed-header], [data-sticky="header"], [data-header]'
-        )
-      );
-      nodes.forEach((el) => {
-        const cs = window.getComputedStyle(el);
-        if (cs.position === "fixed") {
-          const r = el.getBoundingClientRect();
-          if (Math.abs(r.top) < 2) {
-            const h = Math.round(r.height);
-            if (h > max) max = h;
-          }
-        }
-      });
-      setTopOffset(max);
-    };
-    computeTopOffset();
-    window.addEventListener("resize", computeTopOffset);
-    return () => {
-      window.removeEventListener("resize", computeTopOffset);
-    };
-  }, []);
+    if (frameRef.current) cancelAnimationFrame(frameRef.current);
+    frameRef.current = requestAnimationFrame(() => {
+      if (imgRef.current) {
+        imgRef.current.style.transform = `scale(1.05) translate(${tx.toFixed(
+          1
+        )}px, ${ty.toFixed(1)}px)`;
+      }
+    });
+  };
 
-  // Pre-lock progress (teaser + prefill underline)
-  const { scrollYProgress: preProg } = useScroll({
-    target: lockRef,
-    offset: ["start 80%", "start start"],
-  });
-  const [q, setQ] = useState(0);
-  useMotionValueEvent(preProg, "change", (v) => setQ(clamp01(v)));
-
-  // Lock progress
-  const { scrollYProgress: lockProgress } = useScroll({
-    target: lockRef,
-    offset: ["start start", "end end"],
-  });
-  const [lp, setLp] = useState(0);
-  useMotionValueEvent(lockProgress, "change", (v) => setLp(clamp01(v)));
-
-  // Lock state with small hysteresis to prevent pixel-boundary jitter
-  const LOCK_EPS = 2; // px
-  const [isLocked, setIsLocked] = useState(false);
-  useEffect(() => {
-    const onScroll = () => {
-      const el = lockRef.current;
-      if (!el) return;
-      const r = el.getBoundingClientRect();
-      const nowLocked = r.top <= LOCK_EPS && r.bottom >= window.innerHeight - LOCK_EPS;
-      setIsLocked(nowLocked);
-    };
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-    };
-  }, []);
-
-  // Fade-out on unlock (hold in place; no flicker)
-  const wasLockedRef = useRef(false);
-  const [justUnlocked, setJustUnlocked] = useState(false);
-  const [holdFixed, setHoldFixed] = useState(false);
-  useEffect(() => {
-    let t1: any, t2: any;
-    if (wasLockedRef.current && !isLocked) {
-      setHoldFixed(true);
-      setJustUnlocked(true);
-      t1 = setTimeout(() => setJustUnlocked(false), 420);
-      t2 = setTimeout(() => setHoldFixed(false), 420);
+  const onMouseLeave = () => {
+    if (frameRef.current) cancelAnimationFrame(frameRef.current);
+    if (imgRef.current) {
+      imgRef.current.style.transform = "scale(1.02) translate(0px, 0px)";
     }
-    wasLockedRef.current = isLocked;
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
-  }, [isLocked]);
-
-  // Card progression during lock
-  const pDuring = 1 + lp * cardCount;
-
-  // Underline fill (freeze during fade-out)
-  const underlineLive = useMemo(() => {
-    if (!isLocked) return 0.5 * clamp01(q);
-    if (cardCount <= 1) return 1;
-    const pb = clamp01((pDuring - 1) / (cardCount - 1));
-    return 0.5 + 0.5 * pb;
-  }, [isLocked, q, pDuring, cardCount]);
-
-  const lastUnderlineRef = useRef(0);
-  useEffect(() => {
-    if (!holdFixed) lastUnderlineRef.current = underlineLive;
-  }, [underlineLive, holdFixed]);
-  const underlineForRender = holdFixed ? lastUnderlineRef.current : underlineLive;
-
-  const fixedNow = isLocked || holdFixed;
-
-  // Click-to-center
-  const centerCard = React.useCallback(
-    (idx: number) => {
-      const el = lockRef.current;
-      if (!el || cardCount <= 0) return;
-      const rect = el.getBoundingClientRect();
-      const topY = window.scrollY + rect.top;
-      const targetLp = idx / cardCount;
-      const scrollable = el.offsetHeight - window.innerHeight;
-      const targetY = topY + targetLp * Math.max(1, scrollable);
-      window.scrollTo({ top: targetY, behavior: "smooth" });
-    },
-    [cardCount]
-  );
+  };
 
   return (
-    <section data-section="experience" className="relative w-full">
-      {TitleBlock}
-
+    <TransitionLink
+      href={`/education/${edu.slug}?via=education`}
+      className="group block focus:outline-none focus:ring-2 focus:ring-white/40 focus:ring-offset-2 focus:ring-offset-transparent"
+      onClick={() => {
+        if (typeof window !== "undefined") {
+          window.sessionStorage.setItem("cameFromEducation", "1");
+        }
+      }}
+      aria-label={`(${idx + 1}) ${edu.title}${edu.sub ? ` — ${edu.sub}` : ""}`}
+    >
       <div
-        ref={lockRef}
-        className={styles.lockWindow}
-        style={{
-          height: `calc(${cardCount + 1} * 100vh)`,
-          ["--sub-h" as any]: `${subH}px`,
-          ["--top-offset" as any]: `${topOffset}px`,
-          ["--sub-shift" as any]: `0px`,
-        }}
+        className="relative w-full overflow-hidden"
+        style={{ aspectRatio: "3 / 5" }} // tall tower
+        onMouseMove={onMouseMove}
+        onMouseLeave={onMouseLeave}
       >
-        {/* Impact bar — identical geometry sticky/fixed to avoid any jiggle */}
-        <div
-          ref={subheaderRef}
-          className={styles.subheaderSticky}
-          style={{
-            position: fixedNow ? ("fixed" as const) : "sticky",
-            top: `${topOffset}px`,         // same value in both modes
-            left: 0,                       // keep consistent layout
-            right: 0,
-            width: "100%",
-            opacity: justUnlocked ? 0 : 1, // fade only on unlock
-            transition: "opacity .38s ease",
-          }}
-        >
-          <div className={styles.subheaderRow}>
-            <span className="text-sm opacity-80">
-              <span className="text-[var(--accent,_#7dd3fc)] font-medium">Impact</span> over titles
-            </span>
-            <div className={styles.underlineTrack} aria-hidden>
-              <div
-                className={styles.underlineFill}
-                style={{ width: `${Math.max(0, Math.min(1, underlineForRender)) * 100}%` }}
-              />
-            </div>
-          </div>
+        {/* Image (full bleed) */}
+        <img
+          ref={imgRef}
+          src={edu.heroSrc}
+          alt={edu.heroAlt}
+          loading="lazy"
+          decoding="async"
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 ease-out will-change-transform"
+          style={{ transform: "scale(1.02)" }}
+        />
+
+        {/* Top-left number (plain text) */}
+        <div className="absolute left-3 top-3 text-sm md:text-base font-medium text-white/80 drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)]">
+          ({idx + 1})
         </div>
 
-        {/* Stage */}
-        <div className={styles.stageHolder}>
-          {/* Pre-lock teaser */}
-          <div className={`${styles.stageFlow} ${isLocked ? styles.isHidden : styles.isVisible}`}>
-            <div className={styles.stack}>
-              {experiences.map((exp: any, idx: number) => {
-                const k = keyFor(exp);
-                const metrics = (metricsMap as any)[k] ?? (metricsByIndex as any)[idx] ?? [];
-                const tPre = idx === 0 ? -0.5 + 0.5 * q : 2;
-                const tClamped = Math.max(-2, Math.min(2, tPre));
-                const xPx = -tClamped * 0.60 * vw;
-                const edge = Math.min(1, Math.abs(tClamped));
-                const scale = 0.94 + (1 - edge) * 0.10;
-                const opacity = 0.35 + (1 - edge) * 0.65;
-                const zIndex = 100 - Math.round(edge * 50);
-                const isExpanded = false;
-                const isFocused = Math.abs(tPre) < 0.35;
+        {/* Bottom gradient for text legibility */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 to-transparent" />
 
-                return (
-                  <ExperienceCard
-                    key={`pre-${k}-${idx}`}
-                    experience={exp}
-                    index={idx}
-                    isFocused={isFocused}
-                    isExpanded={isExpanded}
-                    metrics={metrics}
-                    x={xPx}
-                    scale={scale}
-                    opacity={opacity}
-                    zIndex={zIndex}
-                    onCenter={() => centerCard(idx)}
-                  />
-                );
-              })}
+        {/* Caption at bottom-left */}
+        <div className="absolute left-4 bottom-3 right-4">
+          <div className="text-sm md:text-base font-semibold leading-tight">
+            {edu.title}
+          </div>
+          {edu.sub ? (
+            <div className="text-xs md:text-sm text-white/80 leading-tight">
+              {edu.sub}
+            </div>
+          ) : null}
+          {edu.years ? (
+            <div className="text-[11px] md:text-xs text-white/60 leading-tight">
+              {edu.years}
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </TransitionLink>
+  );
+}
+
+export default function Education() {
+  const raw = ((profile as any)?.education ?? []) as RawEdu[];
+  const items: Edu[] = React.useMemo(() => raw.map(normalizeEdu), [raw]);
+
+  return (
+    <section
+      id="education"
+      className="relative py-20 bg-[#0d131d] text-white overflow-x-hidden"
+      aria-label="Education"
+    >
+      <div className="max-w-6xl mx-auto px-6">
+        {/* Header — unchanged */}
+        <EducationHeader />
+
+        {/* Wrapper lets us position the blurb without shrinking the collection */}
+        <div className="relative">
+          {/* Blurb: top-left at lg+, does NOT consume grid width */}
+          <div className="hidden lg:block absolute left-0 top-0 w-[20%] -ml-4">
+            <p
+              className={`${plusJakarta.className} text-lg sm:text-xl font-light text-gray-400 tracking-wide lowercase max-w-md`}
+            >
+              My educational journey reflects a mix of foundational trainings, professional certifications, and advanced graduate studies
+            </p>
+          </div>
+
+          {/* Collection: full original size; shifted right visually at lg+ */}
+          <div className="transform lg:translate-x-[22%] will-change-transform">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-0 overflow-hidden">
+              {items.map((edu, i) => (
+                <div
+                  key={`${edu.slug}-${i}`}
+                  className="bg-white/5 relative"
+                >
+                  <Tower idx={i} edu={edu} />
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Locked deck */}
-          <div className={`${styles.stageFixed} ${isLocked ? styles.isVisible : styles.isHidden}`}>
-            <div className={styles.stack}>
-              {experiences.map((exp: any, idx: number) => {
-                const k = keyFor(exp);
-                const metrics = (metricsMap as any)[k] ?? (metricsByIndex as any)[idx] ?? [];
-                const t = 1 + lp * cardCount - (idx + 1);
-                const tClamped = Math.max(-2, Math.min(2, t));
-                const xPx = -tClamped * 0.60 * vw;
-                const edge = Math.min(1, Math.abs(tClamped));
-                const scale = 0.94 + (1 - edge) * 0.10;
-                const opacity = 0.55 + (1 - edge) * 0.45;
-                const zIndex = 100 - Math.round(edge * 50);
-                const isExpanded = Math.abs(t) < 0.12;
-                const isFocused = Math.abs(t) < 0.35;
-
-                return (
-                  <ExperienceCard
-                    key={`lock-${k}-${idx}`}
-                    experience={exp}
-                    index={idx}
-                    isFocused={isFocused}
-                    isExpanded={isExpanded}
-                    metrics={metrics}
-                    x={xPx}
-                    scale={scale}
-                    opacity={opacity}
-                    zIndex={zIndex}
-                    onCenter={() => centerCard(idx)}
-                  />
-                );
-              })}
-            </div>
-          </div>
+          {/* Optional right spacer look at lg+ (visual 1/5), not consuming width */}
+          <div className="hidden lg:block absolute right-0 top-0 w-[20%] h-px" />
         </div>
       </div>
     </section>
