@@ -68,17 +68,16 @@ function getEducationFromProfile(): Edu[] {
   return raw.map(normalizeEdu).slice(0, 4);
 }
 
-/* ----------------- Gesture lock (fast-scroll & escapable) ------------------ */
+/* ----------------- Gesture lock (fast-scroll, reenterable, escapable) ------------------ */
 function useStepLock(opts: {
   steps: number;                 // inclusive: 0..steps
   getStep: () => number;
   setStep: (n: number) => void;
   isLocked: () => boolean;       // live lock predicate
   threshold?: number;            // px per step
-  minCooldownMs?: number;        // anti-spam
+  minCooldownMs?: number;        // anti-spam between *groups* of steps
 }) {
-  const { steps, getStep, setStep, isLocked, threshold = 110, minCooldownMs = 90 } = opts;
-
+  const { steps, getStep, setStep, isLocked, threshold = 105, minCooldownMs = 70 } = opts;
   const lastStepAt = React.useRef(0);
 
   const advance = React.useCallback((dir: 1 | -1, amount = 1) => {
@@ -101,10 +100,10 @@ function useStepLock(opts: {
       const dir: 1 | -1 = e.deltaY > 0 ? 1 : -1;
       const cur = getStep();
 
-      // allow exit at ends
+      // allow exit at the ends
       if ((cur === 0 && dir === -1) || (cur === steps && dir === 1)) return;
 
-      // convert big deltas into multiple steps so fast scroll can't skip past
+      // big delta → multiple steps (momentum friendly)
       const stepsToAdvance = Math.max(1, Math.round(Math.abs(e.deltaY) / threshold));
       e.preventDefault();
       advance(dir, stepsToAdvance);
@@ -168,14 +167,12 @@ function Tile({
       onClick={onOpen}
       initial={{ opacity: 0, x: 80 }}
       animate={{ opacity: visible ? 1 : 0, x: visible ? 0 : 80 }}
-      transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
-      // Always allow clicks when visible; no overlays above this.
+      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
       className={`relative text-left overflow-hidden rounded-2xl shadow-lg ring-1 ring-white/10 bg-[#0d131d] focus:outline-none focus:ring-2 focus:ring-cyan-300/70 ${
         visible ? "pointer-events-auto" : "pointer-events-none"
       }`}
-      aria-hidden={!visible}
       tabIndex={visible ? 0 : -1}
-      style={{ zIndex: 41 }}
+      style={{ zIndex: 40 }} // above glow (z-30), below header (z-50)
     >
       <div className="w-full h-[50vh] md:h-[54vh] lg:h-[56vh]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -292,7 +289,7 @@ export default function Education() {
 
   // Lock state
   const [locked, setLocked] = React.useState(false);
-  const prevLocked = React.useRef(false);
+  const wasLocked = React.useRef(false);
   const lastScrollY = React.useRef(0);
 
   // Reduced motion
@@ -308,43 +305,38 @@ export default function Education() {
   React.useEffect(() => {
     const onScrollOrResize = () => {
       const sec = sectionRef.current;
-      const header = headerRef.current;
       const row = rowRef.current;
       const vh = window.innerHeight || 1;
-      if (!sec || !header || !row) return;
+      if (!sec || !row) return;
 
       const s = sec.getBoundingClientRect();
-      const h = header.getBoundingClientRect();
       const r = row.getBoundingClientRect();
 
-      // section spans viewport (sticky active) with tiny hysteresis
+      // Sticky spans viewport with 1px hysteresis
       const spansNow = s.top <= 0 && s.bottom >= vh;
-      const spansLeave = s.top > 2 || s.bottom < vh - 2;
+      const spansLeave = s.top > 1 || s.bottom < vh - 1;
       const sectionSpans = locked ? !spansLeave : spansNow;
 
-      // title visible
-      const headerOnscreen = h.bottom > 0 && h.top < vh;
-
-      // row center ~middle band so it doesn't engage too early/late
+      // Row center in 30–70% band so lock engages only when the row is actually on-screen, not just grazing
       const center = r.top + r.height / 2;
-      const centerBand = center > vh * 0.2 && center < vh * 0.8;
+      const centerBand = center > vh * 0.3 && center < vh * 0.7;
 
-      // row sufficiently visible (handles small screens)
+      // Row sufficiently visible (handles small screens & varying heights)
       const visibleH = Math.min(r.bottom, vh) - Math.max(r.top, 0);
       const ratio = Math.max(0, Math.min(1, visibleH / Math.max(1, r.height)));
       const rowVisible = ratio >= 0.45;
 
-      const wantLock = !reduced && !openEdu && sectionSpans && headerOnscreen && centerBand && rowVisible;
+      const wantLock = !reduced && !openEdu && sectionSpans && centerBand && rowVisible;
 
-      // direction + re-entry step set
+      // direction-aware initial step at each entry
       const y = window.scrollY || window.pageYOffset || 0;
       const dir: "down" | "up" = y >= (lastScrollY.current || 0) ? "down" : "up";
       lastScrollY.current = y;
 
-      if (wantLock && !prevLocked.current) {
+      if (wantLock && !wasLocked.current) {
         setStep(dir === "down" ? 0 : maxStep);
       }
-      prevLocked.current = wantLock;
+      wasLocked.current = wantLock;
       setLocked(wantLock);
     };
 
@@ -363,8 +355,8 @@ export default function Education() {
     getStep: () => step,
     setStep: (n) => setStep(n),
     isLocked: () => locked,
-    threshold: 105,         // slightly snappier
-    minCooldownMs: 70,
+    threshold: 100,        // snappy; handles fast momentum
+    minCooldownMs: 60,
   });
 
   /* -------------- Disable background scroll when modal is open -------------- */
@@ -382,11 +374,8 @@ export default function Education() {
       {/* Tight runway to reduce gap before Testimonials */}
       <div ref={sectionRef} className="relative min-h-[140vh]">
         <div ref={stickyRef} className="sticky top-0 h-screen overflow-hidden">
-          {/* Header (no pointer-events disabled) */}
-          <div
-            ref={headerRef}
-            className="absolute left-0 right-0 top-0 z-50 flex flex-col items-center pt-8 sm:pt-10"
-          >
+          {/* Header */}
+          <div className="absolute left-0 right-0 top-0 z-50 flex flex-col items-center pt-8 sm:pt-10">
             <h2 className={`tracking-tight ${outfit.className} text-5xl md:text-6xl lg:text-7xl`}>
               Education
             </h2>
@@ -407,7 +396,7 @@ export default function Education() {
             )}
           </div>
 
-          {/* Row of cards — guaranteed clickable when visible */}
+          {/* Row of cards — ALWAYS clickable when visible */}
           <div className="absolute inset-0 z-40 flex items-start justify-center">
             <div
               ref={rowRef}
@@ -426,7 +415,7 @@ export default function Education() {
             </div>
           </div>
 
-          {/* Decorative glow (below tiles and non-interactive) */}
+          {/* Decorative glow: below tiles & non-interactive so it NEVER blocks clicks */}
           <AnimatePresence>
             {visibleCount >= total && (
               <motion.div
@@ -451,4 +440,3 @@ export default function Education() {
     </section>
   );
 }
-
