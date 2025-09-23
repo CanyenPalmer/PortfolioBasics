@@ -68,62 +68,70 @@ function getEducationFromProfile(): Edu[] {
   return raw.map(normalizeEdu).slice(0, 4);
 }
 
-/* ---------- Step-lock controller: intercepts wheel/touch/keys while locked --- */
-function useStepLock(opts: {
-  steps: number;                        // inclusive: 0..steps
+/* ---------- Robust, re-enterable gesture lock (listeners mount once) ---------- */
+function useLockedGestures(opts: {
+  steps: number;
   getStep: () => number;
   setStep: (n: number) => void;
-  shouldLock: () => boolean;            // live lock predicate
-  threshold?: number;                   // scroll delta per step
-  cooldownMs?: number;                  // min time between steps
+  isLocked: boolean;
+  threshold?: number;
+  cooldownMs?: number;
 }) {
-  const { steps, getStep, setStep, shouldLock, threshold = 110, cooldownMs = 170 } = opts;
-  const acc = React.useRef(0);
-  const touching = React.useRef(false);
-  const lastY = React.useRef(0);
-  const lastStepAt = React.useRef(0);
+  const { steps, getStep, setStep, isLocked, threshold = 110, cooldownMs = 170 } = opts;
 
-  const tryStep = React.useCallback(
-    (dir: 1 | -1) => {
-      const now = performance.now();
-      if (now - lastStepAt.current < cooldownMs) return;
-      const s = getStep();
-      const next = Math.max(0, Math.min(steps, s + dir));
-      if (next !== s) {
-        setStep(next);
-        lastStepAt.current = now;
-      }
-    },
-    [cooldownMs, getStep, setStep, steps]
-  );
+  const lockedRef = React.useRef(isLocked);
+  const thresholdRef = React.useRef(threshold);
+  const cooldownRef = React.useRef(cooldownMs);
+  const getStepRef = React.useRef(getStep);
+  const setStepRef = React.useRef(setStep);
+
+  React.useEffect(() => { lockedRef.current = isLocked; }, [isLocked]);
+  React.useEffect(() => { thresholdRef.current = threshold; }, [threshold]);
+  React.useEffect(() => { cooldownRef.current = cooldownMs; }, [cooldownMs]);
+  React.useEffect(() => { getStepRef.current = getStep; }, [getStep]);
+  React.useEffect(() => { setStepRef.current = setStep; }, [setStep]);
 
   React.useEffect(() => {
-    const onWheel = (e: WheelEvent) => {
-      if (!shouldLock()) return;
+    const acc = { v: 0 };
+    const touching = { v: false };
+    const lastY = { v: 0 };
+    const lastStepAt = { v: 0 };
 
-      const step = getStep();
+    const tryStep = (dir: 1 | -1) => {
+      const now = performance.now();
+      if (now - lastStepAt.v < cooldownRef.current) return;
+      const s = getStepRef.current();
+      const next = Math.max(0, Math.min(steps, s + dir));
+      if (next !== s) {
+        setStepRef.current(next);
+        lastStepAt.v = now;
+      }
+    };
+
+    const onWheel = (e: WheelEvent) => {
+      if (!lockedRef.current) return;
+
+      const step = getStepRef.current();
       const dir: 1 | -1 = e.deltaY > 0 ? 1 : -1;
 
-      // Let user escape at ends to continue page scrolling
+      // Allow escape at ends
       if ((step === 0 && dir === -1) || (step === steps && dir === 1)) return;
 
       e.preventDefault();
-      acc.current += e.deltaY;
-      if (Math.abs(acc.current) >= threshold) {
+      acc.v += e.deltaY;
+      if (Math.abs(acc.v) >= thresholdRef.current) {
         tryStep(dir);
-        acc.current = 0;
+        acc.v = 0;
       }
     };
 
     const onKey = (e: KeyboardEvent) => {
-      if (!shouldLock()) return;
-      // Prevent keyboard scrolling while locked
+      if (!lockedRef.current) return;
       const keys = ["PageDown", "PageUp", " ", "Spacebar", "ArrowDown", "ArrowUp"];
       if (!keys.includes(e.key)) return;
 
-      const step = getStep();
-      const dir: 1 | -1 =
-        e.key === "ArrowUp" || e.key === "PageUp" ? -1 : 1;
+      const step = getStepRef.current();
+      const dir: 1 | -1 = e.key === "ArrowUp" || e.key === "PageUp" ? -1 : 1;
 
       if ((step === 0 && dir === -1) || (step === steps && dir === 1)) return;
 
@@ -132,31 +140,33 @@ function useStepLock(opts: {
     };
 
     const onTouchStart = (e: TouchEvent) => {
-      if (!shouldLock()) return;
-      touching.current = true;
-      lastY.current = e.touches[0]?.clientY ?? 0;
+      if (!lockedRef.current) return;
+      touching.v = true;
+      lastY.v = e.touches[0]?.clientY ?? 0;
     };
-    const onTouchMove = (e: TouchEvent) => {
-      if (!shouldLock() || !touching.current) return;
-      const y = e.touches[0]?.clientY ?? 0;
-      const dy = lastY.current - y;
-      lastY.current = y;
 
-      const step = getStep();
+    const onTouchMove = (e: TouchEvent) => {
+      if (!lockedRef.current || !touching.v) return;
+      const y = e.touches[0]?.clientY ?? 0;
+      const dy = lastY.v - y;
+      lastY.v = y;
+
+      const step = getStepRef.current();
       const dir: 1 | -1 = dy > 0 ? 1 : -1;
 
       if ((step === 0 && dir === -1) || (step === steps && dir === 1)) return;
 
       e.preventDefault();
-      acc.current += dy;
-      if (Math.abs(acc.current) >= threshold) {
+      acc.v += dy;
+      if (Math.abs(acc.v) >= thresholdRef.current) {
         tryStep(dir);
-        acc.current = 0;
+        acc.v = 0;
       }
     };
+
     const onTouchEnd = () => {
-      touching.current = false;
-      acc.current = 0;
+      touching.v = false;
+      acc.v = 0;
     };
 
     window.addEventListener("wheel", onWheel, { passive: false });
@@ -172,7 +182,7 @@ function useStepLock(opts: {
       window.removeEventListener("touchmove", onTouchMove as any);
       window.removeEventListener("touchend", onTouchEnd as any);
     };
-  }, [getStep, shouldLock, steps, threshold, tryStep]);
+  }, [steps]);
 }
 
 /* --------------------------------- Tile ------------------------------- */
@@ -192,7 +202,11 @@ function Tile({
       initial={{ opacity: 0, x: 80 }}
       animate={{ opacity: visible ? 1 : 0, x: visible ? 0 : 80 }}
       transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1] }}
-      className="relative text-left overflow-hidden rounded-2xl shadow-lg ring-1 ring-white/10 bg-[#0d131d] focus:outline-none focus:ring-2 focus:ring-cyan-300/70"
+      className={`relative text-left overflow-hidden rounded-2xl shadow-lg ring-1 ring-white/10 bg-[#0d131d] focus:outline-none focus:ring-2 focus:ring-cyan-300/70 ${
+        visible ? "pointer-events-auto" : "pointer-events-none"
+      }`}
+      aria-hidden={!visible}
+      tabIndex={visible ? 0 : -1}
     >
       <div className="w-full h-[50vh] md:h-[54vh] lg:h-[56vh]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -308,7 +322,7 @@ export default function Education() {
   const headerRef  = React.useRef<HTMLDivElement>(null);
   const rowRef     = React.useRef<HTMLDivElement>(null);
 
-  // Track lock state and re-entry
+  // Lock state (edge-triggered, re-enterable)
   const [isLocked, setIsLocked] = React.useState(false);
   const wasLocked = React.useRef(false);
   const lastScrollY = React.useRef<number>(0);
@@ -322,48 +336,48 @@ export default function Education() {
     return () => m.removeEventListener?.("change", apply);
   }, []);
 
-  /* ---- Lock when the section spans the viewport AND both the title and card row are in view. 
-         Re-enterable from both directions; sets starting step on each entry. --------- */
+  /* ---- Engage lock when:
+         1) section spans viewport (sticky active),
+         2) header is visible,
+         3) the ENTIRE card row is inside the viewport,
+         and no modal is open / not reduced motion.
+         Re-enters from both directions and sets the starting step on each entry. --- */
   React.useEffect(() => {
-    const computeLock = () => {
+    const onScrollOrResize = () => {
       const sec = sectionRef.current;
       const header = headerRef.current;
       const row = rowRef.current;
       const vh = window.innerHeight || 1;
 
-      if (!sec || !header || !row) return { lock: false };
+      if (!sec || !header || !row) return;
 
       const s = sec.getBoundingClientRect();
       const h = header.getBoundingClientRect();
       const r = row.getBoundingClientRect();
 
-      // Section fully spans the viewport (sticky frame active)
-      const sectionSpans = s.top <= 0.5 && s.bottom >= vh - 0.5;
-
-      // Header & row are on-screen (any intersection with viewport)
-      const headerOnscreen = h.bottom > 0 && h.top < vh;
-      const rowOnscreen = r.bottom > 0 && r.top < vh;
-
-      // Lock only when BOTH title area & full card row are on-screen during the sticky span
-      const shouldLock = sectionSpans && headerOnscreen && rowOnscreen && !openEdu && !reduced;
-
-      return { lock: shouldLock };
-    };
-
-    const onScrollOrResize = () => {
       const y = window.scrollY || window.pageYOffset || 0;
       const dir: "down" | "up" = y >= (lastScrollY.current || 0) ? "down" : "up";
       lastScrollY.current = y;
 
-      const { lock } = computeLock();
+      // Section fully spans the viewport (with a tiny buffer to avoid rounding flicker)
+      const sectionSpans = s.top <= 0.5 && s.bottom >= vh - 0.5;
 
-      // Edge-trigger: on each entry into lock, set starting step based on direction
-      if (lock && !wasLocked.current) {
-        if (dir === "down") setStep(0);       // play forward when coming from above
-        else setStep(maxStep);                 // play backward when coming from below
+      // Title visible (any intersection)
+      const headerOnscreen = h.bottom > 0 && h.top < vh;
+
+      // FULL card row in view
+      const rowFullyInView = r.top >= 0 && r.bottom <= vh;
+
+      const nextLocked =
+        sectionSpans && headerOnscreen && rowFullyInView && !openEdu && !reduced;
+
+      // Edge-trigger: on entering lock, set starting step by direction
+      if (nextLocked && !wasLocked.current) {
+        if (dir === "down") setStep(0);      // play forward
+        else setStep(maxStep);               // play backward
       }
-      wasLocked.current = lock;
-      setIsLocked(lock);
+      wasLocked.current = nextLocked;
+      setIsLocked(nextLocked);
     };
 
     onScrollOrResize();
@@ -375,17 +389,17 @@ export default function Education() {
     };
   }, [maxStep, openEdu, reduced]);
 
-  // Intercept gestures only while locked
-  useStepLock({
+  // Intercept gestures while locked (listeners mount once; read live state via ref)
+  useLockedGestures({
     steps: maxStep,
     getStep: () => step,
     setStep: (n) => setStep(n),
-    shouldLock: () => isLocked,
+    isLocked,
     threshold: 110,
     cooldownMs: 170,
   });
 
-  // While modal is open, prevent background scroll
+  // Prevent background scroll when modal open
   React.useEffect(() => {
     if (openEdu) {
       const prev = document.body.style.overflow;
@@ -394,7 +408,7 @@ export default function Education() {
     }
   }, [openEdu]);
 
-  // Visible cards = step while locked; reveal all when reduced motion
+  // Visible cards during lock; show all if reduced motion
   const visibleCount = reduced ? total : (isLocked ? Math.min(step, total) : 0);
 
   return (
@@ -446,7 +460,7 @@ export default function Education() {
             </div>
           </div>
 
-          {/* Soft settle when all visible */}
+          {/* Soft settle when all visible (z-30 below tiles' z-40 so it never blocks clicks) */}
           <AnimatePresence>
             {visibleCount >= total && (
               <motion.div
@@ -471,5 +485,6 @@ export default function Education() {
     </section>
   );
 }
+
 
 
