@@ -13,12 +13,15 @@ import { Testimonials } from "@/components/Testimonials";
 import ContactSection from "@/components/ContactSection";
 import { profile } from "@/content/profile";
 
+// ✅ NEW: import the CTA band
+import GetInTouchBand from "@/components/sections/GetInTouchBand";
+
 export default function Page() {
   return (
-    <main className="relative md:snap-y md:snap-mandatory">
+    <main className="min-h-screen bg-[#0b1016] text-white">
       <VscodeTopBar
-        signature="Canyen Palmer"
-        resumeHref="/Canyen_Palmer_Resume.pdf"
+        primaryLabel="Palmer Projects"
+        secondaryLabel={profile.hero.subheadline}
         linkedinHref="https://www.linkedin.com/in/canyen-palmer-b0b6762a0"
         githubHref="https://github.com/CanyenPalmer"
       />
@@ -37,6 +40,10 @@ export default function Page() {
       <Experience />
       <ProjectsHUD />
       <Education />
+
+      {/* ✅ NEW: Get in Touch CTA band placed directly under Education */}
+      <GetInTouchBand />
+
       <Testimonials />
       <ContactSection />
     </main>
