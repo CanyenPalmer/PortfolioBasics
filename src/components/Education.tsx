@@ -83,7 +83,7 @@ function useStepEngine(opts: {
   getStep: () => number;
   setStep: (n: number) => void;
   isLocked: () => boolean;
-  onExitLock: () => void;       // called when user tries to scroll past ends
+  onExitLock: () => void; // called before letting a past-end scroll continue
   threshold?: number;
   minCooldownMs?: number;
 }) {
@@ -107,8 +107,7 @@ function useStepEngine(opts: {
   const maybeExit = React.useCallback((dir: 1 | -1) => {
     const cur = getStep();
     if ((cur === 0 && dir === -1) || (cur === steps && dir === 1)) {
-      // user intends to leave; unlock immediately
-      onExitLock();
+      onExitLock(); // unlock now; allow native scroll next tick
       return true;
     }
     return false;
@@ -118,11 +117,7 @@ function useStepEngine(opts: {
     const onWheel = (e: WheelEvent) => {
       if (!isLocked()) return;
       const dir: 1 | -1 = e.deltaY > 0 ? 1 : -1;
-
-      // let native scroll go if at ends, but UNLOCK first so page moves next tick
       if (maybeExit(dir)) return;
-
-      // accumulate & convert to steps
       wheelAcc.current += e.deltaY;
       const stepsToAdvance = Math.floor(Math.abs(wheelAcc.current) / threshold);
       e.preventDefault();
@@ -137,9 +132,7 @@ function useStepEngine(opts: {
       const keys = ["PageDown", "PageUp", " ", "Spacebar", "ArrowDown", "ArrowUp"];
       if (!keys.includes(e.key)) return;
       const dir: 1 | -1 = (e.key === "ArrowUp" || e.key === "PageUp") ? -1 : 1;
-
       if (maybeExit(dir)) return;
-
       e.preventDefault();
       advance(dir, 1);
     };
@@ -149,16 +142,13 @@ function useStepEngine(opts: {
       touchY.current = e.touches[0]?.clientY ?? 0;
       touchAcc.current = 0;
     };
-
     const onTouchMove = (e: TouchEvent) => {
       if (!isLocked()) return;
       const y = e.touches[0]?.clientY ?? 0;
       const dy = touchY.current - y;
       touchY.current = y;
       const dir: 1 | -1 = dy > 0 ? 1 : -1;
-
       if (maybeExit(dir)) return;
-
       touchAcc.current += dy;
       const stepsToAdvance = Math.floor(Math.abs(touchAcc.current) / threshold);
       e.preventDefault();
@@ -182,16 +172,41 @@ function useStepEngine(opts: {
   }, [advance, isLocked, maybeExit, threshold]);
 }
 
-/* --------------------------------- Tile ------------------------------- */
-function Tile({
-  edu,
-  visible,
-  onOpen,
-}: {
-  edu: Edu;
-  visible: boolean;
-  onOpen: () => void;
+/* ----------------- IO-based lock trigger between two sentinels ----------------- */
+function useSectionLockBetweenSentinels(opts: {
+  topRef: React.RefObject<HTMLDivElement>;
+  bottomRef: React.RefObject<HTMLDivElement>;
+  disabled: boolean;
 }) {
+  const { topRef, bottomRef, disabled } = opts;
+  const [inside, setInside] = React.useState(false);
+  const topOut = React.useRef(false);
+  const bottomIn = React.useRef(false);
+
+  React.useEffect(() => {
+    if (disabled) { setInside(false); return; }
+    const top = topRef.current;
+    const bottom = bottomRef.current;
+    if (!top || !bottom) return;
+
+    const ioTop = new IntersectionObserver(
+      ([e]) => { topOut.current = e.intersectionRatio === 0; setInside(topOut.current && !bottomIn.current); },
+      { threshold: [0, 0.01, 1] }
+    );
+    const ioBottom = new IntersectionObserver(
+      ([e]) => { bottomIn.current = e.isIntersecting && e.intersectionRatio > 0; setInside(topOut.current && !bottomIn.current); },
+      { threshold: [0, 0.01, 1] }
+    );
+    ioTop.observe(top);
+    ioBottom.observe(bottom);
+    return () => { ioTop.disconnect(); ioBottom.disconnect(); };
+  }, [topRef, bottomRef, disabled]);
+
+  return inside;
+}
+
+/* --------------------------------- Tile ------------------------------- */
+function Tile({ edu, visible, onOpen }: { edu: Edu; visible: boolean; onOpen: () => void; }) {
   return (
     <motion.button
       type="button"
@@ -203,7 +218,7 @@ function Tile({
         visible ? "pointer-events-auto" : "pointer-events-none"
       }`}
       tabIndex={visible ? 0 : -1}
-      style={{ zIndex: 70 }} // above any glow
+      style={{ zIndex: 70 }}
     >
       <div className="w-full h-[50vh] md:h-[54vh] lg:h-[56vh]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -219,13 +234,7 @@ function Tile({
 }
 
 /* ----------------------------- Modal Sheet ---------------------------- */
-function EduModal({
-  edu,
-  onClose,
-}: {
-  edu: Edu | null;
-  onClose: () => void;
-}) {
+function EduModal({ edu, onClose }: { edu: Edu | null; onClose: () => void; }) {
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     if (edu) window.addEventListener("keydown", onKey);
@@ -310,11 +319,15 @@ export default function Education() {
   const [reduced, setReduced] = React.useState(false);
   const [openEdu, setOpenEdu] = React.useState<Edu | null>(null);
 
+  // DOM refs
   const sectionRef = React.useRef<HTMLDivElement>(null);
   const stickyRef  = React.useRef<HTMLDivElement>(null);
   const headerRef  = React.useRef<HTMLDivElement>(null);
   const rowRef     = React.useRef<HTMLDivElement>(null);
+  const topSentinelRef = React.useRef<HTMLDivElement>(null);
+  const bottomSentinelRef = React.useRef<HTMLDivElement>(null);
 
+  // Lock state & refs
   const [locked, setLocked] = React.useState(false);
   const lockedRef = React.useRef(false);
   const wasLocked = React.useRef(false);
@@ -329,57 +342,37 @@ export default function Education() {
     return () => m.removeEventListener?.("change", apply);
   }, []);
 
-  /* ---------------- Lock trigger: sticky frame spanning viewport ---------------- */
+  /* ------------ IO sentinels: lock when inside the bracketed viewport ----------- */
+  const insideBracket = useSectionLockBetweenSentinels({
+    topRef: topSentinelRef,
+    bottomRef: bottomSentinelRef,
+    disabled: !!openEdu || reduced,
+  });
+
+  // Apply/clear hard lock + pick entry step based on direction
   React.useEffect(() => {
-    const onScrollOrResize = () => {
-      const sticky = stickyRef.current;
-      const vh = window.innerHeight || 1;
-      if (!sticky) return;
+    const y = window.scrollY || window.pageYOffset || 0;
+    const dir: "down" | "up" = y >= (lastScrollY.current || 0) ? "down" : "up";
+    lastScrollY.current = y;
 
-      const s = sticky.getBoundingClientRect();
-      // Engage when sticky spans viewport; add a tiny hysteresis to avoid flicker.
-      const spansNow = s.top <= 0 && s.bottom >= vh;
-      const spansLeave = s.top > 2 || s.bottom < vh - 2;
-      const next = !reduced && !openEdu && (lockedRef.current ? !spansLeave : spansNow);
-
-      // direction-aware step on entry
-      const y = window.scrollY || window.pageYOffset || 0;
-      const dir: "down" | "up" = y >= (lastScrollY.current || 0) ? "down" : "up";
-      lastScrollY.current = y;
-
-      if (next && !wasLocked.current) {
-        setStep(dir === "down" ? 0 : maxStep);
-      }
-      wasLocked.current = next;
-
-      // Apply/restore hard page freeze so lock *always* engages
-      if (next && !lockedRef.current) {
-        const html = document.documentElement;
-        html.style.overflow = "hidden";
-      } else if (!next && lockedRef.current) {
-        const html = document.documentElement;
-        html.style.overflow = "";
-      }
-
-      setLocked(next);
-      lockedRef.current = next;
-    };
-
-    onScrollOrResize();
-    window.addEventListener("scroll", onScrollOrResize, { passive: true });
-    window.addEventListener("resize", onScrollOrResize, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", onScrollOrResize);
-      window.removeEventListener("resize", onScrollOrResize);
-      // safety restore
+    if (insideBracket && !wasLocked.current) {
+      setStep(dir === "down" ? 0 : maxStep);
+      // hard-freeze page so we don't bleed past while animating
+      document.documentElement.style.overflow = "hidden";
+    }
+    if (!insideBracket && wasLocked.current) {
       document.documentElement.style.overflow = "";
-    };
-  }, [maxStep, openEdu, reduced]);
+    }
+    wasLocked.current = insideBracket;
+    setLocked(insideBracket);
+    lockedRef.current = insideBracket;
+
+    return () => { if (!insideBracket) document.documentElement.style.overflow = ""; };
+  }, [insideBracket, maxStep]);
 
   /* ---------------- Release immediately when user tries to leave ---------------- */
   const exitLock = React.useCallback(() => {
     if (!lockedRef.current) return;
-    // restore overflow and unlock now
     document.documentElement.style.overflow = "";
     setLocked(false);
     lockedRef.current = false;
@@ -392,8 +385,8 @@ export default function Education() {
     setStep: (n) => setStep(n),
     isLocked: () => lockedRef.current,
     onExitLock: exitLock,
-    threshold: 48,         // quick reveal
-    minCooldownMs: 40,
+    threshold: 50,     // quick reveal
+    minCooldownMs: 45,
   });
 
   /* ---------------- Prevent background scroll only when modal open --------------- */
@@ -408,7 +401,8 @@ export default function Education() {
 
   return (
     <section id="education" aria-label="Education" className="relative">
-      {/* modest runway to avoid overscroll gap */}
+      {/* Sentinels that bracket the sticky viewport (reliable across devices) */}
+      <div ref={topSentinelRef} aria-hidden className="h-px w-px opacity-0 pointer-events-none" />
       <div ref={sectionRef} className="relative min-h-[140vh]">
         <div ref={stickyRef} className="sticky top-0 h-screen overflow-hidden">
           {/* Header */}
@@ -455,7 +449,7 @@ export default function Education() {
             </div>
           </div>
 
-          {/* Subtle glow (non-interactive, below tiles) */}
+          {/* Decorative glow (below tiles, non-interactive) */}
           <AnimatePresence>
             {visibleCount >= total && (
               <motion.div
@@ -474,12 +468,10 @@ export default function Education() {
           </AnimatePresence>
         </div>
       </div>
+      <div ref={bottomSentinelRef} aria-hidden className="h-px w-px opacity-0 pointer-events-none" />
 
       {/* Modal for expanded details */}
       <EduModal edu={openEdu} onClose={() => setOpenEdu(null)} />
     </section>
   );
 }
-
-
-
