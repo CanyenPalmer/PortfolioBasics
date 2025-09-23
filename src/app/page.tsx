@@ -1,4 +1,3 @@
-// src/app/page.tsx
 "use client";
 
 import VscodeTopBar from "@/components/VscodeTopBar";
@@ -13,23 +12,22 @@ import { Testimonials } from "@/components/Testimonials";
 import ContactSection from "@/components/ContactSection";
 import { profile } from "@/content/profile";
 
-// ✅ NEW: import the CTA band
+// ✅ Import your new CTA band
 import GetInTouchBand from "@/components/sections/GetInTouchBand";
 
 export default function Page() {
   return (
     <main className="min-h-screen bg-[#0b1016] text-white">
       <VscodeTopBar
-        primaryLabel="Palmer Projects"
-        secondaryLabel={profile.hero.subheadline}
+        signature="Palmer Projects"
         linkedinHref="https://www.linkedin.com/in/canyen-palmer-b0b6762a0"
         githubHref="https://github.com/CanyenPalmer"
       />
 
-      {/* LANDING INTRO — pinned cinematic section */}
+      {/* LANDING INTRO */}
       <LandingIntro />
 
-      {/* HERO — uses fields from profile.hero */}
+      {/* HERO */}
       <Hero
         headline={profile.hero.headline}
         subheadline={profile.hero.subheadline}
@@ -41,7 +39,7 @@ export default function Page() {
       <ProjectsHUD />
       <Education />
 
-      {/* ✅ NEW: Get in Touch CTA band placed directly under Education */}
+      {/* ✅ Get In Touch CTA band below Education */}
       <GetInTouchBand />
 
       <Testimonials />
@@ -49,3 +47,4 @@ export default function Page() {
     </main>
   );
 }
+
