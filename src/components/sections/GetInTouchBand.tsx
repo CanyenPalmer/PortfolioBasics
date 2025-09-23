@@ -107,4 +107,3 @@ export default function GetInTouchBand() {
   );
 }
 
-/* i needf this shit to work man */
