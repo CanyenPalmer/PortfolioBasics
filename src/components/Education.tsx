@@ -32,6 +32,7 @@ type Edu = {
   key: string;
 };
 
+/* ------------------------ Data helpers ------------------------ */
 function resolveHeroFromTitle(title: string): string {
   const t = title.toLowerCase();
   if (t.includes("ball state")) return "/images/ball-state.png";
@@ -103,7 +104,7 @@ function useStepLock(opts: {
       const step = getStep();
       const dir: 1 | -1 = e.deltaY > 0 ? 1 : -1;
 
-      // Let user escape at ends
+      // Let user escape at ends to continue page scrolling
       if ((step === 0 && dir === -1) || (step === steps && dir === 1)) return;
 
       e.preventDefault();
@@ -175,13 +176,23 @@ function useStepLock(opts: {
 }
 
 /* --------------------------------- Tile ------------------------------- */
-function Tile({ edu, visible }: { edu: Edu; visible: boolean }) {
+function Tile({
+  edu,
+  visible,
+  onOpen,
+}: {
+  edu: Edu;
+  visible: boolean;
+  onOpen: () => void;
+}) {
   return (
-    <motion.figure
+    <motion.button
+      type="button"
+      onClick={onOpen}
       initial={{ opacity: 0, x: 80 }}
       animate={{ opacity: visible ? 1 : 0, x: visible ? 0 : 80 }}
       transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1] }}
-      className="relative overflow-hidden rounded-2xl shadow-lg ring-1 ring-white/10 bg-[#0d131d]"
+      className="relative text-left overflow-hidden rounded-2xl shadow-lg ring-1 ring-white/10 bg-[#0d131d] focus:outline-none focus:ring-2 focus:ring-cyan-300/70"
     >
       <div className="w-full h-[50vh] md:h-[54vh] lg:h-[56vh]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -192,7 +203,92 @@ function Tile({ edu, visible }: { edu: Edu; visible: boolean }) {
         <div className={`text-xs sm:text-sm opacity-80 ${plus.className}`}>{edu.sub}</div>
         {edu.years && <div className="text-[11px] mt-1 opacity-60">{edu.years}</div>}
       </figcaption>
-    </motion.figure>
+    </motion.button>
+  );
+}
+
+/* ----------------------------- Modal Sheet ---------------------------- */
+function EduModal({
+  edu,
+  onClose,
+}: {
+  edu: Edu | null;
+  onClose: () => void;
+}) {
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    if (edu) window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [edu, onClose]);
+
+  return (
+    <AnimatePresence>
+      {edu && (
+        <>
+          <motion.div
+            key="backdrop"
+            className="fixed inset-0 z-[100] bg-black/60"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+          />
+          <motion.div
+            key="sheet"
+            role="dialog"
+            aria-modal="true"
+            className="fixed inset-0 z-[101] flex items-center justify-center p-4"
+            initial={{ opacity: 0, y: 12, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 12, scale: 0.98 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <div className="w-[min(920px,95vw)] overflow-hidden rounded-2xl bg-[#0d131d] ring-1 ring-white/10 shadow-2xl relative">
+              <button
+                className="absolute top-3 right-3 rounded-md px-2 py-1 text-sm bg-white/10 hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-cyan-300/70"
+                onClick={onClose}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
+                <div className="md:h-[56vh] h-[40vh]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={edu.img}
+                    alt={edu.title}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+                <div className="p-5 sm:p-6">
+                  <h3 className={`text-xl sm:text-2xl font-semibold ${outfit.className}`}>
+                    {edu.title}
+                  </h3>
+                  <p className={`mt-1 text-sm sm:text-base opacity-85 ${plus.className}`}>
+                    {edu.sub}
+                  </p>
+                  {edu.years && (
+                    <p className="mt-2 text-xs sm:text-sm opacity-70">{edu.years}</p>
+                  )}
+                  {edu.href && (
+                    <a
+                      href={edu.href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-block mt-4 text-sm underline underline-offset-4 decoration-cyan-300/70 hover:decoration-cyan-300"
+                    >
+                      Visit
+                    </a>
+                  )}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -206,8 +302,14 @@ export default function Education() {
   const [reduced, setReduced] = React.useState(false);
   const [sectionFullView, setSectionFullView] = React.useState(false);
 
+  const [openEdu, setOpenEdu] = React.useState<Edu | null>(null);
+
   const sectionRef = React.useRef<HTMLDivElement>(null);
   const stickyRef  = React.useRef<HTMLDivElement>(null);
+
+  // Track scroll direction for re-entry decisions
+  const lastScrollY = React.useRef<number>(0);
+  const wasInFullView = React.useRef<boolean>(false);
 
   // Respect reduced motion (skip lock; show everything)
   React.useEffect(() => {
@@ -218,20 +320,37 @@ export default function Education() {
     return () => m.removeEventListener?.("change", apply);
   }, []);
 
-  /* ---- Engage lock ONLY when the section is fully in view (full-viewport) --- */
+  /* ---- Engage lock ONLY when the section is fully in view (full-viewport). 
+         Re-enterable from both directions with proper starting step. --------- */
   React.useEffect(() => {
     const onScrollOrResize = () => {
       const sec = sectionRef.current;
       if (!sec) return;
+
       const r = sec.getBoundingClientRect();
       const vh = window.innerHeight || 1;
+      const y = window.scrollY || window.pageYOffset || 0;
+      const dir: "down" | "up" = y >= (lastScrollY.current || 0) ? "down" : "up";
+      lastScrollY.current = y;
 
-      // Full view: section covers the viewport (sticky frame aligned at top)
-      const inFullView = r.top <= 0 && r.bottom >= vh;
+      // Full view: section spans viewport (using 0.5px buffer to avoid rounding flicker)
+      const inFullView = r.top <= 0.5 && r.bottom >= vh - 0.5;
       setSectionFullView(inFullView);
 
-      // Reset sequence when re-entering from above so it plays forward again
-      if (r.top >= vh * 0.98) setStep(0);
+      // On FIRST entry into full view, set the starting step based on direction
+      if (inFullView && !wasInFullView.current) {
+        wasInFullView.current = true;
+        if (dir === "down") {
+          setStep(0);        // play forward when coming from above
+        } else {
+          setStep(maxStep);  // play backward when coming from below
+        }
+      }
+
+      // Track exit to allow re-entry later
+      if (!inFullView && wasInFullView.current) {
+        wasInFullView.current = false;
+      }
     };
 
     onScrollOrResize();
@@ -241,10 +360,10 @@ export default function Education() {
       window.removeEventListener("scroll", onScrollOrResize);
       window.removeEventListener("resize", onScrollOrResize);
     };
-  }, []);
+  }, [maxStep]);
 
   // Final lock predicate
-  const isLocked = React.useMemo(() => !reduced && sectionFullView, [reduced, sectionFullView]);
+  const isLocked = React.useMemo(() => !reduced && sectionFullView && !openEdu, [reduced, sectionFullView, openEdu]);
 
   // Install wheel/touch/key interception while locked
   useStepLock({
@@ -256,12 +375,23 @@ export default function Education() {
     cooldownMs: 170,
   });
 
+  // While modal is open, prevent background page scroll with a body class (optional but nice)
+  React.useEffect(() => {
+    if (openEdu) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = prev;
+      };
+    }
+  }, [openEdu]);
+
   // Visible cards = step while locked; reveal all when reduced motion
   const visibleCount = reduced ? total : (isLocked ? Math.min(step, total) : 0);
 
   return (
     <section id="education" aria-label="Education" className="relative">
-      {/* Keep the tightened runway so there's minimal gap before Testimonials */}
+      {/* Shortened runway to reduce gap before Testimonials */}
       <div ref={sectionRef} className="relative min-h-[140vh]">
         <div ref={stickyRef} className="sticky top-0 h-screen overflow-hidden">
           {/* Header */}
@@ -291,7 +421,12 @@ export default function Education() {
             <div className="mt-[24vh] sm:mt-[26vh] md:mt-[28vh] w-[min(1400px,95vw)]">
               <div className="grid grid-cols-4 gap-4 sm:gap-5">
                 {items.map((edu, i) => (
-                  <Tile key={edu.key} edu={edu} visible={i < visibleCount} />
+                  <Tile
+                    key={edu.key}
+                    edu={edu}
+                    visible={i < visibleCount}
+                    onOpen={() => setOpenEdu(edu)}
+                  />
                 ))}
               </div>
             </div>
@@ -316,6 +451,9 @@ export default function Education() {
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Modal for expanded details */}
+      <EduModal edu={openEdu} onClose={() => setOpenEdu(null)} />
     </section>
   );
 }
