@@ -68,111 +68,88 @@ function getEducationFromProfile(): Edu[] {
   return raw.map(normalizeEdu).slice(0, 4);
 }
 
-/* ---------- Robust, re-enterable gesture lock (listeners mount once) ---------- */
-function useLockedGestures(opts: {
-  steps: number;
+/* ----------------- Gesture lock (fast-scroll & escapable) ------------------ */
+function useStepLock(opts: {
+  steps: number;                 // inclusive: 0..steps
   getStep: () => number;
   setStep: (n: number) => void;
-  isLocked: boolean;
-  threshold?: number;
-  cooldownMs?: number;
+  isLocked: () => boolean;       // live lock predicate
+  threshold?: number;            // px per step
+  minCooldownMs?: number;        // anti-spam
 }) {
-  const { steps, getStep, setStep, isLocked, threshold = 110, cooldownMs = 170 } = opts;
+  const { steps, getStep, setStep, isLocked, threshold = 110, minCooldownMs = 90 } = opts;
 
-  const lockedRef = React.useRef(isLocked);
-  const thresholdRef = React.useRef(threshold);
-  const cooldownRef = React.useRef(cooldownMs);
-  const getStepRef = React.useRef(getStep);
-  const setStepRef = React.useRef(setStep);
+  const lastStepAt = React.useRef(0);
 
-  React.useEffect(() => { lockedRef.current = isLocked; }, [isLocked]);
-  React.useEffect(() => { thresholdRef.current = threshold; }, [threshold]);
-  React.useEffect(() => { cooldownRef.current = cooldownMs; }, [cooldownMs]);
-  React.useEffect(() => { getStepRef.current = getStep; }, [getStep]);
-  React.useEffect(() => { setStepRef.current = setStep; }, [setStep]);
+  const advance = React.useCallback((dir: 1 | -1, amount = 1) => {
+    const now = performance.now();
+    if (now - lastStepAt.current < minCooldownMs) return;
+    const cur = getStep();
+    const next = Math.max(0, Math.min(steps, cur + dir * amount));
+    if (next !== cur) {
+      setStep(next);
+      lastStepAt.current = now;
+    }
+  }, [getStep, setStep, steps, minCooldownMs]);
 
   React.useEffect(() => {
-    const acc = { v: 0 };
-    const touching = { v: false };
-    const lastY = { v: 0 };
-    const lastStepAt = { v: 0 };
-
-    const tryStep = (dir: 1 | -1) => {
-      const now = performance.now();
-      if (now - lastStepAt.v < cooldownRef.current) return;
-      const s = getStepRef.current();
-      const next = Math.max(0, Math.min(steps, s + dir));
-      if (next !== s) {
-        setStepRef.current(next);
-        lastStepAt.v = now;
-      }
-    };
+    let touchY = 0;
 
     const onWheel = (e: WheelEvent) => {
-      if (!lockedRef.current) return;
-      const step = getStepRef.current();
+      if (!isLocked()) return;
+
       const dir: 1 | -1 = e.deltaY > 0 ? 1 : -1;
-      if ((step === 0 && dir === -1) || (step === steps && dir === 1)) return; // escape at ends
+      const cur = getStep();
+
+      // allow exit at ends
+      if ((cur === 0 && dir === -1) || (cur === steps && dir === 1)) return;
+
+      // convert big deltas into multiple steps so fast scroll can't skip past
+      const stepsToAdvance = Math.max(1, Math.round(Math.abs(e.deltaY) / threshold));
       e.preventDefault();
-      acc.v += e.deltaY;
-      if (Math.abs(acc.v) >= thresholdRef.current) {
-        tryStep(dir);
-        acc.v = 0;
-      }
+      advance(dir, stepsToAdvance);
     };
 
     const onKey = (e: KeyboardEvent) => {
-      if (!lockedRef.current) return;
+      if (!isLocked()) return;
       const keys = ["PageDown", "PageUp", " ", "Spacebar", "ArrowDown", "ArrowUp"];
       if (!keys.includes(e.key)) return;
-      const step = getStepRef.current();
-      const dir: 1 | -1 = e.key === "ArrowUp" || e.key === "PageUp" ? -1 : 1;
-      if ((step === 0 && dir === -1) || (step === steps && dir === 1)) return;
+      const dir: 1 | -1 = (e.key === "ArrowUp" || e.key === "PageUp") ? -1 : 1;
+      const cur = getStep();
+      if ((cur === 0 && dir === -1) || (cur === steps && dir === 1)) return;
       e.preventDefault();
-      tryStep(dir);
+      advance(dir, 1);
     };
 
     const onTouchStart = (e: TouchEvent) => {
-      if (!lockedRef.current) return;
-      touching.v = true;
-      lastY.v = e.touches[0]?.clientY ?? 0;
+      if (!isLocked()) return;
+      touchY = e.touches[0]?.clientY ?? 0;
     };
-
     const onTouchMove = (e: TouchEvent) => {
-      if (!lockedRef.current || !touching.v) return;
+      if (!isLocked()) return;
       const y = e.touches[0]?.clientY ?? 0;
-      const dy = lastY.v - y;
-      lastY.v = y;
-      const step = getStepRef.current();
+      const dy = touchY - y; // + down
+      touchY = y;
       const dir: 1 | -1 = dy > 0 ? 1 : -1;
-      if ((step === 0 && dir === -1) || (step === steps && dir === 1)) return;
+      const cur = getStep();
+      if ((cur === 0 && dir === -1) || (cur === steps && dir === 1)) return;
+      const stepsToAdvance = Math.max(1, Math.round(Math.abs(dy) / threshold));
       e.preventDefault();
-      acc.v += dy;
-      if (Math.abs(acc.v) >= thresholdRef.current) {
-        tryStep(dir);
-        acc.v = 0;
-      }
-    };
-
-    const onTouchEnd = () => {
-      touching.v = false;
-      acc.v = 0;
+      advance(dir, stepsToAdvance);
     };
 
     window.addEventListener("wheel", onWheel, { passive: false });
     window.addEventListener("keydown", onKey, { passive: false });
     window.addEventListener("touchstart", onTouchStart, { passive: true });
     window.addEventListener("touchmove", onTouchMove, { passive: false });
-    window.addEventListener("touchend", onTouchEnd, { passive: true });
 
     return () => {
       window.removeEventListener("wheel", onWheel as any);
       window.removeEventListener("keydown", onKey as any);
       window.removeEventListener("touchstart", onTouchStart as any);
       window.removeEventListener("touchmove", onTouchMove as any);
-      window.removeEventListener("touchend", onTouchEnd as any);
     };
-  }, [steps]);
+  }, [advance, getStep, isLocked, steps, threshold]);
 }
 
 /* --------------------------------- Tile ------------------------------- */
@@ -191,13 +168,14 @@ function Tile({
       onClick={onOpen}
       initial={{ opacity: 0, x: 80 }}
       animate={{ opacity: visible ? 1 : 0, x: visible ? 0 : 80 }}
-      transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
+      // Always allow clicks when visible; no overlays above this.
       className={`relative text-left overflow-hidden rounded-2xl shadow-lg ring-1 ring-white/10 bg-[#0d131d] focus:outline-none focus:ring-2 focus:ring-cyan-300/70 ${
         visible ? "pointer-events-auto" : "pointer-events-none"
       }`}
       aria-hidden={!visible}
       tabIndex={visible ? 0 : -1}
-      style={{ zIndex: 41 }} // ensure above any visual effects
+      style={{ zIndex: 41 }}
     >
       <div className="w-full h-[50vh] md:h-[54vh] lg:h-[56vh]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -234,7 +212,7 @@ function EduModal({
         <>
           <motion.div
             key="backdrop"
-            className="fixed inset-0 z-[100] bg-black/60 pointer-events-auto"
+            className="fixed inset-0 z-[100] bg-black/60"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -244,13 +222,13 @@ function EduModal({
             key="sheet"
             role="dialog"
             aria-modal="true"
-            className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none"
+            className="fixed inset-0 z-[101] flex items-center justify-center p-4"
             initial={{ opacity: 0, y: 12, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.98 }}
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
           >
-            <div className="pointer-events-auto w-[min(920px,95vw)] overflow-hidden rounded-2xl bg-[#0d131d] ring-1 ring-white/10 shadow-2xl relative">
+            <div className="w-[min(920px,95vw)] overflow-hidden rounded-2xl bg-[#0d131d] ring-1 ring-white/10 shadow-2xl relative">
               <button
                 className="absolute top-3 right-3 rounded-md px-2 py-1 text-sm bg-white/10 hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-cyan-300/70"
                 onClick={onClose}
@@ -305,7 +283,6 @@ export default function Education() {
 
   const [step, setStep] = React.useState(0);
   const [reduced, setReduced] = React.useState(false);
-
   const [openEdu, setOpenEdu] = React.useState<Edu | null>(null);
 
   const sectionRef = React.useRef<HTMLDivElement>(null);
@@ -313,12 +290,12 @@ export default function Education() {
   const headerRef  = React.useRef<HTMLDivElement>(null);
   const rowRef     = React.useRef<HTMLDivElement>(null);
 
-  // Lock state (edge-triggered, re-enterable)
-  const [isLocked, setIsLocked] = React.useState(false);
-  const wasLocked = React.useRef(false);
-  const lastScrollY = React.useRef<number>(0);
+  // Lock state
+  const [locked, setLocked] = React.useState(false);
+  const prevLocked = React.useRef(false);
+  const lastScrollY = React.useRef(0);
 
-  // Respect reduced motion (skip lock; show everything)
+  // Reduced motion
   React.useEffect(() => {
     const m = window.matchMedia("(prefers-reduced-motion: reduce)");
     const apply = () => setReduced(m.matches);
@@ -327,9 +304,7 @@ export default function Education() {
     return () => m.removeEventListener?.("change", apply);
   }, []);
 
-  /* ---- Lock whenever the sticky section spans the viewport (with hysteresis),
-         AND the row is reasonably visible.
-         Re-enters from both directions; sets starting step on each entry. --- */
+  /* ----------------- Lock predicate (robust & re-enterable) ------------------ */
   React.useEffect(() => {
     const onScrollOrResize = () => {
       const sec = sectionRef.current;
@@ -342,33 +317,35 @@ export default function Education() {
       const h = header.getBoundingClientRect();
       const r = row.getBoundingClientRect();
 
-      // Sticky span with hysteresis (prevents flicker at exact edges)
-      // Enter when: s.top <= 0 AND s.bottom >= vh
-      // Leave when: s.top > 2 OR s.bottom < vh - 2
+      // section spans viewport (sticky active) with tiny hysteresis
       const spansNow = s.top <= 0 && s.bottom >= vh;
       const spansLeave = s.top > 2 || s.bottom < vh - 2;
-      const sectionSpans = isLocked ? !spansLeave : spansNow;
+      const sectionSpans = locked ? !spansLeave : spansNow;
 
-      // Title intersects viewport
+      // title visible
       const headerOnscreen = h.bottom > 0 && h.top < vh;
 
-      // Row visibility ratio (loosened enough to work on small viewports)
+      // row center ~middle band so it doesn't engage too early/late
+      const center = r.top + r.height / 2;
+      const centerBand = center > vh * 0.2 && center < vh * 0.8;
+
+      // row sufficiently visible (handles small screens)
       const visibleH = Math.min(r.bottom, vh) - Math.max(r.top, 0);
       const ratio = Math.max(0, Math.min(1, visibleH / Math.max(1, r.height)));
-      const rowVisibleEnough = ratio >= 0.5;
+      const rowVisible = ratio >= 0.45;
 
-      const nextLocked = sectionSpans && headerOnscreen && rowVisibleEnough && !openEdu && !reduced;
+      const wantLock = !reduced && !openEdu && sectionSpans && headerOnscreen && centerBand && rowVisible;
 
-      // Direction-aware entry step
+      // direction + re-entry step set
       const y = window.scrollY || window.pageYOffset || 0;
       const dir: "down" | "up" = y >= (lastScrollY.current || 0) ? "down" : "up";
       lastScrollY.current = y;
 
-      if (nextLocked && !wasLocked.current) {
+      if (wantLock && !prevLocked.current) {
         setStep(dir === "down" ? 0 : maxStep);
       }
-      wasLocked.current = nextLocked;
-      setIsLocked(nextLocked);
+      prevLocked.current = wantLock;
+      setLocked(wantLock);
     };
 
     onScrollOrResize();
@@ -378,64 +355,46 @@ export default function Education() {
       window.removeEventListener("scroll", onScrollOrResize);
       window.removeEventListener("resize", onScrollOrResize);
     };
-  }, [maxStep, openEdu, reduced, isLocked]);
+  }, [maxStep, openEdu, reduced, locked]);
 
-  /* ---- While locked, freeze page scroll; while unlocked, restore it. -------- */
-  React.useEffect(() => {
-    const html = document.documentElement;
-    const body = document.body;
-    if (isLocked) {
-      const prevHtmlOverflow = html.style.overflow;
-      const prevBodyOverscroll = body.style.overscrollBehavior;
-      html.style.overflow = "hidden";
-      body.style.overscrollBehavior = "contain";
-      return () => {
-        html.style.overflow = prevHtmlOverflow;
-        body.style.overscrollBehavior = prevBodyOverscroll;
-      };
-    }
-  }, [isLocked]);
-
-  // Intercept gestures while locked (listeners mount once; read live state via ref)
-  useLockedGestures({
+  /* ---------- Intercept gestures while locked (fast & escapable) ----------- */
+  useStepLock({
     steps: maxStep,
     getStep: () => step,
     setStep: (n) => setStep(n),
-    isLocked,
-    threshold: 110,
-    cooldownMs: 170,
+    isLocked: () => locked,
+    threshold: 105,         // slightly snappier
+    minCooldownMs: 70,
   });
 
-  // Prevent background scroll when modal open (modal disables lock via dependency above)
+  /* -------------- Disable background scroll when modal is open -------------- */
   React.useEffect(() => {
-    if (openEdu) {
-      const prev = document.body.style.overflow;
-      document.body.style.overflow = "hidden";
-      return () => { document.body.style.overflow = prev; };
-    }
+    if (!openEdu) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
   }, [openEdu]);
 
-  // Visible cards during lock; show all if reduced motion
-  const visibleCount = reduced ? total : (isLocked ? Math.min(step, total) : 0);
+  const visibleCount = reduced ? total : (locked ? Math.min(step, total) : 0);
 
   return (
     <section id="education" aria-label="Education" className="relative">
       {/* Tight runway to reduce gap before Testimonials */}
       <div ref={sectionRef} className="relative min-h-[140vh]">
         <div ref={stickyRef} className="sticky top-0 h-screen overflow-hidden">
-          {/* Header (no overlays stealing clicks) */}
+          {/* Header (no pointer-events disabled) */}
           <div
             ref={headerRef}
-            className="absolute left-0 right-0 top-0 z-50 flex flex-col items-center pt-8 sm:pt-10 pointer-events-none"
+            className="absolute left-0 right-0 top-0 z-50 flex flex-col items-center pt-8 sm:pt-10"
           >
-            <h2 className={`tracking-tight ${outfit.className} text-5xl md:text-6xl lg:text-7xl pointer-events-auto`}>
+            <h2 className={`tracking-tight ${outfit.className} text-5xl md:text-6xl lg:text-7xl`}>
               Education
             </h2>
-            <p className={`mt-2 sm:mt-3 text-sm sm:text-base md:text-lg opacity-80 ${plus.className} pointer-events-auto`}>
+            <p className={`mt-2 sm:mt-3 text-sm sm:text-base md:text-lg opacity-80 ${plus.className}`}>
               Four stages of the journey — built one scroll at a time.
             </p>
             {!reduced && (
-              <div className="mt-3 flex gap-2 pointer-events-auto">
+              <div className="mt-3 flex gap-2">
                 {Array.from({ length: total }).map((_, i) => (
                   <span
                     key={i}
@@ -448,11 +407,11 @@ export default function Education() {
             )}
           </div>
 
-          {/* Row of cards (guaranteed clickable) */}
-          <div className="absolute inset-0 z-40 flex items-start justify-center pointer-events-none">
+          {/* Row of cards — guaranteed clickable when visible */}
+          <div className="absolute inset-0 z-40 flex items-start justify-center">
             <div
               ref={rowRef}
-              className="mt-[24vh] sm:mt-[26vh] md:mt-[28vh] w-[min(1400px,95vw)] pointer-events-auto"
+              className="mt-[24vh] sm:mt-[26vh] md:mt-[28vh] w-[min(1400px,95vw)]"
             >
               <div className="grid grid-cols-4 gap-4 sm:gap-5">
                 {items.map((edu, i) => (
@@ -467,7 +426,7 @@ export default function Education() {
             </div>
           </div>
 
-          {/* Subtle settle effect kept BELOW tiles and non-interactive */}
+          {/* Decorative glow (below tiles and non-interactive) */}
           <AnimatePresence>
             {visibleCount >= total && (
               <motion.div
@@ -492,3 +451,4 @@ export default function Education() {
     </section>
   );
 }
+
