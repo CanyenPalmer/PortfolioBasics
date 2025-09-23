@@ -77,17 +77,16 @@ function getEducationFromProfile(): Edu[] {
   return raw.map(normalizeEdu).slice(0, 4);
 }
 
-/* -------------------- Fast, escapable, re-enterable step lock -------------------- */
-function useStepLock(opts: {
-  steps: number;                 // inclusive: 0..steps
+/* ----------------- Step engine (fast, escapable, momentum-friendly) ----------------- */
+function useStepEngine(opts: {
+  steps: number;
   getStep: () => number;
   setStep: (n: number) => void;
-  lockedRef: React.MutableRefObject<boolean>;
-  threshold?: number;            // px per step (lower = faster)
-  minCooldownMs?: number;        // min time between step groups
+  isLocked: () => boolean;
+  threshold?: number;
+  minCooldownMs?: number;
 }) {
-  const { steps, getStep, setStep, lockedRef, threshold = 60, minCooldownMs = 50 } = opts;
-
+  const { steps, getStep, setStep, isLocked, threshold = 52, minCooldownMs = 45 } = opts;
   const lastStepAt = React.useRef(0);
   const wheelAcc = React.useRef(0);
   const touchAcc = React.useRef(0);
@@ -106,15 +105,12 @@ function useStepLock(opts: {
 
   React.useEffect(() => {
     const onWheel = (e: WheelEvent) => {
-      if (!lockedRef.current) return;
-
+      if (!isLocked()) return;
       const dir: 1 | -1 = e.deltaY > 0 ? 1 : -1;
       const cur = getStep();
-
-      // allow exit at ends → do NOT preventDefault so page can move
+      // Let user leave at ends (no preventDefault)
       if ((cur === 0 && dir === -1) || (cur === steps && dir === 1)) return;
 
-      // accumulate & convert to multiple steps (momentum friendly)
       wheelAcc.current += e.deltaY;
       const stepsToAdvance = Math.floor(Math.abs(wheelAcc.current) / threshold);
       e.preventDefault();
@@ -125,7 +121,7 @@ function useStepLock(opts: {
     };
 
     const onKey = (e: KeyboardEvent) => {
-      if (!lockedRef.current) return;
+      if (!isLocked()) return;
       const keys = ["PageDown", "PageUp", " ", "Spacebar", "ArrowDown", "ArrowUp"];
       if (!keys.includes(e.key)) return;
       const dir: 1 | -1 = (e.key === "ArrowUp" || e.key === "PageUp") ? -1 : 1;
@@ -136,19 +132,18 @@ function useStepLock(opts: {
     };
 
     const onTouchStart = (e: TouchEvent) => {
-      if (!lockedRef.current) return;
+      if (!isLocked()) return;
       touchY.current = e.touches[0]?.clientY ?? 0;
       touchAcc.current = 0;
     };
     const onTouchMove = (e: TouchEvent) => {
-      if (!lockedRef.current) return;
+      if (!isLocked()) return;
       const y = e.touches[0]?.clientY ?? 0;
-      const dy = touchY.current - y; // + down
+      const dy = touchY.current - y;
       touchY.current = y;
 
       const dir: 1 | -1 = dy > 0 ? 1 : -1;
       const cur = getStep();
-
       if ((cur === 0 && dir === -1) || (cur === steps && dir === 1)) return;
 
       touchAcc.current += dy;
@@ -171,7 +166,136 @@ function useStepLock(opts: {
       window.removeEventListener("touchstart", onTouchStart as any);
       window.removeEventListener("touchmove", onTouchMove as any);
     };
-  }, [advance, getStep, lockedRef, steps, threshold]);
+  }, [advance, getStep, isLocked, steps, threshold]);
+}
+
+/* ------------------------- Intersection Observer hook ------------------------- */
+function useLockTrigger(opts: {
+  stickyEl: React.RefObject<HTMLElement>;
+  headerEl: React.RefObject<HTMLElement>;
+  rowEl: React.RefObject<HTMLElement>;
+  openModal: boolean;
+  reduced: boolean;
+}) {
+  const { stickyEl, headerEl, rowEl, openModal, reduced } = opts;
+
+  const [locked, setLocked] = React.useState(false);
+  const prevLocked = React.useRef(false);
+  const lastScrollY = React.useRef(0);
+
+  // Sentinels to observe when we are inside the section viewport
+  const topSentinel = React.useRef<HTMLDivElement | null>(null);
+  const botSentinel = React.useRef<HTMLDivElement | null>(null);
+  const [topOut, setTopOut] = React.useState(false);
+  const [botOut, setBotOut] = React.useState(false);
+  const [rowCentered, setRowCentered] = React.useState(false);
+  const [rowVisible, setRowVisible] = React.useState(0);
+
+  // Create sentinels once
+  React.useEffect(() => {
+    const sticky = stickyEl.current;
+    if (!sticky) return;
+
+    if (!topSentinel.current) {
+      const n = document.createElement("div");
+      n.setAttribute("data-edu-top", "1");
+      n.style.position = "absolute";
+      n.style.top = "0px";
+      n.style.left = "0";
+      n.style.right = "0";
+      n.style.height = "1px";
+      n.style.pointerEvents = "none";
+      sticky.appendChild(n);
+      topSentinel.current = n;
+    }
+    if (!botSentinel.current) {
+      const n = document.createElement("div");
+      n.setAttribute("data-edu-bot", "1");
+      n.style.position = "absolute";
+      n.style.bottom = "0px";
+      n.style.left = "0";
+      n.style.right = "0";
+      n.style.height = "1px";
+      n.style.pointerEvents = "none";
+      sticky.appendChild(n);
+      botSentinel.current = n;
+    }
+    return () => {
+      try {
+        topSentinel.current && topSentinel.current.remove();
+        botSentinel.current && botSentinel.current.remove();
+      } catch {}
+      topSentinel.current = null;
+      botSentinel.current = null;
+    };
+  }, [stickyEl]);
+
+  // Observe sentinels
+  React.useEffect(() => {
+    if (!topSentinel.current || !botSentinel.current) return;
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          const isTop = (e.target as HTMLElement).hasAttribute("data-edu-top");
+          const isBot = (e.target as HTMLElement).hasAttribute("data-edu-bot");
+          const out = e.intersectionRatio === 0;
+          if (isTop) setTopOut(out);
+          if (isBot) setBotOut(out);
+        }
+      },
+      { threshold: [0, 0.01, 1], root: null }
+    );
+    io.observe(topSentinel.current);
+    io.observe(botSentinel.current);
+    return () => io.disconnect();
+  }, []);
+
+  // Observe row visibility & centeredness
+  React.useEffect(() => {
+    const row = rowEl.current;
+    if (!row) return;
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        const r = entries[0];
+        setRowVisible(r.intersectionRatio); // 0..1
+        const vh = window.innerHeight || 1;
+        const rect = row.getBoundingClientRect();
+        const center = rect.top + rect.height / 2;
+        setRowCentered(center > vh * 0.25 && center < vh * 0.75);
+      },
+      { threshold: [0, 0.25, 0.5, 0.75, 1], root: null }
+    );
+    io.observe(row);
+    return () => io.disconnect();
+  }, [rowEl]);
+
+  // Determine lock state
+  React.useEffect(() => {
+    const onTick = () => {
+      // Sticky is "active" if top sentinel is above viewport AND bottom sentinel is below viewport
+      const stickyActive = topOut && botOut;
+      const wantLock = stickyActive && rowCentered && rowVisible >= 0.45 && !openModal && !reduced;
+
+      // Direction-aware step on entry
+      const y = window.scrollY || window.pageYOffset || 0;
+      const dir: "down" | "up" = y >= (lastScrollY.current || 0) ? "down" : "up";
+      lastScrollY.current = y;
+
+      if (wantLock && !prevLocked.current) {
+        // entry step
+        // (down → start at 0, up → start at max; the component that uses this hook will set it)
+      }
+      prevLocked.current = wantLock;
+      setLocked(wantLock);
+    };
+
+    const id = requestAnimationFrame(onTick);
+    return () => cancelAnimationFrame(id);
+  }, [topOut, botOut, rowCentered, rowVisible, openModal, reduced]);
+
+  return locked;
 }
 
 /* --------------------------------- Tile ------------------------------- */
@@ -195,7 +319,7 @@ function Tile({
         visible ? "pointer-events-auto" : "pointer-events-none"
       }`}
       tabIndex={visible ? 0 : -1}
-      style={{ zIndex: 40 }} // above glow
+      style={{ zIndex: 50 }} // higher than any glow
     >
       <div className="w-full h-[50vh] md:h-[54vh] lg:h-[56vh]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -231,9 +355,7 @@ function EduModal({
           <motion.div
             key="backdrop"
             className="fixed inset-0 z-[100] bg-black/60"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={onClose}
           />
           <motion.div
@@ -281,9 +403,7 @@ function EduModal({
                   )}
                   {edu.href && (
                     <a
-                      href={edu.href}
-                      target="_blank"
-                      rel="noreferrer"
+                      href={edu.href} target="_blank" rel="noreferrer"
                       className="inline-block mt-5 text-sm underline underline-offset-4 decoration-cyan-300/70 hover:decoration-cyan-300"
                     >
                       Visit
@@ -302,8 +422,8 @@ function EduModal({
 /* --------------------------------- Main ------------------------------- */
 export default function Education() {
   const items = React.useMemo(() => getEducationFromProfile(), []);
-  const total = items.length;      // 4
-  const maxStep = total;           // steps 0..4
+  const total = items.length;
+  const maxStep = total;
 
   const [step, setStep] = React.useState(0);
   const [reduced, setReduced] = React.useState(false);
@@ -311,16 +431,16 @@ export default function Education() {
 
   const sectionRef = React.useRef<HTMLDivElement>(null);
   const stickyRef  = React.useRef<HTMLDivElement>(null);
+  const headerRef  = React.useRef<HTMLDivElement>(null);
   const rowRef     = React.useRef<HTMLDivElement>(null);
 
-  // Lock state (with a ref so listeners always see latest)
+  // Lock state with ref for listeners
   const [isLocked, setIsLocked] = React.useState(false);
-  const lockedRef = React.useRef(false);
+  const isLockedRef = React.useRef(false);
   const lastScrollY = React.useRef(0);
   const wasLocked = React.useRef(false);
-  const rafId = React.useRef<number | null>(null);
 
-  // Respect reduced motion
+  // Reduced motion
   React.useEffect(() => {
     const m = window.matchMedia("(prefers-reduced-motion: reduce)");
     const apply = () => setReduced(m.matches);
@@ -329,59 +449,40 @@ export default function Education() {
     return () => m.removeEventListener?.("change", apply);
   }, []);
 
-  // Compute lock strictly from the sticky container being active.
-  // Engage when sticky spans the viewport. No other geometry gates (to avoid flakiness).
+  // Observe + decide lock
+  const lockActive = useLockTrigger({
+    stickyEl: stickyRef,
+    headerEl: headerRef,
+    rowEl: rowRef,
+    openModal: !!openEdu,
+    reduced,
+  });
+
+  // Decide entry step based on direction when lock toggles on
   React.useEffect(() => {
-    const compute = () => {
-      const sticky = stickyRef.current;
-      if (!sticky) return false;
-      const vh = window.innerHeight || 1;
-      const s = sticky.getBoundingClientRect();
-      // Sticky is "active" when its top sits at the top of the viewport and its bottom at the bottom.
-      return s.top <= 0.5 && s.bottom >= vh - 0.5;
-    };
+    const y = window.scrollY || window.pageYOffset || 0;
+    const dir: "down" | "up" = y >= (lastScrollY.current || 0) ? "down" : "up";
+    lastScrollY.current = y;
 
-    const onScrollOrResize = () => {
-      if (rafId.current) cancelAnimationFrame(rafId.current);
-      rafId.current = requestAnimationFrame(() => {
-        const wantLock = !reduced && !openEdu && compute();
+    if (lockActive && !wasLocked.current) {
+      setStep(dir === "down" ? 0 : maxStep);
+    }
+    wasLocked.current = lockActive;
+    setIsLocked(lockActive);
+    isLockedRef.current = lockActive;
+  }, [lockActive, maxStep]);
 
-        // direction-aware initial step whenever we ENTER the lock window
-        const y = window.scrollY || window.pageYOffset || 0;
-        const dir: "down" | "up" = y >= (lastScrollY.current || 0) ? "down" : "up";
-        lastScrollY.current = y;
-
-        if (wantLock && !wasLocked.current) {
-          setStep(dir === "down" ? 0 : maxStep);
-        }
-        wasLocked.current = wantLock;
-
-        setIsLocked(wantLock);
-        lockedRef.current = wantLock;
-      });
-    };
-
-    onScrollOrResize();
-    window.addEventListener("scroll", onScrollOrResize, { passive: true });
-    window.addEventListener("resize", onScrollOrResize, { passive: true });
-    return () => {
-      if (rafId.current) cancelAnimationFrame(rafId.current);
-      window.removeEventListener("scroll", onScrollOrResize);
-      window.removeEventListener("resize", onScrollOrResize);
-    };
-  }, [maxStep, openEdu, reduced]);
-
-  // Intercept gestures while locked (fast, escapable, momentum-friendly)
-  useStepLock({
+  // Gesture engine
+  useStepEngine({
     steps: maxStep,
     getStep: () => step,
     setStep: (n) => setStep(n),
-    lockedRef,
-    threshold: 60,     // fast reveal
-    minCooldownMs: 50,
+    isLocked: () => isLockedRef.current,
+    threshold: 52,    // quick reveal
+    minCooldownMs: 45,
   });
 
-  // Disable background scroll only while modal open
+  // Modal blocks background scroll (only while open)
   React.useEffect(() => {
     if (!openEdu) return;
     const prev = document.body.style.overflow;
@@ -393,11 +494,14 @@ export default function Education() {
 
   return (
     <section id="education" aria-label="Education" className="relative">
-      {/* Keep the runway modest to avoid overscroll gaps */}
+      {/* modest runway to avoid overscroll gap */}
       <div ref={sectionRef} className="relative min-h-[140vh]">
         <div ref={stickyRef} className="sticky top-0 h-screen overflow-hidden">
           {/* Header */}
-          <div className="absolute left-0 right-0 top-0 z-50 flex flex-col items-center pt-8 sm:pt-10">
+          <div
+            ref={headerRef}
+            className="absolute left-0 right-0 top-0 z-60 flex flex-col items-center pt-8 sm:pt-10"
+          >
             <h2 className={`tracking-tight ${outfit.className} text-5xl md:text-6xl lg:text-7xl`}>
               Education
             </h2>
@@ -418,8 +522,8 @@ export default function Education() {
             )}
           </div>
 
-          {/* Row of cards — ALWAYS clickable when visible */}
-          <div className="absolute inset-0 z-40 flex items-start justify-center">
+          {/* Cards (clickable when visible) */}
+          <div className="absolute inset-0 z-50 flex items-start justify-center">
             <div
               ref={rowRef}
               className="mt-[24vh] sm:mt-[26vh] md:mt-[28vh] w-[min(1400px,95vw)]"
@@ -437,12 +541,12 @@ export default function Education() {
             </div>
           </div>
 
-          {/* Decorative glow: below tiles & non-interactive */}
+          {/* Subtle glow (non-interactive, below tiles) */}
           <AnimatePresence>
             {visibleCount >= total && (
               <motion.div
                 key="settle"
-                className="absolute inset-0 z-30 pointer-events-none"
+                className="absolute inset-0 z-40 pointer-events-none"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 0.10 }}
                 exit={{ opacity: 0 }}
@@ -457,10 +561,11 @@ export default function Education() {
         </div>
       </div>
 
-      {/* Modal for expanded details */}
+      {/* Modal with full details */}
       <EduModal edu={openEdu} onClose={() => setOpenEdu(null)} />
     </section>
   );
 }
+
 
 
