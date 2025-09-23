@@ -89,8 +89,8 @@ export default function VscodeTopBar({
   const [active, setActive] = useState<string | null>(null);
   const rafRef = useRef<number | null>(null);
 
-  // Resolve the displayed label exactly once; preserves original behavior if `signature` is provided.
-  const resolvedSignature = signature ?? primaryLabel ?? "";
+  // Always display this label, per request.
+  const resolvedSignature = "Canyen Palmer";
 
   const tabs = useMemo(
     () =>
@@ -110,11 +110,18 @@ export default function VscodeTopBar({
       Boolean
     ) as HTMLElement[];
 
+    // Elements for the sections where bar should be visible
+    const targetEls = Array.from(VISIBLE_IDS)
+      .map((id) => document.getElementById(id))
+      .filter(Boolean) as HTMLElement[];
+
     const pickActive = () => {
-      const viewportCenter = window.innerHeight / 2;
+      const vpH = window.innerHeight;
+      const viewportCenter = vpH / 2;
+
+      // Pick the section whose center is nearest the viewport center
       let bestId: string | null = null;
       let bestDist = Infinity;
-
       for (const el of sections) {
         const rect = el.getBoundingClientRect();
         const mid = rect.top + rect.height / 2;
@@ -124,12 +131,18 @@ export default function VscodeTopBar({
           bestId = el.id;
         }
       }
+      if (bestId) setActive(bestId);
 
-      if (bestId) {
-        setActive(bestId);
-        // Gate visibility purely by the active section
-        setVisible(VISIBLE_IDS.has(bestId));
+      // NEW: Also consider visibility true if ANY target section is intersecting the viewport
+      let anyTargetInView = false;
+      for (const el of targetEls) {
+        const r = el.getBoundingClientRect();
+        if (r.bottom > vpH * 0.05 && r.top < vpH * 0.95) {
+          anyTargetInView = true;
+          break;
+        }
       }
+      setVisible(anyTargetInView);
     };
 
     const onScroll = () => {
@@ -234,5 +247,6 @@ export default function VscodeTopBar({
     </AnimatePresence>
   );
 }
+
 
 
