@@ -14,7 +14,10 @@ import NameStamp from "@/components/NameStamp";
  */
 
 type Props = {
-  signature: string;
+  signature?: string;
+  /** Optional aliases used by page.tsx */
+  primaryLabel?: string;
+  secondaryLabel?: string;
   resumeHref?: string;
   linkedinHref?: string;
   githubHref?: string;
@@ -67,6 +70,8 @@ function IconFileText(props: React.SVGProps<SVGSVGElement>) {
 
 export default function VscodeTopBar({
   signature,
+  primaryLabel,
+  secondaryLabel, // accepted but not used in markup per your original file
   resumeHref = "/Canyen_Palmer_Resume.pdf",
   linkedinHref = "https://www.linkedin.com/in/canyen-palmer-b0b6762a0",
   githubHref = "https://github.com/CanyenPalmer",
@@ -74,6 +79,9 @@ export default function VscodeTopBar({
   const [visible, setVisible] = useState(false);
   const [active, setActive] = useState<string | null>(null);
   const rafRef = useRef<number | null>(null);
+
+  // Resolve the displayed label exactly once; preserves original behavior if `signature` is provided.
+  const resolvedSignature = signature ?? primaryLabel ?? "";
 
   const tabs = useMemo(
     () =>
@@ -171,7 +179,7 @@ export default function VscodeTopBar({
               <div className="flex items-center gap-2 min-w-0">
                 <span className="truncate text-sm font-semibold text-white/95">
                   <NameStamp
-                    text={signature}
+                    text={resolvedSignature}
                     className="text-sm font-semibold"
                     variant="bar"
                     rearmOnExit={false}
