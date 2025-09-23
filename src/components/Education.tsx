@@ -1,3 +1,4 @@
+// src/components/Education.tsx
 "use client";
 
 import * as React from "react";
@@ -37,7 +38,7 @@ type Edu = {
   courses?: string[];
 };
 
-/* ------------------------ Data ------------------------ */
+/* ------------------------ Data helpers ------------------------ */
 function resolveHeroFromTitle(title: string): string {
   const t = title.toLowerCase();
   if (t.includes("ball state")) return "/images/ball-state.png";
@@ -46,6 +47,7 @@ function resolveHeroFromTitle(title: string): string {
   if (t.includes("pittsburgh") || t.includes("pitt")) return "/images/pitt.png";
   return "/images/portfolio-basics-avatar.png";
 }
+
 function normalizeEdu(e: RawEdu): Edu {
   const title = (e.institution ?? e.school ?? "").toString();
   const sub = (e.degree ?? e.program ?? "").toString();
@@ -62,6 +64,7 @@ function normalizeEdu(e: RawEdu): Edu {
     courses: e.courses,
   };
 }
+
 function getEducationFromProfile(): Edu[] {
   // @ts-ignore
   const raw: RawEdu[] =
@@ -76,15 +79,15 @@ function getEducationFromProfile(): Edu[] {
 
 /* ---------------- Step engine (fast, escapable) ---------------- */
 function useStepEngine(opts: {
-  steps: number;
+  steps: number;                          // inclusive: 0..steps
   getStep: () => number;
   setStep: (n: number) => void;
   isLocked: () => boolean;
-  onExit: (dir: 1 | -1) => void;
-  threshold?: number;        // lower => fewer scrolls
-  minCooldownMs?: number;    // debounce groups of steps
+  onExit: (dir: 1 | -1) => void;          // called before letting a past-end scroll continue
+  threshold?: number;                      // lower => fewer scrolls to reveal
+  minCooldownMs?: number;                  // debounce groups of steps
 }) {
-  const { steps, getStep, setStep, isLocked, onExit, threshold = 52, minCooldownMs = 45 } = opts;
+  const { steps, getStep, setStep, isLocked, onExit, threshold = 48, minCooldownMs = 45 } = opts;
 
   const lastStepAt = React.useRef(0);
   const wheelAcc = React.useRef(0);
@@ -143,6 +146,7 @@ function useStepEngine(opts: {
       touchAcc.current = 0;
       touchMoved.current = 0;
     };
+
     const onTouchMove = (e: TouchEvent) => {
       if (!isLocked()) return;
       const y = e.touches[0]?.clientY ?? 0;
@@ -153,6 +157,7 @@ function useStepEngine(opts: {
 
       const dir: 1 | -1 = dy > 0 ? 1 : -1;
       if (tryExit(dir)) return;
+
       touchAcc.current += dy;
       const stepsToAdvance = Math.floor(Math.abs(touchAcc.current) / threshold);
       e.preventDefault();
@@ -174,44 +179,50 @@ function useStepEngine(opts: {
       window.removeEventListener("touchmove", onTouchMove as any);
     };
   }, [advance, isLocked, tryExit, threshold]);
-
-  return null;
 }
 
-/* -------------- Lock controller (engage when section fills viewport) -------------- */
+/* --------- Lock controller (engage when sticky frame fills the viewport) --------- */
 function useViewportLock(opts: {
-  sectionEl: React.RefObject<HTMLElement>;
+  stickyEl: React.RefObject<HTMLElement>;
   disabled: boolean;
   onEnter: (dir: "down" | "up") => void;
   onLeave: () => void;
 }) {
-  const { sectionEl, disabled, onEnter, onLeave } = opts;
+  const { stickyEl, disabled, onEnter, onLeave } = opts;
   const [locked, setLocked] = React.useState(false);
   const lastScrollY = React.useRef(0);
 
   React.useEffect(() => {
-    if (disabled) { setLocked(false); onLeave(); return; }
+    if (disabled) {
+      if (locked) {
+        setLocked(false);
+        document.documentElement.style.overflow = "";
+        document.body.style.overflow = "";
+        onLeave();
+      }
+      return;
+    }
 
     const evalLock = () => {
-      const sec = sectionEl.current;
+      const el = stickyEl.current;
       const vh = window.innerHeight || 1;
-      if (!sec) return;
+      if (!el) return;
 
-      const r = sec.getBoundingClientRect();
-      // Engage when the section basically fills the viewport (with tiny hysteresis)
-      const within = r.top <= 4 && r.bottom >= vh - 4;
+      const r = el.getBoundingClientRect();
+      // "fills viewport" with tiny hysteresis — extremely robust
+      const fills = r.top <= 2 && r.bottom >= vh - 2;
 
       const y = window.scrollY || window.pageYOffset || 0;
       const dir: "down" | "up" = y >= (lastScrollY.current || 0) ? "down" : "up";
       lastScrollY.current = y;
 
-      if (within && !locked) {
-        onEnter(dir);
+      if (fills && !locked) {
         setLocked(true);
-        // HARD FREEZE so we cannot blow past while animating
+        onEnter(dir);
+        // hard-freeze page scroll so lock cannot be skipped
         document.documentElement.style.overflow = "hidden";
         document.body.style.overflow = "hidden";
-      } else if (!within && locked) {
+      } else if (!fills && locked) {
         setLocked(false);
         document.documentElement.style.overflow = "";
         document.body.style.overflow = "";
@@ -219,7 +230,6 @@ function useViewportLock(opts: {
       }
     };
 
-    // run once & on changes
     evalLock();
     const onScroll = () => evalLock();
     const onResize = () => evalLock();
@@ -231,20 +241,28 @@ function useViewportLock(opts: {
       document.documentElement.style.overflow = "";
       document.body.style.overflow = "";
     };
-  }, [sectionEl, disabled, onEnter, onLeave, locked]);
+  }, [stickyEl, disabled, onEnter, onLeave, locked]);
 
   return locked;
 }
 
-/* --------------------------------- UI parts --------------------------------- */
-function Tile({ edu, visible, onOpen }: { edu: Edu; visible: boolean; onOpen: () => void; }) {
+/* --------------------------------- Tile ------------------------------- */
+function Tile({
+  edu,
+  visible,
+  onOpen,
+}: {
+  edu: Edu;
+  visible: boolean;
+  onOpen: () => void;
+}) {
   return (
     <motion.button
       type="button"
       onClick={onOpen}
       initial={{ opacity: 0, x: 80 }}
       animate={{ opacity: visible ? 1 : 0, x: visible ? 0 : 80 }}
-      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
       className={`relative text-left overflow-hidden rounded-2xl shadow-lg ring-1 ring-white/10 bg-[#0d131d] focus:outline-none focus:ring-2 focus:ring-cyan-300/70 ${
         visible ? "pointer-events-auto" : "pointer-events-none"
       }`}
@@ -264,7 +282,14 @@ function Tile({ edu, visible, onOpen }: { edu: Edu; visible: boolean; onOpen: ()
   );
 }
 
-function EduModal({ edu, onClose }: { edu: Edu | null; onClose: () => void; }) {
+/* ----------------------------- Modal Sheet ---------------------------- */
+function EduModal({
+  edu,
+  onClose,
+}: {
+  edu: Edu | null;
+  onClose: () => void;
+}) {
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     if (edu) window.addEventListener("keydown", onKey);
@@ -288,7 +313,7 @@ function EduModal({ edu, onClose }: { edu: Edu | null; onClose: () => void; }) {
             initial={{ opacity: 0, y: 12, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.98 }}
-            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
           >
             <div className="w-[min(960px,95vw)] overflow-hidden rounded-2xl bg-[#0d131d] ring-1 ring-white/10 shadow-2xl relative">
               <button
@@ -339,22 +364,21 @@ function EduModal({ edu, onClose }: { edu: Edu | null; onClose: () => void; }) {
   );
 }
 
-/* --------------------------------- Main --------------------------------- */
+/* --------------------------------- Main ------------------------------- */
 export default function Education() {
   const items = React.useMemo(() => getEducationFromProfile(), []);
   const total = items.length;
-  const maxStep = total; // steps 0..total
+  const maxStep = total; // 0..total
 
   const [step, setStep] = React.useState(0);
   const [reduced, setReduced] = React.useState(false);
   const [openEdu, setOpenEdu] = React.useState<Edu | null>(null);
 
-  // DOM
-  const sectionRef = React.useRef<HTMLDivElement>(null); // the sticky frame parent
-  const stickyRef  = React.useRef<HTMLDivElement>(null);
-  const rowRef     = React.useRef<HTMLDivElement>(null);
+  const runwayRef = React.useRef<HTMLDivElement>(null);
+  const stickyRef = React.useRef<HTMLDivElement>(null);
+  const rowRef = React.useRef<HTMLDivElement>(null);
 
-  // Lock state
+  // Lock state (with class toggle to 'fixed' when engaged)
   const [locked, setLocked] = React.useState(false);
   const lockedRef = React.useRef(false);
 
@@ -367,51 +391,47 @@ export default function Education() {
     return () => m.removeEventListener?.("change", apply);
   }, []);
 
-  /* engage lock when the section fills the viewport */
+  /* Engage lock when the STICKY frame fills the viewport */
   const lockActive = useViewportLock({
-    sectionEl: stickyRef,                 // the element that actually spans the viewport
+    stickyEl: stickyRef,
     disabled: !!openEdu || reduced,
-    onEnter: (dir) => {
-      setStep(dir === "down" ? 0 : maxStep);
-    },
-    onLeave: () => { /* nothing */ },
+    onEnter: (dir) => setStep(dir === "down" ? 0 : maxStep),
+    onLeave: () => {},
   });
 
   React.useEffect(() => {
     setLocked(lockActive);
     lockedRef.current = lockActive;
     if (!lockActive) {
-      // ensure overflow is restored in any case
       document.documentElement.style.overflow = "";
       document.body.style.overflow = "";
     }
   }, [lockActive]);
 
-  /* release when user tries to scroll past ends */
+  /* Release as soon as user tries to scroll past ends */
   const exitLock = React.useCallback((dir: 1 | -1) => {
     if (!lockedRef.current) return;
     lockedRef.current = false;
     setLocked(false);
-    // restore overflow *before* letting the next event scroll
     document.documentElement.style.overflow = "";
     document.body.style.overflow = "";
-    // nudge 1px so browser continues the intended direction seamlessly
+    // nudge 1px so the browser continues seamlessly
     const y = window.scrollY + (dir === 1 ? 1 : -1);
     window.scrollTo({ top: y });
   }, []);
 
-  /* drive steps while locked */
+  /* Drive the step animation while locked */
   useStepEngine({
     steps: maxStep,
     getStep: () => step,
     setStep: (n) => setStep(n),
     isLocked: () => lockedRef.current,
     onExit: exitLock,
-    threshold: 50,          // quick reveal (1–2 flicks)
+    threshold: 48, // quick reveal
     minCooldownMs: 45,
   });
 
-  /* stop background scroll only when modal is open */
+  /* Pause background scroll only while modal open */
   React.useEffect(() => {
     if (!openEdu) return;
     const prev = document.body.style.overflow;
@@ -423,19 +443,31 @@ export default function Education() {
 
   return (
     <section id="education" aria-label="Education" className="relative">
-      {/* outer section provides runway; sticky is what fills viewport */}
-      <div className="relative min-h-[140vh]">
-        <div ref={stickyRef} className="sticky top-0 h-screen overflow-hidden">
+      {/* Runway (kept modest so you don't overshoot into the next section) */}
+      <div ref={runwayRef} className="relative min-h-[140vh]">
+        {/* When locked, swap sticky -> fixed so it *cannot* be skipped */}
+        <div
+          ref={stickyRef}
+          className={`${locked ? "fixed inset-0 h-screen w-screen" : "sticky top-0 h-screen"} overflow-hidden`}
+          style={{ left: locked ? 0 : undefined }}
+        >
           {/* Header */}
           <div className="absolute left-0 right-0 top-0 z-[80] flex flex-col items-center pt-8 sm:pt-10">
-            <h2 className={`tracking-tight ${outfit.className} text-5xl md:text-6xl lg:text-7xl`}>Education</h2>
+            <h2 className={`tracking-tight ${outfit.className} text-5xl md:text-6xl lg:text-7xl`}>
+              Education
+            </h2>
             <p className={`mt-2 sm:mt-3 text-sm sm:text-base md:text-lg opacity-80 ${plus.className}`}>
               Four stages of the journey — built one scroll at a time.
             </p>
             {!reduced && (
               <div className="mt-3 flex gap-2">
                 {Array.from({ length: total }).map((_, i) => (
-                  <span key={i} className={`h-1.5 w-4 rounded-full transition-all ${i < visibleCount ? "bg-cyan-300/80 w-6" : "bg-white/20"}`} />
+                  <span
+                    key={i}
+                    className={`h-1.5 w-4 rounded-full transition-all ${
+                      i < visibleCount ? "bg-cyan-300/80 w-6" : "bg-white/20"
+                    }`}
+                  />
                 ))}
               </div>
             )}
@@ -443,16 +475,24 @@ export default function Education() {
 
           {/* Cards (always clickable when visible) */}
           <div className="absolute inset-0 z-[60] flex items-start justify-center">
-            <div ref={rowRef} className="mt-[24vh] sm:mt-[26vh] md:mt-[28vh] w-[min(1400px,95vw)]">
+            <div
+              ref={rowRef}
+              className="mt-[24vh] sm:mt-[26vh] md:mt-[28vh] w-[min(1400px,95vw)]"
+            >
               <div className="grid grid-cols-4 gap-4 sm:gap-5">
                 {items.map((edu, i) => (
-                  <Tile key={edu.key} edu={edu} visible={i < visibleCount} onOpen={() => setOpenEdu(edu)} />
+                  <Tile
+                    key={edu.key}
+                    edu={edu}
+                    visible={i < visibleCount}
+                    onOpen={() => setOpenEdu(edu)}
+                  />
                 ))}
               </div>
             </div>
           </div>
 
-          {/* Decorative glow below tiles */}
+          {/* Decorative glow under tiles */}
           <AnimatePresence>
             {visibleCount >= total && (
               <motion.div
@@ -461,17 +501,21 @@ export default function Education() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 0.10 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.25 }}
-                style={{ background: "radial-gradient(60% 40% at 50% 50%, rgba(0,255,255,0.10), rgba(0,0,0,0))" }}
+                transition={{ duration: 0.2 }}
+                style={{
+                  background:
+                    "radial-gradient(60% 40% at 50% 50%, rgba(0,255,255,0.10), rgba(0,0,0,0))",
+                }}
               />
             )}
           </AnimatePresence>
         </div>
       </div>
 
-      {/* Modal */}
+      {/* Modal with full details */}
       <EduModal edu={openEdu} onClose={() => setOpenEdu(null)} />
     </section>
   );
 }
+
 
