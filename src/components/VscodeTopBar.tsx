@@ -36,7 +36,7 @@ const NAV_SECTION_IDS = [
   "contact",
 ] as const;
 
-/* NEW: Explicit set of sections where the bar should be visible */
+/* Explicit set of sections where the bar should be visible */
 const VISIBLE_IDS = new Set([
   "about",
   "experience",
@@ -102,34 +102,7 @@ export default function VscodeTopBar({
     []
   );
 
-  /* ---------- VISIBILITY: band from About(top) → Testimonials(bottom) ---------- */
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const startEl = document.getElementById(VISIBLE_START);
-    const endEl = document.getElementById(VISIBLE_END);
-    if (!startEl || !endEl) return;
-
-    const checkVisibility = () => {
-      const start = startEl.getBoundingClientRect().top;
-      const end = endEl.getBoundingClientRect().bottom;
-      const vpH = window.innerHeight;
-
-      // In-band if viewport intersects the band comfortably
-      const inBand = start < vpH * 0.9 && end > vpH * 0.1;
-      setVisible(inBand);
-    };
-
-    checkVisibility();
-    window.addEventListener("scroll", checkVisibility, { passive: true });
-    window.addEventListener("resize", checkVisibility);
-    return () => {
-      window.removeEventListener("scroll", checkVisibility);
-      window.removeEventListener("resize", checkVisibility);
-    };
-  }, []);
-
-  /* ---------- ACTIVE TAB ---------- */
+  /* ---------- ACTIVE TAB (drives visibility) ---------- */
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -152,12 +125,9 @@ export default function VscodeTopBar({
         }
       }
 
-      if (bestId) setActive(bestId);
-
-      /* NEW: Gate visibility by which section is active.
-         Ensures bar is shown only for about→testimonials (inclusive),
-         and hidden in home/hero/contact. */
       if (bestId) {
+        setActive(bestId);
+        // Gate visibility purely by the active section
         setVisible(VISIBLE_IDS.has(bestId));
       }
     };
@@ -264,4 +234,5 @@ export default function VscodeTopBar({
     </AnimatePresence>
   );
 }
+
 
