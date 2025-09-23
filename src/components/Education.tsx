@@ -227,7 +227,6 @@ export default function Education() {
       const vh = window.innerHeight || 1;
 
       // Consider the section "in view" while the viewport overlaps it meaningfully.
-      // Band ensures we’re inside the sticky runway (not just grazing it).
       const inView =
         r.top <= vh * 0.15 &&    // top has reached near top
         r.bottom >= vh * 0.55;   // bottom still well below mid
@@ -266,8 +265,8 @@ export default function Education() {
 
   return (
     <section id="education" aria-label="Education" className="relative">
-      {/* Keep your runway length; no layout changes */}
-      <div ref={sectionRef} className="relative min-h-[170vh]">
+      {/* Shorter runway so there's minimal gap before Testimonials */}
+      <div ref={sectionRef} className="relative min-h-[140vh]">
         <div ref={stickyRef} className="sticky top-0 h-screen overflow-hidden">
           {/* Header */}
           <div className="absolute left-0 right-0 top-0 z-50 flex flex-col items-center pt-8 sm:pt-10">
@@ -324,3 +323,4 @@ export default function Education() {
     </section>
   );
 }
+
