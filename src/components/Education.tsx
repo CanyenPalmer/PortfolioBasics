@@ -77,13 +77,19 @@ function getEducationFromProfile(): Edu[] {
   return raw.map(normalizeEdu).slice(0, 4);
 }
 
-/* ---------------- Step engine (fast, escapable) ---------------- */
+/* ---------------- Utilities ---------------- */
+function pageTop(el: HTMLElement) {
+  const r = el.getBoundingClientRect();
+  return (window.scrollY || window.pageYOffset || 0) + r.top;
+}
+
+/* --------------- Step engine (fast, escapable, momentum-friendly) --------------- */
 function useStepEngine(opts: {
   steps: number;                          // inclusive: 0..steps
   getStep: () => number;
   setStep: (n: number) => void;
   isLocked: () => boolean;
-  onExit: (dir: 1 | -1) => void;          // called before letting a past-end scroll continue
+  onExit: (dir: 1 | -1) => void;          // called right before letting a past-end scroll continue
   threshold?: number;                      // lower => fewer scrolls to reveal
   minCooldownMs?: number;                  // debounce groups of steps
 }) {
@@ -120,7 +126,7 @@ function useStepEngine(opts: {
     const onWheel = (e: WheelEvent) => {
       if (!isLocked()) return;
       const dir: 1 | -1 = e.deltaY > 0 ? 1 : -1;
-      if (tryExit(dir)) return; // unlock first; do NOT preventDefault so page moves
+      if (tryExit(dir)) return; // unlock first; do NOT preventDefault so page moves naturally
       wheelAcc.current += e.deltaY;
       const stepsToAdvance = Math.floor(Math.abs(wheelAcc.current) / threshold);
       e.preventDefault();
@@ -146,7 +152,6 @@ function useStepEngine(opts: {
       touchAcc.current = 0;
       touchMoved.current = 0;
     };
-
     const onTouchMove = (e: TouchEvent) => {
       if (!isLocked()) return;
       const y = e.touches[0]?.clientY ?? 0;
@@ -181,69 +186,88 @@ function useStepEngine(opts: {
   }, [advance, isLocked, tryExit, threshold]);
 }
 
-/* --------- Lock controller (engage when sticky frame fills the viewport) --------- */
-function useViewportLock(opts: {
-  stickyEl: React.RefObject<HTMLElement>;
-  disabled: boolean;
-  onEnter: (dir: "down" | "up") => void;
-  onLeave: () => void;
+/* --------------- Pin window lock (absolute scroll positions, not sticky math) --------------- */
+function usePinWindow(opts: {
+  containerRef: React.RefObject<HTMLElement>; // outer runway (the section wrapper)
+  stickyRef: React.RefObject<HTMLElement>;    // the sticky frame (fills viewport)
+  disabled: boolean;                           // disable when modal open or reduced motion
+  onEnter: (dir: "down" | "up") => void;       // set initial step when entering
+  onUnlockSideEffect?: () => void;             // restore overflow, etc
 }) {
-  const { stickyEl, disabled, onEnter, onLeave } = opts;
+  const { containerRef, stickyRef, disabled, onEnter, onUnlockSideEffect } = opts;
+
   const [locked, setLocked] = React.useState(false);
-  const lastScrollY = React.useRef(0);
+  const lockedRef = React.useRef(false);
+  const winTop = React.useRef(0);
+  const winBottom = React.useRef(0);
+  const lastY = React.useRef(0);
+
+  const computeWindow = React.useCallback(() => {
+    const cont = containerRef.current;
+    const sticky = stickyRef.current;
+    if (!cont || !sticky) return;
+
+    const vh = window.innerHeight || 1;
+    const contTop = pageTop(cont);
+    const contHeight = cont.offsetHeight;
+    const stickyHeight = vh; // by design
+
+    // Pin window is when the sticky should be active:
+    // Starts when sticky would first touch top of viewport,
+    // Ends when sticky would leave bottom (container end).
+    winTop.current = contTop;
+    winBottom.current = contTop + contHeight - stickyHeight;
+  }, [containerRef, stickyRef]);
 
   React.useEffect(() => {
     if (disabled) {
-      if (locked) {
+      if (lockedRef.current) {
         setLocked(false);
+        lockedRef.current = false;
         document.documentElement.style.overflow = "";
         document.body.style.overflow = "";
-        onLeave();
+        onUnlockSideEffect?.();
       }
       return;
     }
 
-    const evalLock = () => {
-      const el = stickyEl.current;
-      const vh = window.innerHeight || 1;
-      if (!el) return;
-
-      const r = el.getBoundingClientRect();
-      // "fills viewport" with tiny hysteresis — extremely robust
-      const fills = r.top <= 2 && r.bottom >= vh - 2;
-
+    const onScrollOrResize = () => {
+      computeWindow();
       const y = window.scrollY || window.pageYOffset || 0;
-      const dir: "down" | "up" = y >= (lastScrollY.current || 0) ? "down" : "up";
-      lastScrollY.current = y;
+      const dir: "down" | "up" = y >= (lastY.current || 0) ? "down" : "up";
+      lastY.current = y;
 
-      if (fills && !locked) {
+      const inside = y >= winTop.current && y <= winBottom.current;
+      if (inside && !lockedRef.current) {
         setLocked(true);
+        lockedRef.current = true;
         onEnter(dir);
-        // hard-freeze page scroll so lock cannot be skipped
+        // freeze page scroll so momentum can't blow past window
         document.documentElement.style.overflow = "hidden";
         document.body.style.overflow = "hidden";
-      } else if (!fills && locked) {
+      } else if (!inside && lockedRef.current) {
         setLocked(false);
+        lockedRef.current = false;
         document.documentElement.style.overflow = "";
         document.body.style.overflow = "";
-        onLeave();
+        onUnlockSideEffect?.();
       }
     };
 
-    evalLock();
-    const onScroll = () => evalLock();
-    const onResize = () => evalLock();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onResize, { passive: true });
+    computeWindow();
+    onScrollOrResize();
+
+    window.addEventListener("scroll", onScrollOrResize, { passive: true });
+    window.addEventListener("resize", onScrollOrResize, { passive: true });
     return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onResize);
+      window.removeEventListener("scroll", onScrollOrResize);
+      window.removeEventListener("resize", onScrollOrResize);
       document.documentElement.style.overflow = "";
       document.body.style.overflow = "";
     };
-  }, [stickyEl, disabled, onEnter, onLeave, locked]);
+  }, [computeWindow, disabled, onEnter, onUnlockSideEffect]);
 
-  return locked;
+  return { locked, lockedRef, winTop, winBottom };
 }
 
 /* --------------------------------- Tile ------------------------------- */
@@ -374,15 +398,12 @@ export default function Education() {
   const [reduced, setReduced] = React.useState(false);
   const [openEdu, setOpenEdu] = React.useState<Edu | null>(null);
 
-  const runwayRef = React.useRef<HTMLDivElement>(null);
-  const stickyRef = React.useRef<HTMLDivElement>(null);
-  const rowRef = React.useRef<HTMLDivElement>(null);
+  // DOM refs
+  const sectionRef = React.useRef<HTMLDivElement>(null); // runway wrapper (min-h)
+  const stickyRef  = React.useRef<HTMLDivElement>(null); // sticky frame (fills viewport)
+  const rowRef     = React.useRef<HTMLDivElement>(null);
 
-  // Lock state (with class toggle to 'fixed' when engaged)
-  const [locked, setLocked] = React.useState(false);
-  const lockedRef = React.useRef(false);
-
-  /* respect reduced motion */
+  // Reduced motion
   React.useEffect(() => {
     const m = window.matchMedia("(prefers-reduced-motion: reduce)");
     const apply = () => setReduced(m.matches);
@@ -391,47 +412,39 @@ export default function Education() {
     return () => m.removeEventListener?.("change", apply);
   }, []);
 
-  /* Engage lock when the STICKY frame fills the viewport */
-  const lockActive = useViewportLock({
-    stickyEl: stickyRef,
+  /* ---------------- Pin window: engage lock only inside absolute scroll range ---------------- */
+  const { locked, lockedRef } = usePinWindow({
+    containerRef: sectionRef,
+    stickyRef,
     disabled: !!openEdu || reduced,
     onEnter: (dir) => setStep(dir === "down" ? 0 : maxStep),
-    onLeave: () => {},
+    onUnlockSideEffect: () => {},
   });
 
-  React.useEffect(() => {
-    setLocked(lockActive);
-    lockedRef.current = lockActive;
-    if (!lockActive) {
-      document.documentElement.style.overflow = "";
-      document.body.style.overflow = "";
-    }
-  }, [lockActive]);
-
-  /* Release as soon as user tries to scroll past ends */
+  /* ---------------- Release immediately when user tries to leave ---------------- */
   const exitLock = React.useCallback((dir: 1 | -1) => {
     if (!lockedRef.current) return;
     lockedRef.current = false;
-    setLocked(false);
+    // Restore overflow before the next event tick so browser scroll continues
     document.documentElement.style.overflow = "";
     document.body.style.overflow = "";
-    // nudge 1px so the browser continues seamlessly
+    // small nudge so momentum continues in intended direction
     const y = window.scrollY + (dir === 1 ? 1 : -1);
     window.scrollTo({ top: y });
-  }, []);
+  }, [lockedRef]);
 
-  /* Drive the step animation while locked */
+  /* ---------------- Step engine while locked ---------------- */
   useStepEngine({
     steps: maxStep,
     getStep: () => step,
     setStep: (n) => setStep(n),
     isLocked: () => lockedRef.current,
     onExit: exitLock,
-    threshold: 48, // quick reveal
+    threshold: 48,    // quick reveal (1–2 flicks)
     minCooldownMs: 45,
   });
 
-  /* Pause background scroll only while modal open */
+  /* ---------------- Modal pauses background scroll only while open --------------- */
   React.useEffect(() => {
     if (!openEdu) return;
     const prev = document.body.style.overflow;
@@ -443,14 +456,9 @@ export default function Education() {
 
   return (
     <section id="education" aria-label="Education" className="relative">
-      {/* Runway (kept modest so you don't overshoot into the next section) */}
-      <div ref={runwayRef} className="relative min-h-[140vh]">
-        {/* When locked, swap sticky -> fixed so it *cannot* be skipped */}
-        <div
-          ref={stickyRef}
-          className={`${locked ? "fixed inset-0 h-screen w-screen" : "sticky top-0 h-screen"} overflow-hidden`}
-          style={{ left: locked ? 0 : undefined }}
-        >
+      {/* Runway wrapper defines the absolute pin window */}
+      <div ref={sectionRef} className="relative min-h-[140vh]">
+        <div ref={stickyRef} className="sticky top-0 h-screen overflow-hidden">
           {/* Header */}
           <div className="absolute left-0 right-0 top-0 z-[80] flex flex-col items-center pt-8 sm:pt-10">
             <h2 className={`tracking-tight ${outfit.className} text-5xl md:text-6xl lg:text-7xl`}>
@@ -473,7 +481,7 @@ export default function Education() {
             )}
           </div>
 
-          {/* Cards (always clickable when visible) */}
+          {/* Cards — ALWAYS clickable when visible */}
           <div className="absolute inset-0 z-[60] flex items-start justify-center">
             <div
               ref={rowRef}
@@ -492,7 +500,7 @@ export default function Education() {
             </div>
           </div>
 
-          {/* Decorative glow under tiles */}
+          {/* Decorative glow (non-interactive, under tiles) */}
           <AnimatePresence>
             {visibleCount >= total && (
               <motion.div
@@ -517,5 +525,4 @@ export default function Education() {
     </section>
   );
 }
-
 
