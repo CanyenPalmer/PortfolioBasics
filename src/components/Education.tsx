@@ -204,7 +204,7 @@ export default function Education() {
 
   const [step, setStep] = React.useState(0);
   const [reduced, setReduced] = React.useState(false);
-  const [sectionInView, setSectionInView] = React.useState(false);
+  const [sectionFullView, setSectionFullView] = React.useState(false);
 
   const sectionRef = React.useRef<HTMLDivElement>(null);
   const stickyRef  = React.useRef<HTMLDivElement>(null);
@@ -218,37 +218,33 @@ export default function Education() {
     return () => m.removeEventListener?.("change", apply);
   }, []);
 
-  /* ---- Rock-solid "in view" detector for the whole section (no IO flakiness) --- */
+  /* ---- Engage lock ONLY when the section is fully in view (full-viewport) --- */
   React.useEffect(() => {
-    const onScroll = () => {
+    const onScrollOrResize = () => {
       const sec = sectionRef.current;
       if (!sec) return;
       const r = sec.getBoundingClientRect();
       const vh = window.innerHeight || 1;
 
-      // Consider the section "in view" while the viewport overlaps it meaningfully.
-      const inView =
-        r.top <= vh * 0.15 &&    // top has reached near top
-        r.bottom >= vh * 0.55;   // bottom still well below mid
+      // Full view: section covers the viewport (sticky frame aligned at top)
+      const inFullView = r.top <= 0 && r.bottom >= vh;
+      setSectionFullView(inFullView);
 
-      setSectionInView(inView);
-
-      // Reset when re-entering from above so the sequence plays forward again
+      // Reset sequence when re-entering from above so it plays forward again
       if (r.top >= vh * 0.98) setStep(0);
     };
 
-    // Run once and on scroll/resize
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll, { passive: true });
+    onScrollOrResize();
+    window.addEventListener("scroll", onScrollOrResize, { passive: true });
+    window.addEventListener("resize", onScrollOrResize, { passive: true });
     return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
+      window.removeEventListener("scroll", onScrollOrResize);
+      window.removeEventListener("resize", onScrollOrResize);
     };
   }, []);
 
-  // Final lock predicate: engage whenever the section is meaningfully in view
-  const isLocked = React.useMemo(() => !reduced && sectionInView, [reduced, sectionInView]);
+  // Final lock predicate
+  const isLocked = React.useMemo(() => !reduced && sectionFullView, [reduced, sectionFullView]);
 
   // Install wheel/touch/key interception while locked
   useStepLock({
@@ -265,7 +261,7 @@ export default function Education() {
 
   return (
     <section id="education" aria-label="Education" className="relative">
-      {/* Shorter runway so there's minimal gap before Testimonials */}
+      {/* Keep the tightened runway so there's minimal gap before Testimonials */}
       <div ref={sectionRef} className="relative min-h-[140vh]">
         <div ref={stickyRef} className="sticky top-0 h-screen overflow-hidden">
           {/* Header */}
@@ -323,4 +319,5 @@ export default function Education() {
     </section>
   );
 }
+
 
