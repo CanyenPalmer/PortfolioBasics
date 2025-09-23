@@ -21,6 +21,10 @@ type RawEdu = {
   href?: string;
   img?: string;
   key?: string;
+  // optional rich details your content file may include:
+  description?: string;
+  achievements?: string[]; // bullet list
+  courses?: string[];      // bullet list
 };
 
 type Edu = {
@@ -30,6 +34,9 @@ type Edu = {
   href?: string;
   img: string;
   key: string;
+  description?: string;
+  achievements?: string[];
+  courses?: string[];
 };
 
 /* ------------------------ Data helpers ------------------------ */
@@ -51,8 +58,11 @@ function normalizeEdu(e: RawEdu): Edu {
     sub,
     years,
     href: e.href,
-    img: resolveHeroFromTitle(title),
+    img: e.img ?? resolveHeroFromTitle(title),
     key: slugify(title || sub || "edu"),
+    description: e.description,
+    achievements: e.achievements,
+    courses: e.courses,
   };
 }
 
@@ -75,9 +85,9 @@ function useStepLock(opts: {
   setStep: (n: number) => void;
   isLocked: () => boolean;       // live lock predicate
   threshold?: number;            // px per step
-  minCooldownMs?: number;        // anti-spam between *groups* of steps
+  minCooldownMs?: number;        // min time between step groups
 }) {
-  const { steps, getStep, setStep, isLocked, threshold = 105, minCooldownMs = 70 } = opts;
+  const { steps, getStep, setStep, isLocked, threshold = 96, minCooldownMs = 60 } = opts;
   const lastStepAt = React.useRef(0);
 
   const advance = React.useCallback((dir: 1 | -1, amount = 1) => {
@@ -93,6 +103,8 @@ function useStepLock(opts: {
 
   React.useEffect(() => {
     let touchY = 0;
+    let touchMoved = 0;
+    const TAP_SLOP = 10; // px; don't block taps
 
     const onWheel = (e: WheelEvent) => {
       if (!isLocked()) return;
@@ -100,10 +112,10 @@ function useStepLock(opts: {
       const dir: 1 | -1 = e.deltaY > 0 ? 1 : -1;
       const cur = getStep();
 
-      // allow exit at the ends
+      // allow exit at ends
       if ((cur === 0 && dir === -1) || (cur === steps && dir === 1)) return;
 
-      // big delta → multiple steps (momentum friendly)
+      // big delta → multiple steps (handles fast flicks / momentum)
       const stepsToAdvance = Math.max(1, Math.round(Math.abs(e.deltaY) / threshold));
       e.preventDefault();
       advance(dir, stepsToAdvance);
@@ -123,12 +135,18 @@ function useStepLock(opts: {
     const onTouchStart = (e: TouchEvent) => {
       if (!isLocked()) return;
       touchY = e.touches[0]?.clientY ?? 0;
+      touchMoved = 0;
     };
     const onTouchMove = (e: TouchEvent) => {
       if (!isLocked()) return;
       const y = e.touches[0]?.clientY ?? 0;
       const dy = touchY - y; // + down
       touchY = y;
+      touchMoved += Math.abs(dy);
+
+      // Do NOT block taps or tiny moves (prevents click cancel on touch)
+      if (touchMoved < TAP_SLOP) return;
+
       const dir: 1 | -1 = dy > 0 ? 1 : -1;
       const cur = getStep();
       if ((cur === 0 && dir === -1) || (cur === steps && dir === 1)) return;
@@ -137,10 +155,10 @@ function useStepLock(opts: {
       advance(dir, stepsToAdvance);
     };
 
-    window.addEventListener("wheel", onWheel, { passive: false });
-    window.addEventListener("keydown", onKey, { passive: false });
-    window.addEventListener("touchstart", onTouchStart, { passive: true });
-    window.addEventListener("touchmove", onTouchMove, { passive: false });
+    window.addEventListener("wheel", onWheel, { passive: false, capture: true });
+    window.addEventListener("keydown", onKey, { passive: false, capture: true });
+    window.addEventListener("touchstart", onTouchStart, { passive: true, capture: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: false, capture: true });
 
     return () => {
       window.removeEventListener("wheel", onWheel as any);
@@ -161,18 +179,19 @@ function Tile({
   visible: boolean;
   onOpen: () => void;
 }) {
+  // Make sure button remains clickable while animating in
   return (
     <motion.button
       type="button"
       onClick={onOpen}
-      initial={{ opacity: 0, x: 80 }}
-      animate={{ opacity: visible ? 1 : 0, x: visible ? 0 : 80 }}
-      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+      initial={{ opacity: 0, x: 80, filter: "blur(2px)" }}
+      animate={{ opacity: visible ? 1 : 0, x: visible ? 0 : 80, filter: visible ? "blur(0px)" : "blur(2px)" }}
+      transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
       className={`relative text-left overflow-hidden rounded-2xl shadow-lg ring-1 ring-white/10 bg-[#0d131d] focus:outline-none focus:ring-2 focus:ring-cyan-300/70 ${
         visible ? "pointer-events-auto" : "pointer-events-none"
       }`}
       tabIndex={visible ? 0 : -1}
-      style={{ zIndex: 40 }} // above glow (z-30), below header (z-50)
+      style={{ zIndex: 40 }} // over glow (z-30)
     >
       <div className="w-full h-[50vh] md:h-[54vh] lg:h-[56vh]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -225,7 +244,7 @@ function EduModal({
             exit={{ opacity: 0, y: 12, scale: 0.98 }}
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
           >
-            <div className="w-[min(920px,95vw)] overflow-hidden rounded-2xl bg-[#0d131d] ring-1 ring-white/10 shadow-2xl relative">
+            <div className="w-[min(960px,95vw)] overflow-hidden rounded-2xl bg-[#0d131d] ring-1 ring-white/10 shadow-2xl relative">
               <button
                 className="absolute top-3 right-3 rounded-md px-2 py-1 text-sm bg-white/10 hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-cyan-300/70"
                 onClick={onClose}
@@ -249,15 +268,32 @@ function EduModal({
                   <p className={`mt-1 text-sm sm:text-base opacity-85 ${plus.className}`}>
                     {edu.sub}
                   </p>
-                  {edu.years && (
-                    <p className="mt-2 text-xs sm:text-sm opacity-70">{edu.years}</p>
+                  {edu.years && <p className="mt-2 text-xs sm:text-sm opacity-70">{edu.years}</p>}
+                  {edu.description && (
+                    <p className="mt-4 text-sm leading-relaxed opacity-90">{edu.description}</p>
+                  )}
+                  {Array.isArray(edu.achievements) && edu.achievements.length > 0 && (
+                    <div className="mt-4">
+                      <div className="text-sm font-semibold opacity-90">Achievements</div>
+                      <ul className="mt-1 list-disc pl-5 text-sm opacity-85 space-y-1">
+                        {edu.achievements.map((a, i) => <li key={i}>{a}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                  {Array.isArray(edu.courses) && edu.courses.length > 0 && (
+                    <div className="mt-4">
+                      <div className="text-sm font-semibold opacity-90">Selected Courses</div>
+                      <ul className="mt-1 list-disc pl-5 text-sm opacity-85 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
+                        {edu.courses.map((c, i) => <li key={i}>{c}</li>)}
+                      </ul>
+                    </div>
                   )}
                   {edu.href && (
                     <a
                       href={edu.href}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-block mt-4 text-sm underline underline-offset-4 decoration-cyan-300/70 hover:decoration-cyan-300"
+                      className="inline-block mt-5 text-sm underline underline-offset-4 decoration-cyan-300/70 hover:decoration-cyan-300"
                     >
                       Visit
                     </a>
@@ -284,7 +320,6 @@ export default function Education() {
 
   const sectionRef = React.useRef<HTMLDivElement>(null);
   const stickyRef  = React.useRef<HTMLDivElement>(null);
-  const headerRef  = React.useRef<HTMLDivElement>(null);
   const rowRef     = React.useRef<HTMLDivElement>(null);
 
   // Lock state
@@ -292,7 +327,7 @@ export default function Education() {
   const wasLocked = React.useRef(false);
   const lastScrollY = React.useRef(0);
 
-  // Reduced motion
+  // Respect reduced motion (skip lock; show everything)
   React.useEffect(() => {
     const m = window.matchMedia("(prefers-reduced-motion: reduce)");
     const apply = () => setReduced(m.matches);
@@ -301,34 +336,27 @@ export default function Education() {
     return () => m.removeEventListener?.("change", apply);
   }, []);
 
-  /* ----------------- Lock predicate (robust & re-enterable) ------------------ */
+  /* ----------------- Lock predicate (uses the STICKY viewport span) ------------------ */
   React.useEffect(() => {
     const onScrollOrResize = () => {
-      const sec = sectionRef.current;
+      const sticky = stickyRef.current;
       const row = rowRef.current;
       const vh = window.innerHeight || 1;
-      if (!sec || !row) return;
+      if (!sticky || !row) return;
 
-      const s = sec.getBoundingClientRect();
+      const s = sticky.getBoundingClientRect();
       const r = row.getBoundingClientRect();
 
-      // Sticky spans viewport with 1px hysteresis
-      const spansNow = s.top <= 0 && s.bottom >= vh;
-      const spansLeave = s.top > 1 || s.bottom < vh - 1;
-      const sectionSpans = locked ? !spansLeave : spansNow;
+      // Sticky is actively spanning the viewport when top≈0 and bottom≈vh
+      const stickyActive = s.top <= 0.5 && s.bottom >= vh - 0.5;
 
-      // Row center in 30–70% band so lock engages only when the row is actually on-screen, not just grazing
+      // Keep row roughly mid-screen to avoid early/late triggers
       const center = r.top + r.height / 2;
-      const centerBand = center > vh * 0.3 && center < vh * 0.7;
+      const centerBand = center > vh * 0.2 && center < vh * 0.8;
 
-      // Row sufficiently visible (handles small screens & varying heights)
-      const visibleH = Math.min(r.bottom, vh) - Math.max(r.top, 0);
-      const ratio = Math.max(0, Math.min(1, visibleH / Math.max(1, r.height)));
-      const rowVisible = ratio >= 0.45;
+      const wantLock = !reduced && !openEdu && stickyActive && centerBand;
 
-      const wantLock = !reduced && !openEdu && sectionSpans && centerBand && rowVisible;
-
-      // direction-aware initial step at each entry
+      // Direction-aware initial step each time we ENTER lock
       const y = window.scrollY || window.pageYOffset || 0;
       const dir: "down" | "up" = y >= (lastScrollY.current || 0) ? "down" : "up";
       lastScrollY.current = y;
@@ -347,7 +375,7 @@ export default function Education() {
       window.removeEventListener("scroll", onScrollOrResize);
       window.removeEventListener("resize", onScrollOrResize);
     };
-  }, [maxStep, openEdu, reduced, locked]);
+  }, [maxStep, openEdu, reduced]);
 
   /* ---------- Intercept gestures while locked (fast & escapable) ----------- */
   useStepLock({
@@ -355,9 +383,19 @@ export default function Education() {
     getStep: () => step,
     setStep: (n) => setStep(n),
     isLocked: () => locked,
-    threshold: 100,        // snappy; handles fast momentum
+    threshold: 96,   // snappy; handles fast momentum
     minCooldownMs: 60,
   });
+
+  /* -------------- Prevent scroll chaining while locked (but not frozen) -------------- */
+  React.useEffect(() => {
+    const body = document.body;
+    if (locked) {
+      const prev = body.style.overscrollBehavior;
+      body.style.overscrollBehavior = "contain";
+      return () => { body.style.overscrollBehavior = prev; };
+    }
+  }, [locked]);
 
   /* -------------- Disable background scroll when modal is open -------------- */
   React.useEffect(() => {
@@ -440,3 +478,4 @@ export default function Education() {
     </section>
   );
 }
+
