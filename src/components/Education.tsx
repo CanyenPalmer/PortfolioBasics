@@ -234,7 +234,7 @@ function EduModal({
         <>
           <motion.div
             key="backdrop"
-            className="fixed inset-0 z-[100] bg-black/60"
+            className="fixed inset-0 z-[100] bg-black/60 pointer-events-auto"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -244,13 +244,13 @@ function EduModal({
             key="sheet"
             role="dialog"
             aria-modal="true"
-            className="fixed inset-0 z-[101] flex items-center justify-center p-4"
+            className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none"
             initial={{ opacity: 0, y: 12, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.98 }}
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
           >
-            <div className="w-[min(920px,95vw)] overflow-hidden rounded-2xl bg-[#0d131d] ring-1 ring-white/10 shadow-2xl relative">
+            <div className="pointer-events-auto w-[min(920px,95vw)] overflow-hidden rounded-2xl bg-[#0d131d] ring-1 ring-white/10 shadow-2xl relative">
               <button
                 className="absolute top-3 right-3 rounded-md px-2 py-1 text-sm bg-white/10 hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-cyan-300/70"
                 onClick={onClose}
@@ -327,45 +327,43 @@ export default function Education() {
     return () => m.removeEventListener?.("change", apply);
   }, []);
 
-  /* ---- Engage lock when:
-         - Section spans the viewport (sticky active),
-         - Header is visible (any intersection),
-         - Card row is meaningfully visible (visibility ratio >= 0.6) AND its center within 20%..80% of viewport.
+  /* ---- Lock whenever the sticky section spans the viewport (with hysteresis),
+         AND the row is reasonably visible.
          Re-enters from both directions; sets starting step on each entry. --- */
   React.useEffect(() => {
-    const computeLock = () => {
+    const onScrollOrResize = () => {
       const sec = sectionRef.current;
       const header = headerRef.current;
       const row = rowRef.current;
       const vh = window.innerHeight || 1;
-      if (!sec || !header || !row) return false;
+      if (!sec || !header || !row) return;
 
       const s = sec.getBoundingClientRect();
       const h = header.getBoundingClientRect();
       const r = row.getBoundingClientRect();
 
-      const sectionSpans = s.top <= 0.5 && s.bottom >= vh - 0.5; // sticky fully engaged
+      // Sticky span with hysteresis (prevents flicker at exact edges)
+      // Enter when: s.top <= 0 AND s.bottom >= vh
+      // Leave when: s.top > 2 OR s.bottom < vh - 2
+      const spansNow = s.top <= 0 && s.bottom >= vh;
+      const spansLeave = s.top > 2 || s.bottom < vh - 2;
+      const sectionSpans = isLocked ? !spansLeave : spansNow;
+
+      // Title intersects viewport
       const headerOnscreen = h.bottom > 0 && h.top < vh;
 
-      // Row visibility ratio
+      // Row visibility ratio (loosened enough to work on small viewports)
       const visibleH = Math.min(r.bottom, vh) - Math.max(r.top, 0);
       const ratio = Math.max(0, Math.min(1, visibleH / Math.max(1, r.height)));
+      const rowVisibleEnough = ratio >= 0.5;
 
-      // Row center band
-      const center = r.top + r.height / 2;
-      const centerInBand = center > vh * 0.2 && center < vh * 0.8;
+      const nextLocked = sectionSpans && headerOnscreen && rowVisibleEnough && !openEdu && !reduced;
 
-      return sectionSpans && headerOnscreen && ratio >= 0.6 && centerInBand && !openEdu && !reduced;
-    };
-
-    const onScrollOrResize = () => {
+      // Direction-aware entry step
       const y = window.scrollY || window.pageYOffset || 0;
       const dir: "down" | "up" = y >= (lastScrollY.current || 0) ? "down" : "up";
       lastScrollY.current = y;
 
-      const nextLocked = computeLock();
-
-      // Edge-trigger: on entering lock, set starting step by direction
       if (nextLocked && !wasLocked.current) {
         setStep(dir === "down" ? 0 : maxStep);
       }
@@ -380,7 +378,23 @@ export default function Education() {
       window.removeEventListener("scroll", onScrollOrResize);
       window.removeEventListener("resize", onScrollOrResize);
     };
-  }, [maxStep, openEdu, reduced]);
+  }, [maxStep, openEdu, reduced, isLocked]);
+
+  /* ---- While locked, freeze page scroll; while unlocked, restore it. -------- */
+  React.useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    if (isLocked) {
+      const prevHtmlOverflow = html.style.overflow;
+      const prevBodyOverscroll = body.style.overscrollBehavior;
+      html.style.overflow = "hidden";
+      body.style.overscrollBehavior = "contain";
+      return () => {
+        html.style.overflow = prevHtmlOverflow;
+        body.style.overscrollBehavior = prevBodyOverscroll;
+      };
+    }
+  }, [isLocked]);
 
   // Intercept gestures while locked (listeners mount once; read live state via ref)
   useLockedGestures({
@@ -392,7 +406,7 @@ export default function Education() {
     cooldownMs: 170,
   });
 
-  // Prevent background scroll when modal open
+  // Prevent background scroll when modal open (modal disables lock via dependency above)
   React.useEffect(() => {
     if (openEdu) {
       const prev = document.body.style.overflow;
@@ -406,22 +420,22 @@ export default function Education() {
 
   return (
     <section id="education" aria-label="Education" className="relative">
-      {/* Tightened runway to reduce gap before Testimonials */}
+      {/* Tight runway to reduce gap before Testimonials */}
       <div ref={sectionRef} className="relative min-h-[140vh]">
         <div ref={stickyRef} className="sticky top-0 h-screen overflow-hidden">
-          {/* Header */}
+          {/* Header (no overlays stealing clicks) */}
           <div
             ref={headerRef}
-            className="absolute left-0 right-0 top-0 z-50 flex flex-col items-center pt-8 sm:pt-10"
+            className="absolute left-0 right-0 top-0 z-50 flex flex-col items-center pt-8 sm:pt-10 pointer-events-none"
           >
-            <h2 className={`tracking-tight ${outfit.className} text-5xl md:text-6xl lg:text-7xl`}>
+            <h2 className={`tracking-tight ${outfit.className} text-5xl md:text-6xl lg:text-7xl pointer-events-auto`}>
               Education
             </h2>
-            <p className={`mt-2 sm:mt-3 text-sm sm:text-base md:text-lg opacity-80 ${plus.className}`}>
+            <p className={`mt-2 sm:mt-3 text-sm sm:text-base md:text-lg opacity-80 ${plus.className} pointer-events-auto`}>
               Four stages of the journey — built one scroll at a time.
             </p>
             {!reduced && (
-              <div className="mt-3 flex gap-2">
+              <div className="mt-3 flex gap-2 pointer-events-auto">
                 {Array.from({ length: total }).map((_, i) => (
                   <span
                     key={i}
@@ -434,11 +448,11 @@ export default function Education() {
             )}
           </div>
 
-          {/* Row of cards */}
-          <div className="absolute inset-0 z-40 flex items-start justify-center">
+          {/* Row of cards (guaranteed clickable) */}
+          <div className="absolute inset-0 z-40 flex items-start justify-center pointer-events-none">
             <div
               ref={rowRef}
-              className="mt-[24vh] sm:mt-[26vh] md:mt-[28vh] w-[min(1400px,95vw)]"
+              className="mt-[24vh] sm:mt-[26vh] md:mt-[28vh] w-[min(1400px,95vw)] pointer-events-auto"
             >
               <div className="grid grid-cols-4 gap-4 sm:gap-5">
                 {items.map((edu, i) => (
@@ -453,17 +467,20 @@ export default function Education() {
             </div>
           </div>
 
-          {/* Subtle settle effect (kept below tiles so it never blocks clicks) */}
+          {/* Subtle settle effect kept BELOW tiles and non-interactive */}
           <AnimatePresence>
             {visibleCount >= total && (
               <motion.div
                 key="settle"
-                className="absolute inset-0"
-                style={{ zIndex: 30 }}
+                className="absolute inset-0 z-30 pointer-events-none"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 0.10 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.25 }}
+                style={{
+                  background:
+                    "radial-gradient(60% 40% at 50% 50%, rgba(0,255,255,0.10), rgba(0,0,0,0))",
+                }}
               />
             )}
           </AnimatePresence>
