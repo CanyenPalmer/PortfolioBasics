@@ -36,6 +36,15 @@ const NAV_SECTION_IDS = [
   "contact",
 ] as const;
 
+/* NEW: Explicit set of sections where the bar should be visible */
+const VISIBLE_IDS = new Set([
+  "about",
+  "experience",
+  "projects",
+  "education",
+  "testimonials",
+]);
+
 /* Inline icons (no filters; crisp) */
 function IconGithub(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -144,6 +153,13 @@ export default function VscodeTopBar({
       }
 
       if (bestId) setActive(bestId);
+
+      /* NEW: Gate visibility by which section is active.
+         Ensures bar is shown only for about→testimonials (inclusive),
+         and hidden in home/hero/contact. */
+      if (bestId) {
+        setVisible(VISIBLE_IDS.has(bestId));
+      }
     };
 
     const onScroll = () => {
@@ -248,3 +264,4 @@ export default function VscodeTopBar({
     </AnimatePresence>
   );
 }
+
