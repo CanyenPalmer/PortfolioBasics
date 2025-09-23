@@ -300,16 +300,18 @@ export default function Education() {
 
   const [step, setStep] = React.useState(0);
   const [reduced, setReduced] = React.useState(false);
-  const [sectionFullView, setSectionFullView] = React.useState(false);
 
   const [openEdu, setOpenEdu] = React.useState<Edu | null>(null);
 
   const sectionRef = React.useRef<HTMLDivElement>(null);
   const stickyRef  = React.useRef<HTMLDivElement>(null);
+  const headerRef  = React.useRef<HTMLDivElement>(null);
+  const rowRef     = React.useRef<HTMLDivElement>(null);
 
-  // Track scroll direction for re-entry decisions
+  // Track lock state and re-entry
+  const [isLocked, setIsLocked] = React.useState(false);
+  const wasLocked = React.useRef(false);
   const lastScrollY = React.useRef<number>(0);
-  const wasInFullView = React.useRef<boolean>(false);
 
   // Respect reduced motion (skip lock; show everything)
   React.useEffect(() => {
@@ -320,37 +322,48 @@ export default function Education() {
     return () => m.removeEventListener?.("change", apply);
   }, []);
 
-  /* ---- Engage lock ONLY when the section is fully in view (full-viewport). 
-         Re-enterable from both directions with proper starting step. --------- */
+  /* ---- Lock when the section spans the viewport AND both the title and card row are in view. 
+         Re-enterable from both directions; sets starting step on each entry. --------- */
   React.useEffect(() => {
-    const onScrollOrResize = () => {
+    const computeLock = () => {
       const sec = sectionRef.current;
-      if (!sec) return;
-
-      const r = sec.getBoundingClientRect();
+      const header = headerRef.current;
+      const row = rowRef.current;
       const vh = window.innerHeight || 1;
+
+      if (!sec || !header || !row) return { lock: false };
+
+      const s = sec.getBoundingClientRect();
+      const h = header.getBoundingClientRect();
+      const r = row.getBoundingClientRect();
+
+      // Section fully spans the viewport (sticky frame active)
+      const sectionSpans = s.top <= 0.5 && s.bottom >= vh - 0.5;
+
+      // Header & row are on-screen (any intersection with viewport)
+      const headerOnscreen = h.bottom > 0 && h.top < vh;
+      const rowOnscreen = r.bottom > 0 && r.top < vh;
+
+      // Lock only when BOTH title area & full card row are on-screen during the sticky span
+      const shouldLock = sectionSpans && headerOnscreen && rowOnscreen && !openEdu && !reduced;
+
+      return { lock: shouldLock };
+    };
+
+    const onScrollOrResize = () => {
       const y = window.scrollY || window.pageYOffset || 0;
       const dir: "down" | "up" = y >= (lastScrollY.current || 0) ? "down" : "up";
       lastScrollY.current = y;
 
-      // Full view: section spans viewport (using 0.5px buffer to avoid rounding flicker)
-      const inFullView = r.top <= 0.5 && r.bottom >= vh - 0.5;
-      setSectionFullView(inFullView);
+      const { lock } = computeLock();
 
-      // On FIRST entry into full view, set the starting step based on direction
-      if (inFullView && !wasInFullView.current) {
-        wasInFullView.current = true;
-        if (dir === "down") {
-          setStep(0);        // play forward when coming from above
-        } else {
-          setStep(maxStep);  // play backward when coming from below
-        }
+      // Edge-trigger: on each entry into lock, set starting step based on direction
+      if (lock && !wasLocked.current) {
+        if (dir === "down") setStep(0);       // play forward when coming from above
+        else setStep(maxStep);                 // play backward when coming from below
       }
-
-      // Track exit to allow re-entry later
-      if (!inFullView && wasInFullView.current) {
-        wasInFullView.current = false;
-      }
+      wasLocked.current = lock;
+      setIsLocked(lock);
     };
 
     onScrollOrResize();
@@ -360,12 +373,9 @@ export default function Education() {
       window.removeEventListener("scroll", onScrollOrResize);
       window.removeEventListener("resize", onScrollOrResize);
     };
-  }, [maxStep]);
+  }, [maxStep, openEdu, reduced]);
 
-  // Final lock predicate
-  const isLocked = React.useMemo(() => !reduced && sectionFullView && !openEdu, [reduced, sectionFullView, openEdu]);
-
-  // Install wheel/touch/key interception while locked
+  // Intercept gestures only while locked
   useStepLock({
     steps: maxStep,
     getStep: () => step,
@@ -375,14 +385,12 @@ export default function Education() {
     cooldownMs: 170,
   });
 
-  // While modal is open, prevent background page scroll with a body class (optional but nice)
+  // While modal is open, prevent background scroll
   React.useEffect(() => {
     if (openEdu) {
       const prev = document.body.style.overflow;
       document.body.style.overflow = "hidden";
-      return () => {
-        document.body.style.overflow = prev;
-      };
+      return () => { document.body.style.overflow = prev; };
     }
   }, [openEdu]);
 
@@ -395,7 +403,10 @@ export default function Education() {
       <div ref={sectionRef} className="relative min-h-[140vh]">
         <div ref={stickyRef} className="sticky top-0 h-screen overflow-hidden">
           {/* Header */}
-          <div className="absolute left-0 right-0 top-0 z-50 flex flex-col items-center pt-8 sm:pt-10">
+          <div
+            ref={headerRef}
+            className="absolute left-0 right-0 top-0 z-50 flex flex-col items-center pt-8 sm:pt-10"
+          >
             <h2 className={`tracking-tight ${outfit.className} text-5xl md:text-6xl lg:text-7xl`}>
               Education
             </h2>
@@ -418,7 +429,10 @@ export default function Education() {
 
           {/* Row of cards */}
           <div className="absolute inset-0 z-40 flex items-start justify-center">
-            <div className="mt-[24vh] sm:mt-[26vh] md:mt-[28vh] w-[min(1400px,95vw)]">
+            <div
+              ref={rowRef}
+              className="mt-[24vh] sm:mt-[26vh] md:mt-[28vh] w-[min(1400px,95vw)]"
+            >
               <div className="grid grid-cols-4 gap-4 sm:gap-5">
                 {items.map((edu, i) => (
                   <Tile
