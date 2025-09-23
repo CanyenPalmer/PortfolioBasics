@@ -110,13 +110,9 @@ function useLockedGestures(opts: {
 
     const onWheel = (e: WheelEvent) => {
       if (!lockedRef.current) return;
-
       const step = getStepRef.current();
       const dir: 1 | -1 = e.deltaY > 0 ? 1 : -1;
-
-      // Allow escape at ends
-      if ((step === 0 && dir === -1) || (step === steps && dir === 1)) return;
-
+      if ((step === 0 && dir === -1) || (step === steps && dir === 1)) return; // escape at ends
       e.preventDefault();
       acc.v += e.deltaY;
       if (Math.abs(acc.v) >= thresholdRef.current) {
@@ -129,12 +125,9 @@ function useLockedGestures(opts: {
       if (!lockedRef.current) return;
       const keys = ["PageDown", "PageUp", " ", "Spacebar", "ArrowDown", "ArrowUp"];
       if (!keys.includes(e.key)) return;
-
       const step = getStepRef.current();
       const dir: 1 | -1 = e.key === "ArrowUp" || e.key === "PageUp" ? -1 : 1;
-
       if ((step === 0 && dir === -1) || (step === steps && dir === 1)) return;
-
       e.preventDefault();
       tryStep(dir);
     };
@@ -150,12 +143,9 @@ function useLockedGestures(opts: {
       const y = e.touches[0]?.clientY ?? 0;
       const dy = lastY.v - y;
       lastY.v = y;
-
       const step = getStepRef.current();
       const dir: 1 | -1 = dy > 0 ? 1 : -1;
-
       if ((step === 0 && dir === -1) || (step === steps && dir === 1)) return;
-
       e.preventDefault();
       acc.v += dy;
       if (Math.abs(acc.v) >= thresholdRef.current) {
@@ -207,6 +197,7 @@ function Tile({
       }`}
       aria-hidden={!visible}
       tabIndex={visible ? 0 : -1}
+      style={{ zIndex: 41 }} // ensure above any visual effects
     >
       <div className="w-full h-[50vh] md:h-[54vh] lg:h-[56vh]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -337,44 +328,46 @@ export default function Education() {
   }, []);
 
   /* ---- Engage lock when:
-         1) section spans viewport (sticky active),
-         2) header is visible,
-         3) the ENTIRE card row is inside the viewport,
-         and no modal is open / not reduced motion.
-         Re-enters from both directions and sets the starting step on each entry. --- */
+         - Section spans the viewport (sticky active),
+         - Header is visible (any intersection),
+         - Card row is meaningfully visible (visibility ratio >= 0.6) AND its center within 20%..80% of viewport.
+         Re-enters from both directions; sets starting step on each entry. --- */
   React.useEffect(() => {
-    const onScrollOrResize = () => {
+    const computeLock = () => {
       const sec = sectionRef.current;
       const header = headerRef.current;
       const row = rowRef.current;
       const vh = window.innerHeight || 1;
-
-      if (!sec || !header || !row) return;
+      if (!sec || !header || !row) return false;
 
       const s = sec.getBoundingClientRect();
       const h = header.getBoundingClientRect();
       const r = row.getBoundingClientRect();
 
+      const sectionSpans = s.top <= 0.5 && s.bottom >= vh - 0.5; // sticky fully engaged
+      const headerOnscreen = h.bottom > 0 && h.top < vh;
+
+      // Row visibility ratio
+      const visibleH = Math.min(r.bottom, vh) - Math.max(r.top, 0);
+      const ratio = Math.max(0, Math.min(1, visibleH / Math.max(1, r.height)));
+
+      // Row center band
+      const center = r.top + r.height / 2;
+      const centerInBand = center > vh * 0.2 && center < vh * 0.8;
+
+      return sectionSpans && headerOnscreen && ratio >= 0.6 && centerInBand && !openEdu && !reduced;
+    };
+
+    const onScrollOrResize = () => {
       const y = window.scrollY || window.pageYOffset || 0;
       const dir: "down" | "up" = y >= (lastScrollY.current || 0) ? "down" : "up";
       lastScrollY.current = y;
 
-      // Section fully spans the viewport (with a tiny buffer to avoid rounding flicker)
-      const sectionSpans = s.top <= 0.5 && s.bottom >= vh - 0.5;
-
-      // Title visible (any intersection)
-      const headerOnscreen = h.bottom > 0 && h.top < vh;
-
-      // FULL card row in view
-      const rowFullyInView = r.top >= 0 && r.bottom <= vh;
-
-      const nextLocked =
-        sectionSpans && headerOnscreen && rowFullyInView && !openEdu && !reduced;
+      const nextLocked = computeLock();
 
       // Edge-trigger: on entering lock, set starting step by direction
       if (nextLocked && !wasLocked.current) {
-        if (dir === "down") setStep(0);      // play forward
-        else setStep(maxStep);               // play backward
+        setStep(dir === "down" ? 0 : maxStep);
       }
       wasLocked.current = nextLocked;
       setIsLocked(nextLocked);
@@ -413,7 +406,7 @@ export default function Education() {
 
   return (
     <section id="education" aria-label="Education" className="relative">
-      {/* Shortened runway to reduce gap before Testimonials */}
+      {/* Tightened runway to reduce gap before Testimonials */}
       <div ref={sectionRef} className="relative min-h-[140vh]">
         <div ref={stickyRef} className="sticky top-0 h-screen overflow-hidden">
           {/* Header */}
@@ -460,20 +453,17 @@ export default function Education() {
             </div>
           </div>
 
-          {/* Soft settle when all visible (z-30 below tiles' z-40 so it never blocks clicks) */}
+          {/* Subtle settle effect (kept below tiles so it never blocks clicks) */}
           <AnimatePresence>
             {visibleCount >= total && (
               <motion.div
                 key="settle"
-                className="absolute inset-0 z-30"
+                className="absolute inset-0"
+                style={{ zIndex: 30 }}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 0.10 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.25 }}
-                style={{
-                  background:
-                    "radial-gradient(60% 40% at 50% 50%, rgba(0,255,255,0.10), rgba(0,0,0,0))",
-                }}
               />
             )}
           </AnimatePresence>
@@ -485,6 +475,3 @@ export default function Education() {
     </section>
   );
 }
-
-
-
