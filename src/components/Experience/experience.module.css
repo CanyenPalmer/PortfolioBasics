@@ -1,27 +1,21 @@
 /* Lock window hosts the sticky/fixed subheader and the stage */
 .lockWindow { position: relative; width: 100%; }
 
-/* Wrapper so the spacer sits exactly where the bar would be in flow */
-.subheaderWrapper { position: relative; }
-
-/* Progress subheader — GPU compositing to avoid jiggle */
+/* Impact subheader — identical geometry sticky/fixed to avoid jiggle */
 .subheaderSticky {
   position: sticky;
   top: var(--top-offset, 0px);
   left: 0;
   right: 0;
   width: 100%;
-  z-index: 200; /* above stage/cards */
+  z-index: 50;
   background: transparent;
   padding-bottom: 0.5rem;
 
+  /* Prevent subpixel paint jank on mode switch */
   backface-visibility: hidden;
   transform: translateZ(0);
-  will-change: opacity;
 }
-
-/* Spacer that preserves layout when bar becomes fixed */
-.subheaderSpacer { width: 100%; }
 
 /* Subheader row + underline */
 .subheaderRow { display: flex; align-items: center; gap: 0.75rem; }
@@ -86,3 +80,4 @@
   .metricsGrid { grid-template-columns: 1fr; }
   .card { width: min(96vw, 960px); padding: .95rem; }
 }
+
