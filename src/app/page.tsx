@@ -15,6 +15,9 @@ import { profile } from "@/content/profile";
 // ✅ Import your new CTA band
 import GetInTouchBand from "@/components/sections/GetInTouchBand";
 
+// ✅ Import LINKS so we can pass resumeHref
+import { LINKS } from "@/content/links";
+
 export default function Page() {
   return (
     <main className="min-h-screen bg-[#0b1016] text-white">
@@ -22,6 +25,7 @@ export default function Page() {
         signature="Palmer Projects"
         linkedinHref="https://www.linkedin.com/in/canyen-palmer-b0b6762a0"
         githubHref="https://github.com/CanyenPalmer"
+        resumeHref={LINKS.resume} // ← minimal addition
       />
 
       {/* LANDING INTRO */}
