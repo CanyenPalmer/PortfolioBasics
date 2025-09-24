@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import NameStamp from "@/components/NameStamp";
+import { LINKS } from "@/content/links"; // ← Minimal addition
 
 /**
  * VscodeTopBar — minimal floating header that:
@@ -81,7 +82,7 @@ export default function VscodeTopBar({
   signature,
   primaryLabel,
   secondaryLabel, // accepted but not used in markup per your original file
-  resumeHref = "/Canyen_Palmer_Resume.pdf",
+  resumeHref,
   linkedinHref = "https://www.linkedin.com/in/canyen-palmer-b0b6762a0",
   githubHref = "https://github.com/CanyenPalmer",
 }: Props) {
@@ -91,6 +92,9 @@ export default function VscodeTopBar({
 
   // Always display this label, per request.
   const resolvedSignature = "Canyen Palmer";
+
+  // Minimal addition: fall back to central link if prop not supplied
+  const resumeURL = resumeHref ?? LINKS.resume;
 
   const tabs = useMemo(
     () =>
@@ -133,7 +137,7 @@ export default function VscodeTopBar({
       }
       if (bestId) setActive(bestId);
 
-      // NEW: Also consider visibility true if ANY target section is intersecting the viewport
+      // Also consider visibility true if ANY target section is intersecting the viewport
       let anyTargetInView = false;
       for (const el of targetEls) {
         const r = el.getBoundingClientRect();
@@ -206,9 +210,9 @@ export default function VscodeTopBar({
 
               {/* Contact links (crisp) */}
               <div className="flex items-center gap-2 sm:gap-3">
-                {resumeHref && (
+                {resumeURL && (
                   <Link
-                    href={resumeHref}
+                    href={resumeURL}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="p-1.5 text-white/85 hover:text-cyan-200 transition-colors"
@@ -247,4 +251,5 @@ export default function VscodeTopBar({
     </AnimatePresence>
   );
 }
+
 
