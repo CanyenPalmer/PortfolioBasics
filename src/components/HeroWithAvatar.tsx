@@ -5,6 +5,7 @@ import React from "react";
 import SkillsBelt from "@/components/SkillsBelt";
 import { Outfit, Cinzel } from "next/font/google";
 import NameStamp from "@/components/NameStamp";
+import { LINKS } from "@/content/links"; // ← Minimal addition
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -161,7 +162,7 @@ export default function Hero({ headline, subheadline, typer }: Props) {
               <LinkedInIcon className="w-[18px] h-[18px]" />
             </a>
             <a
-              href="/Canyen-Palmer-Resume.pdf"
+              href={LINKS.resume} // ← Minimal change: use centralized, correct PDF path
               target="_blank"
               rel="noreferrer"
               aria-label="Resume"
@@ -211,6 +212,34 @@ export default function Hero({ headline, subheadline, typer }: Props) {
           {typer ? (
             <p className="text-sm text-white/60 leading-relaxed">{typer}</p>
           ) : null}
+
+          {/* NEW: tiny CTA under subheader — does not affect layout */}
+          <div className="pt-1">
+            <a
+              href={LINKS.resume}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center rounded-lg border border-white/15 px-4 py-2 text-sm font-medium transition hover:border-white/25 hover:bg-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+            >
+              View Resume
+              <svg
+                aria-hidden="true"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                className="ml-2 inline-block"
+              >
+                <path
+                  d="M7 17L17 7M17 7H9M17 7v8"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </a>
+          </div>
         </div>
 
         {/* Avatar (unchanged) */}
@@ -285,3 +314,4 @@ export default function Hero({ headline, subheadline, typer }: Props) {
     </section>
   );
 }
+
