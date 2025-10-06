@@ -327,7 +327,7 @@ export const profile = {
           "Expand to recurring cron-based pipeline.",
         ],
       },
-      links: [{ label: "GitHub", href: "https://github.com/CanyenPalmer" }],
+      links: [{ label: "GitHub", href: "https://github.com/CanyenPalmer/CGM-Patient-Analytics" }],
     },
     {
       title: "Logistic Regression & Tree-Based ML",
@@ -344,7 +344,7 @@ export const profile = {
         visuals: ["ROC and precision-recall curves; confusion matrices."],
         nextSteps: ["Pipeline into API; add SHAP for interpretability."],
       },
-      links: [{ label: "GitHub", href: "https://github.com/CanyenPalmer" }],
+      links: [{ label: "GitHub", href: "https://github.com/CanyenPalmer/Logistic-Regression-and-Tree-based-Machine-Learning" }],
     },
     {
       title: "Real Estate Conditions Comparison (R)",
@@ -361,7 +361,7 @@ export const profile = {
         visuals: ["Facet plots with ggplot2; residual diagnostics."],
         nextSteps: ["Incorporate macro features; rolling window retraining."],
       },
-      links: [{ label: "GitHub", href: "https://github.com/CanyenPalmer" }],
+      links: [{ label: "GitHub", href: "https://github.com/CanyenPalmer/R-Coding---Real-estate-Conditions-Comparison" }],
     },
     {
       title: "PortfolioBasics (This Site)",
@@ -378,7 +378,7 @@ export const profile = {
         visuals: ["Glass panels, animated tabs, neon chips glow."],
         nextSteps: ["Avatar parallax; dynamic content hooks."],
       },
-      links: [{ label: "GitHub", href: "https://github.com/CanyenPalmer" }],
+      links: [{ label: "GitHub", href: "https://github.com/CanyenPalmer/PortfolioBasics" }],
     },
     {
       title: "Python 101",
@@ -395,7 +395,7 @@ export const profile = {
         visuals: ["Inline Matplotlib figures; table previews."],
         nextSteps: ["Add exercises and auto-grading with nbgrader."],
       },
-      links: [{ label: "GitHub", href: "https://github.com/CanyenPalmer" }],
+      links: [{ label: "GitHub", href: "https://github.com/CanyenPalmer/Python-101" }],
     },
     {
       title: "MyCaddy — Physics Shot Calculator",
@@ -412,7 +412,7 @@ export const profile = {
         visuals: ["Clean mobile UI for quick decisions; charts for shot dispersion."],
         nextSteps: ["Integrate wearable data; add caddie recommendations."],
       },
-      links: [{ label: "GitHub", href: "https://github.com/CanyenPalmer" }],
+      links: [{ label: "GitHub", href: "https://github.com/CanyenPalmer/MyCaddy" }],
     },
   ],
 
