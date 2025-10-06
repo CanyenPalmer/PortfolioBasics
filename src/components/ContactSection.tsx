@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { LINKS } from "@/content/links";
 
 export default function ContactSection() {
   const [time, setTime] = useState("");
@@ -54,6 +55,17 @@ export default function ContactSection() {
             <li><a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="block text-xl font-medium hover:text-cyan-400">LinkedIn</a></li>
             <li><a href="https://github.com" target="_blank" rel="noopener noreferrer" className="block text-xl font-medium hover:text-cyan-400">GitHub</a></li>
           </ul>
+          <a
+            href={LINKS.resume}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-4 inline-flex items-center rounded-lg border border-white/15 px-4 py-2 text-sm font-medium transition hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+          >
+            View Resume
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" className="ml-2 inline-block">
+              <path d="M7 17L17 7M17 7H9M17 7v8" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </a>
           <p className="mt-6 text-xs text-white/45">{time}</p>
         </div>
       </div>
@@ -142,4 +154,5 @@ export default function ContactSection() {
     </section>
   );
 }
+
 
