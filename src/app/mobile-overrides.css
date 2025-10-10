@@ -1,17 +1,15 @@
-/* src/app/mobile-overrides.css
-   Mobile-only fixes for Hero, About, Experience, Testimonials.
-   Does NOT affect desktop/laptop layouts.
-*/
+/* Mobile-only fixes (≤768px). Desktop/laptop remain untouched. */
 @media (max-width: 768px) {
 
-  /* ===== Global safety guards (phones/tablets only) ===== */
+  /* ===== Global safety guards ===== */
   html, body { overflow-x: hidden; }
   img, video, canvas { max-width: 100%; height: auto; }
   .container, .mx-auto, .max-w-7xl, .max-w-6xl, .max-w-5xl {
     padding-left: 1rem !important;
     padding-right: 1rem !important;
   }
-  /* Tighter, readable type scale on small screens */
+
+  /* Readable type scale */
   h1 { font-size: clamp(1.6rem, 7vw, 2rem); line-height: 1.15; }
   h2 { font-size: clamp(1.3rem, 6vw, 1.6rem); line-height: 1.2; }
   h3 { font-size: clamp(1.1rem, 5.4vw, 1.35rem); line-height: 1.25; }
@@ -21,86 +19,128 @@
   pre, code { white-space: pre-wrap; word-break: break-word; }
   .prose table { display: block; overflow-x: auto; }
 
-  /* Make interactive targets comfy on touch */
+  /* Tap targets feel good on touch */
   a.button, button, .btn { width: 100%; min-height: 44px; }
 
-  /* ===== HERO (id="home" or data-section="hero") ===== */
-  #home, [data-section="hero"] { padding-top: 3.5rem; } /* room for top bar */
-  /* If your nav lives inside hero, allow wrapping so it doesn't spill */
-  #home nav ul, [data-section="hero"] nav ul { flex-wrap: wrap; gap: 0.5rem 0.75rem; }
+  /* Make the VSCode bar behave nicely on phones if present */
+  [data-vscode-topbar], .sticky-topbar {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 50 !important;
+  }
 
-  /* Collapse 2-up hero to single column, avatar/media ABOVE copy */
-  #home .container .grid,
-  [data-section="hero"] .container .grid {
+  /* =========================================================
+     HERO (id="home")
+     Order requested (top→bottom on phones):
+     1) Navigation bar
+     2) VSCode toolbar (already outside Hero)
+     3) Title
+     4) Details / everything else
+     5) Image LAST
+     ========================================================= */
+
+  /* Keep section clear of the sticky bar */
+  #home { padding-top: 3.5rem; }
+
+  /* Put the hero nav above content and allow wrapping */
+  #home > nav {
+    position: static !important;
+    margin: 0 0 .75rem 0 !important;
+    width: 100% !important;
+  }
+  #home nav ul { flex-wrap: wrap; gap: 0.5rem 0.75rem; }
+
+  /* Collapse 2-up hero content to a single column grid */
+  #home .container .grid {
     display: grid;
     grid-template-columns: 1fr !important;
     gap: 1rem !important;
+    align-items: start !important;
   }
-  /* Reorder: media first, copy second (assumes two children) */
-  #home .container .grid > div:first-child,
-  [data-section="hero"] .container .grid > div:first-child { order: 2 !important; }
-  #home .container .grid > div:last-child,
-  [data-section="hero"] .container .grid > div:last-child  { order: 1 !important; }
 
-  /* Make CTAs full-width */
-  #home a.inline-flex, #home a[role="button"], #home .btn, #home button,
-  [data-section="hero"] a.inline-flex, [data-section="hero"] a[role="button"], [data-section="hero"] .btn, [data-section="hero"] button {
+  /* Ensure the text block (your title + details) comes before media */
+  /* Your text wrapper has class "space-y-5" in HeroWithAvatar.tsx */
+  #home .container .grid > .space-y-5 { order: 1 !important; }
+
+  /* Any non-text sibling inside the grid (typically the avatar/media) goes LAST */
+  #home .container .grid > :not(.space-y-5) { order: 5 !important; }
+
+  /* Make CTAs full-width and centered */
+  #home a.inline-flex, #home a[role="button"], #home .btn, #home button {
     width: 100%; min-height: 44px; justify-content: center;
   }
 
-  /* ===== ABOUT (id="about" or data-section="about") ===== */
-  /* Kill any clipping/height constraints that hide content */
-  #about, [data-section="about"] { overflow: visible !important; height: auto !important; }
+  /* =========================================================
+     ABOUT (id="about")
+     - Ensure visible on phones (no clipping)
+     - Image ABOVE details
+     ========================================================= */
 
-  /* The grid in About typically uses md:grid-cols-2 — force single column */
-  #about .grid.items-center,
-  [data-section="about"] .grid.items-center {
+  #about { overflow: visible !important; height: auto !important; }
+
+  /* Force single column and sensible spacing */
+  #about .grid.items-center {
     display: grid;
     grid-template-columns: 1fr !important;
     gap: 1rem !important;
+    align-items: start !important;
   }
 
-  /* Ensure image block is predictable height and ABOVE the text/details.
-     If your image wrapper uses aria-label="About images", this targets it.
-     Otherwise, it’s harmless and can be kept. */
+  /* If your image wrapper uses this aria-label, control its height */
   [aria-label="About images"] { height: min(60vh, 560px) !important; }
   [aria-label="About images"] .absolute { inset: 0 !important; }
 
   /* Order: image first, details second */
-  #about .grid.items-center > [aria-label="About images"],
-  [data-section="about"] .grid.items-center > [aria-label="About images"] { order: 1 !important; }
-  #about .grid.items-center > div:not([aria-label="About images"]),
-  [data-section="about"] .grid.items-center > div:not([aria-label="About images"]) { order: 2 !important; }
+  #about .grid.items-center > [aria-label="About images"] { order: 1 !important; }
+  #about .grid.items-center > div:not([aria-label="About images"]) { order: 2 !important; }
 
-  /* ===== EXPERIENCE (data-section="experience") ===== */
-  /* Disable complex scroll-lock geometry on phones */
-  [data-section="experience"] .stageHolder,
-  [data-section="experience"] .stageFlow,
-  [data-section="experience"] .stageFixed,
-  [data-section="experience"] .stack {
+  /* =========================================================
+     EXPERIENCE (data-section="experience")
+     - Let cards be visible before/after entering section
+     - Stack cards vertically (no slide-in)
+     - Expanded content fully readable (no clipping)
+     ========================================================= */
+
+  /* Disable scroll-lock geometry on phones so the section flows naturally */
+  [data-section="experience"] [class*="stageHolder"],
+  [data-section="experience"] [class*="stageFlow"],
+  [data-section="experience"] [class*="stageFixed"],
+  [data-section="experience"] [class*="stack"] {
     position: relative !important;
     top: auto !important;
     height: auto !important;
     width: 100% !important;
+    transform: none !important;
   }
 
-  /* Cards become a clean vertical list, full-width, opaque */
-  [data-section="experience"] .card {
+  /* Cards: vertical list, full width, no slide-in transforms */
+  [data-section="experience"] [class*="card"] {
     position: static !important;
     inset: auto !important;
     width: 100% !important;
     max-width: none !important;
     margin: 0 0 1rem 0 !important;
-    background: rgba(13,19,29,0.92) !important; /* remove see-through feel */
+    transform: none !important;
+    opacity: 1 !important;
+    transition: none !important;
+    background: rgba(13,19,29,0.96) !important; /* prevent see-through */
     backdrop-filter: none !important;
     cursor: auto !important;
   }
 
-  /* Any metric grids inside cards -> single column */
-  [data-section="experience"] .metricsGrid { grid-template-columns: 1fr !important; }
+  /* Ensure inner content isn't cut off when expanded */
+  [data-section="experience"] [class*="card"] *[class*="content"],
+  [data-section="experience"] [class*="card"] *[class*="details"],
+  [data-section="experience"] [class*="card"] *[class*="body"] {
+    max-height: none !important;
+    overflow: visible !important;
+  }
 
-  /* Keep your progress/subheader visible and simple */
-  [data-section="experience"] .subheaderSticky {
+  /* Internal two-up metrics collapse to one column */
+  [data-section="experience"] [class*="metricsGrid"] { grid-template-columns: 1fr !important; }
+
+  /* Keep the subheader/progress visible but simple */
+  [data-section="experience"] [class*="subheaderSticky"] {
     position: sticky !important;
     top: 0 !important;
     z-index: 50 !important;
@@ -108,40 +148,25 @@
     background: linear-gradient(to bottom, rgba(11,16,22,0.95), rgba(11,16,22,0)) !important;
   }
 
-  /* ===== TESTIMONIALS (id="testimonials" or data-section="testimonials") ===== */
-  #testimonials .container,
-  [data-section="testimonials"] .container { padding-top: 1rem; }
-
-  /* Force one column */
-  #testimonials .grid,
-  [data-section="testimonials"] .grid { grid-template-columns: 1fr !important; }
-
-  /* Any 2-up internals collapse */
-  #testimonials .grid.grid-cols-2, #testimonials .md\:grid-cols-2,
-  [data-section="testimonials"] .grid.grid-cols-2, [data-section="testimonials"] .md\:grid-cols-2 {
+  /* =========================================================
+     TESTIMONIALS — you said it's good; no layout changes needed.
+     We keep the simple guards so nothing squeezes.
+     ========================================================= */
+  #testimonials .container { padding-top: 1rem; }
+  #testimonials .grid { grid-template-columns: 1fr !important; }
+  #testimonials .grid.grid-cols-2, #testimonials .md\:grid-cols-2 {
     grid-template-columns: 1fr !important;
   }
 
-  /* Cards full width + comfy padding */
-  #testimonials [class*="t-card"], #testimonials [class*="card"],
-  [data-section="testimonials"] [class*="t-card"], [data-section="testimonials"] [class*="card"] {
-    width: 100% !important;
-    padding: 1rem !important;
-  }
+  /* =========================================================
+     CONTACT (id="contact")
+     - Bring the “3 line footer” (echo words) closer to your bottom details
+     ========================================================= */
 
-  /* Avatar/name block above quote; center avatar */
-  #testimonials [class*="t-avatar"], #testimonials [class*="avatar"],
-  [data-section="testimonials"] [class*="t-avatar"], [data-section="testimonials"] [class*="avatar"] {
-    margin: 0 auto 0.75rem auto !important;
-    display: block !important;
-  }
+  /* Nudge the echo words upward a bit so they sit closer to the details line */
+  #contact .echo-mid { bottom: 6.5em !important; }  /* was ~3em in component’s mobile */
+  #contact .echo-top { bottom: 9em !important; }    /* was ~5em in component’s mobile */
 
-  /* ===== Cross-section utilities for the touched areas ===== */
-  #home .grid-cols-2, #home .lg\:grid-cols-2,
-  #testimonials .grid-cols-2, #testimonials .lg\:grid-cols-2,
-  [data-section="experience"] .grid-cols-2, [data-section="experience"] .lg\:grid-cols-2 {
-    grid-template-columns: 1fr !important;
-  }
-
-  footer { padding-bottom: 1rem; }
+  /* Trim extra bottom whitespace on the section */
+  #contact { padding-bottom: 0.75rem !important; }
 }
