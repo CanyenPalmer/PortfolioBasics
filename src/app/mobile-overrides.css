@@ -4,84 +4,47 @@
   /* Keep the page from nudging sideways on phones */
   html, body { overflow-x: hidden; }
 
-  /* =========================
+  /* =========================================================
      HERO (id="home")
-     - Nav on top
-     - Title/details next
+     - Nav on top (no absolute positioning)
+     - Title/details next (text wrapper is .space-y-5)
      - Image LAST
-     ========================= */
-  #home { padding-top: 3.25rem; } /* room for toolbar on phones */
+     ========================================================= */
+  #home { padding-top: 3.25rem; } /* leaves room for your toolbar on phones */
 
-  /* Make the in-hero nav stop being absolute and span full width */
+  /* Make the in-hero nav span full width and stop being absolute */
   #home > nav {
     position: static !important;
     inset: auto !important;
     width: 100% !important;
     margin: 0 0 .75rem 0 !important;
     text-align: center;
+    z-index: auto !important;
   }
   #home nav ul { flex-wrap: wrap; row-gap: .5rem; column-gap: .75rem; justify-content: center; }
 
-  /* Force the hero grid to a clean vertical stack */
+  /* Force the hero grid to vertical stack and set clean ordering */
   #home .container .grid {
     display: grid !important;
     grid-template-columns: 1fr !important;
     gap: 1rem !important;
     align-items: start !important;
   }
-
-  /* Put the text block first (your hero copy wrapper is .space-y-5) */
+  /* Put the copy block first (your hero text wrapper uses .space-y-5) */
   #home .container .grid > .space-y-5 { order: 1 !important; }
-
-  /* Any sibling that is NOT the text block (the image/media) goes last */
+  /* Any sibling that isn’t the text block (the avatar/media) goes last */
   #home .container .grid > :not(.space-y-5) { order: 5 !important; }
 
-  /* Inside the text block, stack any inline flex rows (e.g., CTAs) */
+  /* Inside the text block, stack inline flex rows (e.g., CTAs) */
   #home .space-y-5 [class*="flex"] { flex-direction: column !important; gap: .75rem !important; }
   #home a.inline-flex, #home a[role="button"], #home .btn, #home button { width: 100%; min-height: 44px; justify-content: center; }
 
-  /* =========================
-     ABOUT (AboutMeShowcase)
-     - Ensure visible (no hidden transforms)
-     - Image ABOVE details (it already is in markup)
-     ========================= */
-
-  /* The component returns: <div class="grid gap-10 md:grid-cols-2 items-center"> ... */
-  /* We avoid touching other grids by only hitting children tied to the About markup. */
-
-  /* Ensure the canvas/image block has predictable height on phones */
-  [aria-label="About images"] {
-    height: min(60vh, 560px) !important;
-    overflow: visible !important;
-  }
-  [aria-label="About images"] .absolute { inset: 0 !important; }
-
-  /* Hard-stop any Framer transforms/opacities that might keep it invisible on mobile */
-  /* Apply only to the two immediate children: the image block and the details block */
-  /* First child (image) */
-  [aria-label="About images"] {
-    transform: none !important;
-    opacity: 1 !important;
-    filter: none !important;
-  }
-  /* Second child (details) — immediate sibling of the image block */
-  [aria-label="About images"] + div {
-    transform: none !important;
-    opacity: 1 !important;
-    filter: none !important;
-  }
-
-  /* The containing grid should flow vertically with comfortable spacing */
-  /* (We do NOT globally target ".grid.items-center" to avoid collateral effects) */
-  /* Add spacing to the details column only to improve readability */
-  [aria-label="About images"] + div > * + * { margin-top: .75rem; }
-
-  /* =========================
+  /* =========================================================
      EXPERIENCE (data-section="experience")
-     - Cards are visible entering/leaving section
-     - Cards STACK vertically (no slide-in)
+     - Cards are visible before/after entering section (no trap)
+     - Cards STACK vertically (no side slide-in)
      - Expanded content fully readable (no clipping)
-     ========================= */
+     ========================================================= */
 
   /* Neutralize the scroll-deck/stage geometry and transforms on phones */
   [data-section="experience"] .lockWindow,
@@ -106,6 +69,7 @@
     margin: 0 0 1rem 0 !important;
     transform: none !important;
     opacity: 1 !important;
+    visibility: visible !important;
     transition: none !important;
     background: rgba(13,19,29,0.98) !important; /* no see-through on phones */
     backdrop-filter: none !important;
@@ -129,7 +93,7 @@
     overflow: visible !important;
   }
 
-  /* Metrics grid inside cards → one column */
+  /* Metrics grid inside cards → one column on phones */
   [data-section="experience"] .metricsGrid { grid-template-columns: 1fr !important; }
 
   /* Keep the progress/subheader visible and simple while scrolling */
@@ -141,16 +105,42 @@
     background: linear-gradient(to bottom, rgba(11,16,22,0.95), rgba(11,16,22,0)) !important;
   }
 
-  /* =========================
-     CONTACT (id="contact")
-     - Pull the 3-line echo footer closer to “Thank you for visiting”
-     ========================= */
+  /* =========================================================
+     TESTIMONIALS (id="testimonials" OR data-section="testimonials")
+     - One card per row
+     - Avatar/name block above quote
+     - No global typography changes
+     ========================================================= */
+  #testimonials .container,
+  [data-section="testimonials"] .container {
+    padding-top: 1rem;
+  }
 
-  /* The component defines .echo-top / .echo-mid inlined; nudge them up slightly */
-  #contact .echo-mid { bottom: 3.25em !important; }
-  #contact .echo-top { bottom: 4.75em !important; }
+  /* Enforce single column for the main grid (do not touch other sections) */
+  #testimonials .grid,
+  [data-section="testimonials"] .grid {
+    grid-template-columns: 1fr !important;
+  }
 
-  /* Trim any extra bottom padding so the footer sits closer */
-  #contact { padding-bottom: .5rem !important; }
+  /* Any 2-up internals collapse to one column */
+  #testimonials .grid.grid-cols-2, #testimonials .md\:grid-cols-2,
+  [data-section="testimonials"] .grid.grid-cols-2, [data-section="testimonials"] .md\:grid-cols-2 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Cards full width + comfortable padding (selector is narrow to testimonials only) */
+  #testimonials [class*="card"],
+  [data-section="testimonials"] [class*="card"] {
+    width: 100% !important;
+    padding: 1rem !important;
+  }
+
+  /* Avatar/name block above quote; center avatar */
+  #testimonials [class*="avatar"],
+  [data-section="testimonials"] [class*="avatar"] {
+    margin: 0 auto .75rem auto !important;
+    display: block !important;
+  }
 }
+
 
