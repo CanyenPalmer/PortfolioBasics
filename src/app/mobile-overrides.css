@@ -1,0 +1,125 @@
+/* src/app/mobile-overrides.css */
+/* These fixes ONLY run on phones/tablets and never touch desktop/laptop */
+@media (max-width: 768px) {
+  /* Global safety guards */
+  html, body { overflow-x: hidden; }
+  img, video, canvas { max-width: 100%; height: auto; }
+  .container, .mx-auto, .max-w-7xl, .max-w-6xl, .max-w-5xl { padding-left: 1rem !important; padding-right: 1rem !important; }
+
+  /* Type clamps (prevent wrap chaos) */
+  h1 { font-size: clamp(1.6rem, 7vw, 2rem); line-height: 1.15; }
+  h2 { font-size: clamp(1.3rem, 6vw, 1.6rem); line-height: 1.2; }
+  h3 { font-size: clamp(1.1rem, 5.4vw, 1.35rem); line-height: 1.25; }
+  p, li { font-size: 0.95rem; line-height: 1.6; }
+
+  /* --------------------------------
+     HERO (id="home")
+     - Put avatar/visual ABOVE copy
+     - Keep nav usable by wrapping
+  ----------------------------------*/
+  #home { padding-top: 3.5rem; } /* leave room for VSCode bar */
+  #home nav ul { flex-wrap: wrap; gap: 0.5rem 0.75rem; }
+  #home .container .grid { display: grid; grid-template-columns: 1fr !important; gap: 1rem !important; }
+  /* Reorder: avatar first, copy second (based on the two direct children of grid) */
+  #home .container .grid > div:first-child { order: 2 !important; }
+  #home .container .grid > div:last-child  { order: 1 !important; }
+  /* Make CTAs full-width and comfy */
+  #home a.inline-flex, #home a[role="button"], #home .btn, #home button { width: 100%; min-height: 44px; justify-content: center; }
+
+  /* --------------------------------
+     ABOUT ME SHOWCASE (component root has an aria-label on the image area)
+     - Ensure section is visible
+     - Image area predictable height
+     - Image ABOVE details
+  ----------------------------------*/
+  /* The About grid in the component uses `md:grid-cols-2`, so enforce single column + order */
+  /* Root grid the component returns */
+  /* It’s the immediate parent of the [aria-label="About images"] block and the details column */
+  [aria-label="About images"] { height: min(60vh, 560px) !important; }
+  [aria-label="About images"] .absolute { inset: 0 !important; } /* keep internal canvas sane */
+  /* Stack with image first, details second */
+  /* We select the two direct children of the grid: image wrapper first, details container second */
+  /* The grid element has classes: `grid gap-10 md:grid-cols-2 items-center` in your file */
+  .grid.items-center > [aria-label="About images"] { order: 1 !important; }
+  .grid.items-center > div:not([aria-label="About images"]) { order: 2 !important; }
+  /* Kill any clipping that could hide the section on phones */
+  #about, [data-section="about"], .grid.items-center { overflow: visible !important; height: auto !important; }
+
+  /* --------------------------------
+     EXPERIENCE (data-section="experience")
+     - Disable scroll-lock geometry on phones
+     - Make cards flow vertically, full-width, tappable
+  ----------------------------------*/
+  [data-section="experience"] .${''/* CSS module classes compiled, but selectors still match */}stageHolder,
+  [data-section="experience"] .stageHolder,
+  [data-section="experience"] .stageFlow,
+  [data-section="experience"] .stageFixed {
+    position: relative !important;
+    top: auto !important;
+    height: auto !important;
+  }
+  [data-section="experience"] .stack {
+    position: relative !important;
+    width: 100% !important;
+    height: auto !important;
+    display: block !important;
+    margin: 0 auto !important;
+  }
+  [data-section="experience"] .card {
+    position: static !important;
+    inset: auto !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 0 1rem 0 !important;
+    background: rgba(13,19,29,0.92) !important; /* remove see-through feel on mobile */
+    backdrop-filter: none !important;            /* reduce GPU strain on phones */
+    cursor: auto !important;
+  }
+  [data-section="experience"] .metricsGrid { grid-template-columns: 1fr !important; }
+  /* Keep progress bar visible but simple */
+  [data-section="experience"] .subheaderSticky {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 50 !important;
+    opacity: 1 !important;
+    background: linear-gradient(to bottom, rgba(11,16,22,0.95), rgba(11,16,22,0)) !important;
+  }
+
+  /* --------------------------------
+     TESTIMONIALS (id="testimonials")
+     - One column layout
+     - Avatar/name block above quote
+  ----------------------------------*/
+  #testimonials .container { padding-top: 1rem; }
+  #testimonials .grid { grid-template-columns: 1fr !important; }
+  /* Any 2-up internals collapse */
+  #testimonials .grid.grid-cols-2,
+  #testimonials .md\\:grid-cols-2 { grid-template-columns: 1fr !important; }
+  /* Make cards full width and add breathing room */
+  #testimonials [class*="t-card"], 
+  #testimonials [class*="card"] {
+    width: 100% !important;
+    padding: 1rem !important;
+  }
+  /* Likely avatar/name block then quote — stack and center avatar */
+  #testimonials [class*="t-avatar"],
+  #testimonials [class*="avatar"] { margin: 0 auto 0.75rem auto !important; display: block !important; }
+
+  /* --------------------------------
+     CROSS-SECTION UTILITIES
+  ----------------------------------*/
+  /* Collapse common multi-col patterns inside the sections we touched */
+  #home .grid-cols-2, #home .lg\\:grid-cols-2,
+  #testimonials .grid-cols-2, #testimonials .lg\\:grid-cols-2,
+  [data-section="experience"] .grid-cols-2, [data-section="experience"] .lg\\:grid-cols-2 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Prevent page-level nudge from long code/tables anywhere */
+  pre, code { white-space: pre-wrap; word-break: break-word; }
+  .prose table { display: block; overflow-x: auto; }
+
+  /* Tap targets feel good on touch */
+  a.button, button, .btn { width: 100%; min-height: 44px; }
+  footer { padding-bottom: 1rem; }
+}
