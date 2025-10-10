@@ -1,132 +1,114 @@
 /* Mobile-only fixes (≤768px). Desktop/laptop remain untouched. */
 @media (max-width: 768px) {
 
-  /* ---------- Global safety ---------- */
-  html, body { overflow-x: hidden; }
-  img, video, canvas { max-width: 100%; height: auto; }
-  .container, .mx-auto, [class*="max-w-"] { padding-left: 1rem !important; padding-right: 1rem !important; }
-
-  /* =========================================
-     HERO (#home)
-     - Keep desktop feel; stack on phones
-     - Text/details first, image LAST
-     - Prevent overlap into next section
-     ========================================= */
-  #home { position: relative; z-index: 0; padding-top: 3.5rem; padding-bottom: 1rem; }
+  /* ============ HERO (#home) ============ */
+  /* Make the toolbar (nav) a horizontal, swipeable rail on phones */
   #home > nav {
-    position: static !important; inset: auto !important; width: 100% !important;
-    margin: 0 0 .75rem 0 !important; text-align: center; z-index: 1 !important;
+    position: static !important;      /* full-width bar on mobile */
+    width: 100% !important;
+    margin: 0 0 .5rem 0 !important;
+    z-index: 1 !important;
   }
-  #home nav ul { flex-wrap: wrap; justify-content: center; row-gap: .5rem; column-gap: .75rem; }
+  #home nav ul {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;      /* keep horizontal, no wrapping */
+    overflow-x: auto !important;       /* horizontal scroll */
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch; /* smooth iOS scrolling */
+    gap: .75rem !important;
+    padding: .25rem .5rem !important;  /* small gutters for swipe */
+    white-space: nowrap !important;
+  }
+  #home nav li { flex: 0 0 auto !important; } /* keep items inline */
+  #home nav a { display: inline-flex !important; align-items: center; }
 
+  /* Keep hero layout like desktop, but ensure image comes last on phones */
   #home .container .grid {
-    display: grid !important; grid-template-columns: 1fr !important;
-    gap: 1rem !important; align-items: start !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+    align-items: start !important;
   }
-  /* Text block wrapper (copy) first */
+  /* Your copy wrapper is .space-y-5 — keep it first */
   #home .container .grid > .space-y-5 { order: 1 !important; }
-  /* Media/figure LAST */
+  /* The media/avatar block (figure or a child that contains an <img>) goes last */
   #home .container .grid > figure,
-  #home .container .grid > :has(img) { order: 3 !important; }
-  /* Any other siblings sit in the middle */
-  #home .container .grid > :not(.space-y-5):not(figure):not(:has(img)) { order: 2 !important; }
+  #home .container .grid > :has(img) { order: 2 !important; }
 
-  /* Stack inline rows (CTAs) */
-  #home .space-y-5 [class*="flex"] { flex-direction: column !important; gap: .75rem !important; }
-  #home a.inline-flex, #home a[role="button"], #home .btn, #home button { width: 100%; min-height: 44px; justify-content: center; }
-
-  /* =========================================
-     ABOUT (#about)
-     - Ensure visibility (no hidden transforms)
-     - Single column; image ABOVE details
-     ========================================= */
-  #about .grid { display: grid !important; grid-template-columns: 1fr !important; gap: 1rem !important; align-items: start !important; }
-  [aria-label="About images"] { height: min(60vh, 560px) !important; overflow: visible !important; transform: none !important; opacity: 1 !important; }
-  [aria-label="About images"] .absolute { inset: 0 !important; }
-  #about .grid > [aria-label="About images"] { order: 1 !important; }
-  #about .grid > [aria-label="About images"] + div { order: 2 !important; transform: none !important; opacity: 1 !important; }
-
-  /* =========================================
-     EXPERIENCE (#experience or [data-section="experience"])
-     - Remove duplicates (show flowing deck only)
-     - Stack cards once, full width
-     - Expanded details fully visible
-     - Avoid sticky/fixed scroll traps
-     ========================================= */
-  #experience [class*="stageFlow"], [data-section="experience"] .stageFlow  { display: block !important; opacity: 1 !important; visibility: visible !important; }
-  #experience [class*="stageFixed"], [data-section="experience"] .stageFixed { display: none !important; }
-
-  #experience [class*="lockWindow"], [data-section="experience"] .lockWindow { height: auto !important; }
-  #experience [class*="subheaderSticky"], [data-section="experience"] .subheaderSticky { position: relative !important; top: auto !important; }
-
-  #experience [class*="stageHolder"], [data-section="experience"] .stageHolder,
-  #experience [class*="stack"],       [data-section="experience"] .stack {
-    position: static !important; height: auto !important; width: 100% !important; transform: none !important; overflow: visible !important;
+  /* Keep hero CTAs readable without forcing vertical nav */
+  #home .space-y-5 [class*="flex"] { row-gap: .5rem !important; }
+  #home a.inline-flex, #home a[role="button"], #home .btn, #home button {
+    min-height: 44px; justify-content: center;
   }
 
-  #experience [class*="card"], [data-section="experience"] .card {
-    position: static !important; inset: auto !important; display: block !important;
-    width: 100% !important; max-width: none !important; margin: 0 0 1rem 0 !important;
-    transform: none !important; opacity: 1 !important; transition: none !important;
-    overflow: visible !important; background: rgba(13,19,29,0.98) !important; backdrop-filter: none !important; z-index: 0 !important;
+  /* Add a little bottom padding so nothing overlaps next section */
+  #home { padding-bottom: 1rem; position: relative; z-index: 0; }
+  #home .container { position: relative; z-index: 1; }
+
+  /* ============ EXPERIENCE ([data-section="experience"]) ============ */
+  /* Do NOT kill card animations; just prevent clipping of expanded bodies */
+  [data-section="experience"] .card {
+    position: relative !important;
+    width: 100% !important;
+    max-width: none !important;
+    overflow: visible !important;          /* allow children to show */
+    background: rgba(13,19,29,0.98) !important;
+    backdrop-filter: none !important;
   }
 
-  /* Make any absolute child content participate in layout when expanded */
-  #experience [class*="card"] [style*="position: absolute"],
-  [data-section="experience"] .card [style*="position: absolute"] { position: static !important; }
-
-  /* Expanded bodies never clip */
-  #experience [class*="card"] *[class*="details"],
-  #experience [class*="card"] *[class*="content"],
-  #experience [class*="card"] *[class*="body"],
-  #experience [class*="card"] *[class*="inner"],
-  #experience [class*="card"] *[style*="max-height"],
+  /* Any “wrapper/body/details/inner/content” regions: no hidden max-heights */
   [data-section="experience"] .card *[class*="details"],
-  [data-section="experience"] .card *[class*="content"],
   [data-section="experience"] .card *[class*="body"],
   [data-section="experience"] .card *[class*="inner"],
+  [data-section="experience"] .card *[class*="content"],
   [data-section="experience"] .card *[style*="max-height"] {
-    max-height: none !important; overflow: visible !important; height: auto !important;
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    clip-path: none !important;
+    -webkit-mask-image: none !important;
+            mask-image: none !important;
   }
 
-  /* Numbers/metrics → single column */
-  #experience [class*="metricsGrid"], [data-section="experience"] .metricsGrid { grid-template-columns: 1fr !important; }
+  /* If any expanded sections position absolute, make them participate in flow */
+  [data-section="experience"] .card [style*="position: absolute"] {
+    position: static !important;
+  }
 
-  /* =========================================
-     PROJECTS (#projects)
-     - Keep as-is; just ensure no sideways nudge on small screens
-     ========================================= */
-  #projects { overflow-x: hidden; }
+  /* Metric tiles inside cards → one column on phones */
+  [data-section="experience"] .metricsGrid { grid-template-columns: 1fr !important; }
 
-  /* =========================================
-     EDUCATION (#education)
-     - Keep as-is; just ensure no sideways nudge on small screens
-     ========================================= */
-  #education { overflow-x: hidden; }
+  /* Deck geometry: allow the flowing stack to render, avoid scroll traps */
+  [data-section="experience"] .lockWindow { height: auto !important; }
+  [data-section="experience"] .subheaderSticky { position: relative !important; top: auto !important; }
+  [data-section="experience"] .stageHolder,
+  [data-section="experience"] .stack {
+    position: static !important;
+    height: auto !important;
+    width: 100% !important;
+    transform: none !important;            /* avoid off-canvas when expanded */
+    overflow: visible !important;
+  }
 
-  /* =========================================
-     TESTIMONIALS (#testimonials)
-     - Match desktop text order; place image directly UNDER text
-     - No sticky/fixed inside to avoid scroll traps
-     ========================================= */
-  #testimonials { overflow: visible !important; position: relative; z-index: 0; }
-  /* Make each testimonial block a one-column stack */
-  #testimonials [class*="card"] { display: grid !important; grid-template-columns: 1fr !important; align-items: start !important; gap: .75rem !important; }
-  /* Put any direct child containing an <img> BELOW the details */
+  /* ============ TESTIMONIALS (#testimonials) ============ */
+  /* Keep desktop text formatting — only move the image block under the text */
+  /* Do NOT change typography/spacing classes; just reorder immediate children */
+  #testimonials [class*="card"] {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    align-items: start !important;
+    gap: .75rem !important;
+  }
+  /* Place any direct child that contains an <img> UNDER the text/details */
   #testimonials [class*="card"] > *:has(img) { order: 2 !important; }
   #testimonials [class*="card"] > :not(:has(img)) { order: 1 !important; }
   #testimonials img { width: 100%; height: auto; display: block; }
-  /* Prevent scroll trapping */
-  #testimonials [style*="position: sticky"], #testimonials [style*="position: fixed"] { position: static !important; top: auto !important; }
 
-  /* =========================================
-     CONTACT (#contact)
-     - Reduce extra bottom space under the three footer lines
-     ========================================= */
-  #contact { padding-bottom: .25rem !important; }
-  #contact .echo-mid { bottom: 1.25em !important; }
-  #contact .echo-top { bottom: 2em !important; }
+  /* ============ SAFETY (mobile only) ============ */
+  html, body { overflow-x: hidden; } /* no sideways nudge */
 }
+
 
 
 
