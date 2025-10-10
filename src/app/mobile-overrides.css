@@ -1,16 +1,16 @@
 /* Mobile-only fixes (≤768px). Desktop/laptop remain untouched. */
 @media (max-width: 768px) {
 
-  /* Keep the page from nudging sideways on phones */
+  /* Prevent sideways nudge on phones only */
   html, body { overflow-x: hidden; }
 
   /* =========================================================
      HERO (id="home")
-     - Nav on top (no absolute positioning)
+     - Nav on top (not absolute)
      - Title/details next (text wrapper is .space-y-5)
      - Image LAST
      ========================================================= */
-  #home { padding-top: 3.25rem; } /* leaves room for your toolbar on phones */
+  #home { padding-top: 3.25rem; } /* room for your toolbar */
 
   /* Make the in-hero nav span full width and stop being absolute */
   #home > nav {
@@ -40,8 +40,48 @@
   #home a.inline-flex, #home a[role="button"], #home .btn, #home button { width: 100%; min-height: 44px; justify-content: center; }
 
   /* =========================================================
+     ABOUT (AboutMeShowcase)
+     *Important*: We scope with :has([aria-label="About images"])
+     so only the About grid is affected—nothing else.
+     - Ensure visible (no hidden transforms)
+     - Single-column stack
+     - Image ABOVE details
+     ========================================================= */
+
+  /* The root grid of About: <div class="grid ... items-center"> that CONTAINS the image area */
+  .grid.items-center:has([aria-label="About images"]) {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+    align-items: start !important;
+    overflow: visible !important;
+  }
+
+  /* Make the image/canvas area predictable and visible */
+  .grid.items-center:has([aria-label="About images"]) [aria-label="About images"] {
+    height: min(60vh, 560px) !important;
+    transform: none !important;
+    opacity: 1 !important;
+    filter: none !important;
+    overflow: visible !important;
+  }
+  .grid.items-center:has([aria-label="About images"]) [aria-label="About images"] .absolute { inset: 0 !important; }
+
+  /* Details block (the immediate sibling after the image area) */
+  .grid.items-center:has([aria-label="About images"]) [aria-label="About images"] + div {
+    transform: none !important;
+    opacity: 1 !important;
+    filter: none !important;
+    overflow: visible !important;
+  }
+
+  /* Order: image first, details second */
+  .grid.items-center:has([aria-label="About images"]) > [aria-label="About images"] { order: 1 !important; }
+  .grid.items-center:has([aria-label="About images"]) > [aria-label="About images"] + div { order: 2 !important; }
+
+  /* =========================================================
      EXPERIENCE (data-section="experience")
-     - Cards are visible before/after entering section (no trap)
+     - Cards visible (no lock trap)
      - Cards STACK vertically (no side slide-in)
      - Expanded content fully readable (no clipping)
      ========================================================= */
@@ -104,43 +144,7 @@
     opacity: 1 !important;
     background: linear-gradient(to bottom, rgba(11,16,22,0.95), rgba(11,16,22,0)) !important;
   }
-
-  /* =========================================================
-     TESTIMONIALS (id="testimonials" OR data-section="testimonials")
-     - One card per row
-     - Avatar/name block above quote
-     - No global typography changes
-     ========================================================= */
-  #testimonials .container,
-  [data-section="testimonials"] .container {
-    padding-top: 1rem;
-  }
-
-  /* Enforce single column for the main grid (do not touch other sections) */
-  #testimonials .grid,
-  [data-section="testimonials"] .grid {
-    grid-template-columns: 1fr !important;
-  }
-
-  /* Any 2-up internals collapse to one column */
-  #testimonials .grid.grid-cols-2, #testimonials .md\:grid-cols-2,
-  [data-section="testimonials"] .grid.grid-cols-2, [data-section="testimonials"] .md\:grid-cols-2 {
-    grid-template-columns: 1fr !important;
-  }
-
-  /* Cards full width + comfortable padding (selector is narrow to testimonials only) */
-  #testimonials [class*="card"],
-  [data-section="testimonials"] [class*="card"] {
-    width: 100% !important;
-    padding: 1rem !important;
-  }
-
-  /* Avatar/name block above quote; center avatar */
-  #testimonials [class*="avatar"],
-  [data-section="testimonials"] [class*="avatar"] {
-    margin: 0 auto .75rem auto !important;
-    display: block !important;
-  }
 }
+
 
 
