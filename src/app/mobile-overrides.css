@@ -1,18 +1,23 @@
 /* Mobile-only fixes (≤768px). Desktop/laptop remain untouched. */
 @media (max-width: 768px) {
 
-  /* =========================
+  /* Avoid sideways nudges on phones */
+  html, body { overflow-x: hidden; }
+
+  /* =========================================================
      HERO (id="home")
      - Nav on top (not absolute)
-     - Title/details next (text wrapper is .space-y-5)
+     - Title/details next (.space-y-5)
      - Image LAST
-     ========================= */
-  #home { padding-top: 3.25rem; } /* room for toolbar on phones */
+     ========================================================= */
+  #home { padding-top: 3.25rem; }
 
-  /* Make in-hero nav full-width and stop being absolute on phones */
+  /* Stop absolute positioning of the hero nav on phones */
   #home > nav {
     position: static !important;
     inset: auto !important;
+    right: auto !important;
+    top: auto !important;
     width: 100% !important;
     margin: 0 0 .75rem 0 !important;
     text-align: center;
@@ -20,78 +25,71 @@
   }
   #home nav ul { flex-wrap: wrap; row-gap: .5rem; column-gap: .75rem; justify-content: center; }
 
-  /* Force the hero grid to a clean vertical stack */
+  /* Force a single, predictable column */
   #home .container .grid {
     display: grid !important;
     grid-template-columns: 1fr !important;
     gap: 1rem !important;
     align-items: start !important;
   }
-
-  /* Put the copy block first (your hero text wrapper is .space-y-5) */
+  /* Ensure copy first, media last */
   #home .container .grid > .space-y-5 { order: 1 !important; }
-
-  /* Any sibling that isn’t the text block (avatar/media) goes last */
   #home .container .grid > :not(.space-y-5) { order: 5 !important; }
 
-  /* Inside the text block, stack inline flex rows (e.g., CTAs) */
+  /* Stack inline rows (CTAs, etc.) */
   #home .space-y-5 [class*="flex"] { flex-direction: column !important; gap: .75rem !important; }
   #home a.inline-flex, #home a[role="button"], #home .btn, #home button {
     width: 100%; min-height: 44px; justify-content: center;
   }
 
-  /* =========================
+  /* =========================================================
      ABOUT (AboutMeShowcase)
-     - Ensure visible (no hidden transforms)
-     - Single-column stack
-     - Image ABOVE details
-     * Scoped with :has([aria-label="About images"]) so only this block is touched.
-     ========================= */
+     - Ensure visibility (no transforms/opacity hiding)
+     - Image ABOVE details (grid already 1 col by default on mobile)
+     - No section-wide grid overrides (to avoid collateral)
+     ========================================================= */
 
-  /* Root grid of About is: <div class="grid gap-10 md:grid-cols-2 items-center"> */
-  .grid.items-center:has([aria-label="About images"]) {
-    display: grid !important;
-    grid-template-columns: 1fr !important;
-    gap: 1rem !important;
-    align-items: start !important;
-    overflow: visible !important;
-  }
-
-  /* Image/canvas area predictable and visible */
-  .grid.items-center:has([aria-label="About images"]) [aria-label="About images"] {
+  /* Image/canvas block is uniquely labeled — make it visible/sane */
+  [aria-label="About images"] {
     height: min(60vh, 560px) !important;
     transform: none !important;
     opacity: 1 !important;
     filter: none !important;
     overflow: visible !important;
   }
-  .grid.items-center:has([aria-label="About images"]) [aria-label="About images"] .absolute { inset: 0 !important; }
+  [aria-label="About images"] .absolute { inset: 0 !important; }
 
-  /* Details block (immediate sibling after the image area) */
-  .grid.items-center:has([aria-label="About images"]) [aria-label="About images"] + div {
+  /* Details (immediate sibling) likewise visible */
+  [aria-label="About images"] + div {
     transform: none !important;
     opacity: 1 !important;
     filter: none !important;
     overflow: visible !important;
   }
 
-  /* Order: image first, details second */
-  .grid.items-center:has([aria-label="About images"]) > [aria-label="About images"] { order: 1 !important; }
-  .grid.items-center:has([aria-label="About images"]) > [aria-label="About images"] + div { order: 2 !important; }
-
-  /* =========================
+  /* =========================================================
      EXPERIENCE (data-section="experience")
-     - Cards visible entering/leaving section (no lock trap)
-     - Cards STACK vertically (no side slide-in)
+     - Cards visible (no lock trap / no glitches)
+     - Cards STACK vertically (no left/right slide-in)
      - Expanded content fully readable (no clipping)
-     ========================= */
+     - IMPORTANT: CSS Modules are hashed; use substring selectors
+     ========================================================= */
 
-  /* Neutralize the scroll-deck/stage geometry and transforms on phones */
-  [data-section="experience"] .lockWindow,
-  [data-section="experience"] .stageHolder,
-  [data-section="experience"] .stageFlow,
-  [data-section="experience"] .stageFixed,
-  [data-section="experience"] .stack {
+  /* Kill transforms/locking on all animated descendants that cause glitches */
+  [data-section="experience"] *[style*="transform"] { transform: none !important; }
+  [data-section="experience"] *[style*="translate"] { transform: none !important; }
+  [data-section="experience"] *[style*="scale"] { transform: none !important; }
+
+  /* If visibility classes are toggled by state, force visible on phones */
+  [data-section="experience"] [class*="isHidden"] { visibility: visible !important; opacity: 1 !important; }
+  [data-section="experience"] [class*="isVisible"] { visibility: visible !important; opacity: 1 !important; }
+
+  /* Neutralize stage/fixed/stack geometry from the deck */
+  [data-section="experience"] [class*="lockWindow"],
+  [data-section="experience"] [class*="stageHolder"],
+  [data-section="experience"] [class*="stageFlow"],
+  [data-section="experience"] [class*="stageFixed"],
+  [data-section="experience"] [class*="stack"] {
     position: relative !important;
     top: auto !important;
     height: auto !important;
@@ -100,12 +98,8 @@
     overflow: visible !important;
   }
 
-  /* If the React state toggles visibility classes, force them visible on phones */
-  [data-section="experience"] .isHidden { visibility: visible !important; }
-  [data-section="experience"] .isVisible { visibility: visible !important; }
-
-  /* Cards: vertical list, full width, no translate/scale/opacity animations */
-  [data-section="experience"] .card {
+  /* Cards: full-width, stacked, no animations, readable */
+  [data-section="experience"] [class*="card"] {
     position: static !important;
     inset: auto !important;
     width: 100% !important;
@@ -113,35 +107,35 @@
     margin: 0 0 1rem 0 !important;
     transform: none !important;
     opacity: 1 !important;
-    visibility: visible !important;
     transition: none !important;
-    background: rgba(13,19,29,0.98) !important; /* no see-through on phones */
+    visibility: visible !important;
+    background: rgba(13,19,29,0.98) !important; /* remove see-through on mobile */
     backdrop-filter: none !important;
     z-index: auto !important;
     cursor: auto !important;
   }
 
-  /* Any inner flex rows within a card become vertical stacks */
-  [data-section="experience"] .card [class*="flex"] {
+  /* Any inner rows inside a card → vertical stack */
+  [data-section="experience"] [class*="card"] [class*="flex"] {
     flex-direction: column !important;
     gap: .6rem !important;
   }
 
-  /* Ensure expanded content is not clipped */
-  [data-section="experience"] .card *[class*="details"],
-  [data-section="experience"] .card *[class*="content"],
-  [data-section="experience"] .card *[class*="body"],
-  [data-section="experience"] .card *[class*="inner"],
-  [data-section="experience"] .card *[style*="max-height"] {
+  /* Expanded areas should never clip on phones */
+  [data-section="experience"] [class*="card"] *[class*="details"],
+  [data-section="experience"] [class*="card"] *[class*="content"],
+  [data-section="experience"] [class*="card"] *[class*="body"],
+  [data-section="experience"] [class*="card"] *[class*="inner"],
+  [data-section="experience"] [class*="card"] *[style*="max-height"] {
     max-height: none !important;
     overflow: visible !important;
   }
 
-  /* Metrics grid inside cards → one column on phones */
-  [data-section="experience"] .metricsGrid { grid-template-columns: 1fr !important; }
+  /* Metric grid inside cards → one column on phones */
+  [data-section="experience"] [class*="metricsGrid"] { grid-template-columns: 1fr !important; }
 
-  /* Keep the progress/subheader visible and simple while scrolling */
-  [data-section="experience"] .subheaderSticky {
+  /* Subheader/progress stays visible while scrolling */
+  [data-section="experience"] [class*="subheaderSticky"] {
     position: sticky !important;
     top: 0 !important;
     z-index: 50 !important;
@@ -149,6 +143,7 @@
     background: linear-gradient(to bottom, rgba(11,16,22,0.95), rgba(11,16,22,0)) !important;
   }
 }
+
 
 
 
