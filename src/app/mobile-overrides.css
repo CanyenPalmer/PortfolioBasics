@@ -1,14 +1,20 @@
 /* Mobile-only fixes (≤768px). Desktop/laptop remain untouched. */
 @media (max-width: 768px) {
 
-  /* =========================================================
-   * HERO (#home)
-   * - Toolbar remains horizontal and scrollable
-   * - Title/details visible; hero image LAST
-   * - Avoid overlap with next section
-   * ======================================================= */
+  /* =========================================
+     GLOBAL SAFETY
+     ========================================= */
+  html, body { overflow-x: hidden; }
+  img, video, canvas { max-width: 100%; height: auto; }
 
-  /* Toolbar: horizontal swipe rail */
+  /* =========================================
+     HERO (#home)
+     - Toolbar: horizontal, swipeable
+     - Copy visible; image LAST
+     - No overlap with next section
+     ========================================= */
+
+  /* Toolbar stays a single-row rail that scrolls horizontally */
   #home > nav {
     position: static !important;
     width: 100% !important;
@@ -18,61 +24,71 @@
   #home nav ul {
     display: flex !important;
     flex-direction: row !important;
-    flex-wrap: nowrap !important;        /* keep one row */
-    overflow-x: auto !important;         /* horizontal scroll */
+    flex-wrap: nowrap !important;           /* keep one row */
+    overflow-x: auto !important;            /* horizontal scroll */
     overflow-y: hidden !important;
-    -webkit-overflow-scrolling: touch;   /* iOS momentum */
+    -webkit-overflow-scrolling: touch;      /* iOS momentum */
     gap: .75rem !important;
     padding: .25rem .5rem !important;
     white-space: nowrap !important;
   }
   #home nav li { flex: 0 0 auto !important; }
+  #home nav a { display: inline-flex !important; align-items: center; }
 
-  /* Ensure the hero grid stacks cleanly and content stays visible */
+  /* Keep hero content visible and stacked cleanly (text first, media last) */
+  #home { position: relative; z-index: 0; padding-top: 3.5rem; padding-bottom: 1rem; }
+  #home .container { position: relative; z-index: 1; }
   #home .container .grid {
-    grid-template-columns: 1fr !important;   /* single column on phones */
+    display: grid !important;
+    grid-template-columns: 1fr !important;
     align-items: start !important;
     gap: 1rem !important;
   }
 
-  /* Text (your copy wrapper uses .space-y-5) first */
+  /* Your copy wrapper is .space-y-5: force it first on phones */
   #home .container .grid > .space-y-5 { order: 1 !important; }
 
-  /* Media wrapper: many builds use .justify-self-center for the avatar/media column */
-  #home .container .grid > .justify-self-center { order: 2 !important; }
+  /* The media column (2nd child in your grid) goes last on phones */
+  #home .container .grid > :nth-child(2) { order: 2 !important; }
 
-  /* If the media is a direct figure (fallback) */
-  #home .container .grid > figure { order: 2 !important; }
+  /* Ensure nothing (animations etc.) hides the hero copy on phones */
+  #home .container .grid > * {
+    opacity: 1 !important;
+    transform: none !important;
+    visibility: visible !important;
+  }
 
-  /* Keep CTAs comfy without forcing toolbar vertical */
+  /* Keep hero CTAs comfy without forcing toolbar vertical */
   #home .space-y-5 [class*="flex"] { row-gap: .5rem !important; }
   #home a.inline-flex, #home a[role="button"], #home .btn, #home button {
     min-height: 44px; justify-content: center;
   }
 
-  /* Ensure nothing from hero overlays the next section */
-  #home { position: relative; z-index: 0; padding-bottom: 1rem; }
-  #home .container { position: relative; z-index: 1; }
+  /* =========================================
+     EXPERIENCE (section renders a "flow" and a "locked" deck)
+     Goals:
+     - Remove duplicates (show flowing deck only)
+     - Both cards expand fully (no clipping, esp. the first card)
+     - Preserve card animations; just disable clipping containers
+     ========================================= */
 
+  /* Use the flowing deck only; hide the locked/fixed deck on phones */
+  [id="experience"] .stageFlow,
+  [data-section="experience"] .stageFlow { display: block !important; opacity: 1 !important; visibility: visible !important; }
 
-  /* =========================================================
-   * EXPERIENCE ([data-section="experience"])
-   * - Show each card once (hide locked deck)
-   * - Both cards expand fully (no clipping on the first card)
-   * - Keep card animations; just disable clipping containers
-   * ======================================================= */
-
-  /* Prevent double rendering: use flowing deck only, hide locked deck */
-  [data-section="experience"] .stageFlow  { display: block !important; opacity: 1 !important; visibility: visible !important; }
+  [id="experience"] .stageFixed,
   [data-section="experience"] .stageFixed { display: none !important; }
 
-  /* Remove giant lock window & sticky traps on mobile */
-  [data-section="experience"] .lockWindow       { height: auto !important; }
-  [data-section="experience"] .subheaderSticky  { position: relative !important; top: auto !important; }
+  /* Kill giant lock window & sticky traps on mobile */
+  [id="experience"] .lockWindow,
+  [data-section="experience"] .lockWindow { height: auto !important; }
 
-  /* Let the stack participate in normal flow; no transforms that push offscreen */
-  [data-section="experience"] .stageHolder,
-  [data-section="experience"] .stack {
+  [id="experience"] .subheaderSticky,
+  [data-section="experience"] .subheaderSticky { position: relative !important; top: auto !important; }
+
+  /* Let the stack participate in normal flow; avoid off-canvas transforms */
+  [id="experience"] .stageHolder,  [data-section="experience"] .stageHolder,
+  [id="experience"] .stack,        [data-section="experience"] .stack {
     position: static !important;
     height: auto !important;
     width: 100% !important;
@@ -80,28 +96,42 @@
     overflow: visible !important;
   }
 
-  /* Cards: full width, stacked, readable */
+  /* Cards: single pass, full-width, readable; keep card-level animations */
+  [id="experience"] .card,
   [data-section="experience"] .card {
     position: relative !important;
     inset: auto !important;
     width: 100% !important;
     max-width: none !important;
     margin: 0 0 1rem 0 !important;
-    overflow: visible !important;           /* allow expanded content to show */
-    transform: none !important;             /* stop side slide-ins that can misplace content */
+    overflow: visible !important;         /* allow expanded content to show */
+    transform: none !important;           /* stop side slide-ins shifting content */
     opacity: 1 !important;
     transition: none !important;
     background: rgba(13,19,29,0.98) !important;
     backdrop-filter: none !important;
-    z-index: 1 !important;                  /* ensure first card sits above anything behind it */
+    z-index: 1 !important;
   }
 
-  /* Make absolutely-positioned expanded bodies part of the layout, so the FIRST card can fully show */
+  /* FIRST card sometimes sits under others: make sure it can expand over */
+  [id="experience"] .card:first-of-type,
+  [data-section="experience"] .card:first-of-type { z-index: 3 !important; }
+
+  /* If expanded sections are absolutely-positioned, flow them so they can be seen */
+  [id="experience"] .card [style*="position: absolute"],
   [data-section="experience"] .card [style*="position: absolute"] {
     position: static !important;
   }
 
-  /* Ensure any height caps/clip masks are removed when expanded */
+  /* Remove any caps/clip masks on expanded bodies */
+  [id="experience"] .card *[class*="details"],
+  [id="experience"] .card *[class*="body"],
+  [id="experience"] .card *[class*="inner"],
+  [id="experience"] .card *[class*="content"],
+  [id="experience"] .card *[style*="max-height"],
+  [id="experience"] .card *[style*="clip-path"],
+  [id="experience"] .card *[style*="mask-image"],
+  [id="experience"] .card *[style*="-webkit-mask-image"],
   [data-section="experience"] .card *[class*="details"],
   [data-section="experience"] .card *[class*="body"],
   [data-section="experience"] .card *[class*="inner"],
@@ -119,43 +149,34 @@
   }
 
   /* Metric tiles inside cards → one column on phones */
+  [id="experience"] .metricsGrid,
   [data-section="experience"] .metricsGrid { grid-template-columns: 1fr !important; }
 
+  /* =========================================
+     TESTIMONIALS (#testimonials)
+     - Keep desktop text formatting
+     - Image sits directly UNDER each testimonial’s details
+     - No scroll traps
+     ========================================= */
 
-  /* =========================================================
-   * TESTIMONIALS (#testimonials)
-   * - Keep the *same desktop text formatting* (don’t touch text styles)
-   * - Only move the image directly UNDER the details
-   * - Avoid any sticky/fixed that could trap scroll
-   * ======================================================= */
+  /* Stack each testimonial pair vertically on phones (desktop keeps row layout) */
+  #testimonials [class*="md:flex-row"] { flex-direction: column !important; }
 
-  /* Stack each testimonial pair vertically on mobile */
-  #testimonials [class*="flex"][class*="md:flex-row"] { flex-direction: column !important; }
+  /* Ensure the block containing an image comes AFTER the details block */
+  #testimonials [class*="md:flex-row"] > *:has(img) { order: 2 !important; }
+  #testimonials [class*="md:flex-row"] > :not(:has(img)) { order: 1 !important; }
 
-  /* If the pair wrapper is just 'flex flex-col', keep it as-is (already stacked) */
-
-  /* Reorder the two direct children consistently:
-     - Last child becomes the image (common in many builds)
-     - If your markup already has details first, this preserves that;
-       if image is first in markup, this swaps them on mobile. */
-  #testimonials [class*="flex"][class*="md:flex-row"] > :first-child { order: 1 !important; }
-  #testimonials [class*="flex"][class*="md:flex-row"] > :last-child  { order: 2 !important; }
-
-  /* Make sure images sit under text and scale correctly */
+  /* Keep the desktop text classes/styles intact — we only change order */
   #testimonials img { width: 100%; height: auto; display: block; }
 
-  /* Safety: prevent scroll traps */
+  /* Safety: disable sticky/fixed bits that could trap scroll on phones */
   #testimonials [style*="position: sticky"],
   #testimonials [style*="position: fixed"] {
-    position: static !important; top: auto !important;
+    position: static !important;
+    top: auto !important;
   }
-
-
-  /* =========================================================
-   * GLOBAL mobile safety to avoid sideways nudge
-   * ======================================================= */
-  html, body { overflow-x: hidden; }
 }
+
 
 
 
