@@ -1,56 +1,52 @@
 /* =========================================================
-   MOBILE-ONLY FIXES (≤768px). Desktop/laptop stay unchanged.
-   Fresh approach: force visibility; remove lock/overlays; make
-   long content scrollable inside cards; keep toolbar horizontal.
+   MOBILE-ONLY FIXES (≤768px). Desktop/laptop remain unchanged.
+   New approach: contain stacking (no overlays), force visibility,
+   simple horizontal hero toolbar, and readable/scrollable cards.
 ========================================================= */
 @media (max-width: 768px) {
 
-  /* ---------- Boot overlay & hydration safety (phones) ---------- */
-  /* If the boot class sticks on some devices, reveal content anyway */
-  html.mach-booting body { overflow: auto !important; }
-  html.mach-booting body > *:not(#boot-overlay) { visibility: visible !important; }
-  #boot-overlay { display: none !important; }
-
-  /* ---------- Global safety ---------- */
+  /* ---------- Global safety & section paint containment ---------- */
   html, body { overflow-x: hidden; }
   img, video, canvas { max-width: 100%; height: auto; display: block; }
 
+  /* Create an isolated paint/stacking context per section so nothing can overlay another */
+  #home, #about, #experience, #projects, #education, #testimonials, #contact {
+    isolation: isolate !important;        /* new stacking context */
+    contain: paint !important;            /* confine painting to section bounds */
+    position: relative !important;        /* foundation for local z-index */
+    z-index: 0 !important;
+  }
+
   /* =========================================================
    * HERO (#home)
-   * - Show content (no hidden transforms)
-   * - Toolbar stays horizontal & swipeable
+   * - Toolbar: single row, horizontal swipe
+   * - All hero content visible
    * - Text/details FIRST, image LAST
    * ======================================================= */
-  #home { position: relative; z-index: 0; padding-top: 3.5rem; padding-bottom: 1rem; overflow: visible !important; }
-  #home .container { position: relative; z-index: 1; }
+  #home { padding-top: 3.5rem; padding-bottom: 1rem; overflow: visible !important; }
 
-  /* Toolbar as a single-row, horizontal rail */
+  /* Toolbar as a horizontal rail */
   #home > nav {
-    position: sticky !important;
-    top: 0;
+    position: static !important;
     width: 100% !important;
     margin: 0 0 .5rem 0 !important;
-    z-index: 10 !important;
-    background: rgba(11,16,22,0.98);
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
+    z-index: 1 !important;
   }
   #home nav ul {
     display: flex !important;
     flex-direction: row !important;
-    flex-wrap: nowrap !important;              /* one row */
-    overflow-x: auto !important;               /* sideways scroll */
+    flex-wrap: nowrap !important;          /* one row only */
+    overflow-x: auto !important;           /* sideways scroll */
     overflow-y: hidden !important;
     -webkit-overflow-scrolling: touch !important;
-    gap: .75rem !important;
-    padding: .5rem .5rem !important;
     white-space: nowrap !important;
-    scrollbar-width: thin;
+    gap: .75rem !important;
+    padding: .25rem .5rem !important;
   }
   #home nav li { flex: 0 0 auto !important; }
   #home nav a { display: inline-flex !important; align-items: center; }
 
-  /* Ensure hero content can't be hidden by animations/transforms */
+  /* Stack hero content and force it visible (disable “hidden” motion on phones) */
   #home .container .grid {
     display: grid !important;
     grid-template-columns: 1fr !important;
@@ -64,9 +60,8 @@
     display: block !important;
     pointer-events: auto !important;
   }
-  /* Text/details first (your wrapper uses .space-y-5) */
+  /* Copy first, media last */
   #home .container .grid > .space-y-5 { order: 1 !important; }
-  /* Media/figure LAST */
   #home .container .grid > .justify-self-center,
   #home .container .grid > figure { order: 2 !important; }
 
@@ -74,12 +69,11 @@
    * ABOUT (#about)
    * - Guarantee visibility; single column
    * ======================================================= */
-  #about { overflow: visible !important; }
   #about .grid {
     display: grid !important;
     grid-template-columns: 1fr !important;
-    gap: 1rem !important;
     align-items: start !important;
+    gap: 1rem !important;
   }
   #about [aria-label="About images"] {
     height: min(60vh, 560px) !important;
@@ -90,23 +84,22 @@
   #about [aria-label="About images"] .absolute { inset: 0 !important; }
 
   /* =========================================================
-   * EXPERIENCE (#experience / [data-section="experience"])
-   * New idea: force open, readable cards on phones.
-   * - Remove locked/dup deck
-   * - Show details reliably
-   * - Long bodies scroll inside card
-   * - Slight type reduction for the first (Lead Analyst)
+   * EXPERIENCE (#experience or [data-section="experience"])
+   * - No duplicates (hide locked deck)
+   * - No cross-section overlays (section isolation + local z-index reset)
+   * - Expanded cards fully readable; inner body scrollable if tall
+   * - Slight font-size reduction on first (“Lead Analyst”) only
    * ======================================================= */
 
-  /* Only render the flowing deck on phones (avoids duplicates) */
+  /* Only show the flowing deck on phones */
   #experience .stageFlow,  [data-section="experience"] .stageFlow  { display: block !important; opacity: 1 !important; visibility: visible !important; }
   #experience .stageFixed, [data-section="experience"] .stageFixed { display: none !important; }
 
-  /* Stop giant lock windows and sticky bars trapping scroll */
+  /* Remove tall lock window & sticky traps */
   #experience .lockWindow,      [data-section="experience"] .lockWindow      { height: auto !important; }
-  #experience .subheaderSticky, [data-section="experience"] .subheaderSticky { position: relative !important; top: auto !important; }
+  #experience .subheaderSticky, [data-section="experience"] .subheaderSticky { position: static !important; top: auto !important; }
 
-  /* Normalize deck geometry so content just flows in doc order */
+  /* Normalize deck geometry & kill transforms that create new stacking contexts */
   #experience .stageHolder, [data-section="experience"] .stageHolder,
   #experience .stack,       [data-section="experience"] .stack {
     position: static !important;
@@ -114,9 +107,23 @@
     width: 100% !important;
     transform: none !important;
     overflow: visible !important;
+    z-index: auto !important;
   }
 
-  /* Cards: stacked, full width, readable; anchor near top when focused */
+  /* Reset z-index & fixed/sticky/absolute descendants to avoid overlays */
+  #experience *[style*="position: fixed"],
+  #experience *[style*="position: sticky"],
+  #experience *[style*="position: absolute"],
+  [data-section="experience"] *[style*="position: fixed"],
+  [data-section="experience"] *[style*="position: sticky"],
+  [data-section="experience"] *[style*="position: absolute"] {
+    position: static !important;
+    top: auto !important; left: auto !important; right: auto !important; bottom: auto !important;
+    z-index: auto !important;
+    transform: none !important;
+  }
+
+  /* Cards stack in normal flow, no lateral slide offsets */
   #experience .card, [data-section="experience"] .card {
     position: relative !important;
     inset: auto !important;
@@ -126,29 +133,14 @@
     transform: none !important;
     opacity: 1 !important;
     transition: none !important;
+    overflow: visible !important;    /* allow expanded content to lay out */
     background: rgba(13,19,29,0.98) !important;
     backdrop-filter: none !important;
-    z-index: 1 !important;
-    scroll-margin-top: 96px !important;   /* tapping shows the card top */
-  }
-  /* Make the first card (“Lead Analyst”) layer above when open */
-  #experience .card:first-of-type, [data-section="experience"] .card:first-of-type { z-index: 3 !important; }
-
-  /* Ensure details actually show (force visible on any “hidden” toggles) */
-  #experience [class*="isHidden"], [data-section="experience"] [class*="isHidden"] {
-    display: block !important; visibility: visible !important; opacity: 1 !important;
-  }
-  #experience [class*="isVisible"], [data-section="experience"] [class*="isVisible"] {
-    display: block !important; visibility: visible !important; opacity: 1 !important;
+    z-index: auto !important;        /* use section’s isolated stack */
+    scroll-margin-top: 96px !important; /* when focused, start at top of card */
   }
 
-  /* Expanded panels must be readable and scrollable:
-     - Convert absolute expanded blocks to flow if used
-     - Provide inner scroll region sized to viewport (accounts for ~¼" UI trim) */
-  #experience .card [style*="position: absolute"],
-  [data-section="experience"] .card [style*="position: absolute"] { position: static !important; }
-
-  /* Catch common inner wrappers broadly (modules add hashes) */
+  /* Expanded content becomes a scrollable inner region with viewport-aware height */
   #experience .card [class*="detail"],
   #experience .card [class*="content"],
   #experience .card [class*="body"],
@@ -161,71 +153,90 @@
   [data-section="experience"] .card [class*="inner"],
   [data-section="experience"] .card [class*="panel"],
   [data-section="experience"] .card [class*="expand"] {
-    max-height: calc(100vh - 140px) !important;   /* inner scroll area */
+    max-height: calc(100vh - 140px) !important; /* readable height on phones */
     overflow: auto !important;
     -webkit-overflow-scrolling: touch !important;
     overscroll-behavior: contain !important;
-    padding-top: 6px !important;   /* protect from browser UI trim */
+    padding-top: 6px !important;
     padding-bottom: 8px !important;
     clip-path: none !important;
     -webkit-mask-image: none !important;
             mask-image: none !important;
   }
 
-  /* Remove any inline caps/masks if present */
+  /* Remove any inline caps/masks/transforms on expanded content */
   #experience .card *[style*="max-height"],
   #experience .card *[style*="clip-path"],
   #experience .card *[style*="mask-image"],
   #experience .card *[style*="-webkit-mask-image"],
+  #experience .card *[style*="transform"],
   [data-section="experience"] .card *[style*="max-height"],
   [data-section="experience"] .card *[style*="clip-path"],
   [data-section="experience"] .card *[style*="mask-image"],
-  [data-section="experience"] .card *[style*="-webkit-mask-image"] {
+  [data-section="experience"] .card *[style*="-webkit-mask-image"],
+  [data-section="experience"] .card *[style*="transform"] {
     max-height: none !important;
     clip-path: none !important;
     -webkit-mask-image: none !important;
             mask-image: none !important;
+    transform: none !important;
   }
 
-  /* Slight type reduction ONLY on first card (Lead Analyst) */
-  #experience .card:first-of-type, [data-section="experience"] .card:first-of-type {
-    font-size: 0.95em !important; line-height: 1.45 !important;
+  /* Slight font reduction ONLY for the first card (Lead Analyst) */
+  #experience .card:first-of-type,
+  [data-section="experience"] .card:first-of-type {
+    font-size: 0.94em !important;
+    line-height: 1.45 !important;
   }
 
-  /* Metrics grids → single column on phones */
-  #experience .metricsGrid, [data-section="experience"] .metricsGrid { grid-template-columns: 1fr !important; }
+  /* Metrics grid inside cards → single column for readability */
+  #experience .metricsGrid,
+  [data-section="experience"] .metricsGrid {
+    grid-template-columns: 1fr !important;
+  }
 
   /* =========================================================
    * TESTIMONIALS (#testimonials)
    * - Keep desktop text formatting
-   * - Sections on mobile: details then image
-   * - No sticky/fixed scroll traps
+   * - Each item is a distinct section on phones
+   * - Image directly UNDER the details
    * ======================================================= */
-  /* Each desktop row/pair becomes a stacked section on phones */
-  #testimonials [class*="md:flex-row"] {
+
+  /* Each desktop row/pair becomes an isolated stacked item */
+  #testimonials [class*="md:flex-row"],
+  #testimonials [class*="md:flex-row-reverse"] {
     display: flex !important;
     flex-direction: column !important;
     align-items: stretch !important;
     gap: .9rem !important;
-    margin-bottom: 1.25rem !important; /* clear separation between items */
+    margin-bottom: 1.25rem !important;
+    isolation: isolate !important;     /* local stacking context per item */
+    contain: paint !important;
+    position: relative !important;
+    z-index: 0 !important;
   }
 
-  /* Handle desktop “reverse” alternation cleanly on phones */
+  /* Normalize order when desktop alternates with reverse */
   #testimonials [class*="md:flex-row-reverse"] > :first-child { order: 2 !important; }
   #testimonials [class*="md:flex-row-reverse"] > :last-child  { order: 1 !important; }
 
-  /* Place image containers under the details regardless of markup */
-  #testimonials figure { order: 2 !important; }
+  /* Ensure the image container sits below the details, with full width */
+  #testimonials figure,
   #testimonials [class*="image"],
   #testimonials [class*="img"],
-  #testimonials [class*="media"] { order: 2 !important; }
-
-  /* Images full-width under their details (not tiny thumbs) */
+  #testimonials [class*="media"] {
+    order: 2 !important;
+    width: 100% !important;
+  }
   #testimonials img { width: 100% !important; height: auto !important; display: block !important; }
 
-  /* Never trap scrolling inside testimonials on phones */
-  #testimonials [style*="position: sticky"],
-  #testimonials [style*="position: fixed"] { position: static !important; top: auto !important; }
+  /* Remove sticky/fixed internals to avoid scroll traps in testimonials */
+  #testimonials *[style*="position: sticky"],
+  #testimonials *[style*="position: fixed"] {
+    position: static !important;
+    top: auto !important;
+    z-index: auto !important;
+  }
 }
 
 
