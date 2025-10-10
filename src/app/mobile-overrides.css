@@ -3,60 +3,37 @@
 
   /* =========================
      HERO (id="home")
-     - Nav on top (no absolute)
-     - Title/details next (.space-y-5)
-     - Image LAST
+     - Keep desktop styling, only move the image/media LAST
      ========================= */
-  #home { padding-top: 3.25rem; }
 
-  /* Stop absolute nav in hero on phones */
-  #home > nav {
-    position: static !important;
-    inset: auto !important;
-    width: 100% !important;
-    margin: 0 0 .75rem 0 !important;
-    text-align: center;
-  }
-  #home nav ul { flex-wrap: wrap; row-gap: .5rem; column-gap: .75rem; justify-content: center; }
-
-  /* Collapse hero grid to one column and ensure order */
+  /* Force a single column and order text before media */
   #home .container .grid {
     display: grid !important;
     grid-template-columns: 1fr !important;
     gap: 1rem !important;
     align-items: start !important;
   }
-  /* Put copy first, media last */
+  /* Your text wrapper is .space-y-5 — keep it first */
   #home .container .grid > .space-y-5 { order: 1 !important; }
+  /* Any sibling (avatar/media) comes last */
   #home .container .grid > :not(.space-y-5) { order: 2 !important; }
 
   /* =========================
      EXPERIENCE (data-section="experience")
-     - Disable lock/slide system on phones
-     - Show simple vertical list
+     - Remove duplication (use flowing deck only)
+     - Stack cards vertically once
      - Expanded content fully visible
+     - Keep inner card animations
      ========================= */
 
-  /* Remove giant lock height and fixed geometry */
-  [data-section="experience"] [class*="lockWindow"] {
-    height: auto !important;
-  }
-  [data-section="experience"] [class*="subheaderSticky"] {
-    position: static !important;  /* avoid any sticky/fixed trapping */
-    top: auto !important;
-  }
+  /* Remove giant lock height so the section doesn’t trap scroll */
+  [data-section="experience"] [class*="lockWindow"] { height: auto !important; }
 
-  /* Always show flowing deck; hide locked deck */
-  [data-section="experience"] [class*="stageFlow"] {
-    display: block !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-  }
-  [data-section="experience"] [class*="stageFixed"] {
-    display: none !important;
-  }
+  /* Show flowing deck, hide locked deck (prevents duplicates) */
+  [data-section="experience"] [class*="stageFlow"]  { display: block !important; opacity: 1 !important; visibility: visible !important; }
+  [data-section="experience"] [class*="stageFixed"] { display: none !important; }
 
-  /* Neutralize stage/stack transforms and absolute positioning */
+  /* Neutralize deck geometry so content just flows */
   [data-section="experience"] [class*="stageHolder"],
   [data-section="experience"] [class*="stack"] {
     position: static !important;
@@ -65,32 +42,56 @@
     transform: none !important;
   }
 
-  /* Cards: full-width, stacked, no motion transforms */
+  /* Cards appear once, full width, stacked; keep their internal animations */
   [data-section="experience"] [class*="card"] {
     position: static !important;
     inset: auto !important;
     width: 100% !important;
     max-width: none !important;
     margin: 0 0 1rem 0 !important;
-    transform: none !important;
+    transform: none !important;   /* stops left/right slide-in */
     opacity: 1 !important;
-    transition: none !important;
-    z-index: auto !important;
-    overflow: visible !important;         /* let expanded content show */
-    background: rgba(13,19,29,0.98) !important; /* prevent see-through */
+    overflow: visible !important; /* show expanded content */
+    background: rgba(13,19,29,0.98) !important; /* no see-through on phones */
     backdrop-filter: none !important;
   }
 
-  /* Any expanded areas should never clip on phones */
+  /* Ensure expanded content never clips */
+  [data-section="experience"] [class*="card"] *[class*="details"],
+  [data-section="experience"] [class*="card"] *[class*="content"],
+  [data-section="experience"] [class*="card"] *[class*="body"],
+  [data-section="experience"] [class*="card"] *[class*="inner"],
   [data-section="experience"] [class*="card"] *[style*="max-height"] {
     max-height: none !important;
     overflow: visible !important;
   }
 
-  /* Metrics grid inside cards → one column */
-  [data-section="experience"] [class*="metricsGrid"] {
-    grid-template-columns: 1fr !important;
-  }
+  /* Metrics grid inside cards → one column on phones */
+  [data-section="experience"] [class*="metricsGrid"] { grid-template-columns: 1fr !important; }
+
+  /* =========================
+     TESTIMONIALS (id="testimonials")
+     - Match desktop details ordering; place the image UNDER the details
+     - Do not change spacing/typography from desktop beyond order
+     ========================= */
+
+  /* Make each testimonial card a single-column and control child order */
+  #testimonials [class*="card"] { display: grid !important; grid-template-columns: 1fr !important; }
+
+  /* Put image containers under the details block */
+  #testimonials [class*="card"] > *:has(img) { order: 2 !important; }
+  #testimonials [class*="card"] > :not(:has(img)) { order: 1 !important; }
+
+  /* Ensure testimonial images scale nicely under the text */
+  #testimonials img { width: 100%; height: auto; display: block; }
+
+  /* =========================
+     CONTACT (id="contact")
+     - Reduce bottom empty space beneath the three footer lines
+     ========================= */
+  #contact { padding-bottom: 0.25rem !important; }
+  #contact .echo-mid { bottom: 1.5em !important; }
+  #contact .echo-top { bottom: 2.25em !important; }
 }
 
 
