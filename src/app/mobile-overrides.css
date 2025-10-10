@@ -1,82 +1,109 @@
-/* Mobile-only fixes (≤768px). Desktop/laptop remain untouched. */
-@media (max-width: 768px) {
+// src/components/HeroWithAvatar.tsx
+"use client";
 
-  /* ========= HERO (#home) =========
-     Keep desktop feel; just stack and move image last, avoid overlap
-  ----------------------------------*/
-  #home { position: relative; z-index: 0; padding-top: 3.5rem; padding-bottom: 1rem; }
-  #home > nav {
-    position: static !important; inset: auto !important; width: 100% !important;
-    margin: 0 0 .75rem 0 !important; text-align: center; z-index: 1 !important;
-  }
-  #home nav ul { flex-wrap: wrap; justify-content: center; row-gap: .5rem; column-gap: .75rem; }
+import React from "react";
+import SkillsBelt from "@/components/SkillsBelt";
+import { Outfit, Cinzel } from "next/font/google";
+import NameStamp from "@/components/NameStamp";
+import { LINKS } from "@/content/links";
 
-  #home .container .grid {
-    display: grid !important; grid-template-columns: 1fr !important;
-    gap: 1rem !important; align-items: start !important;
-  }
-  /* Text block first (your copy wrapper uses .space-y-5) */
-  #home .container .grid > .space-y-5 { order: 1 !important; }
-  /* Avatar/media last */
-  #home .container .grid > :not(.space-y-5) { order: 2 !important; }
+const outfit = Outfit({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+});
 
-  /* Stack any inline flex rows (CTAs) */
-  #home .space-y-5 [class*="flex"] { flex-direction: column !important; gap: .75rem !important; }
-  #home a.inline-flex, #home a[role="button"], #home .btn, #home button { width: 100%; min-height: 44px; justify-content: center; }
+const cinzel = Cinzel({
+  subsets: ["latin"],
+  weight: ["600", "700"],
+});
 
-  /* ========= EXPERIENCE ([data-section="experience"]) =========
-     Remove duplicates; stack cards; show full expanded bodies
-  --------------------------------------------------------------*/
-  /* Show flowing deck only; hide locked deck to avoid double render */
-  [data-section="experience"] [class*="stageFlow"]  { display: block !important; opacity: 1 !important; visibility: visible !important; }
-  [data-section="experience"] [class*="stageFixed"] { display: none !important; }
+export default function HeroWithAvatar() {
+  return (
+    <section
+      id="home"
+      className="relative min-h-screen overflow-hidden flex items-center bg-[#0b1016] text-white pb-6 md:pb-0"
+      aria-label="Hero"
+    >
+      {/* Top-right navigation (absolute on md+, relative on mobile) */}
+      <nav
+        aria-label="Primary"
+        className={`${outfit.className} md:absolute md:top-6 md:right-6 md:z-20 relative`}
+      >
+        <ul className="flex items-center gap-6 md:gap-7 text-sm md:text-base tracking-wide text-white/70">
+          {[
+            { label: "HOME", href: "#home" },
+            { label: "ABOUT", href: "#about" },
+            { label: "EXPERIENCE", href: "#experience" },
+            { label: "PROJECTS", href: "#projects" },
+            { label: "EDUCATION", href: "#education" },
+            { label: "TESTIMONIALS", href: "#testimonials" },
+            { label: "CONTACT", href: "#contact" },
+          ].map((link) => (
+            <li key={link.href}>
+              <a
+                href={link.href}
+                className="hover:text-white transition-colors"
+              >
+                {link.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
 
-  /* Kill giant lock height & any sticky bars that can trap scroll on phones */
-  [data-section="experience"] [class*="lockWindow"] { height: auto !important; }
-  [data-section="experience"] [class*="subheaderSticky"] { position: relative !important; top: auto !important; }
+      <div className="container mx-auto px-6 grid md:grid-cols-2 items-center gap-10 md:gap-16">
+        {/* Copy (Title + details) — first on mobile, normal on desktop */}
+        <div className="space-y-5 order-1 md:order-none">
+          <h1 className={`${cinzel.className} text-4xl md:text-6xl leading-tight`}>
+            Canyen Palmer
+          </h1>
+          <p className="text-white/80">
+            Turning data into decisions.
+          </p>
+          <div className="flex gap-3 md:gap-4">
+            <a
+              href={LINKS.resume}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center justify-center rounded-lg border border-white/20 px-5 py-2.5 hover:bg-white/5"
+            >
+              View Résumé
+            </a>
+            <a
+              href="#projects"
+              className="inline-flex items-center justify-center rounded-lg bg-cyan-500/90 hover:bg-cyan-400/90 px-5 py-2.5"
+            >
+              See Projects
+            </a>
+          </div>
 
-  /* Neutralize deck geometry so content just flows in normal document order */
-  [data-section="experience"] [class*="stageHolder"],
-  [data-section="experience"] [class*="stack"] {
-    position: static !important; height: auto !important; width: 100% !important; transform: none !important; overflow: visible !important;
-  }
+          <SkillsBelt />
+          <NameStamp />
+        </div>
 
-  /* Cards: full-width, stacked once; keep card’s internal animations, not deck slides */
-  [data-section="experience"] [class*="card"] {
-    position: static !important; inset: auto !important; width: 100% !important; max-width: none !important;
-    margin: 0 0 1rem 0 !important; transform: none !important; opacity: 1 !important; transition: none !important;
-    overflow: visible !important; background: rgba(13,19,29,0.98) !important; backdrop-filter: none !important; z-index: 0 !important;
-  }
+        {/* Avatar / media — last on mobile, normal on desktop */}
+        <div className="justify-self-center order-2 md:order-none">
+          <figure className="relative">
+            <img
+              src="/images/avatar@2x.png"
+              alt="Canyen Palmer portrait"
+              className="block w-[280px] h-auto md:w-[360px]"
+              loading="eager"
+              decoding="async"
+            />
+            <figcaption className="sr-only">Portrait in hero section</figcaption>
+          </figure>
+        </div>
+      </div>
 
-  /* Expanded sections should never clip on phones */
-  [data-section="experience"] [class*="card"] *[class*="details"],
-  [data-section="experience"] [class*="card"] *[class*="content"],
-  [data-section="experience"] [class*="card"] *[class*="body"],
-  [data-section="experience"] [class*="card"] *[class*="inner"],
-  [data-section="experience"] [class*="card"] *[style*="max-height"] {
-    max-height: none !important; overflow: visible !important;
-  }
-
-  /* Metric tiles grid → one column on phones */
-  [data-section="experience"] [class*="metricsGrid"] { grid-template-columns: 1fr !important; }
-
-  /* ========= TESTIMONIALS (#testimonials) =========
-     Details (text) first, image directly below
-  -----------------------------------------------*/
-  /* Keep it surgical: only reshape the top-level two-column wrapper inside each card */
-  #testimonials [class*="card"] { display: grid !important; grid-template-columns: 1fr !important; align-items: start !important; gap: .75rem !important; }
-
-  /* Put any direct child that contains an <img> under the details block */
-  #testimonials [class*="card"] > *:has(img) { order: 2 !important; }
-  #testimonials [class*="card"] > :not(:has(img)) { order: 1 !important; }
-
-  /* Make testimonial images scale cleanly under the copy */
-  #testimonials img { width: 100%; height: auto; display: block; }
-
-  /* ========= SAFETY GUARDS ========= */
-  /* Prevent sideways nudges on small screens */
-  html, body { overflow-x: hidden; }
+      {/* Scroll prompt with low z-index so it never overlaps next section on phones */}
+      <div className="absolute bottom-6 left-0 right-0 z-[1] flex items-center justify-center">
+        <div className="text-base text-white/50">• Scroll to Explore •</div>
+      </div>
+    </section>
+  );
 }
+
 
 
 
