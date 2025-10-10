@@ -1,104 +1,71 @@
 /* Mobile-only fixes (≤768px). Desktop/laptop remain untouched. */
 @media (max-width: 768px) {
 
-  /* Avoid sideways nudges on phones */
-  html, body { overflow-x: hidden; }
-
-  /* =========================================================
+  /* =========================
      HERO (id="home")
-     - Nav on top (not absolute)
+     - Nav on top (no absolute)
      - Title/details next (.space-y-5)
      - Image LAST
-     ========================================================= */
+     ========================= */
   #home { padding-top: 3.25rem; }
 
-  /* Stop absolute positioning of the hero nav on phones */
+  /* Stop absolute nav in hero on phones */
   #home > nav {
     position: static !important;
     inset: auto !important;
-    right: auto !important;
-    top: auto !important;
     width: 100% !important;
     margin: 0 0 .75rem 0 !important;
     text-align: center;
-    z-index: auto !important;
   }
   #home nav ul { flex-wrap: wrap; row-gap: .5rem; column-gap: .75rem; justify-content: center; }
 
-  /* Force a single, predictable column */
+  /* Collapse hero grid to one column and ensure order */
   #home .container .grid {
     display: grid !important;
     grid-template-columns: 1fr !important;
     gap: 1rem !important;
     align-items: start !important;
   }
-  /* Ensure copy first, media last */
+  /* Put copy first, media last */
   #home .container .grid > .space-y-5 { order: 1 !important; }
-  #home .container .grid > :not(.space-y-5) { order: 5 !important; }
+  #home .container .grid > :not(.space-y-5) { order: 2 !important; }
 
-  /* Stack inline rows (CTAs, etc.) */
-  #home .space-y-5 [class*="flex"] { flex-direction: column !important; gap: .75rem !important; }
-  #home a.inline-flex, #home a[role="button"], #home .btn, #home button {
-    width: 100%; min-height: 44px; justify-content: center;
-  }
-
-  /* =========================================================
-     ABOUT (AboutMeShowcase)
-     - Ensure visibility (no transforms/opacity hiding)
-     - Image ABOVE details (grid already 1 col by default on mobile)
-     - No section-wide grid overrides (to avoid collateral)
-     ========================================================= */
-
-  /* Image/canvas block is uniquely labeled — make it visible/sane */
-  [aria-label="About images"] {
-    height: min(60vh, 560px) !important;
-    transform: none !important;
-    opacity: 1 !important;
-    filter: none !important;
-    overflow: visible !important;
-  }
-  [aria-label="About images"] .absolute { inset: 0 !important; }
-
-  /* Details (immediate sibling) likewise visible */
-  [aria-label="About images"] + div {
-    transform: none !important;
-    opacity: 1 !important;
-    filter: none !important;
-    overflow: visible !important;
-  }
-
-  /* =========================================================
+  /* =========================
      EXPERIENCE (data-section="experience")
-     - Cards visible (no lock trap / no glitches)
-     - Cards STACK vertically (no left/right slide-in)
-     - Expanded content fully readable (no clipping)
-     - IMPORTANT: CSS Modules are hashed; use substring selectors
-     ========================================================= */
+     - Disable lock/slide system on phones
+     - Show simple vertical list
+     - Expanded content fully visible
+     ========================= */
 
-  /* Kill transforms/locking on all animated descendants that cause glitches */
-  [data-section="experience"] *[style*="transform"] { transform: none !important; }
-  [data-section="experience"] *[style*="translate"] { transform: none !important; }
-  [data-section="experience"] *[style*="scale"] { transform: none !important; }
-
-  /* If visibility classes are toggled by state, force visible on phones */
-  [data-section="experience"] [class*="isHidden"] { visibility: visible !important; opacity: 1 !important; }
-  [data-section="experience"] [class*="isVisible"] { visibility: visible !important; opacity: 1 !important; }
-
-  /* Neutralize stage/fixed/stack geometry from the deck */
-  [data-section="experience"] [class*="lockWindow"],
-  [data-section="experience"] [class*="stageHolder"],
-  [data-section="experience"] [class*="stageFlow"],
-  [data-section="experience"] [class*="stageFixed"],
-  [data-section="experience"] [class*="stack"] {
-    position: relative !important;
+  /* Remove giant lock height and fixed geometry */
+  [data-section="experience"] [class*="lockWindow"] {
+    height: auto !important;
+  }
+  [data-section="experience"] [class*="subheaderSticky"] {
+    position: static !important;  /* avoid any sticky/fixed trapping */
     top: auto !important;
+  }
+
+  /* Always show flowing deck; hide locked deck */
+  [data-section="experience"] [class*="stageFlow"] {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+  [data-section="experience"] [class*="stageFixed"] {
+    display: none !important;
+  }
+
+  /* Neutralize stage/stack transforms and absolute positioning */
+  [data-section="experience"] [class*="stageHolder"],
+  [data-section="experience"] [class*="stack"] {
+    position: static !important;
     height: auto !important;
     width: 100% !important;
     transform: none !important;
-    overflow: visible !important;
   }
 
-  /* Cards: full-width, stacked, no animations, readable */
+  /* Cards: full-width, stacked, no motion transforms */
   [data-section="experience"] [class*="card"] {
     position: static !important;
     inset: auto !important;
@@ -108,41 +75,24 @@
     transform: none !important;
     opacity: 1 !important;
     transition: none !important;
-    visibility: visible !important;
-    background: rgba(13,19,29,0.98) !important; /* remove see-through on mobile */
-    backdrop-filter: none !important;
     z-index: auto !important;
-    cursor: auto !important;
+    overflow: visible !important;         /* let expanded content show */
+    background: rgba(13,19,29,0.98) !important; /* prevent see-through */
+    backdrop-filter: none !important;
   }
 
-  /* Any inner rows inside a card → vertical stack */
-  [data-section="experience"] [class*="card"] [class*="flex"] {
-    flex-direction: column !important;
-    gap: .6rem !important;
-  }
-
-  /* Expanded areas should never clip on phones */
-  [data-section="experience"] [class*="card"] *[class*="details"],
-  [data-section="experience"] [class*="card"] *[class*="content"],
-  [data-section="experience"] [class*="card"] *[class*="body"],
-  [data-section="experience"] [class*="card"] *[class*="inner"],
+  /* Any expanded areas should never clip on phones */
   [data-section="experience"] [class*="card"] *[style*="max-height"] {
     max-height: none !important;
     overflow: visible !important;
   }
 
-  /* Metric grid inside cards → one column on phones */
-  [data-section="experience"] [class*="metricsGrid"] { grid-template-columns: 1fr !important; }
-
-  /* Subheader/progress stays visible while scrolling */
-  [data-section="experience"] [class*="subheaderSticky"] {
-    position: sticky !important;
-    top: 0 !important;
-    z-index: 50 !important;
-    opacity: 1 !important;
-    background: linear-gradient(to bottom, rgba(11,16,22,0.95), rgba(11,16,22,0)) !important;
+  /* Metrics grid inside cards → one column */
+  [data-section="experience"] [class*="metricsGrid"] {
+    grid-template-columns: 1fr !important;
   }
 }
+
 
 
 
