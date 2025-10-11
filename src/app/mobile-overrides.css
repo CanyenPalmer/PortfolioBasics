@@ -3,39 +3,31 @@
 ========================================================= */
 @media (max-width: 768px) {
 
-  /* ------------------ HARD STOP sideways scroll ------------------ */
+  /* ---------- Page must only scroll vertically ---------- */
   html, body {
     max-width: 100vw !important;
-    overflow-x: hidden !important;     /* no horizontal page scroll */
+    overflow-x: hidden !important;
     overscroll-behavior-x: none !important;
-    touch-action: pan-y !important;    /* only vertical panning */
+    touch-action: pan-y !important; /* disable horizontal panning */
   }
+  img, video, canvas { max-width: 100%; height: auto; display: block; }
 
-  /* Anything that might accidentally exceed viewport width */
-  #home, #about, #experience, #projects, #education, #testimonials, #contact,
-  .container, [class*="container"], [class*="wrapper"], [class*="grid"] {
-    max-width: 100vw !important;
-    overflow-x: clip !important;       /* clip any stray wide child */
-  }
-
-  /* Long words/links won’t blow out the layout */
-  * { word-break: break-word; }
-
-  /* ------------------ Boot/visibility edge case ------------------ */
-  /* If boot overlay visibility sticks on phones, show content anyway */
+  /* If the boot overlay/visibility sticks on phones, show content anyway */
   html.mach-booting body > *:not(#boot-overlay) { visibility: visible !important; }
   #boot-overlay { display: none !important; }
 
-  /* ===================== HERO (#home) ===================== */
+  /* ---------------------------------------------
+     HERO (#home): show content, stack cleanly
+  ---------------------------------------------- */
   #home {
     overflow: visible !important;
     min-height: auto !important;
-    align-items: flex-start !important;     /* no vertical squish */
+    align-items: flex-start !important;     /* avoid vertical squeeze */
     padding-top: 4.5rem !important;
-    padding-bottom: 1rem !important;
+    padding-bottom: 1.25rem !important;
   }
 
-  /* Toolbar = single row, horizontal swipe inside the bar (not the page) */
+  /* Toolbar: single row, sideways scroll only inside the toolbar */
   #home > nav {
     position: static !important;
     width: 100% !important;
@@ -47,26 +39,25 @@
     flex-direction: row !important;
     flex-wrap: nowrap !important;           /* one line */
     white-space: nowrap !important;
-    overflow-x: auto !important;            /* sideways scroll ONLY here */
+    overflow-x: auto !important;            /* scroll inside the rail, not page */
     overflow-y: hidden !important;
     -webkit-overflow-scrolling: touch !important;
     gap: .75rem !important;
     padding: .25rem .5rem !important;
   }
   #home nav li { flex: 0 0 auto !important; }
-  #home nav a { display: inline-flex !important; align-items: center; }
 
-  /* Stack hero content: text first, image last — visible, no transforms */
-  #home .container .grid {
+  /* Stack: text/details first, image last; ensure visibility */
+  #home .grid {
     display: grid !important;
     grid-template-columns: 1fr !important;
-    gap: 1rem !important;
+    gap: 1.1rem !important;
     align-items: start !important;
   }
-  #home .container .grid > .space-y-5 { order: 1 !important; }
-  #home .container .grid > .justify-self-center,
-  #home .container .grid > figure     { order: 2 !important; }
-  #home .container .grid > * {
+  #home .grid > .space-y-5 { order: 1 !important; }
+  #home .grid > .justify-self-center,
+  #home .grid > figure { order: 2 !important; }
+  #home .grid > * {
     opacity: 1 !important;
     visibility: visible !important;
     transform: none !important;
@@ -76,102 +67,86 @@
     max-width: 100% !important;
   }
 
-  /* "Scroll to explore" prompt: make inline so it can’t overlay/hide */
-  #home > div[class*="absolute"][class*="bottom-"] {
-    position: static !important;
-    margin-top: .5rem !important;
-  }
+  /* Keep a little breathing room below the hero */
+  #home { border-bottom: 0; margin-bottom: 1rem; }
 
-  /* ===================== ABOUT (#about) ===================== */
+  /* ---------------------------------------------
+     ABOUT (#about): visible, single column
+  ---------------------------------------------- */
+  #about {
+    padding-top: .5rem !important;
+    padding-bottom: 1.25rem !important;
+  }
   #about .grid {
     display: grid !important;
     grid-template-columns: 1fr !important;
-    gap: 1rem !important;
+    gap: 1.1rem !important;
     align-items: start !important;
   }
+  #about .grid > * { max-width: 100% !important; }
   #about [aria-label="About images"] {
     opacity: 1 !important;
     transform: none !important;
     height: auto !important;
     overflow: visible !important;
-    max-width: 100% !important;
   }
   #about [aria-label="About images"] .absolute { inset: 0 !important; }
 
-  /* ============== EXPERIENCE ([data-section="experience"]) ============== */
-  /* Normalize geometry so cards behave like simple, in-flow blocks */
-  [data-section="experience"] .lockWindow       { height: auto !important; }
-  [data-section="experience"] .subheaderSticky  { position: relative !important; top: auto !important; }
-  [data-section="experience"] .stageHolder,
-  [data-section="experience"] .stageFlow,
-  [data-section="experience"] .stack {
-    position: static !important;
-    height: auto !important;
-    width: 100% !important;
-    transform: none !important;
-    overflow: visible !important;
-    max-width: 100% !important;
-  }
+  /* ---------------------------------------------
+     EXPERIENCE ([data-section="experience"])
+     Leave the cards’ behavior; just allow inner scroll for tall details
+  ---------------------------------------------- */
+  /* Prevent accidental width blowouts inside the section */
+  [data-section="experience"] { max-width: 100vw !important; overflow-x: hidden !important; }
 
-  /* Cards (including collapsed/focused/expanded variants) — no lateral transforms */
-  [data-section="experience"] .card,
-  [data-section="experience"] .cardCollapsed,
-  [data-section="experience"] .cardFocused,
-  [data-section="experience"] .cardExpanded {
-    position: relative !important;
-    inset: auto !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    margin: 0 0 1rem 0 !important;
-    transform: none !important;
-    opacity: 1 !important;
-    overflow: visible !important;
-  }
-
-  /* 🔑 Expanded details (that motion div with .mt-5) scrolls INSIDE the card */
-  [data-section="experience"] .cardExpanded .mt-5,
-  [data-section="experience"] .cardFocused  .mt-5,
-  [data-section="experience"] .card         .mt-5 {
-    max-height: calc(100dvh - 140px) !important; /* dynamic vh = stable on mobile */
+  /* Make the expanded details (motion.div.mt-5) scroll INSIDE the card on phones */
+  [data-section="experience"] .card .mt-5 {
+    max-height: calc(100vh - 140px) !important;  /* readable area on phones */
     overflow: auto !important;
     -webkit-overflow-scrolling: touch !important;
     overscroll-behavior: contain !important;
-    padding-top: 6px !important;
+    padding-top: 6px !important;                 /* avoid mobile UI trim */
     padding-bottom: 10px !important;
   }
-
-  /* The usual suspects for accidental width blowout inside details */
-  [data-section="experience"] .card .mt-5 * {
-    max-width: 100% !important;
+  /* Use modern dynamic viewport units where available */
+  @supports (height: 100dvh) {
+    [data-section="experience"] .card .mt-5 {
+      max-height: calc(100dvh - 140px) !important;
+    }
   }
+  /* Keep everything inside the details from forcing horizontal scroll */
+  [data-section="experience"] .card .mt-5 * { max-width: 100% !important; }
 
-  /* Slight, targeted type trim ONLY for the first (Lead Analyst) card */
+  /* Slight type trim ONLY for the first card (Lead Analyst) */
   [data-section="experience"] .stack > *:first-child {
     font-size: 0.95em !important;
     line-height: 1.45 !important;
   }
 
-  /* Metrics grid → single column on phones */
+  /* If you render metrics as a grid, keep it 1 column on phones */
   [data-section="experience"] .metricsGrid { grid-template-columns: 1fr !important; }
 
-  /* ===================== TESTIMONIALS (#testimonials) ===================== */
-  /* Each desktop pair wrapper uses md:flex-row/md:flex-row-reverse;
-     on phones we stack them and enforce order (details first, image below). */
+  /* ---------------------------------------------
+     TESTIMONIALS (#testimonials)
+     Per-item sections; details first, image directly below
+  ---------------------------------------------- */
+  /* The SinglePair wrapper uses md:flex-row / md:flex-row-reverse on desktop.
+     On phones, stack and enforce order with spacing. */
   #testimonials [class*="md:flex-row"],
   #testimonials [class*="md:flex-row-reverse"] {
     display: flex !important;
     flex-direction: column !important;
     align-items: stretch !important;
-    gap: .9rem !important;
-    margin-bottom: 1.25rem !important;
+    gap: 1rem !important;
+    margin-bottom: 1.25rem !important;   /* spacing between items */
     max-width: 100% !important;
   }
 
-  /* Robust ordering: put figure (image) under the details, regardless of alternation */
-  #testimonials [class*="md:flex-row"]    > figure,
-  #testimonials [class*="md:flex-row"]    > [class*="image"],
-  #testimonials [class*="md:flex-row"]    > [class*="img"],
-  #testimonials [class*="md:flex-row"]    > [class*="media"],
+  /* Details above image, regardless of alternation */
+  #testimonials [class*="md:flex-row"] > figure,
+  #testimonials [class*="md:flex-row"] > [class*="image"],
+  #testimonials [class*="md:flex-row"] > [class*="img"],
+  #testimonials [class*="md:flex-row"] > [class*="media"],
   #testimonials [class*="md:flex-row-reverse"] > figure,
   #testimonials [class*="md:flex-row-reverse"] > [class*="image"],
   #testimonials [class*="md:flex-row-reverse"] > [class*="img"],
@@ -180,26 +155,15 @@
     width: 100% !important;
     max-width: 100% !important;
   }
-
-  #testimonials [class*="md:flex-row"]    > :not(figure):not([class*="image"]):not([class*="img"]):not([class*="media"]),
+  #testimonials [class*="md:flex-row"] > :not(figure):not([class*="image"]):not([class*="img"]):not([class*="media"]),
   #testimonials [class*="md:flex-row-reverse"] > :not(figure):not([class*="image"]):not([class*="img"]):not([class*="media"]) {
     order: 1 !important;
     max-width: 100% !important;
   }
-
-  /* Images full-width under details; never cause horizontal scroll */
   #testimonials img {
     width: 100% !important;
     height: auto !important;
     display: block !important;
-    max-width: 100% !important;
-  }
-
-  /* Kill sticky/fixed bits in testimonials that could create weird layers */
-  #testimonials [style*="position: sticky"],
-  #testimonials [style*="position: fixed"] {
-    position: static !important;
-    top: auto !important;
   }
 }
 
